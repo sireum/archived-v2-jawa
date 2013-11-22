@@ -15,6 +15,7 @@ trait TaintNode {
   def getDescriptors : ISet[TaintDescriptor]
   def isSource : Boolean
   def isSink : Boolean
+  def isSame(tn : TaintNode) : Boolean
 }
 
 trait TaintPath {
@@ -22,6 +23,7 @@ trait TaintPath {
   def getSink : TaintNode
   def getTypes : ISet[String]
   def getPath : IList[InterproceduralDataDependenceAnalysis.Edge]
+  def isSame(tp : TaintPath) : Boolean
 }
 
 trait TaintAnalysisResult {
