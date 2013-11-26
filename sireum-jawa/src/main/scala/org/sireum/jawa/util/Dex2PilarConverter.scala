@@ -3,9 +3,10 @@ package org.sireum.jawa.util
 import java.io._
 import org.sireum.util._
 import java.net.URI
+import org.sireum.jawa.GlobalConfig
 
 object Dex2PilarConverter {
-	val dexdumputil = Util(new File("/Volumes/android/WORKING_DIRECTORY/out/host/darwin-x86/bin/dexdump"))
+	val dexdumputil = Util(new File(System.getenv(GlobalConfig.DEXDUMP_DIR) + "dexdump"))
 	
 	def convert(f : FileResourceUri) : FileResourceUri = {
 	  if (f.endsWith("dex") || f.endsWith("odex")) {
