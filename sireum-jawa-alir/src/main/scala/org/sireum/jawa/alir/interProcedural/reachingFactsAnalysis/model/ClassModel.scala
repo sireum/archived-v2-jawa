@@ -1,21 +1,23 @@
 package org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.model
 
-import org.sireum.amandroid._
+import org.sireum.jawa._
 import org.sireum.util._
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.RFAFact
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.VarSlot
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.RFAConcreteStringInstance
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.FieldSlot
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.RFAPointStringInstance
-import org.sireum.amandroid.util.StringFormConverter
-import org.sireum.amandroid.MessageCenter._
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.RFAFact
+import org.sireum.jawa.alir.Context
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.VarSlot
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.RFAConcreteStringInstance
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.FieldSlot
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.RFAPointStringInstance
+import org.sireum.jawa.util.StringFormConverter
+import org.sireum.jawa.MessageCenter._
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
+import org.sireum.jawa.alir.JawaAlirInfoProvider
+import org.sireum.jawa.alir.ClassInstance
 
 object ClassModel {
-	def isClass(r : AmandroidRecord) : Boolean = r.getName == "[|java:lang:Class|]"
+	def isClass(r : JawaRecord) : Boolean = r.getName == "[|java:lang:Class|]"
 	  
-	def doClassCall(s : ISet[RFAFact], p : AmandroidProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def doClassCall(s : ISet[RFAFact], p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
@@ -181,7 +183,7 @@ object ClassModel {
             val recordOpt = Center.tryLoadRecord(recordName, Center.ResolveLevel.BODIES)
             recordOpt match{
               case Some(record) =>
-            		newfacts += RFAFact(VarSlot(retVar), record.getClassObj)
+            		newfacts += RFAFact(VarSlot(retVar), JawaAlirInfoProvider.getClassInstance(record))
               case None =>
                 System.err.println("Given class name probably come from another app: " + cIns)
             }

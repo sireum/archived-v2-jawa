@@ -1,7 +1,10 @@
 package org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis
 
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid._
+import org.sireum.jawa.alir.Context
+import org.sireum.jawa.alir.Instance
+import org.sireum.jawa.Type
+import org.sireum.jawa.TupleType
+import org.sireum.jawa.NormalType
 
 abstract class RFAAbstractInstance extends Instance
 

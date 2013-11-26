@@ -3,14 +3,12 @@ package org.sireum.jawa.alir.interProcedural.controlFlowGraph
 import org.sireum.pilar.symbol.ProcedureSymbolTable
 import org.sireum.alir.ControlFlowGraph
 import org.sireum.util._
-import org.sireum.amandroid.interProcedural.pointsToAnalysis._
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid.util._
+import org.sireum.jawa.alir.interProcedural.pointsToAnalysis._
 import java.io._
-import org.sireum.amandroid._
-import org.sireum.amandroid.interProcedural.objectFlowAnalysis.InvokePointNode
-import org.sireum.amandroid.Transform
 import org.sireum.pilar.ast.NameExp
+import org.sireum.jawa._
+import org.sireum.jawa.alir._
+import org.sireum.jawa.alir.interProcedural.objectFlowAnalysis.InvokePointNode
 
 
 /**
@@ -28,7 +26,7 @@ class InterproceduralControlFlowGraphBuilder {
 	 * @param wholeProgram Building call graph in whole program mode or not
 	 * @return Set of reachable procedure resource uris from initial procedure
 	 */
-	def getReachableProcedures(procedure : AmandroidProcedure, wholeProgram : Boolean) : Set[AmandroidProcedure] = {
+	def getReachableProcedures(procedure : JawaProcedure, wholeProgram : Boolean) : Set[JawaProcedure] = {
     val pag = new PointerAssignmentGraph[PtaNode]()
     val cg = new InterproceduralControlFlowGraph[CGNode]
     pta(pag, cg, Set(procedure), wholeProgram)
@@ -41,14 +39,14 @@ class InterproceduralControlFlowGraphBuilder {
 	 * @param wholeProgram Building call graph in whole program mode or not
 	 * @return Set of reachable procedure resource uris from initial set
 	 */
-	def getReachableProcedures(procedures : Set[AmandroidProcedure], wholeProgram : Boolean) : Set[AmandroidProcedure] = {
+	def getReachableProcedures(procedures : Set[JawaProcedure], wholeProgram : Boolean) : Set[JawaProcedure] = {
 	  val pag = new PointerAssignmentGraph[PtaNode]()
     val cg = new InterproceduralControlFlowGraph[CGNode]
     pta(pag, cg, procedures, wholeProgram)
     cg.getReachableProcedure(procedures)
 	}
   
-  def buildAppOnly(entryPoints : ISet[AmandroidProcedure]) : InterproceduralControlFlowGraph[CGNode] = {
+  def buildAppOnly(entryPoints : ISet[JawaProcedure]) : InterproceduralControlFlowGraph[CGNode] = {
     val pag = new PointerAssignmentGraph[PtaNode]()
     val cg = new InterproceduralControlFlowGraph[CGNode]
     pta(pag, cg, entryPoints, false)
@@ -56,7 +54,7 @@ class InterproceduralControlFlowGraphBuilder {
     result
   }
 
-  def buildWholeProgram(entryPoints : ISet[AmandroidProcedure]) : InterproceduralControlFlowGraph[CGNode] = {
+  def buildWholeProgram(entryPoints : ISet[JawaProcedure]) : InterproceduralControlFlowGraph[CGNode] = {
     val pag = new PointerAssignmentGraph[PtaNode]()
     val cg = new InterproceduralControlFlowGraph[CGNode]
     pta(pag, cg, entryPoints, true)
@@ -66,7 +64,7 @@ class InterproceduralControlFlowGraphBuilder {
   
   def pta(pag : PointerAssignmentGraph[PtaNode],
           cg : InterproceduralControlFlowGraph[CGNode],
-          entryPoints : Set[AmandroidProcedure],
+          entryPoints : Set[JawaProcedure],
           wholeProgram : Boolean) = {
     entryPoints.foreach{
 		  ep =>
@@ -75,7 +73,7 @@ class InterproceduralControlFlowGraphBuilder {
     }
   }
   
-  def doPTA(ep : AmandroidProcedure,
+  def doPTA(ep : JawaProcedure,
             pag : PointerAssignmentGraph[PtaNode],
             cg : InterproceduralControlFlowGraph[CGNode],
             wholeProgram : Boolean) : Unit = {
@@ -214,7 +212,7 @@ class InterproceduralControlFlowGraphBuilder {
     piOpt match {
       case Some(pi) =>
         val callerContext : Context = node.getContext
-        val calleeSet : MSet[AmandroidProcedure] = msetEmpty
+        val calleeSet : MSet[JawaProcedure] = msetEmpty
         if(pi.typ.equals("direct")){
           calleeSet += pag.getDirectCallee(pi)
         } else if(pi.typ.equals("super")){
@@ -298,7 +296,7 @@ class InterproceduralControlFlowGraphBuilder {
   }
   
   // callee is signature
-  def extendGraphWithConstructGraph(calleeProc : AmandroidProcedure, 
+  def extendGraphWithConstructGraph(calleeProc : JawaProcedure, 
       															pi : PointI, 
       															callerContext : Context,
       															pag : PointerAssignmentGraph[PtaNode], 

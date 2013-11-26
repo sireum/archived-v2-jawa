@@ -2,17 +2,18 @@ package org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis
 
 import org.sireum.util._
 import org.sireum.alir.Slot
-import org.sireum.amandroid.Instance
+import org.sireum.jawa.alir.Instance
 import org.sireum.pilar.ast._
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid.AmandroidProcedure
-import org.sireum.amandroid.Center
-import org.sireum.amandroid.MessageCenter._
-import org.sireum.amandroid.NullInstance
-import org.sireum.amandroid.UnknownInstance
-import org.sireum.amandroid.util.StringFormConverter
-import org.sireum.amandroid.NormalType
-import org.sireum.amandroid.Type
+import org.sireum.jawa.alir.Context
+import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.Center
+import org.sireum.jawa.MessageCenter._
+import org.sireum.jawa.alir.NullInstance
+import org.sireum.jawa.alir.UnknownInstance
+import org.sireum.jawa.util.StringFormConverter
+import org.sireum.jawa.NormalType
+import org.sireum.jawa.Type
+import org.sireum.jawa.alir.JawaAlirInfoProvider
 
 object ReachingFactsAnalysisHelper {
 	def getFactMap(s : ISet[RFAFact]) : Map[Slot, Set[Instance]] = s.groupBy(_.s).mapValues(_.map(_.v))
@@ -63,7 +64,7 @@ object ReachingFactsAnalysisHelper {
     result
   }
 	
-	def getCalleeSet(s : ISet[RFAFact], cj : CallJump, callerContext : Context) : ISet[AmandroidProcedure] = {
+	def getCalleeSet(s : ISet[RFAFact], cj : CallJump, callerContext : Context) : ISet[JawaProcedure] = {
     val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
     val sig = cj.getValueAnnotation("signature") match {
         case Some(s) => s match {
@@ -80,7 +81,7 @@ object ReachingFactsAnalysisHelper {
         }
         case None => throw new RuntimeException("cannot found annotation 'type' from: " + cj)
       }
-    var calleeSet = isetEmpty[AmandroidProcedure]
+    var calleeSet = isetEmpty[JawaProcedure]
     if(typ == "virtual" || typ == "interface" || typ == "super" || typ == "direct"){
       cj.callExp.arg match{
         case te : TupleExp => 
@@ -126,7 +127,7 @@ object ReachingFactsAnalysisHelper {
 	  } else None
 	}
 	
-	def getUnknownObject(calleeProc : AmandroidProcedure, s : ISet[RFAFact], args : Seq[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
+	def getUnknownObject(calleeProc : JawaProcedure, s : ISet[RFAFact], args : Seq[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
 	  var genFacts : ISet[RFAFact] = isetEmpty
 	  var killFacts : ISet[RFAFact] = isetEmpty
     val argSlots = args.map(arg=>VarSlot(arg))
@@ -143,7 +144,7 @@ object ReachingFactsAnalysisHelper {
 	  (genFacts, killFacts)
 	}
 	
-	def checkAndGetUnknownObjectForClinit(calleeProc : AmandroidProcedure, currentContext : Context) : ISet[RFAFact] = {
+	def checkAndGetUnknownObjectForClinit(calleeProc : JawaProcedure, currentContext : Context) : ISet[RFAFact] = {
 	  var result : ISet[RFAFact] = isetEmpty
 	  val record = calleeProc.getDeclaringRecord
     record.getDeclaredStaticObjectTypeFields.foreach{
@@ -251,7 +252,7 @@ object ReachingFactsAnalysisHelper {
             if(slot.isGlobal && StringFormConverter.getFieldNameFromFieldSignature(slot.varName) == "class"){
               val baseName = StringFormConverter.getRecordNameFromFieldSignature(slot.varName)
               val rec = Center.resolveRecord(baseName, Center.ResolveLevel.BODIES)
-              value += rec.getClassObj
+              value += JawaAlirInfoProvider.getClassInstance(rec)
             } else if(slot.isGlobal){
               Center.findStaticField(ne.name.name) match{
                 case Some(af) =>

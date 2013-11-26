@@ -1,20 +1,16 @@
 package org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.model
 
 import org.sireum.util._
-import org.sireum.amandroid._
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.VarSlot
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.RFAPointStringInstance
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.RFAInstance
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.RFAFact
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.RFAConcreteStringInstance
+import org.sireum.jawa._
+import org.sireum.jawa.alir.Context
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis._
+import org.sireum.jawa.alir.Instance
 
 /**
  * @author Fengguo Wei & Sankardas Roy
  */
 object StringModel {
-	def isString(r : AmandroidRecord) : Boolean = r.getName == "[|java:lang:String|]"
+	def isString(r : JawaRecord) : Boolean = r.getName == "[|java:lang:String|]"
 	
 	private def getReturnFactsWithAlias(rType : Type, retVar : String, currentContext : Context, alias : ISet[Instance]) : ISet[RFAFact] = 
     alias.map{a=>RFAFact(VarSlot(retVar), a)}
@@ -76,7 +72,7 @@ object StringModel {
    
   }
 	  
-	def doStringCall(s : ISet[RFAFact], p : AmandroidProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def doStringCall(s : ISet[RFAFact], p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
 	  var newFacts = isetEmpty[RFAFact]
 	  var deleteFacts = isetEmpty[RFAFact]

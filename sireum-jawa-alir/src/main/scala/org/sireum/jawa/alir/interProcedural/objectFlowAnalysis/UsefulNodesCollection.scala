@@ -1,7 +1,7 @@
 package org.sireum.jawa.alir.interProcedural.objectFlowAnalysis
 
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid._
+import org.sireum.jawa.alir.Context
+import org.sireum.jawa._
 
 case class ProcedurePointNode[Node](thisEntryNodeOpt : Option[Node], 
     																 thisExitNodeOpt : Option[Node], 

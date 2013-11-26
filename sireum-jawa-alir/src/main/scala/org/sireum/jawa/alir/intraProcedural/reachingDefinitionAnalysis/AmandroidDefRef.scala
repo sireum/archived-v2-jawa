@@ -9,11 +9,11 @@ import org.sireum.alir.Slot
 import org.sireum.pilar.symbol.H
 import org.sireum.alir.VarSlot
 import org.sireum.pilar.symbol.Symbol.pp2r
-import org.sireum.amandroid.AmandroidCodeSource
-import org.sireum.amandroid.Transform
-import org.sireum.amandroid.Center
-import org.sireum.amandroid.AmandroidResolver
-import org.sireum.amandroid.util.StringFormConverter
+import org.sireum.jawa.JawaCodeSource
+import org.sireum.jawa.Transform
+import org.sireum.jawa.Center
+import org.sireum.jawa.JawaResolver
+import org.sireum.jawa.util.StringFormConverter
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>

@@ -1,9 +1,9 @@
 package org.sireum.jawa.alir.interProcedural.objectFlowAnalysis
 
-import org.sireum.amandroid.util.CombinationIterator
+import org.sireum.jawa.util.CombinationIterator
 import org.sireum.util.ResourceUri
-import org.sireum.amandroid._
-import org.sireum.amandroid.interProcedural.Context
+import org.sireum.jawa._
+import org.sireum.jawa.alir.Context
 
 trait JavaObjectModelForOfa[Node <: OfaNode, ValueSet <: NormalValueSet] {
 	/**

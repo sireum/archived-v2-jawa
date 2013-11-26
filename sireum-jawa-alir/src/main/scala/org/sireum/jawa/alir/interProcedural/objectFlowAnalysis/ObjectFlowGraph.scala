@@ -12,8 +12,8 @@ import org.sireum.alir.AlirEdge
 import org.jgrapht.ext.VertexNameProvider
 import java.io.Writer
 import org.jgrapht.ext.DOTExporter
-import org.sireum.amandroid._
-import org.sireum.amandroid.interProcedural.Context
+import org.sireum.jawa._
+import org.sireum.jawa.alir.Context
 
 abstract class ObjectFlowGraph[Node <: OfaNode, ValueSet <: NormalValueSet](val fac: () => ValueSet)
   extends AlirGraph[Node]
@@ -753,16 +753,16 @@ abstract class ObjectFlowGraph[Node <: OfaNode, ValueSet <: NormalValueSet](val 
     }
   }
   
-  def getDirectCallee(pi : PointI) : AmandroidProcedure = Center.getDirectCalleeProcedure(pi.varName)
+  def getDirectCallee(pi : PointI) : JawaProcedure = Center.getDirectCalleeProcedure(pi.varName)
   
-  def getStaticCallee(pi : PointI) : AmandroidProcedure = Center.getStaticCalleeProcedure(pi.varName)
+  def getStaticCallee(pi : PointI) : JawaProcedure = Center.getStaticCalleeProcedure(pi.varName)
   
   /**
    * This is the beta method in original algo
    */ 
   def getCalleeSet(diff : ValueSet,
-	                 pi : PointI) : MSet[AmandroidProcedure] = {
-    val calleeSet : MSet[AmandroidProcedure] = msetEmpty
+	                 pi : PointI) : MSet[JawaProcedure] = {
+    val calleeSet : MSet[JawaProcedure] = msetEmpty
     diff.instances.foreach{
       d => 
         val p = Center.getProcedureWithoutFailing(pi.varName)

@@ -12,12 +12,14 @@ import org.sireum.alir.AlirEdge
 import org.jgrapht.ext.VertexNameProvider
 import java.io.Writer
 import org.jgrapht.ext.DOTExporter
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid._
-import org.sireum.amandroid.interProcedural.objectFlowAnalysis.InvokePointNode
-import org.sireum.amandroid.interProcedural.InterProceduralGraph
-import org.sireum.amandroid.interProcedural.InterProceduralNode
-import org.sireum.amandroid.util.StringFormConverter
+import org.sireum.jawa.alir.Context
+import org.sireum.jawa._
+import org.sireum.jawa.alir.interProcedural.objectFlowAnalysis.InvokePointNode
+import org.sireum.jawa.alir.interProcedural.InterProceduralGraph
+import org.sireum.jawa.alir.interProcedural.InterProceduralNode
+import org.sireum.jawa.util.StringFormConverter
+import org.sireum.jawa.alir.PTAInstance
+import org.sireum.jawa.alir.JawaAlirInfoProvider
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -210,7 +212,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
    * to the given program point. If a value is added to a node, then that 
    * node is added to the worklist.
    */
-  def constructGraph(ap : AmandroidProcedure, ps : MList[Point], callerContext : Context) = {
+  def constructGraph(ap : JawaProcedure, ps : MList[Point], callerContext : Context) = {
     ps.foreach(
       p=>{
         collectNodes(ap.getSignature, p, callerContext.copy)
@@ -218,7 +220,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
     )
     ps.foreach(
       p=>{
-        val constraintMap = applyConstraint(p, ps, ap.getCfg, ap.getRda)
+        val constraintMap = applyConstraint(p, ps, JawaAlirInfoProvider.getCfg(ap), JawaAlirInfoProvider.getRda(ap))
         buildingEdges(constraintMap, ap.getSignature, callerContext.copy)
       }  
     )
@@ -476,13 +478,13 @@ class PointerAssignmentGraph[Node <: PtaNode]
     }
   }
   
-  def getDirectCallee(pi : PointI) : AmandroidProcedure = Center.getDirectCalleeProcedure(pi.varName)
+  def getDirectCallee(pi : PointI) : JawaProcedure = Center.getDirectCalleeProcedure(pi.varName)
   
-  def getStaticCallee(pi : PointI) : AmandroidProcedure = Center.getStaticCalleeProcedure(pi.varName)
+  def getStaticCallee(pi : PointI) : JawaProcedure = Center.getStaticCalleeProcedure(pi.varName)
   
   def getSuperCalleeSet(diff : MSet[PTAInstance],
-	                 pi : PointI) : MSet[AmandroidProcedure] = {
-    val calleeSet : MSet[AmandroidProcedure] = msetEmpty
+	                 pi : PointI) : MSet[JawaProcedure] = {
+    val calleeSet : MSet[JawaProcedure] = msetEmpty
     diff.foreach{
       d =>
         val p = Center.getSuperCalleeProcedure(pi.varName)
@@ -492,8 +494,8 @@ class PointerAssignmentGraph[Node <: PtaNode]
   }
 
   def getVirtualCalleeSet(diff : MSet[PTAInstance],
-	                 pi : PointI) : MSet[AmandroidProcedure] = {
-    val calleeSet : MSet[AmandroidProcedure] = msetEmpty
+	                 pi : PointI) : MSet[JawaProcedure] = {
+    val calleeSet : MSet[JawaProcedure] = msetEmpty
     val subSig = Center.getSubSigFromProcSig(pi.varName)
     diff.foreach{
       d =>

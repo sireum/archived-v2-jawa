@@ -1,18 +1,19 @@
 package org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.model
 
-import org.sireum.amandroid.AmandroidRecord
+import org.sireum.jawa.JawaRecord
 import org.sireum.util._
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis._
-import org.sireum.amandroid.Instance
-import org.sireum.amandroid.AmandroidProcedure
-import org.sireum.amandroid.Center
-import org.sireum.amandroid.Type
-import org.sireum.amandroid.NormalType
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
+import org.sireum.jawa.alir.Context
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis._
+import org.sireum.jawa.alir.Instance
+import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.Center
+import org.sireum.jawa.Type
+import org.sireum.jawa.NormalType
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
+import org.sireum.jawa.alir.Context
 
 object HashSetModel {
-	def isHashSet(r : AmandroidRecord) : Boolean = r.getName == "[|java:util:HashSet|]"
+	def isHashSet(r : JawaRecord) : Boolean = r.getName == "[|java:util:HashSet|]"
 	  
   private def addItemToHashSetField(s : ISet[RFAFact], args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
@@ -37,7 +38,7 @@ object HashSetModel {
 	  thisValue.map{s => RFAFact(VarSlot(retVar), s.clone(currentContext))}
   }
   
-  def doHashSetCall(s : ISet[RFAFact], p : AmandroidProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+  def doHashSetCall(s : ISet[RFAFact], p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true

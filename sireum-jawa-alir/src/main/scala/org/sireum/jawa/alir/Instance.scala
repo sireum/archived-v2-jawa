@@ -4,6 +4,7 @@ import org.sireum.util._
 import org.sireum.jawa.NullType
 import org.sireum.jawa.Type
 import org.sireum.jawa.UnknownType
+import org.sireum.jawa.NormalType
 
 abstract class Instance{
   def typ : Type

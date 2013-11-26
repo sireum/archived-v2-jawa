@@ -1,21 +1,21 @@
 package org.sireum.jawa.alir.interProcedural.dataDependenceAnalysis
 
-import org.sireum.amandroid.interProcedural.controlFlowGraph._
-import org.sireum.amandroid.interProcedural.InterProceduralMonotonicFunction
+import org.sireum.jawa.alir.interProcedural.controlFlowGraph._
+import org.sireum.jawa.alir.interProcedural.InterProceduralMonotonicFunction
 import org.sireum.util._
-import org.sireum.amandroid.interProcedural.Context
+import org.sireum.jawa.alir.Context
 import org.sireum.pilar.ast.CallJump
 import org.sireum.pilar.ast.ProcedureDecl
-import org.sireum.amandroid.interProcedural.CallResolver
-import org.sireum.amandroid.GlobalConfig
-import org.sireum.amandroid.interProcedural.InterProceduralMonotoneDataFlowAnalysisFramework
+import org.sireum.jawa.alir.interProcedural.CallResolver
+import org.sireum.jawa.GlobalConfig
+import org.sireum.jawa.alir.interProcedural.InterProceduralMonotoneDataFlowAnalysisFramework
 import org.sireum.alir.VarSlot
 import org.sireum.alir.InitDefDesc
-import org.sireum.amandroid.AmandroidProcedure
-import org.sireum.amandroid.PilarAstHelper
+import org.sireum.jawa.PilarAstHelper
 import org.sireum.alir._
-import org.sireum.amandroid.interProcedural.NodeListener
-import org.sireum.amandroid.intraProcedural.reachingDefinitionAnalysis.AmandroidReachingDefinitionAnalysis
+import org.sireum.jawa.alir.interProcedural.NodeListener
+import org.sireum.jawa.alir.intraProcedural.reachingDefinitionAnalysis.AmandroidReachingDefinitionAnalysis
+import org.sireum.jawa.alir.JawaAlirInfoProvider
 
 object InterproceduralReachingDefinitionAnalysis {
   type RDFact = AmandroidReachingDefinitionAnalysis.RDFact
@@ -53,8 +53,8 @@ class InterproceduralReachingDefinitionAnalysis {
     cg.nodes.foreach{
 	    node =>
 	      val owner = node.getOwner
-	      val cfg = owner.getCfg
-	      val rda = owner.getRda
+	      val cfg = JawaAlirInfoProvider.getCfg(owner)
+	      val rda = JawaAlirInfoProvider.getRda(owner)
 	      node match{
 	        case cvn : CGVirtualNode =>
 	          val rdafact = rda.entrySet(cfg.getVirtualNode(cvn.getVirtualLabel))

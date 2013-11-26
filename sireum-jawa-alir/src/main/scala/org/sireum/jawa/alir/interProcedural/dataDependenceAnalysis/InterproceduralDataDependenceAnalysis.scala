@@ -2,24 +2,24 @@ package org.sireum.jawa.alir.interProcedural.dataDependenceAnalysis
 
 import org.sireum.pilar.ast._
 import org.sireum.util._
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis._
-import org.sireum.amandroid.Center
-import org.sireum.amandroid.MessageCenter._
-import org.sireum.amandroid.NullInstance
-import org.sireum.amandroid.UnknownInstance
-import org.sireum.amandroid.AmandroidProcedure
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis._
+import org.sireum.jawa.Center
+import org.sireum.jawa.MessageCenter._
+import org.sireum.jawa.alir.NullInstance
+import org.sireum.jawa.alir.UnknownInstance
+import org.sireum.jawa.JawaProcedure
 import org.sireum.alir.ReachingDefinitionAnalysis
 import org.sireum.alir.ControlFlowGraph
 import org.sireum.alir.ParamDefDesc
 import org.sireum.alir.LocDefDesc
 import org.sireum.alir.InitDefDesc
-import org.sireum.amandroid.interProcedural.Context
+import org.sireum.jawa.alir.Context
 import org.sireum.alir.DefDesc
-import org.sireum.amandroid.interProcedural.controlFlowGraph._
-import org.sireum.amandroid.PilarAstHelper
+import org.sireum.jawa.alir.interProcedural.controlFlowGraph._
+import org.sireum.jawa.PilarAstHelper
 import org.sireum.alir.AlirEdge
-import org.sireum.amandroid.interProcedural.InterProceduralMonotoneDataFlowAnalysisResult
+import org.sireum.jawa.alir.interProcedural.InterProceduralMonotoneDataFlowAnalysisResult
 
 trait InterproceduralDataDependenceInfo{
   def getIddg : InterProceduralDataDependenceGraph[InterproceduralDataDependenceAnalysis.Node]

@@ -1,9 +1,9 @@
 package org.sireum.jawa.alir.interProcedural.pointsToAnalysis
 
 import org.sireum.util._
-import org.sireum.amandroid.interProcedural.objectFlowAnalysis.InvokePointNode
-import org.sireum.amandroid.PTAInstance
-import org.sireum.amandroid._
+import org.sireum.jawa.alir.interProcedural.objectFlowAnalysis.InvokePointNode
+import org.sireum.jawa.alir.PTAInstance
+import org.sireum.jawa.NormalType
 
 trait JavaObjectModelForPta[Node <: PtaNode] {
 	/**

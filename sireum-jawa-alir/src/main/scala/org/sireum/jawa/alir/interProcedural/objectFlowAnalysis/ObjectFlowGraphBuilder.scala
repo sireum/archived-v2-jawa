@@ -6,7 +6,7 @@ import org.sireum.util._
 import org.sireum.pilar.symbol.ProcedureSymbolTable
 import org.sireum.pilar.ast._
 import org.sireum.alir.ReachingDefinitionAnalysis
-import org.sireum.amandroid._
+import org.sireum.jawa._
 
 abstract class ObjectFlowGraphBuilder[Node <: OfaNode, ValueSet <: NormalValueSet] {
 

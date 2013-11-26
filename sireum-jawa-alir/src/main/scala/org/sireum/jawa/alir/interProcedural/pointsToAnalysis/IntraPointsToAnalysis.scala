@@ -4,23 +4,23 @@ import org.sireum.pilar.symbol.ProcedureSymbolTable
 import org.sireum.alir.ControlFlowGraph
 import org.sireum.util._
 import java.io._
-import org.sireum.amandroid.PointsCollector
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid.AmandroidProcedure
+import org.sireum.jawa.PointsCollector
+import org.sireum.jawa.alir.Context
+import org.sireum.jawa.JawaProcedure
 
 class IntraPointsToAnalysis {
 
-  def apply(ap : AmandroidProcedure)
+  def apply(ap : JawaProcedure)
   = build(ap)
 
-  def build(ap : AmandroidProcedure)
+  def build(ap : JawaProcedure)
    : PointerAssignmentGraph[PtaNode] = {
     val pag = new PointerAssignmentGraph[PtaNode]()
     doPTA(ap, pag)
     pag
   }
   
-  def doPTA(ap : AmandroidProcedure,
+  def doPTA(ap : JawaProcedure,
             pag : PointerAssignmentGraph[PtaNode]) : Unit = {
     val points = new PointsCollector().points(ap.getSignature, ap.getProcedureBody)
     val context : Context = new Context(pag.K_CONTEXT)

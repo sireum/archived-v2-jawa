@@ -1,13 +1,14 @@
 package org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.model
 
-import org.sireum.amandroid._
+import org.sireum.jawa._
 import org.sireum.util._
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis._
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis._
+import org.sireum.jawa.alir.Context
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
+import org.sireum.jawa.alir.Instance
 
 object HashMapModel {
-	def isHashMap(r : AmandroidRecord) : Boolean = r.getName == "[|java:util:HashMap|]"
+	def isHashMap(r : JawaRecord) : Boolean = r.getName == "[|java:util:HashMap|]"
 	
 	private def getPointStringToRet(retVar : String, currentContext : Context): RFAFact = {
     val newThisValue = RFAPointStringInstance(currentContext.copy)
@@ -128,7 +129,7 @@ object HashMapModel {
 	  result
   }
 	
-	def doHashMapCall(s : ISet[RFAFact], p : AmandroidProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def doHashMapCall(s : ISet[RFAFact], p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true

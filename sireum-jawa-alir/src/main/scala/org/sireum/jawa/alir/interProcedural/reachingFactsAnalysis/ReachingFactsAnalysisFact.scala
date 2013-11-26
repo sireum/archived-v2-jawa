@@ -2,7 +2,7 @@ package org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis
 
 import org.sireum.alir.DefRef
 import org.sireum.alir.Slot
-import org.sireum.amandroid.Instance
+import org.sireum.jawa.alir.Instance
 import org.sireum.util._
 
 final case class VarSlot(varName : String) extends Slot{

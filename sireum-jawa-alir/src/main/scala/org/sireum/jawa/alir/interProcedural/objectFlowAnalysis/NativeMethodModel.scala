@@ -1,7 +1,7 @@
 package org.sireum.jawa.alir.interProcedural.objectFlowAnalysis
 
 import org.sireum.util._
-import org.sireum.amandroid.util.CombinationIterator
+import org.sireum.jawa.util.CombinationIterator
 import org.sireum.pilar.symbol.ProcedureSymbolTable
 import org.sireum.pilar.ast.NameExp
 

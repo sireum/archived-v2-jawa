@@ -1,16 +1,16 @@
 package org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.model
 
-import org.sireum.amandroid.AmandroidProcedure
+import org.sireum.jawa.JawaProcedure
 import org.sireum.util._
-import org.sireum.amandroid.AmandroidRecord
-import org.sireum.amandroid.Type
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid.Center
-import org.sireum.amandroid.NormalType
+import org.sireum.jawa.JawaRecord
+import org.sireum.jawa.Type
+import org.sireum.jawa.alir.Context
+import org.sireum.jawa.Center
+import org.sireum.jawa.NormalType
 import org.sireum.alir.Slot
-import org.sireum.amandroid.Instance
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis._
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
+import org.sireum.jawa.alir.Instance
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis._
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
 
 /**
  * @author Fengguo Wei & Sankardas Roy
@@ -20,7 +20,7 @@ trait ModelCallHandler {
   /**
    * return true if the given callee procedure needs to be modeled
    */
-  def isModelCall(calleeProc : AmandroidProcedure) : Boolean = {
+  def isModelCall(calleeProc : JawaProcedure) : Boolean = {
 	  val r = calleeProc.getDeclaringRecord
 	  StringBuilderModel.isStringBuilder(r) ||
 	  StringModel.isString(r) || 
@@ -34,7 +34,7 @@ trait ModelCallHandler {
   /**
    * instead of doing operation inside callee procedure's real code, we do it manually and return the result. 
    */
-	def doModelCall(s : ISet[RFAFact], calleeProc : AmandroidProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : ISet[RFAFact] = {
+	def doModelCall(s : ISet[RFAFact], calleeProc : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : ISet[RFAFact] = {
 	  var (newFacts, delFacts, byPassFlag) = caculateResult(s, calleeProc, args, retVars, currentContext)
 	  if(byPassFlag){
 	  	val (newF, delF) = ReachingFactsAnalysisHelper.getUnknownObject(calleeProc, s, args, retVars, currentContext)
@@ -44,7 +44,7 @@ trait ModelCallHandler {
 	  s ++ newFacts -- delFacts
 	}
 	
-	def caculateResult(s : ISet[RFAFact], calleeProc : AmandroidProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def caculateResult(s : ISet[RFAFact], calleeProc : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  val r = calleeProc.getDeclaringRecord
 	  if(StringModel.isString(r)) StringModel.doStringCall(s, calleeProc, args, retVars, currentContext)
 	  else if(StringBuilderModel.isStringBuilder(r)) StringBuilderModel.doStringBuilderCall(s, calleeProc, args, retVars, currentContext)

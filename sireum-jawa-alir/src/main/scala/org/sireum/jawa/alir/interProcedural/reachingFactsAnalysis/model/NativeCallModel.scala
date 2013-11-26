@@ -1,20 +1,21 @@
 package org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.model
 
-import org.sireum.amandroid.AmandroidProcedure
+import org.sireum.jawa.JawaProcedure
 import org.sireum.util._
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis._
-import org.sireum.amandroid.Center
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid.ClassInstance
-import org.sireum.amandroid.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis._
+import org.sireum.jawa.Center
+import org.sireum.jawa.alir.Context
+import org.sireum.jawa.alir.ClassInstance
+import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.ReachingFactsAnalysisHelper
+import org.sireum.jawa.alir.JawaAlirInfoProvider
 
 /**
  * @author Fengguo Wei & Sankardas Roy
  */
 object NativeCallModel {
-	 def isNativeCall(p : AmandroidProcedure) : Boolean = p.isNative
+	 def isNativeCall(p : JawaProcedure) : Boolean = p.isNative
 	 
-	 def doNativeCall(s : ISet[RFAFact], p : AmandroidProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	 def doNativeCall(s : ISet[RFAFact], p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
@@ -31,9 +32,10 @@ object NativeCallModel {
 	        ins =>
 	          require(Center.hasRecord(ins.getType.typ))
 	          val insRec = Center.getRecord(ins.getType.typ)
-	          newFacts += (RFAFact(VarSlot(retVars(0)), insRec.getClassObj))
-	          val strIns = RFAConcreteStringInstance(insRec.getClassObj.getName, insRec.getClassObj.getDefSite)
-	          newFacts += (RFAFact(FieldSlot(insRec.getClassObj, "[|java:lang:Class.name|]"), strIns))
+	          val insClasObj = JawaAlirInfoProvider.getClassInstance(insRec)
+	          newFacts += RFAFact(VarSlot(retVars(0)), insClasObj)
+	          val strIns = RFAConcreteStringInstance(insClasObj.getName, insClasObj.getDefSite)
+	          newFacts += (RFAFact(FieldSlot(insClasObj, "[|java:lang:Class.name|]"), strIns))
 	      }
 	      byPassFlag = false
 	    case "[|Ljava/lang/Class;.getNameNative:()Ljava/lang/String;|]" =>

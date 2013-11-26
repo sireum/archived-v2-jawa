@@ -2,7 +2,7 @@ package org.sireum.jawa.alir.interProcedural.objectFlowAnalysis
 
 import org.sireum.util._
 import org.sireum.alir._
-import org.sireum.amandroid._
+import org.sireum.jawa._
 
 trait ConstraintModel[ValueSet <: NormalValueSet] extends ObjectFlowRepo[ValueSet]{
   

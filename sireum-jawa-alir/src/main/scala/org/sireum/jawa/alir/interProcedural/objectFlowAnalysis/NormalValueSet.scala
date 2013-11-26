@@ -1,7 +1,6 @@
 package org.sireum.jawa.alir.interProcedural.objectFlowAnalysis
 
 import org.sireum.util._
-import org.sireum.amandroid.interProcedural._
 
 class NormalValueSet{
   def copy : NormalValueSet = {

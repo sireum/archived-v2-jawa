@@ -3,7 +3,7 @@ package org.sireum.jawa.alir.util
 import org.sireum.jawa.JawaProcedure
 import org.sireum.pilar.ast._
 import org.sireum.util._
-import org.sireum.jawa.alir.JawaAlirTransform
+import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.alir.ControlFlowGraph
 import org.sireum.alir.ReachingDefinitionAnalysis
 import org.sireum.alir.LocDefDesc
@@ -12,8 +12,8 @@ object ExplicitValueFinder {
 	def findExplicitIntValueForArgs(procedure : JawaProcedure, loc : JumpLocation, argNum : Int) : ISet[Int] = {
 	  loc.jump match{
 	    case t : CallJump if t.jump.isEmpty =>
-	      val cfg = JawaAlirTransform.getCfg(procedure)
-		    val rda = JawaAlirTransform.getRda(procedure)
+	      val cfg = JawaAlirInfoProvider.getCfg(procedure)
+		    val rda = JawaAlirInfoProvider.getRda(procedure)
 		    val params = t.callExp.arg match {
 		      case te : TupleExp =>
 		        te.exps.map{exp=>exp.asInstanceOf[NameExp].name.name}
@@ -69,8 +69,8 @@ object ExplicitValueFinder {
 	def findExplicitStringValueForArgs(procedure : JawaProcedure, loc : JumpLocation, argNum : Int) : ISet[String] = {
 	  loc.jump match{
 	    case t : CallJump if t.jump.isEmpty =>
-	      val cfg = JawaAlirTransform.getCfg(procedure)
-		    val rda = JawaAlirTransform.getRda(procedure)
+	      val cfg = JawaAlirInfoProvider.getCfg(procedure)
+		    val rda = JawaAlirInfoProvider.getRda(procedure)
 		    val slots = rda.entrySet(cfg.getNode(Some(loc.name.get.uri), loc.index))
 		    val params = t.callExp.arg match {
 		      case te : TupleExp =>

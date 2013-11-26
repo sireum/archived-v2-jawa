@@ -8,15 +8,16 @@ import org.jgrapht.ext.VertexNameProvider
 import java.io._
 import org.jgrapht.ext.DOTExporter
 import dk.brics.automaton._
-import org.sireum.amandroid.intraProcedural.compressedControlFlowGraph.AlirIntraProceduralGraphExtra
-import org.sireum.amandroid.AmandroidProcedure
-import org.sireum.amandroid.interProcedural.InterProceduralGraph
-import org.sireum.amandroid.interProcedural.InterProceduralNode
-import org.sireum.amandroid.interProcedural.Context
+import org.sireum.jawa.alir.intraProcedural.compressedControlFlowGraph.AlirIntraProceduralGraphExtra
+import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.alir.interProcedural.InterProceduralGraph
+import org.sireum.jawa.alir.interProcedural.InterProceduralNode
+import org.sireum.jawa.alir.Context
 import scala.collection.immutable.BitSet
 import scala.collection.mutable.SynchronizedMap
 import scala.collection.mutable.HashMap
 import org.jgrapht.alg.DijkstraShortestPath
+import org.sireum.jawa.alir.JawaAlirInfoProvider
 
 /**
  * @author Fengguo Wei & Sankardas Roy
@@ -47,13 +48,13 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   def exitNode : Node = this.exitN.asInstanceOf[Node]
   
   
-  private val processed : MMap[(AmandroidProcedure, Context), ISet[Node]] = new HashMap[(AmandroidProcedure, Context), ISet[Node]] with SynchronizedMap[(AmandroidProcedure, Context), ISet[Node]]
+  private val processed : MMap[(JawaProcedure, Context), ISet[Node]] = new HashMap[(JawaProcedure, Context), ISet[Node]] with SynchronizedMap[(JawaProcedure, Context), ISet[Node]]
   
-  def isProcessed(proc : AmandroidProcedure, callerContext : Context) : Boolean = processed.contains(proc, callerContext)
+  def isProcessed(proc : JawaProcedure, callerContext : Context) : Boolean = processed.contains(proc, callerContext)
   
   def getProcessed = this.processed
   
-  def entryNode(proc : AmandroidProcedure, callerContext : Context) : Node = {
+  def entryNode(proc : JawaProcedure, callerContext : Context) : Node = {
     require(isProcessed(proc, callerContext))
     processed(proc, callerContext).foreach{
       n => if(n.isInstanceOf[CGEntryNode]) return n
@@ -72,21 +73,21 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
    * map from procedures to it's callee procedures
    */
   
-  private var callMap : IMap[AmandroidProcedure, ISet[AmandroidProcedure]] = imapEmpty
+  private var callMap : IMap[JawaProcedure, ISet[JawaProcedure]] = imapEmpty
   
-  def setCallMap(from : AmandroidProcedure, to : AmandroidProcedure) = this.callMap += (from -> (this.callMap.getOrElse(from, isetEmpty) + to))
+  def setCallMap(from : JawaProcedure, to : JawaProcedure) = this.callMap += (from -> (this.callMap.getOrElse(from, isetEmpty) + to))
 
-  def getReachableProcedure(procs : Set[AmandroidProcedure]) : Set[AmandroidProcedure] = {
+  def getReachableProcedure(procs : Set[JawaProcedure]) : Set[JawaProcedure] = {
     caculateReachableProcedure(procs, isetEmpty) ++ procs
   }
   
-  private def caculateReachableProcedure(procs : Set[AmandroidProcedure], processed : Set[AmandroidProcedure]) : Set[AmandroidProcedure] = {
+  private def caculateReachableProcedure(procs : Set[JawaProcedure], processed : Set[JawaProcedure]) : Set[JawaProcedure] = {
     if(procs.isEmpty) Set()
     else
       procs.map{
 	      proc =>
 	        if(processed.contains(proc)){
-	          Set[AmandroidProcedure]()
+	          Set[JawaProcedure]()
 	        } else {
 		        val callees = this.callMap.getOrElse(proc, isetEmpty)
 		        callees ++ caculateReachableProcedure(callees, processed ++ callees)
@@ -284,10 +285,10 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     this.succBranchMap ++= cg.succBranchMap
   }
   
-  def collectCfgToBaseGraph[VirtualLabel](calleeProc : AmandroidProcedure, callerContext : Context, isFirst : Boolean = false) = {
+  def collectCfgToBaseGraph[VirtualLabel](calleeProc : JawaProcedure, callerContext : Context, isFirst : Boolean = false) = {
     val calleeSig = calleeProc.getSignature
     val body = calleeProc.getProcedureBody
-    val cfg = calleeProc.getCfg
+    val cfg = JawaAlirInfoProvider.getCfg(calleeProc)
     var nodes = isetEmpty[Node]
     cfg.nodes map{
       n =>
@@ -554,9 +555,9 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 }
 
 sealed abstract class CGNode(context : Context) extends InterProceduralNode(context){
-  protected var owner : AmandroidProcedure = null
+  protected var owner : JawaProcedure = null
   protected var loadedClassBitSet : BitSet = BitSet.empty
-  def setOwner(owner : AmandroidProcedure)  = this.owner = owner
+  def setOwner(owner : JawaProcedure)  = this.owner = owner
   def getOwner = this.owner
   def setLoadedClassBitSet(bitset : BitSet) = this.loadedClassBitSet = bitset
   def getLoadedClassBitSet = this.loadedClassBitSet
@@ -590,8 +591,8 @@ abstract class CGLocNode(context : Context) extends CGNode(context) {
 abstract class CGInvokeNode(context : Context) extends CGLocNode(context) {
   final val CALLEES = "callee_set"
   def getInvokeLabel : String
-  def setCalleeSet(calleeSet : ISet[AmandroidProcedure]) = this.setProperty(CALLEES, calleeSet)
-  def getCalleeSet : ISet[AmandroidProcedure] = this.getPropertyOrElse(CALLEES, isetEmpty)
+  def setCalleeSet(calleeSet : ISet[JawaProcedure]) = this.setProperty(CALLEES, calleeSet)
+  def getCalleeSet : ISet[JawaProcedure] = this.getPropertyOrElse(CALLEES, isetEmpty)
   override def toString : String = getInvokeLabel + "@" + context
 }
 

@@ -1,8 +1,8 @@
 package org.sireum.jawa.alir.interProcedural.objectFlowAnalysis
 
-import org.sireum.amandroid.Type
-import org.sireum.amandroid.interProcedural.Context
-import org.sireum.amandroid.Instance
+import org.sireum.jawa.Type
+import org.sireum.jawa.alir.Context
+import org.sireum.jawa.alir.Instance
 
 abstract class OFAInstance(typ : Type, defSite : Context) extends Instance{
 

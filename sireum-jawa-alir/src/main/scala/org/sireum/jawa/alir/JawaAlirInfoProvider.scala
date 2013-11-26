@@ -15,6 +15,12 @@ import org.sireum.jawa.symbolResolver.JawaSymbolTableBuilder
 import org.sireum.alir.AlirIntraProceduralGraph
 import org.sireum.jawa.alir.intraProcedural.reachingDefinitionAnalysis.AmandroidReachingDefinitionAnalysis
 import org.sireum.jawa.GlobalConfig
+import org.sireum.jawa.Center
+import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaRecord
+import org.sireum.jawa.util.StringFormConverter
+import org.sireum.jawa.Transform
+import org.sireum.pilar.ast.NameExp
 
 object JawaAlirInfoProvider {
   
@@ -108,7 +114,7 @@ object JawaAlirInfoProvider {
 	}
 	
 	private def doGetIntraProcedureResult(models : List[Model]) : Map[ResourceUri, TransformIntraProcedureResult] = {
-	  val result = JawaSymbolTableBuilder(models, fst, par)
+	  val result = JawaSymbolTableBuilder(models, Transform.fst, Transform.par)
 	  result.procedureSymbolTables.map{
 	    pst=>
 	      val (pool, cfg) = buildCfg(pst)

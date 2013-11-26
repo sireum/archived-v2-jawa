@@ -1,8 +1,8 @@
 package org.sireum.jawa.alir.interProcedural.dataDependenceAnalysis
 
-import org.sireum.amandroid._
-import org.sireum.amandroid.interProcedural.controlFlowGraph._
-import org.sireum.amandroid.interProcedural.Context
+import org.sireum.jawa._
+import org.sireum.jawa.alir.interProcedural.controlFlowGraph._
+import org.sireum.jawa.alir.Context
 import org.jgrapht.alg.DijkstraShortestPath
 
 class InterProceduralDataDependenceGraph[Node <: CGNode] extends InterproceduralControlFlowGraph[Node]{

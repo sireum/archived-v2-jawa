@@ -2,8 +2,8 @@ package org.sireum.jawa.alir.interProcedural.taintAnalysis
 
 import org.sireum.util.ISet
 import org.sireum.util.IList
-import org.sireum.amandroid.interProcedural.InterProceduralGraph
-import org.sireum.amandroid.interProcedural.dataDependenceAnalysis.InterproceduralDataDependenceAnalysis
+import org.sireum.jawa.alir.interProcedural.InterProceduralGraph
+import org.sireum.jawa.alir.interProcedural.dataDependenceAnalysis.InterproceduralDataDependenceAnalysis
 
 trait TaintDescriptor {
   def name : String

@@ -2,8 +2,8 @@ package org.sireum.jawa.alir.interProcedural.pointsToAnalysis
 
 import org.sireum.util._
 import org.sireum.alir._
-import org.sireum.amandroid._
-import org.sireum.amandroid.intraProcedural.reachingDefinitionAnalysis.AmandroidReachingDefinitionAnalysis
+import org.sireum.jawa.alir.intraProcedural.reachingDefinitionAnalysis.AmandroidReachingDefinitionAnalysis
+import org.sireum.jawa._
 
 trait PAGConstraint{
   
