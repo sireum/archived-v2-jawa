@@ -14,15 +14,15 @@ object LightWeightPilarParser {
     
   val DEBUG = false
   
-  def apply(source : Either[String, InputStream], typ : JawaCodeSource.CodeType.Value) =
+  def apply(source : Either[String, FileResourceUri], typ : JawaCodeSource.CodeType.Value) =
     parseModel(source, typ)
 
-  def parseModel(source : Either[String, InputStream], typ : JawaCodeSource.CodeType.Value) = {
+  def parseModel(source : Either[String, FileResourceUri], typ : JawaCodeSource.CodeType.Value) = {
     source match {
       case Left(code) =>
         readModelChunks(new StringReader(code), typ)
-      case Right(inputStream) =>
-        val fr = new InputStreamReader(inputStream)
+      case Right(fileResourceUri) =>
+        val fr = new FileReader(new File(new URI(fileResourceUri)))
         try readModelChunks(fr, typ) finally fr.close
     }
     if(DEBUG)

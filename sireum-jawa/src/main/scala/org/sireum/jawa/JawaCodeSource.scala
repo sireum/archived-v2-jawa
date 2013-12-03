@@ -17,10 +17,10 @@ object JawaCodeSource {
    * pre-load all the code of the library
    */
   
-  def preLoad(inputStreams : ISet[InputStream]) = {
-    inputStreams.foreach{
-      in =>
-        LightWeightPilarParser(Right(in), CodeType.LIBRARY)
+  def preLoad(fileResourceUris : ISet[FileResourceUri]) = {
+    fileResourceUris.foreach{
+      fUri =>
+        LightWeightPilarParser(Right(fUri), CodeType.LIBRARY)
     }
     this.preLoaded = true
   }
@@ -29,9 +29,9 @@ object JawaCodeSource {
    * load code from given file resource
    */
   
-//  def load(fileUri : FileResourceUri, typ : CodeType.Value) = {
-//    LightWeightPilarParser(Right(fileUri), typ)
-//  }
+  def load(fileUri : FileResourceUri, typ : CodeType.Value) = {
+    LightWeightPilarParser(Right(fileUri), typ)
+  }
   
   
   

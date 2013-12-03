@@ -6,7 +6,8 @@ import java.net.URI
 import org.sireum.jawa.GlobalConfig
 
 object Dex2PilarConverter {
-	val dexdumputil = Util(new File(System.getenv(GlobalConfig.DEXDUMP_DIR) + "dexdump"))
+  val dexdumpDir = System.getenv(GlobalConfig.DEXDUMP_DIR)
+	val dexdumputil = if(dexdumpDir != null) Util(new File(dexdumpDir + "/dexdump")) else throw new RuntimeException("Does not have env var: " + GlobalConfig.DEXDUMP_DIR)
 	
 	def convert(f : FileResourceUri) : FileResourceUri = {
 	  if (f.endsWith("dex") || f.endsWith("odex")) {
