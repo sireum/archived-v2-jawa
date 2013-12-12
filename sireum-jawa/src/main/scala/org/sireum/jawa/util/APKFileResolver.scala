@@ -16,7 +16,7 @@ object APKFileResolver {
   /**
    * given an APK file uri, the following method returns the uri of the inner dex file
    */
-	def getDexFile(apkUri : FileResourceUri) : FileResourceUri = {
+	def getDexFile(apkUri : FileResourceUri, outputDir : Option[String] = None) : FileResourceUri = {
     //create directory
 	  val apkFile = new File(new URI(apkUri))
 	  val zipis = new ZipInputStream(new FileInputStream(apkFile))
@@ -26,7 +26,10 @@ object APKFileResolver {
     if(!dirc.exists()){
       dirc.mkdirs()
     }
-	  val ops = new FileOutputStream(dirc + "/" + dirName + ".dex")
+	  val ops = outputDir match{
+	    case Some(path) => new FileOutputStream(path + "/" + dirName + ".dex")
+	    case None => new FileOutputStream(dirc + "/" + dirName + ".dex")
+	  }
     //resolve with apk file
     while(zipis.available() == 1){
       val ze = zipis.getNextEntry()
@@ -43,6 +46,9 @@ object APKFileResolver {
     }
 	  ops.flush()
 	  zipis.close()
-    FileUtil.toUri(dirc + "/" + dirName + ".dex")
+	  outputDir match{
+	    case Some(path) => FileUtil.toUri(path + "/" + dirName + ".dex")
+	    case None => FileUtil.toUri(dirc + "/" + dirName + ".dex")
+	  }
 	}
 }

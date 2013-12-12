@@ -14,8 +14,6 @@ object GlobalConfig {
 	 */
 	final var mode : Mode.Value = Mode.APP_ONLY
 	
-	final val DEXDUMP_DIR = "ANDROID_DEXDUMP_DIR"
-	
 	/**
 	 * call graph context length
 	 */
