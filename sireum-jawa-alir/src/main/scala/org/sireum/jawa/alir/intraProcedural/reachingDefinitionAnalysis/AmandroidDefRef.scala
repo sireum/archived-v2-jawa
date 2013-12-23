@@ -14,6 +14,7 @@ import org.sireum.jawa.Transform
 import org.sireum.jawa.Center
 import org.sireum.jawa.JawaResolver
 import org.sireum.jawa.util.StringFormConverter
+import org.sireum.jawa.MessageCenter._
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -144,11 +145,11 @@ final class AmandroidDefRef(st: SymbolTable, val varAccesses: VarAccesses)
             case Some(u) => uri = u
             case None =>
           }
-          if(uri == null) throw new RuntimeException("global var " + ne.name.name + " cannot resolved.")
+          if(uri == null) err_msg_normal("global var " + ne.name.name + " cannot resolved.")
         } else {
           uri = ne.name.uri
         }
-        result = result + VarSlot(uri)
+        if(uri != null) result += VarSlot(uri)
       }
       lhss.keys.foreach{
         case key=>

@@ -87,14 +87,14 @@ abstract class ProcedureGenerator {
 		this.callbackFunctions = callbackFunctions
 	}
   
-	def generate(name : String) : JawaProcedure = {
+	def generate(name : String) : (JawaProcedure, String) = {
 	  generate(List(), name)
 	}
   
 	/**
 	 * generate environment with predefined methods list
 	 */
-  def generate(methods : List[String], name : String) : JawaProcedure = {
+  def generate(methods : List[String], name : String) : (JawaProcedure, String) = {
     val recordName = this.currentComponent
     val procedureName = recordName.substring(0, recordName.length() - 2) + "." + name + "|]"
 	  val annotations = new ArrayList[ST]
@@ -102,10 +102,10 @@ abstract class ProcedureGenerator {
 	  initProcedureHead("[|void|]", procedureName, recordName, signature, "STATIC")
 	  val code = generateInternal(List())
     msg_normal("environment code:\n" + code)
-    JawaResolver.resolveProcedureCode(signature, code)
+    (JawaResolver.resolveProcedureCode(signature, code), code)
   }
   
-  def generateWithParam(params : List[String], name : String) : JawaProcedure = {
+  def generateWithParam(params : List[String], name : String) : (JawaProcedure, String) = {
     val recordName = this.currentComponent
     val procedureName = recordName.substring(0, recordName.length() - 2) + "." + name + "|]"
 	  val annotations = new ArrayList[ST]
@@ -129,7 +129,7 @@ abstract class ProcedureGenerator {
     procDeclTemplate.add("params", paramArray)
     val code = generateInternal(List())
     msg_critical("environment code:\n" + code)
-    JawaResolver.resolveProcedureCode(signature, code)
+    (JawaResolver.resolveProcedureCode(signature, code), code)
   }
   
   protected def generateParamAnnotation(flag : String, params : List[String]) : ST = {
