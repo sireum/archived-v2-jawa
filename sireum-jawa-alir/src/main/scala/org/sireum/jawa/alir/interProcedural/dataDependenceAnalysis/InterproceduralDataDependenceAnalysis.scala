@@ -45,7 +45,6 @@ object InterproceduralDataDependenceAnalysis {
 		    getDependentPath(src, dst) != null
 		  }
     }
-    
     val irdaResult = InterproceduralReachingDefinitionAnalysis(cg)
 	  val iddg = new InterProceduralDataDependenceGraph[Node]
 	  iddg.initGraph(cg)
@@ -71,6 +70,8 @@ object InterproceduralDataDependenceAnalysis {
 	          case _ =>
 	        }
 	      }
+//	      println("node:" + node)
+//	      println("tarNodes:" + targetNodes)
 	      targetNodes.foreach(tn=>iddg.addEdge(node, tn))
 	  }
 	  

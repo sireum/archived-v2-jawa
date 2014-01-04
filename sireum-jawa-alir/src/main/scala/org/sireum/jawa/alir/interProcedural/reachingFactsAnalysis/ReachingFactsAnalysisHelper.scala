@@ -256,7 +256,7 @@ object ReachingFactsAnalysisHelper {
             } else if(slot.isGlobal){
               Center.findStaticField(ne.name.name) match{
                 case Some(af) =>
-                  value ++= factMap.getOrElse(VarSlot(af.getSignature), isetEmpty[Instance])
+                  value ++= factMap.getOrElse(VarSlot(af.getSignature), isetEmpty[Instance] + UnknownInstance(currentContext))
                 case None =>
                   err_msg_normal("Given field may be in other library: " + ne.name.name)
               }
