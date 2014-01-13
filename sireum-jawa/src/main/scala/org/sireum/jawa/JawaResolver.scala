@@ -25,7 +25,7 @@ object JawaResolver {
     
   def resolveProcedureCode(procSig : String, code : String) : JawaProcedure = {
     val st = Transform.getSymbolResolveResult(Set(code))
-    resolveFromST(st, false)
+    resolveFromST(st, Center.ResolveLevel.BODY, GlobalConfig.jawaResolverParallel)
     Center.getProcedureWithoutFailing(procSig)
   }
   
@@ -66,7 +66,8 @@ object JawaResolver {
   def tryResolveRecord(recordName : String, desiredLevel : Center.ResolveLevel.Value) : Option[JawaRecord] = {
     if(JawaCodeSource.containsRecord(recordName)){
 	    val r = desiredLevel match{
-	      case Center.ResolveLevel.BODIES => resolveToBodies(recordName)
+	      case Center.ResolveLevel.BODY => resolveToBody(recordName)
+	      case Center.ResolveLevel.HIERARCHY => resolveToHierarchy(recordName)
 	      case Center.ResolveLevel.NO => new JawaRecord().init(recordName)
 	    }
 	    Some(r)
@@ -94,7 +95,8 @@ object JawaResolver {
       } else Center.getRecord(recordName)
     } else {
 	    desiredLevel match{
-	      case Center.ResolveLevel.BODIES => resolveToBodies(recordName)
+	      case Center.ResolveLevel.BODY => resolveToBody(recordName)
+	      case Center.ResolveLevel.HIERARCHY => resolveToHierarchy(recordName)
 	      case Center.ResolveLevel.NO => 
 	        val rec = new JawaRecord().init(recordName)
 	        Center.tryRemoveRecord(recordName)
@@ -110,7 +112,8 @@ object JawaResolver {
     
   def forceResolveRecord(recordName : String, desiredLevel : Center.ResolveLevel.Value) : JawaRecord = {
     desiredLevel match{
-      case Center.ResolveLevel.BODIES => forceResolveToBodies(recordName)
+      case Center.ResolveLevel.BODY => forceResolveToBody(recordName)
+      case Center.ResolveLevel.HIERARCHY => forceResolveToHierarchy(recordName)
       case Center.ResolveLevel.NO =>
         val rec = new JawaRecord().init(recordName)
         Center.tryRemoveRecord(recordName)
@@ -120,11 +123,28 @@ object JawaResolver {
   }
   
   /**
-   * resolve the given record to body level
+   * resolve the given record to hierarchy level
    */
   
-  def resolveToBodies(recordName : String) : JawaRecord = {
-    if(!Center.containsRecord(recordName) || Center.getRecord(recordName).getResolvingLevel < Center.ResolveLevel.BODIES) forceResolveToBodies(recordName)
+  def resolveToHierarchy(recordName : String) : JawaRecord = {
+    if(!Center.containsRecord(recordName) || Center.getRecord(recordName).getResolvingLevel < Center.ResolveLevel.HIERARCHY) forceResolveToHierarchy(recordName)
+    Center.getRecord(recordName)
+  }
+  
+  /**
+   * force resolve the given record to hierarchy level
+   */
+  
+  def forceResolveToHierarchy(recordName : String) : JawaRecord = {
+    val typ = StringFormConverter.getTypeFromName(recordName)
+    if(typ.isArray){
+      resolveArrayRecord(typ)
+    } else {
+	    val code = JawaCodeSource.getRecordCode(recordName, Center.ResolveLevel.HIERARCHY)
+	    val st = Transform.getSymbolResolveResult(Set(code))
+	    Center.tryRemoveRecord(recordName)
+	    resolveFromST(st, Center.ResolveLevel.HIERARCHY, GlobalConfig.jawaResolverParallel)
+    }
     Center.getRecord(recordName)
   }
   
@@ -132,15 +152,24 @@ object JawaResolver {
    * resolve the given record to body level
    */
   
-  def forceResolveToBodies(recordName : String) : JawaRecord = {
+  def resolveToBody(recordName : String) : JawaRecord = {
+    if(!Center.containsRecord(recordName) || Center.getRecord(recordName).getResolvingLevel < Center.ResolveLevel.BODY) forceResolveToBody(recordName)
+    Center.getRecord(recordName)
+  }
+  
+  /**
+   * force resolve the given record to body level
+   */
+  
+  def forceResolveToBody(recordName : String) : JawaRecord = {
     val typ = StringFormConverter.getTypeFromName(recordName)
     if(typ.isArray){
       resolveArrayRecord(typ)
     } else {
-	    val code = JawaCodeSource.getRecordCode(recordName)
+	    val code = JawaCodeSource.getRecordCode(recordName, Center.ResolveLevel.BODY)
 	    val st = Transform.getSymbolResolveResult(Set(code))
 	    Center.tryRemoveRecord(recordName)
-	    resolveFromST(st, false)
+	    resolveFromST(st, Center.ResolveLevel.BODY, GlobalConfig.jawaResolverParallel)
     }
     Center.getRecord(recordName)
   }
@@ -155,7 +184,7 @@ object JawaResolver {
       if(Center.isJavaPrimitiveType(typ.typ)){
       	"FINAL_PUBLIC"
 	    } else {
-	      val base = Center.resolveRecord(typ.typ, Center.ResolveLevel.BODIES)
+	      val base = resolveRecord(typ.typ, Center.ResolveLevel.HIERARCHY)
 	      val baseaf = base.getAccessFlagString
 	      if(baseaf.contains("FINAL")) baseaf else "FINAL_" + baseaf
 	    }
@@ -164,23 +193,22 @@ object JawaResolver {
     rec.setAccessFlags(recAccessFlag)
     rec.addNeedToResolveExtends(Set(Center.DEFAULT_TOPLEVEL_OBJECT))
     if(Center.isInnerClassName(recName)) rec.needToResolveOuterName = Some(Center.getOuterNameFrom(recName))
-    rec.setResolvingLevel(Center.ResolveLevel.BODIES)
+    rec.setResolvingLevel(Center.ResolveLevel.BODY)
     Center.addRecord(rec)
     rec.addField(createClassField(rec))
 	  Center.resolveRecordsRelationWholeProgram
-//	  else Center.resolveRecordsRelation
   }
     
   /**
    * resolve all the records, fields and procedures from symbol table producer which are provided from symbol table model
    */
 	
-	def resolveFromST(st : SymbolTable, par : Boolean) : Unit = {
+	def resolveFromST(st : SymbolTable, level : Center.ResolveLevel.Value, par : Boolean) : Unit = {
     if(!JawaCodeSource.isPreLoaded) throw new RuntimeException("In whole program mode but library code did not been pre-loaded, call AmandroidCodeSource.preLoad first.")
     val stp = st.asInstanceOf[SymbolTableProducer]
-	  resolveRecords(stp, par)
-	  resolveGlobalVars(stp, par)
-	  resolveProcedures(stp, par)
+	  resolveRecords(stp, level, par)
+	  resolveGlobalVars(stp, level, par)
+	  resolveProcedures(stp, level, par)
 	  if(DEBUG){
 	    Center.printDetails
 	  }
@@ -190,7 +218,7 @@ object JawaResolver {
 	 * collect record info from symbol table
 	 */
 	
-	def resolveRecords(stp : SymbolTableProducer, par : Boolean) = {
+	def resolveRecords(stp : SymbolTableProducer, level : Center.ResolveLevel.Value, par : Boolean) = {
 	  if(DEBUG) println("Doing " + TITLE + ". Resolve records parallel: " + par)
 	  val col : GenMap[ResourceUri, RecordDecl] = if(par) stp.tables.recordTable.par else stp.tables.recordTable
 	  val records = col.map{
@@ -231,7 +259,7 @@ object JawaResolver {
 	          f.setAccessFlags(fieldAccessFlag)
 	          rec.addField(f)
 	      }
-	      rec.setResolvingLevel(Center.ResolveLevel.BODIES)
+	      rec.setResolvingLevel(level)
 	      rec
 	  }
 	  records.foreach(Center.addRecord(_))
@@ -256,7 +284,7 @@ object JawaResolver {
 	 * collect global variables info from the symbol table
 	 */
 	
-	def resolveGlobalVars(stp : SymbolTableProducer, par : Boolean) = {
+	def resolveGlobalVars(stp : SymbolTableProducer, level : Center.ResolveLevel.Value, par : Boolean) = {
 	  if(DEBUG) println("Doing " + TITLE + ". Resolve global variables parallel: " + par)
 	  val col : GenMap[ResourceUri, GlobalVarDecl] = if(par) stp.tables.globalVarTable.par else stp.tables.globalVarTable
 	  val ownerRelation = col.map{
@@ -284,6 +312,7 @@ object JawaResolver {
 	      val f : JawaField = new JawaField
 	      f.init(globalVarSig, globalVarType)
 	      f.setAccessFlags(globalVarAccessFlag)
+	      f.setResolvingLevel(level)
 	      val ownerRecord = Center.getRecord(ownerName)
 	      (f, ownerRecord)
 	  }
@@ -298,7 +327,7 @@ object JawaResolver {
 	 * collect procedure info from symbol table
 	 */
 	
-	def resolveProcedures(stp : SymbolTableProducer, par : Boolean) = {
+	def resolveProcedures(stp : SymbolTableProducer, level : Center.ResolveLevel.Value, par : Boolean) = {
 	  if(DEBUG) println("Doing " + TITLE + ". Resolve procedures parallel: " + par)
 	  val col : GenMap[ResourceUri, ProcedureDecl] = if(par) stp.tables.procedureAbsTable.par else stp.tables.procedureAbsTable
 	  val ownerRelation = col.map{
@@ -327,18 +356,21 @@ object JawaResolver {
 	      proc.init(procName, procSig)
 	      proc.setAccessFlags(procAccessFlag)
 	      proc.setParameterNames(paramNames)
+	      proc.setResolvingLevel(level)
 	      val ownerRecord = Center.getRecord(ownerName)
-	      proc.setProcedureBody(stp.procedureSymbolTableProducer(uri).asInstanceOf[ProcedureBody])
-	      if(pd.body.isInstanceOf[ImplementedBody]){
-	        val body = pd.body.asInstanceOf[ImplementedBody]
-	        val catchclauses = body.catchClauses
-	        catchclauses.foreach{
-	          catchclause =>
-	            require(catchclause.typeSpec.isDefined)
-	            require(catchclause.typeSpec.get.isInstanceOf[NamedTypeSpec])
-	            val excName = catchclause.typeSpec.get.asInstanceOf[NamedTypeSpec].name.name
-		          proc.addExceptionHandler(excName, catchclause.fromTarget.name, catchclause.toTarget.name, catchclause.jump.target.name)
-	        }
+	      if(level >= Center.ResolveLevel.BODY){
+	      	proc.setProcedureBody(stp.procedureSymbolTableProducer(uri).asInstanceOf[ProcedureBody])
+		      if(pd.body.isInstanceOf[ImplementedBody]){
+		        val body = pd.body.asInstanceOf[ImplementedBody]
+		        val catchclauses = body.catchClauses
+		        catchclauses.foreach{
+		          catchclause =>
+		            require(catchclause.typeSpec.isDefined)
+		            require(catchclause.typeSpec.get.isInstanceOf[NamedTypeSpec])
+		            val excName = catchclause.typeSpec.get.asInstanceOf[NamedTypeSpec].name.name
+			          proc.addExceptionHandler(excName, catchclause.fromTarget.name, catchclause.toTarget.name, catchclause.jump.target.name)
+		        }
+		      }
 	      }
 	      (proc, ownerRecord)
 	  }

@@ -55,6 +55,15 @@ object Center {
 	
 	val DEFAULT_TOPLEVEL_OBJECT = "[|java:lang:Object|]"
 	  
+	/**
+	 * We need center record and procedure to provide the container for Context(Center, L0000) e.g. X.class
+	 */
+	final val CENTER_RECORD = "[|Center|]"
+	final val CENTER_PROCEDURE_SIG = "[|LCenter;.center:()LCenter;|]"
+	  
+	/**
+	 * We need Unknown record and procedure to account for Modeled calls and Native calls
+	 */
 	final val UNKNOWN_RECORD = "[|Center:Unknown|]"
 	final val UNKNOWN_PROCEDURE_SIG = "[|LCenter/Unknown;.unknown:()LCenter/Unknown;|]"
 	  
@@ -143,11 +152,11 @@ object Center {
 		            if(!outer.needToResolveExtends.isEmpty || outer.needToResolveOuterName.isDefined) worklist += outer
 		          case None =>
 		            if(JawaCodeSource.containsRecord(o)){
-			            val code = JawaCodeSource.getRecordCode(o)
+			            val code = JawaCodeSource.getRecordCode(o, ResolveLevel.HIERARCHY)
 			            codes += code
 			            tmpList ::= record
 		            } else {
-		              resolveRecord(o, ResolveLevel.BODIES)
+		              resolveRecord(o, ResolveLevel.HIERARCHY)
 		              tmpList ::= record
 		            }
 		        }
@@ -164,11 +173,11 @@ object Center {
 		            if(!parent.needToResolveExtends.isEmpty || parent.needToResolveOuterName.isDefined) worklist += parent
 		          case None =>
 		            if(JawaCodeSource.containsRecord(parName)){
-			            val code = JawaCodeSource.getRecordCode(parName)
+			            val code = JawaCodeSource.getRecordCode(parName, ResolveLevel.HIERARCHY)
 			            codes += code
 			            tmpList ::= record
 		            } else {
-		              resolveRecord(parName, ResolveLevel.BODIES)
+		              resolveRecord(parName, ResolveLevel.HIERARCHY)
 		              tmpList ::= record
 		            }
 		        }
@@ -178,14 +187,14 @@ object Center {
       worklist ++= tmpList
       if(!codes.isEmpty){
       	val st = Transform.getSymbolResolveResult(codes)
-      	JawaResolver.resolveFromST(st, false)
+      	JawaResolver.resolveFromST(st, ResolveLevel.HIERARCHY, GlobalConfig.jawaResolverParallel)
       }
     }while(!codes.isEmpty)
       
     getRecords.foreach{
       rec =>
         if(!rec.isPhantom && !rec.hasSuperClass && rec.getName != DEFAULT_TOPLEVEL_OBJECT){
-          if(!hasRecord(DEFAULT_TOPLEVEL_OBJECT)) resolveRecord(DEFAULT_TOPLEVEL_OBJECT, ResolveLevel.BODIES)
+          if(!hasRecord(DEFAULT_TOPLEVEL_OBJECT)) resolveRecord(DEFAULT_TOPLEVEL_OBJECT, ResolveLevel.HIERARCHY)
           rec.setSuperClass(getRecord(DEFAULT_TOPLEVEL_OBJECT))
         }
     }
@@ -370,7 +379,8 @@ object Center {
 	
 	def addRecord(ar : JawaRecord) = {
     if(ar.isInCenter) throw new RuntimeException("already in center: " + ar.getName)
-    if(containsRecord(ar.getName)) throw new RuntimeException("duplicate record: " + ar.getName)
+    if(containsRecord(ar.getName) && getRecord(ar.getName).getResolvingLevel >= ar.getResolvingLevel) throw new RuntimeException("duplicate record: " + ar.getName)
+	  tryRemoveRecord(ar.getName)
     this.records += ar
     if(ar.isArray){
       ar.setLibraryRecord
@@ -502,7 +512,7 @@ object Center {
 	def getProcedureDeclaration(procSig : String) : JawaProcedure = {
 	  val rName = StringFormConverter.getRecordNameFromProcedureSignature(procSig)
 	  val subSig = getSubSigFromProcSig(procSig)
-	  if(!containsRecord(rName)) resolveRecord(rName, ResolveLevel.BODIES)
+	  if(!containsRecord(rName)) resolveRecord(rName, ResolveLevel.HIERARCHY)
 	  val r = getRecord(rName)
 	  val worklist : MList[JawaRecord] = mlistEmpty
 	  worklist += r
@@ -540,7 +550,7 @@ object Center {
 	def findField(baseType : Type, fieldSig : String) : Option[JawaField] = {
 	  val rName = baseType.name
 	  val fieldName = StringFormConverter.getFieldNameFromFieldSignature(fieldSig)
-	  tryLoadRecord(rName, ResolveLevel.BODIES)
+	  tryLoadRecord(rName, ResolveLevel.HIERARCHY)
 	  if(!containsRecord(rName)) return None
 	  var r = getRecord(rName)
 	  while(!r.declaresFieldByName(fieldName) && r.hasSuperClass){
@@ -564,7 +574,7 @@ object Center {
 	  val baseType = StringFormConverter.getRecordTypeFromFieldSignature(fieldSig)
 	  val rName = baseType.name
 	  val fieldName = StringFormConverter.getFieldNameFromFieldSignature(fieldSig)
-	  tryLoadRecord(rName, ResolveLevel.BODIES)
+	  tryLoadRecord(rName, ResolveLevel.HIERARCHY)
 	  if(!containsRecord(rName)) return None
 	  var r = getRecord(rName)
 	  while(!r.declaresFieldByName(fieldName) && r.hasSuperClass){
@@ -614,7 +624,7 @@ object Center {
 	  val name =
 	  	if(isJavaPrimitiveType(fromType)) DEFAULT_TOPLEVEL_OBJECT  // any array in java is an Object, so primitive type array is an object, object's method can be called
 	  	else fromType.name	
-	  val from = resolveRecord(name, ResolveLevel.BODIES)
+	  val from = resolveRecord(name, ResolveLevel.HIERARCHY)
 	  getRecordHierarchy.resolveConcreteDispatch(from, pSubSig) match{
   	  case Some(ap) => ap
   	  case None => Center.getProcedureWithoutFailing(Center.UNKNOWN_PROCEDURE_SIG)
@@ -628,7 +638,7 @@ object Center {
 	def getSuperCalleeProcedure(pSig : String) : JawaProcedure = {
 	  val fromType = StringFormConverter.getRecordTypeFromProcedureSignature(pSig)
 	  val pSubSig = StringFormConverter.getSubSigFromProcSig(pSig)
-	  val from = resolveRecord(fromType.name, ResolveLevel.BODIES)
+	  val from = resolveRecord(fromType.name, ResolveLevel.HIERARCHY)
 	  getRecordHierarchy.resolveConcreteDispatch(from, pSubSig) match{
   	  case Some(ap) => ap
   	  case None => Center.getProcedureWithoutFailing(Center.UNKNOWN_PROCEDURE_SIG)
@@ -642,7 +652,7 @@ object Center {
 	def getStaticCalleeProcedure(procSig : String) : JawaProcedure = {
 	  val recType = StringFormConverter.getRecordTypeFromProcedureSignature(procSig)
 	  val pSubSig = getSubSigFromProcSig(procSig)
-	  val from = resolveRecord(recType.name, ResolveLevel.BODIES)
+	  val from = resolveRecord(recType.name, ResolveLevel.HIERARCHY)
 	  getRecordHierarchy.resolveConcreteDispatch(from, pSubSig) match{
   	  case Some(ap) => ap
   	  case None => Center.getProcedureWithoutFailing(Center.UNKNOWN_PROCEDURE_SIG)
@@ -655,7 +665,7 @@ object Center {
 	
 	def getDirectCalleeProcedure(procSig : String) : JawaProcedure = {
 	  val recType = StringFormConverter.getRecordTypeFromProcedureSignature(procSig)
-	  val rec = resolveRecord(recType.name, ResolveLevel.BODIES)
+	  val rec = resolveRecord(recType.name, ResolveLevel.HIERARCHY)
 	  if(rec.isPhantom){
 	    getProcedure(procSig) match {
 		    case Some(ap) => ap
@@ -720,7 +730,7 @@ object Center {
 	 */
 	
 	object ResolveLevel extends Enumeration {
-	  val NO, BODIES = Value
+	  val NO, HIERARCHY, BODY = Value
 	}
 	
 	/**
@@ -736,7 +746,7 @@ object Center {
 	 */
 	
 	def loadRecordAndSupport(recordName : String) : JawaRecord = {
-	  JawaResolver.resolveRecord(recordName, ResolveLevel.BODIES)
+	  JawaResolver.resolveRecord(recordName, ResolveLevel.BODY)
 	}
 	
 	/**

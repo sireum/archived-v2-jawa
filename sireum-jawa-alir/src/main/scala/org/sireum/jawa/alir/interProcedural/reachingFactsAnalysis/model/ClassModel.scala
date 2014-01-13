@@ -180,7 +180,7 @@ object ClassModel {
         cIns match{
           case cstr @ RFAConcreteStringInstance(text, c) =>
             val recordName = StringFormConverter.formatClassNameToRecordName(text)
-            val recordOpt = Center.tryLoadRecord(recordName, Center.ResolveLevel.BODIES)
+            val recordOpt = Center.tryLoadRecord(recordName, Center.ResolveLevel.HIERARCHY)
             recordOpt match{
               case Some(record) =>
             		newfacts += RFAFact(VarSlot(retVar), JawaAlirInfoProvider.getClassInstance(record))

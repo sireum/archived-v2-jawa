@@ -53,15 +53,17 @@ class InterproceduralReachingDefinitionAnalysis {
     cg.nodes.foreach{
 	    node =>
 	      val owner = node.getOwner
-	      val cfg = JawaAlirInfoProvider.getCfg(owner)
-	      val rda = JawaAlirInfoProvider.getRda(owner)
-	      node match{
-	        case cvn : CGVirtualNode =>
-	          val rdafact = rda.entrySet(cfg.getVirtualNode(cvn.getVirtualLabel))
-	          factSet.update(cvn, rdafact.map{fact => (fact, getContext(fact, cvn.getContext))})
-	        case cln : CGLocNode =>
-	          val rdafact = rda.entrySet(cfg.getNode(cln.getOwner.getProcedureBody.location(cln.getLocIndex)))
-	          factSet.update(cln, rdafact.map{fact => (fact, getContext(fact, cln.getContext))})
+	      if(!owner.isPhantom){
+		      val cfg = JawaAlirInfoProvider.getCfg(owner)
+		      val rda = JawaAlirInfoProvider.getRda(owner)
+		      node match{
+		        case cvn : CGVirtualNode =>
+		          val rdafact = rda.entrySet(cfg.getVirtualNode(cvn.getVirtualLabel))
+		          factSet.update(cvn, rdafact.map{fact => (fact, getContext(fact, cvn.getContext))})
+		        case cln : CGLocNode =>
+		          val rdafact = rda.entrySet(cfg.getNode(cln.getOwner.getProcedureBody.location(cln.getLocIndex)))
+		          factSet.update(cln, rdafact.map{fact => (fact, getContext(fact, cln.getContext))})
+		      }
 	      }
 	  }
 	  val initialContext : Context = new Context(GlobalConfig.CG_CONTEXT_K)

@@ -29,17 +29,87 @@ object LightWeightPilarParser {
     	JawaCodeSource.printContent
   }
   
+  def getEmptyBodyCode(recordCode : String) : String = {
+    val emptyBody = 
+"""
+# return;
+  }      
+"""
+    val lnr = new LineNumberReader(new StringReader(recordCode))
+    var lineNo = 0
+    var chunkLineNo = 0
+    val sb = new StringBuilder
+    var lineText = lnr.readLine
+    val keyword = "procedure"
+    var copy = true
+    while (lineText != null) {
+      val word = getFirstWord(lineText)
+      if (keyword == word) {
+        copy = false
+        chunkLineNo = lineNo
+        sb.append(lineText)
+	      sb.append('\n')
+        sb.append(emptyBody)
+	      sb.append('\n')
+      }
+			if(copy){
+        sb.append(lineText)
+	      sb.append('\n')
+      }
+
+      lineNo += 1
+
+      lineText = lnr.readLine
+    }
+    sb.toString.intern()
+  }
+  
+  def getCode(recordCode : String, contentSig : String) : Option[String] = {
+    val lnr = new LineNumberReader(new StringReader(recordCode))
+    var lineNo = 0
+
+    var chunkLineNo = 0
+    val sb = new StringBuilder
+
+    var lineText = lnr.readLine
+
+    val keywords = Set("package", "const", "enum", "typealias", "record",
+      "global", "procedure", "vset", "fun", "extension")
+
+    var found = false
+    import scala.util.control.Breaks._
+    breakable{
+	    while (lineText != null) {
+	      val word = getFirstWord(lineText)
+	      if (keywords.contains(word) && found == true) break
+	      if (keywords.contains(word)) {
+	        if(lineText.contains(contentSig))
+	        	found = true
+	        	
+	        chunkLineNo = lineNo
+	      }
+	
+	      if(found){
+		      sb.append(lineText)
+		      sb.append('\n')
+	      }
+	      lineNo += 1
+	
+	      lineText = lnr.readLine
+	    }
+    }
+    if(found) Some(sb.toString.intern())
+    else None
+  }
+  
   /**
    * read the code of each "record" and stores it in AmandroidCodeSource as a map: (recordName -> code). 
    * Note that each record block in pilar source starts with keyword "record"; 
    * so, the searching starts with keyword "record" and goes on until find another "record". The procs inside a record x are included in the code of x.
    */
   def readModelChunks(r : Reader, typ : JawaCodeSource.CodeType.Value) = {
-    var procedureMap : Map[String, String] = Map()
     val lnr = new LineNumberReader(r)
     var lineNo = 0
-
-    var workNo = 0
 
     var chunkLineNo = 0
     var sb = new StringBuilder
@@ -48,7 +118,6 @@ object LightWeightPilarParser {
 
     val keyword = "record"
 
-    var first = true
     var recName : String = null
     while (lineText != null) {
       val word = getFirstWord(lineText)
@@ -57,7 +126,6 @@ object LightWeightPilarParser {
         if(recName!=null)
         	JawaCodeSource.setRecordCode(recName, sb.toString, typ)
         recName = getRecordName(lineText)
-        workNo += 1
 
         sb = new StringBuilder
         chunkLineNo = lineNo
@@ -70,7 +138,6 @@ object LightWeightPilarParser {
       lineText = lnr.readLine
     }
     JawaCodeSource.setRecordCode(recName, sb.toString, typ)
-    workNo + 1
   }
 
   def getFirstWord(line : String) = {

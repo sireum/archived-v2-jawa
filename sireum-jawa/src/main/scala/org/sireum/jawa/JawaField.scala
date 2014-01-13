@@ -8,7 +8,7 @@ import org.sireum.jawa.util.StringFormConverter
  * 
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-class JawaField {
+class JawaField extends ResolveLevel {
   
   /**
    * name of the field. e.g. stackState

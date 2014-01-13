@@ -6,20 +6,24 @@ import org.sireum.jawa.alir.Context
 import org.jgrapht.alg.DijkstraShortestPath
 
 class InterProceduralDataDependenceGraph[Node <: CGNode] extends InterproceduralControlFlowGraph[Node]{
+  
 	def addNodes(nodes : Set[Node]) = nodes.foreach(addNode(_))
+	
 	def initGraph(cg : InterproceduralControlFlowGraph[Node]) = {
 	  this.pl.clear
 	  this.pl ++= cg.pool
 	  addNodes(cg.nodes.toSet)
 	  this.entryN = getNode(cg.entryNode)
 	  this.exitN = getNode(cg.exitNode)
+	  this.centerN = getNode(cg.centerNode)
 	}
 	
 	def findDefSite(defSite : Context) : Node = {
 	  if(cgNormalNodeExists(defSite)) getCGNormalNode(defSite)
 	  else if(cgReturnNodeExists(defSite)) getCGReturnNode(defSite)
 	  else if(cgEntryNodeExists(defSite)) getCGEntryNode(defSite)
-	  else if(defSite.toString == "(Center,L0000)") this.entryNode
+	  else if(defSite.toString == "(EntryPoint,L0000)") this.entryNode
+	  else if(defSite.toString == "(Center,L0000)") this.centerNode
 	  else throw new RuntimeException("Cannot find node: " + defSite)
 	}
 	

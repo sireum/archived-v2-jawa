@@ -117,12 +117,16 @@ object JawaCodeSource {
 	 * get record code
 	 */
 	
-	def getRecordCode(name : String) : String = {
-    this.appRecordsCodes.get(name) match{
+	def getRecordCode(name : String, level : Center.ResolveLevel.Value) : String = {
+    var code = this.appRecordsCodes.get(name) match{
       case Some(code) => code
       case None =>
     		this.libRecordsCodes.getOrElse(name, throw new RuntimeException("record " + name + " does not exist in the current code base."))
     }
+    if(level < Center.ResolveLevel.BODY){
+      code = LightWeightPilarParser.getEmptyBodyCode(code)
+    }
+    code
   }
 	
 	/**
@@ -146,8 +150,7 @@ object JawaCodeSource {
 	 */
 	
 	def containsProcedure(sig : String) : Boolean = {
-    val name = StringFormConverter.getRecordNameFromProcedureSignature(sig)
-    containsRecord(name)
+    getProcedureCode(sig).isDefined
   }
 	
 	/**
@@ -155,8 +158,7 @@ object JawaCodeSource {
 	 */
 	
 	def containsGlobalVar(sig : String) : Boolean = {
-	  val name = StringFormConverter.getRecordNameFromFieldSignature(sig)
-	  containsRecord(name)
+	  getProcedureCode(sig).isDefined
 	}
 //	/**
 //	 * set procedure container name
@@ -168,25 +170,35 @@ object JawaCodeSource {
 	 * get procedure's containing record's code
 	 */
 	
-	def getProcedureCode(sig : String) = {
+	def getProcedureCode(sig : String) : Option[String] = {
     val name = StringFormConverter.getRecordNameFromProcedureSignature(sig)
-    getRecordCode(name)
+    val recordCode = getRecordCode(name, Center.ResolveLevel.BODY)
+    LightWeightPilarParser.getCode(recordCode, sig)
   }
-//	
-//	/**
-//	 * set global variable container name
-//	 */
-//	
-//	def setGlobalVarContainer(name : String, recName : String) = this.globalVarsCodes += (name -> recName)
-//	
+
+	def getProcedureCodeWithoutFailing(sig : String) : String = {
+    getProcedureCode(sig) match{
+      case Some(code) => code
+      case None => throw new RuntimeException("Given proc sig " + sig + " does not exisit.")
+    }
+  }
+	
 	/**
 	 * get global variable's containing record's code.
 	 */
 	
-	def getGlobalVarCode(sig : String) = {
+	def getGlobalVarCode(sig : String) : Option[String] = {
 	  val name = StringFormConverter.getRecordNameFromFieldSignature(sig)
-    getRecordCode(name)
+    val recordCode = getRecordCode(name, Center.ResolveLevel.BODY)
+    LightWeightPilarParser.getCode(recordCode, sig)
 	}
+	
+	def getGlobalVarCodeWithoutFailing(sig : String) : String = {
+    getGlobalVarCode(sig) match{
+      case Some(code) => code
+      case None => throw new RuntimeException("Given global var sig " + sig + " does not exisit.")
+    }
+  }
 	
 	/**
 	 * print all content

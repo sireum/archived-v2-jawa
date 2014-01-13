@@ -53,7 +53,7 @@ object JawaSymbolTableBuilder {
         set ++= tables.attributeTable.keys
         set ++= tables.typeVarTable.keys
         set ++= tables.typeAliasTable.keys
-         set ++= tables.vsetTable.keys
+        set ++= tables.vsetTable.keys
         tables.declaredSymbols(fileUri) = set
       }
       stp

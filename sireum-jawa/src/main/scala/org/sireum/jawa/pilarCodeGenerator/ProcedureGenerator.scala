@@ -119,7 +119,7 @@ abstract class ProcedureGenerator {
         val paramVar = template.getInstanceOf("ParamVar")
 			  val p = varGen.generate(params(i))
 			  localVarsForClasses += (params(i) -> p)
-			  this.paramRecords += Center.resolveRecord(params(i), Center.ResolveLevel.BODIES)
+			  this.paramRecords += Center.resolveRecord(params(i), Center.ResolveLevel.BODY)
 			  paramVar.add("typ", params(i))
 			  paramVar.add("name", p)
 			  val annot = generateExpAnnotation("type", List("object"))
@@ -216,11 +216,11 @@ abstract class ProcedureGenerator {
     var paramVars : Map[Int, String] = Map()
     params.foreach{
 	    case(i, param) =>
-        var r = Center.resolveRecord(param.typ, Center.ResolveLevel.BODIES)
+        var r = Center.resolveRecord(param.typ, Center.ResolveLevel.HIERARCHY)
         val outterClassOpt = if(r.isInnerClass) Some(r.getOuterClass) else None
         if(!r.isConcrete){
           var substRecordName = this.substituteRecordMap.getOrElse(r.getName, null)
-          if(substRecordName != null) r = Center.resolveRecord(substRecordName, Center.ResolveLevel.BODIES)
+          if(substRecordName != null) r = Center.resolveRecord(substRecordName, Center.ResolveLevel.HIERARCHY)
         }
         // to protect from going into dead constructor create loop
         if(!r.isConcrete){
@@ -299,7 +299,7 @@ abstract class ProcedureGenerator {
 	  var callbackRecords : Map[JawaRecord, ISet[JawaProcedure]] = Map()
     this.callbackFunctions(record.getName).map{
 	    case (pSig) => 
-	      val theRecord = Center.resolveRecord(StringFormConverter.getRecordNameFromProcedureSignature(pSig), Center.ResolveLevel.BODIES)
+	      val theRecord = Center.resolveRecord(StringFormConverter.getRecordNameFromProcedureSignature(pSig), Center.ResolveLevel.BODY)
 	      val theProcedure = findProcedure(theRecord, Center.getSubSigFromProcSig(pSig))
 	      theProcedure match {
 	        case Some(proc) =>
@@ -307,7 +307,6 @@ abstract class ProcedureGenerator {
 	        case None =>
 	          err_msg_normal("Could not find callback method " + pSig)
 	      }
-	      
 	  }
 	  var oneCallBackFragment = codefg
 		callbackRecords.foreach{

@@ -69,14 +69,14 @@ object JawaAlirInfoProvider {
       	var result = isetEmpty[CatchClause]
       	val thrownExcNames = ExceptionCenter.getExceptionsMayThrow(loc)
       	if(thrownExcNames.forall(_ != ExceptionCenter.ANY_EXCEPTION)){
-	      	val thrownExceptions = thrownExcNames.map(Center.resolveRecord(_, Center.ResolveLevel.BODIES))
+	      	val thrownExceptions = thrownExcNames.map(Center.resolveRecord(_, Center.ResolveLevel.HIERARCHY))
 	      	thrownExceptions.foreach{
 	      	  thrownException=>
 	      	    val ccOpt = 
 		      	    catchclauses.find{
 				          catchclause =>
 				            val excName = if(getExceptionName(catchclause) == ExceptionCenter.ANY_EXCEPTION) Center.DEFAULT_TOPLEVEL_OBJECT else getExceptionName(catchclause)
-				            val exc = Center.resolveRecord(excName, Center.ResolveLevel.BODIES)
+				            val exc = Center.resolveRecord(excName, Center.ResolveLevel.HIERARCHY)
 				          	thrownException == exc || thrownException.isChildOf(exc)
 		      	    }
 	      	    ccOpt match{
@@ -114,7 +114,7 @@ object JawaAlirInfoProvider {
 	}
 	
 	private def doGetIntraProcedureResult(models : List[Model]) : Map[ResourceUri, TransformIntraProcedureResult] = {
-	  val result = JawaSymbolTableBuilder(models, Transform.fst, Transform.par)
+	  val result = JawaSymbolTableBuilder(models, Transform.fst, GlobalConfig.jawaResolverParallel)
 	  result.procedureSymbolTables.map{
 	    pst=>
 	      val (pool, cfg) = buildCfg(pst)
@@ -152,7 +152,7 @@ object JawaAlirInfoProvider {
    */
   
   def getCfg(p : JawaProcedure) = {
-    p.getDeclaringRecord.checkLevel(Center.ResolveLevel.BODIES)
+    p.checkLevel(Center.ResolveLevel.BODY)
     buildCfg(p.getProcedureBody)._2
   }
 	
@@ -161,6 +161,7 @@ object JawaAlirInfoProvider {
    */
   
   def getRda(p : JawaProcedure) = {
+    p.checkLevel(Center.ResolveLevel.BODY)
     buildRda(p.getProcedureBody, getCfg(p))
   }
   

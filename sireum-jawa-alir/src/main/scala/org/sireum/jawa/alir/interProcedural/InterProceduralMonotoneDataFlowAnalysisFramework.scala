@@ -37,6 +37,7 @@ trait InterProceduralMonotonicFunction[LatticeElement] {
  * @author Fengguo Wei & Sankardas Roy
  */
 trait NodeListener {
+  def onPreVisitNode(node : InterProceduralMonotoneDataFlowAnalysisFramework.N, preds : CSet[InterProceduralMonotoneDataFlowAnalysisFramework.N])
   def onPostVisitNode(node : InterProceduralMonotoneDataFlowAnalysisFramework.N, succs : CSet[InterProceduralMonotoneDataFlowAnalysisFramework.N])
 }
 
@@ -565,6 +566,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
 	      if(par){
 	        val newworkList = workList.par.map{
 	          n =>
+	            if(nl.isDefined) nl.get.onPreVisitNode(n, cg.predecessors(n))
 				      val newnodes = process(n)
 				      if(nl.isDefined) nl.get.onPostVisitNode(n, cg.successors(n))
 				      newnodes
@@ -573,6 +575,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
 	        workList ++= newworkList
 	      } else {
 		      val n = workList.remove(0)
+		      if(nl.isDefined) nl.get.onPreVisitNode(n, cg.predecessors(n))
 		      workList ++= process(n)
 		      if(nl.isDefined) nl.get.onPostVisitNode(n, cg.successors(n))
 	      }
@@ -583,6 +586,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
 	        var newnodes = isetEmpty[N]
 	        node match{
 	          case xn : CGExitNode =>
+	            if(nl.isDefined) nl.get.onPreVisitNode(xn, cg.predecessors(xn))
 	            val succs = cg.successors(xn)
 		          for (succ <- succs){
 		            val factsForCaller = callr.getAndMapFactsForCaller(getEntrySet(xn), succ, xn)

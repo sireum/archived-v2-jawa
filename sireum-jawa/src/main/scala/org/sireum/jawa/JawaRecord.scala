@@ -12,7 +12,7 @@ import org.sireum.jawa.util.StringFormConverter
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  *
  */
-class JawaRecord {
+class JawaRecord extends ResolveLevel{
   
   val constructorName : String = "<init>"
 	val staticInitializerName : String = "<clinit>"
@@ -101,45 +101,7 @@ class JawaRecord {
   
   var needToResolveOuterName : Option[String] = None
   
-  /**
-   * resolving level of current record
-   */
   
-  private var resolvingLevel : Center.ResolveLevel.Value = Center.ResolveLevel.NO
-  
-  /**
-   * format level to String
-   */
-  
-  private def levelToString(level : Center.ResolveLevel.Value) : String = {
-    level match{
-      case Center.ResolveLevel.NO => "NO"
-      case Center.ResolveLevel.BODIES => "BODIES"
-    }
-  }
-  
-  /**
-   * check whether we already resolved to desired level
-   */
-  
-  def checkLevel(level : Center.ResolveLevel.Value) = {
-    if(this.resolvingLevel < level) {
-      val msg = "desired level " + levelToString(level) + " is higher than resolving level " + levelToString(this.resolvingLevel)
-      throw new RuntimeException(msg)
-    }
-  }
-  
-  /**
-   * return resolving level
-   */
-  
-  def getResolvingLevel = this.resolvingLevel
-  
-  /**
-   * set resolving level
-   */
-  
-  def setResolvingLevel(level : Center.ResolveLevel.Value) = this.resolvingLevel = level
   
   /**
    * add need-to-resolve-extend-record
@@ -827,7 +789,7 @@ class JawaRecord {
 	 * retrieve code belong to this record
 	 */
 	
-	def retrieveCode = JawaCodeSource.getProcedureCode(getName)
+	def retrieveCode = JawaCodeSource.getRecordCode(getName, Center.ResolveLevel.BODY)
 	
 	def printDetail = {
     println("++++++++++++++++AmandroidRecord++++++++++++++++")

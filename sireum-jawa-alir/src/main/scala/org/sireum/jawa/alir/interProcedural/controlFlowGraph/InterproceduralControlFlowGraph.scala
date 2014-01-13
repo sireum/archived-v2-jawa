@@ -18,6 +18,8 @@ import scala.collection.mutable.SynchronizedMap
 import scala.collection.mutable.HashMap
 import org.jgrapht.alg.DijkstraShortestPath
 import org.sireum.jawa.alir.JawaAlirInfoProvider
+import org.sireum.jawa.GlobalConfig
+import org.sireum.jawa.Center
 
 /**
  * @author Fengguo Wei & Sankardas Roy
@@ -43,6 +45,14 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 
   protected var exitN : CGNode = null
   
+  val centerContext = new Context(GlobalConfig.CG_CONTEXT_K)
+  centerContext.setContext("Center", "L0000")
+  private val cNode = addCGEntryNode(centerContext)
+  cNode.setOwner(Center.getProcedureWithoutFailing(Center.CENTER_PROCEDURE_SIG))
+  protected var centerN : CGNode = cNode
+  
+  def centerNode : Node = this.centerN.asInstanceOf[Node]
+  
   def entryNode : Node = this.entryN.asInstanceOf[Node]
   
   def exitNode : Node = this.exitN.asInstanceOf[Node]
@@ -51,6 +61,10 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   private val processed : MMap[(JawaProcedure, Context), ISet[Node]] = new HashMap[(JawaProcedure, Context), ISet[Node]] with SynchronizedMap[(JawaProcedure, Context), ISet[Node]]
   
   def isProcessed(proc : JawaProcedure, callerContext : Context) : Boolean = processed.contains(proc, callerContext)
+  
+  def addProcessed(jp : JawaProcedure, c : Context, nodes : ISet[Node]) = {
+    this.processed += ((jp, c) -> nodes)
+  }
   
   def getProcessed = this.processed
   
@@ -101,6 +115,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     for (e <- edges) result.addEdge(e.target, e.source)
     result.entryN = this.exitNode
     result.exitN = this.entryNode
+    result.centerN = this.centerN
     result
   }
   
@@ -416,7 +431,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
           }
       }
     }
-    this.processed += ((calleeProc, callerContext) -> nodes)
+    addProcessed(calleeProc, callerContext, nodes)
     nodes
   }
   
@@ -561,10 +576,10 @@ sealed abstract class CGNode(context : Context) extends InterProceduralNode(cont
   def getOwner = this.owner
   def setLoadedClassBitSet(bitset : BitSet) = this.loadedClassBitSet = bitset
   def getLoadedClassBitSet = this.loadedClassBitSet
-  def updateLoadedClassBitSet(bitset : BitSet) = {
-    if(getLoadedClassBitSet == BitSet.empty) setLoadedClassBitSet(bitset)
-    else setLoadedClassBitSet(bitset.intersect(getLoadedClassBitSet))
-  }
+//  def updateLoadedClassBitSet(bitset : BitSet) = {
+//    if(getLoadedClassBitSet == BitSet.empty) setLoadedClassBitSet(bitset)
+//    else setLoadedClassBitSet(bitset.intersect(getLoadedClassBitSet))
+//  }
 }
 
 abstract class CGVirtualNode(context : Context) extends CGNode(context) {

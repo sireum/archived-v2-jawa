@@ -12,7 +12,7 @@ import org.sireum.util._
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */
-class JawaProcedure {
+class JawaProcedure extends ResolveLevel {
 
 	var DEBUG : Boolean = false
 	
@@ -439,7 +439,7 @@ class JawaProcedure {
   
   def addExceptionHandler(excName : String, fromTarget : String, toTarget : String, jumpTo : String) = {
     val recName = if(excName == "[|any|]") Center.DEFAULT_TOPLEVEL_OBJECT else excName
-    val exc = Center.resolveRecord(recName, Center.ResolveLevel.BODIES)
+    val exc = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
     val handler = ExceptionHandler(exc, fromTarget, toTarget, jumpTo)
     if(DEBUG) println("Adding Exception Handler: " + handler)
     if(this.exceptionHandlers.contains(handler)) throw new RuntimeException("already have exception handler: " + handler)

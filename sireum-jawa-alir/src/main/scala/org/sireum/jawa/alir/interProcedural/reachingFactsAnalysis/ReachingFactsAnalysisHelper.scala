@@ -144,7 +144,7 @@ object ReachingFactsAnalysisHelper {
 	  (genFacts, killFacts)
 	}
 	
-	def checkAndGetUnknownObjectForClinit(calleeProc : JawaProcedure, currentContext : Context) : ISet[RFAFact] = {
+	def getUnknownObjectForClinit(calleeProc : JawaProcedure, currentContext : Context) : ISet[RFAFact] = {
 	  var result : ISet[RFAFact] = isetEmpty
 	  val record = calleeProc.getDeclaringRecord
     record.getDeclaredStaticObjectTypeFields.foreach{
@@ -251,7 +251,7 @@ object ReachingFactsAnalysisHelper {
             var value : ISet[Instance] = isetEmpty
             if(slot.isGlobal && StringFormConverter.getFieldNameFromFieldSignature(slot.varName) == "class"){
               val baseName = StringFormConverter.getRecordNameFromFieldSignature(slot.varName)
-              val rec = Center.resolveRecord(baseName, Center.ResolveLevel.BODIES)
+              val rec = Center.resolveRecord(baseName, Center.ResolveLevel.HIERARCHY)
               value += JawaAlirInfoProvider.getClassInstance(rec)
             } else if(slot.isGlobal){
               Center.findStaticField(ne.name.name) match{

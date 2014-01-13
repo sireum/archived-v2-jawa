@@ -17,8 +17,12 @@ object GlobalConfig {
 	/**
 	 * call graph context length
 	 */
-	
 	final var CG_CONTEXT_K = 1
+	
+	/**
+	 * switch for jawa resolver parallel
+	 */
+	final var jawaResolverParallel = false
 }
 
 /**
