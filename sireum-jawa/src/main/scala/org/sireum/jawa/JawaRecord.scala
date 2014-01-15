@@ -791,6 +791,14 @@ class JawaRecord extends ResolveLevel{
 	
 	def retrieveCode = JawaCodeSource.getRecordCode(getName, Center.ResolveLevel.BODY)
 	
+	/**
+	 * update resolving level for current record
+	 */
+	
+	def updateResolvingLevel = {
+    setResolvingLevel(getProcedures.map(_.getResolvingLevel).reduceLeft((x, y) => if(x < y) x else y))
+  }
+	
 	def printDetail = {
     println("++++++++++++++++AmandroidRecord++++++++++++++++")
     println("recName: " + getName)

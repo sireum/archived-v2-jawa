@@ -152,8 +152,10 @@ object JawaAlirInfoProvider {
    */
   
   def getCfg(p : JawaProcedure) = {
-    p.checkLevel(Center.ResolveLevel.BODY)
-    buildCfg(p.getProcedureBody)._2
+    this.synchronized{
+	    p.checkLevelAndThrowException(Center.ResolveLevel.BODY, p.getName)
+	    buildCfg(p.getProcedureBody)._2
+    }
   }
 	
 	/**
@@ -161,8 +163,10 @@ object JawaAlirInfoProvider {
    */
   
   def getRda(p : JawaProcedure) = {
-    p.checkLevel(Center.ResolveLevel.BODY)
-    buildRda(p.getProcedureBody, getCfg(p))
+    this.synchronized{
+	    p.checkLevelAndThrowException(Center.ResolveLevel.BODY, p.getName)
+	    buildRda(p.getProcedureBody, getCfg(p))
+    }
   }
   
   def getClassInstance(r : JawaRecord) : ClassInstance = {

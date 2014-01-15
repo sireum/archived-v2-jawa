@@ -185,7 +185,7 @@ object ClassModel {
               case Some(record) =>
             		newfacts += RFAFact(VarSlot(retVar), JawaAlirInfoProvider.getClassInstance(record))
               case None =>
-                System.err.println("Given class name probably come from another app: " + cIns)
+                err_msg_normal("Given class name probably come from another app: " + cIns)
             }
           case pstr @ RFAPointStringInstance(c) => 
             err_msg_normal("Get class use point string: " + pstr)

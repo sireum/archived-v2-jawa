@@ -404,6 +404,7 @@ object Center {
 	def removeRecord(ar : JawaRecord) = {
 	  if(!ar.isInCenter) throw new RuntimeException("does not exist in center: " + ar.getName)
 	  this.records -= ar
+	  this.nameToRecord -= ar.getName
 	  if(ar.isLibraryRecord) this.libraryRecords -= ar
 	  else if(ar.isApplicationRecord) this.applicationRecords -= ar
 	  ar.setInCenter(false)
@@ -418,11 +419,7 @@ object Center {
 	  val aropt = tryGetRecord(recordName)
 	  aropt match{
 	    case Some(ar) =>
-			  this.records -= ar
-			  if(ar.isLibraryRecord) this.libraryRecords -= ar
-			  else if(ar.isApplicationRecord) this.applicationRecords -= ar
-			  ar.setInCenter(false)
-			  modifyHierarchy
+			  removeRecord(ar)
 	    case None =>
 	  }
 	}
@@ -738,7 +735,9 @@ object Center {
 	 */
 	
 	def tryLoadRecord(recordName : String, desiredLevel : ResolveLevel.Value) : Option[JawaRecord] = {
-	  JawaResolver.tryResolveRecord(recordName, desiredLevel)
+	  this.synchronized{
+	  	JawaResolver.tryResolveRecord(recordName, desiredLevel)
+	  }
 	}
 	
 	/**
@@ -746,25 +745,31 @@ object Center {
 	 */
 	
 	def loadRecordAndSupport(recordName : String) : JawaRecord = {
-	  JawaResolver.resolveRecord(recordName, ResolveLevel.BODY)
+	  this.synchronized{
+	  	JawaResolver.resolveRecord(recordName, ResolveLevel.BODY)
+	  }
 	}
 	
 	/**
-	 * resolve given record and load all of the required support.
+	 * resolve given record.
 	 */
 	
 	def resolveRecord(recordName : String, desiredLevel : ResolveLevel.Value) : JawaRecord = {
-	  JawaResolver.resolveRecord(recordName, desiredLevel)
+	  this.synchronized{
+	  	JawaResolver.resolveRecord(recordName, desiredLevel)
+	  }
 	}
 	
 	/**
-	 * softly resolve given record and load all of the required support.
+	 * softly resolve given record.
 	 */
 	
 	def softlyResolveRecord(recordName : String, desiredLevel : ResolveLevel.Value) : Option[JawaRecord] = {
-	  if(JawaCodeSource.containsRecord(recordName))
-	  	Some(JawaResolver.resolveRecord(recordName, desiredLevel))
-	  else None
+	  this.synchronized{
+		  if(JawaCodeSource.containsRecord(recordName))
+		  	Some(JawaResolver.resolveRecord(recordName, desiredLevel))
+		  else None
+	  }
 	}
 	
 	/**
@@ -772,7 +777,9 @@ object Center {
 	 */
 	
 	def forceResolveRecord(recordName : String, desiredLevel : ResolveLevel.Value) : JawaRecord = {
-	  JawaResolver.forceResolveRecord(recordName, desiredLevel)
+	  this.synchronized{
+	  	JawaResolver.forceResolveRecord(recordName, desiredLevel)
+	  }
 	}
 	
 	/**

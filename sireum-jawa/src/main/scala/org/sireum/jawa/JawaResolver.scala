@@ -30,33 +30,23 @@ object JawaResolver {
   }
   
   /**
-   * try to resolve the given procedure container to desired level. 
+   * resolve the given procedure's body to body level. 
    */
     
-  def tryResolveProcedure(procSig : String, desiredLevel : Center.ResolveLevel.Value) : Option[JawaProcedure] = {
-    val recordName = StringFormConverter.getRecordNameFromProcedureSignature(procSig)
-    tryResolveRecord(recordName, desiredLevel)
-    Center.getProcedure(procSig)
-  }
-    
-  /**
-   * resolve the given procedure's container to desired level. 
-   */
-    
-  def resolveProcedure(procSig : String, desiredLevel : Center.ResolveLevel.Value) : Option[JawaProcedure] = {
-    val recordName = StringFormConverter.getRecordNameFromProcedureSignature(procSig)
-    resolveRecord(recordName, desiredLevel)
-    Center.getProcedure(procSig)
-  }
-  
-  /**
-   * resolve the given procedure's container to desired level. 
-   */
-    
-  def forceResolveProcedure(procSig : String, desiredLevel : Center.ResolveLevel.Value) : JawaProcedure = {
-    val recordName = StringFormConverter.getRecordNameFromProcedureSignature(procSig)
-    forceResolveRecord(recordName, desiredLevel)
-    Center.getProcedureWithoutFailing(procSig)
+  def resolveProcedureBody(procSig : String) : ProcedureBody = {
+    val code = JawaCodeSource.getProcedureCodeWithoutFailing(procSig)
+    val st = Transform.getSymbolResolveResult(Set(code))
+    st.procedureSymbolTables.foreach{
+      pst =>
+        val sig = 
+	        pst.procedure.getValueAnnotation("signature") match {
+			      case Some(exp : NameExp) =>
+			        exp.name.name
+			      case _ => throw new RuntimeException("Doing " + TITLE + ": Can not find signature from: " + pst.procedureUri)
+			    }
+        if(procSig == sig) return pst.asInstanceOf[ProcedureBody]
+    }
+    throw new RuntimeException("Doing " + TITLE + ": Can not resolve procedure body for " + procSig)
   }
     
   /**
@@ -135,7 +125,7 @@ object JawaResolver {
    * force resolve the given record to hierarchy level
    */
   
-  def forceResolveToHierarchy(recordName : String) : JawaRecord = {
+  private def forceResolveToHierarchy(recordName : String) : JawaRecord = {
     val typ = StringFormConverter.getTypeFromName(recordName)
     if(typ.isArray){
       resolveArrayRecord(typ)
@@ -161,7 +151,7 @@ object JawaResolver {
    * force resolve the given record to body level
    */
   
-  def forceResolveToBody(recordName : String) : JawaRecord = {
+  private def forceResolveToBody(recordName : String) : JawaRecord = {
     val typ = StringFormConverter.getTypeFromName(recordName)
     if(typ.isArray){
       resolveArrayRecord(typ)
@@ -312,7 +302,6 @@ object JawaResolver {
 	      val f : JawaField = new JawaField
 	      f.init(globalVarSig, globalVarType)
 	      f.setAccessFlags(globalVarAccessFlag)
-	      f.setResolvingLevel(level)
 	      val ownerRecord = Center.getRecord(ownerName)
 	      (f, ownerRecord)
 	  }
