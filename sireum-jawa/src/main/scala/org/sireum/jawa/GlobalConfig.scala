@@ -23,6 +23,11 @@ object GlobalConfig {
 	 * switch for jawa resolver parallel
 	 */
 	final var jawaResolverParallel = false
+	
+	/**
+	 * switch for android info collect parallel
+	 */
+	final var androidInfoCollectParallel = true
 }
 
 /**

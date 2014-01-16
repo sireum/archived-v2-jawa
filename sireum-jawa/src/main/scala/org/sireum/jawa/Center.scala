@@ -439,7 +439,7 @@ object Center {
 	 * get record name from procedure signature. e.g. [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|] -> [|java:lang:Object|]
 	 */
 	
-	def signatureToRecordName(sig : String) : String = StringFormConverter.getRecordNameFromProcedureSignature(sig)
+	def getRecordNameFromProcedureSignature(sig : String) : String = StringFormConverter.getRecordNameFromProcedureSignature(sig)
 	
 	/**
 	 * convert type string from signature style to type style. Ljava/lang/Object; -> [|java:lang:Object|] 

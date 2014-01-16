@@ -1,50 +1,23 @@
-package org.sireum.jawa.alir.interProcedural.controlFlowGraph
+package org.sireum.jawa.alir.interProcedural.pointsToAnalysis
 
-import org.sireum.pilar.symbol.ProcedureSymbolTable
-import org.sireum.alir.ControlFlowGraph
 import org.sireum.util._
 import org.sireum.jawa.alir.interProcedural.pointsToAnalysis._
 import java.io._
-import org.sireum.pilar.ast.NameExp
 import org.sireum.jawa._
 import org.sireum.jawa.alir._
 import org.sireum.jawa.alir.interProcedural.objectFlowAnalysis.InvokePointNode
+import org.sireum.jawa.alir.interProcedural.controlFlowGraph.CGNode
+import org.sireum.jawa.alir.interProcedural.controlFlowGraph.InterproceduralControlFlowGraph
 
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-class InterproceduralControlFlowGraphBuilder {
+class InterproceduralPointsToAnalysis {
   var processed : Map[(String, Context), PointProc] = Map()
   var pgPointsMap : Map[String, MList[Point]] = Map()
   //a map from return node to its possible updated value set
   var modelOperationValueSetMap : Map[PtaNode, MSet[PTAInstance]] = Map()
-  
-  /**
-	 * Get all reachable procedures of given procedure.
-	 * @param procedureUris Initial procedure
-	 * @param wholeProgram Building call graph in whole program mode or not
-	 * @return Set of reachable procedure resource uris from initial procedure
-	 */
-	def getReachableProcedures(procedure : JawaProcedure, wholeProgram : Boolean) : Set[JawaProcedure] = {
-    val pag = new PointerAssignmentGraph[PtaNode]()
-    val cg = new InterproceduralControlFlowGraph[CGNode]
-    pta(pag, cg, Set(procedure), wholeProgram)
-    cg.getReachableProcedure(Set(procedure))
-  }
-  
-	/**
-	 * Get all reachable procedures of given procedure set.
-	 * @param procedureUris Initial procedures set
-	 * @param wholeProgram Building call graph in whole program mode or not
-	 * @return Set of reachable procedure resource uris from initial set
-	 */
-	def getReachableProcedures(procedures : Set[JawaProcedure], wholeProgram : Boolean) : Set[JawaProcedure] = {
-	  val pag = new PointerAssignmentGraph[PtaNode]()
-    val cg = new InterproceduralControlFlowGraph[CGNode]
-    pta(pag, cg, procedures, wholeProgram)
-    cg.getReachableProcedure(procedures)
-	}
   
   def buildAppOnly(entryPoints : ISet[JawaProcedure]) : InterproceduralControlFlowGraph[CGNode] = {
     val pag = new PointerAssignmentGraph[PtaNode]()
@@ -68,8 +41,10 @@ class InterproceduralControlFlowGraphBuilder {
           wholeProgram : Boolean) = {
     entryPoints.foreach{
 		  ep =>
-		    if(ep.hasProcedureBody)
+		    if(ep.isConcrete){
+		      if(!ep.hasProcedureBody)ep.resolveBody
 		    	doPTA(ep, pag, cg, wholeProgram)
+		    }
     }
   }
   

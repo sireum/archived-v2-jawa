@@ -162,10 +162,10 @@ object JawaAlirInfoProvider {
    * get rda result of current procedure
    */
   
-  def getRda(p : JawaProcedure) = {
+  def getRda(p : JawaProcedure, cfg : ControlFlowGraph[VirtualLabel]) = {
     this.synchronized{
 	    p.checkLevelAndThrowException(Center.ResolveLevel.BODY, p.getName)
-	    buildRda(p.getProcedureBody, getCfg(p))
+	    buildRda(p.getProcedureBody, cfg)
     }
   }
   

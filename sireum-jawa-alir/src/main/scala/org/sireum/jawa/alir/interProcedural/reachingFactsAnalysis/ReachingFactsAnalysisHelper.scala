@@ -133,7 +133,7 @@ object ReachingFactsAnalysisHelper {
     val argSlots = args.map(arg=>VarSlot(arg))
     val argValues = s.filter{f=>argSlots.contains(f.s)}.map(_.v)
     argValues.foreach(_.addFieldsUnknownDefSite(currentContext))
-    killFacts ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(argValues, s)
+//    killFacts ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(argValues, s)
     if(!Center.isJavaPrimitiveType(calleeProc.getReturnType))
 	    retVars.foreach{
 	      retVar =>

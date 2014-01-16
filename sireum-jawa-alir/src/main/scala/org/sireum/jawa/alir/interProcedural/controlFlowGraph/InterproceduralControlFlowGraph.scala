@@ -91,11 +91,11 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   
   def setCallMap(from : JawaProcedure, to : JawaProcedure) = this.callMap += (from -> (this.callMap.getOrElse(from, isetEmpty) + to))
 
-  def getReachableProcedure(procs : Set[JawaProcedure]) : Set[JawaProcedure] = {
-    caculateReachableProcedure(procs, isetEmpty) ++ procs
+  def getReachableProcedures(procs : Set[JawaProcedure]) : Set[JawaProcedure] = {
+    calculateReachableProcedures(procs, isetEmpty) ++ procs
   }
   
-  private def caculateReachableProcedure(procs : Set[JawaProcedure], processed : Set[JawaProcedure]) : Set[JawaProcedure] = {
+  private def calculateReachableProcedures(procs : Set[JawaProcedure], processed : Set[JawaProcedure]) : Set[JawaProcedure] = {
     if(procs.isEmpty) Set()
     else
       procs.map{
@@ -104,7 +104,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 	          Set[JawaProcedure]()
 	        } else {
 		        val callees = this.callMap.getOrElse(proc, isetEmpty)
-		        callees ++ caculateReachableProcedure(callees, processed ++ callees)
+		        callees ++ calculateReachableProcedures(callees, processed ++ callees)
 	        }
 	    }.reduce((s1, s2) => s1 ++ s2)
   }

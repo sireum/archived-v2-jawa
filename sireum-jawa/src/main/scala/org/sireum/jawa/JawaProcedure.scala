@@ -397,14 +397,27 @@ class JawaProcedure extends ResolveLevel {
 	
 	def retrieveCode = if(!isPhantom) JawaCodeSource.getProcedureCode(getSignature) else throw new RuntimeException("Trying to retreive body code for a phantom procedure: " + this)
 	
+  /**
+   * resolve current procedure to body level
+   */
+  
+  def resolveBody = {
+    if(this.resolvingLevel >= Center.ResolveLevel.BODY) throw new RuntimeException(getSignature +" is already resolved to " + this.resolvingLevel)
+    if(isPhantom) throw new RuntimeException(getSignature + " is a phantom procedure so cannot be resolved to body.")
+    val pb = JawaResolver.resolveProcedureBody(getSignature)
+    setProcedureBody(pb)
+    setResolvingLevel(Center.ResolveLevel.BODY)
+    getDeclaringRecord.updateResolvingLevel
+  }
+  
 	/**
 	 * get procedure body
 	 */
 	
 	def getProcedureBody = {
-	  checkLevelAndThrowException(Center.ResolveLevel.BODY, getSignature)
 	  if(isPhantom) throw new RuntimeException("Trying to get the body for a phantom procedure: " + this)
-	  else this.procBody
+	  if(!checkLevel(Center.ResolveLevel.BODY)) resolveBody
+	  this.procBody
 	}
   
   /**
@@ -590,19 +603,6 @@ class JawaProcedure extends ResolveLevel {
   def isEntryProcedure = {
     if(isStatic && name == getDeclaringRecord.staticInitializerName) true
     else isMain
-  }
-  
-  /**
-   * resolve current procedure to body level
-   */
-  
-  def resolveBody = {
-    if(this.resolvingLevel >= Center.ResolveLevel.BODY) throw new RuntimeException(getSignature +" is already resolved to " + this.resolvingLevel)
-    if(isPhantom) throw new RuntimeException(getSignature + " is a phantom procedure so cannot be resolved to body.")
-    val pb = JawaResolver.resolveProcedureBody(getSignature)
-    setProcedureBody(pb)
-    setResolvingLevel(Center.ResolveLevel.BODY)
-    getDeclaringRecord.updateResolvingLevel
   }
   
   def printDetail = {

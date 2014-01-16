@@ -13,7 +13,7 @@ object ExplicitValueFinder {
 	  loc.jump match{
 	    case t : CallJump if t.jump.isEmpty =>
 	      val cfg = JawaAlirInfoProvider.getCfg(procedure)
-		    val rda = JawaAlirInfoProvider.getRda(procedure)
+		    val rda = JawaAlirInfoProvider.getRda(procedure, cfg)
 		    val params = t.callExp.arg match {
 		      case te : TupleExp =>
 		        te.exps.map{exp=>exp.asInstanceOf[NameExp].name.name}
@@ -70,7 +70,7 @@ object ExplicitValueFinder {
 	  loc.jump match{
 	    case t : CallJump if t.jump.isEmpty =>
 	      val cfg = JawaAlirInfoProvider.getCfg(procedure)
-		    val rda = JawaAlirInfoProvider.getRda(procedure)
+		    val rda = JawaAlirInfoProvider.getRda(procedure, cfg)
 		    val slots = rda.entrySet(cfg.getNode(Some(loc.name.get.uri), loc.index))
 		    val params = t.callExp.arg match {
 		      case te : TupleExp =>

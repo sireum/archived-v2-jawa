@@ -55,7 +55,7 @@ class InterproceduralReachingDefinitionAnalysis {
 	      val owner = node.getOwner
 	      if(!owner.isPhantom){
 		      val cfg = JawaAlirInfoProvider.getCfg(owner)
-		      val rda = JawaAlirInfoProvider.getRda(owner)
+		      val rda = JawaAlirInfoProvider.getRda(owner, cfg)
 		      node match{
 		        case cvn : CGVirtualNode =>
 		          val rdafact = rda.entrySet(cfg.getVirtualNode(cvn.getVirtualLabel))
