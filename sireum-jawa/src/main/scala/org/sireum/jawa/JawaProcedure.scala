@@ -12,7 +12,7 @@ import org.sireum.util._
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */
-class JawaProcedure extends ResolveLevel {
+class JawaProcedure extends ResolveLevel with PropertyProvider {
 
 	var DEBUG : Boolean = false
 	
@@ -111,6 +111,11 @@ class JawaProcedure extends ResolveLevel {
    */
   
   protected var procBody : ProcedureBody = null
+  
+  /**
+   * supply property
+   */
+  val propertyMap = mlinkedMapEmpty[Property.Key, Any]
   
   /**
 	 * is it declared in some JawaRecord?

@@ -4,7 +4,7 @@ object MessageCenter {
 	/**
 	 * CRITICAL: Only print critical message
 	 * NORMAL: Print some useful debug message
-	 * DETAIL: Print all message
+	 * VERBOSE: Print all message
 	 */
 	object MSG_LEVEL extends Enumeration {
 	  val NO, CRITICAL, NORMAL, VERBOSE = Value

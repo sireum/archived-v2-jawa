@@ -111,8 +111,8 @@ class PointsCollector {
       return false
     }
   
-  def points(ownerSig : String, pst : ProcedureSymbolTable) : MList[Point] = {
-    val points : MList[Point] = mlistEmpty
+  def points(ownerSig : String, pst : ProcedureSymbolTable) : Set[Point] = {
+    val points : MSet[Point] = msetEmpty
     var loc : ResourceUri = ""
     var locIndex = 0
 
@@ -389,7 +389,7 @@ class PointsCollector {
       visitor(l)
     }
 //    println("points---> " + points)
-    points
+    points.toSet
   }
 }
 

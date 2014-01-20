@@ -10,7 +10,7 @@ import java.io.InputStream
 object JawaCodeSource {
   
   object CodeType extends Enumeration {
-    val LIBRARY, APP = Value
+    val APP, APP_USING_LIBRARY, ANDROID_LIBRARY = Value
   }
   
   /**
@@ -20,7 +20,7 @@ object JawaCodeSource {
   def preLoad(fileResourceUris : ISet[FileResourceUri]) = {
     fileResourceUris.foreach{
       fUri =>
-        LightWeightPilarParser(Right(fUri), CodeType.LIBRARY)
+        LightWeightPilarParser(Right(fUri), Left(CodeType.ANDROID_LIBRARY))
     }
     this.preLoaded = true
   }
@@ -29,8 +29,8 @@ object JawaCodeSource {
    * load code from given file resource
    */
   
-  def load(fileUri : FileResourceUri, typ : CodeType.Value) = {
-    LightWeightPilarParser(Right(fileUri), typ)
+  def load(fileUri : FileResourceUri, summary : LibraryAPISummary) = {
+    LightWeightPilarParser(Right(fileUri), Right(summary))
   }
   
   
@@ -52,6 +52,12 @@ object JawaCodeSource {
    */
   
 	protected var libRecordsCodes : Map[String, String] = Map()
+	
+	 /**
+   * map from record name to pilar code of library. E.g. record name [|java:lang:Object|] to its pilar code 
+   */
+  
+	protected var appUsingLibRecordsCodes : Map[String, String] = Map()
 	
 	/**
    * map from record name to pilar code of app. E.g. record name [|java:lang:MyObject|] to its pilar code 
@@ -84,6 +90,18 @@ object JawaCodeSource {
 	def setLibraryRecordCode(name : String, code : String) = this.libRecordsCodes += (name -> code)
 	
 	/**
+	 * get app using lib records' code
+	 */
+	
+	def getAppUsingLibraryRecordsCodes = this.appUsingLibRecordsCodes
+	
+	/**
+	 * set app using lib record code
+	 */
+	
+	def setAppUsingLibraryRecordCode(name : String, code : String) = this.appUsingLibRecordsCodes += (name -> code)
+	
+	/**
 	 * get app records codes
 	 */
 	
@@ -93,7 +111,10 @@ object JawaCodeSource {
 	 * clear app records codes
 	 */
 	
-	def clearAppRecordsCodes = this.appRecordsCodes = Map()
+	def clearAppRecordsCodes = {
+    this.appRecordsCodes = Map()
+    this.appUsingLibRecordsCodes = Map()
+  }
 	
 	/**
 	 * set app record code
@@ -105,10 +126,19 @@ object JawaCodeSource {
 	 * set record code
 	 */
 	
-	def setRecordCode(name : String, code : String, typ : CodeType.Value) = {
-    typ match{
-      case CodeType.APP => setAppRecordCode(name, code)
-      case CodeType.LIBRARY => setLibraryRecordCode(name, code)
+	def setRecordCode(name : String, code : String, determiner : Either[CodeType.Value, LibraryAPISummary]) = {
+    determiner match{
+      case Left(typ) =>
+        typ match{
+          case CodeType.ANDROID_LIBRARY => setLibraryRecordCode(name, code)
+          case CodeType.APP => setAppRecordCode(name, code)
+          case CodeType.APP_USING_LIBRARY => setAppUsingLibraryRecordCode(name, code)
+        }
+      case Right(summary) =>
+        summary.isLibraryAPI(name) match{
+		      case true => setAppUsingLibraryRecordCode(name, code)
+		      case false => setAppRecordCode(name, code)
+		    }
     }
   }
 	
@@ -121,7 +151,11 @@ object JawaCodeSource {
     var code = this.appRecordsCodes.get(name) match{
       case Some(code) => code
       case None =>
-    		this.libRecordsCodes.getOrElse(name, throw new RuntimeException("record " + name + " does not exist in the current code base."))
+        this.appUsingLibRecordsCodes.get(name) match{
+          case Some(code) => code
+          case None =>
+            this.libRecordsCodes.getOrElse(name, throw new RuntimeException("record " + name + " does not exist in the current code base."))
+        }
     }
     if(level < Center.ResolveLevel.BODY){
       code = LightWeightPilarParser.getEmptyBodyCode(code)
@@ -135,7 +169,8 @@ object JawaCodeSource {
 	
 	def getCodeType(name : String) : CodeType.Value = {
 	  if(this.appRecordsCodes.contains(name)) CodeType.APP
-	  else if(this.libRecordsCodes.contains(name)) CodeType.LIBRARY
+	  else if(this.appUsingLibRecordsCodes.contains(name)) CodeType.APP_USING_LIBRARY
+	  else if(this.libRecordsCodes.contains(name)) CodeType.ANDROID_LIBRARY
 	  else throw new RuntimeException("record " + name + " does not exist in the current code base.")
 	}
 	
@@ -143,7 +178,7 @@ object JawaCodeSource {
 	 * contains given record or not?
 	 */
 	
-	def containsRecord(name : String) : Boolean = this.appRecordsCodes.contains(name) || this.libRecordsCodes.contains(name)
+	def containsRecord(name : String) : Boolean = this.appRecordsCodes.contains(name) || this.appUsingLibRecordsCodes.contains(name) || this.libRecordsCodes.contains(name)
 	
 	/**
 	 * contains given procedure's container record or not?

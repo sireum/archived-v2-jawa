@@ -28,6 +28,10 @@ object ClassLoadManager {
 	def loadClass(clazz : JawaRecord, bitset : BitSet) : BitSet = {
 	  require(!isLoaded(clazz, bitset))
 	  val position = getClassPosition(clazz)
+	  if(position < 0){
+	    println("position:" + position)
+	    return bitset
+	  }
 	  bitset + position
 	}
 	

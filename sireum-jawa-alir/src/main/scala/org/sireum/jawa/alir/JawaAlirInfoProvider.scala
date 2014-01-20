@@ -24,6 +24,9 @@ import org.sireum.pilar.ast.NameExp
 
 object JawaAlirInfoProvider {
   
+  final val CFG = "cfg"
+  final val RDA = "rda"
+  
   //for building cfg
   type VirtualLabel = String
   
@@ -129,7 +132,7 @@ object JawaAlirInfoProvider {
 	  }.toMap
 	}
   
-  def buildCfg(pst : ProcedureSymbolTable) = {
+  private def buildCfg(pst : ProcedureSymbolTable) = {
 	  val ENTRY_NODE_LABEL = "Entry"
 	  val EXIT_NODE_LABEL = "Exit"
 	  val pool : AlirIntraProceduralGraph.NodePool = mmapEmpty
@@ -137,7 +140,7 @@ object JawaAlirInfoProvider {
 	  (pool, result)
 	}
 	
-	def buildRda (pst : ProcedureSymbolTable, cfg : ControlFlowGraph[VirtualLabel], initialFacts : ISet[AmandroidReachingDefinitionAnalysis.RDFact] = isetEmpty) = {
+	private def buildRda (pst : ProcedureSymbolTable, cfg : ControlFlowGraph[VirtualLabel], initialFacts : ISet[AmandroidReachingDefinitionAnalysis.RDFact] = isetEmpty) = {
 	  val iiopp = iopp(pst)
 	  AmandroidReachingDefinitionAnalysis[VirtualLabel](pst,
 	    cfg,
@@ -152,10 +155,13 @@ object JawaAlirInfoProvider {
    */
   
   def getCfg(p : JawaProcedure) = {
-    this.synchronized{
-	    p.checkLevelAndThrowException(Center.ResolveLevel.BODY, p.getName)
-	    buildCfg(p.getProcedureBody)._2
+    if(!(p ? CFG)){
+      this.synchronized{
+	      val cfg = buildCfg(p.getProcedureBody)._2
+	      p.setProperty(CFG, cfg)
+      }
     }
+    p.getProperty(CFG).asInstanceOf[ControlFlowGraph[VirtualLabel]]
   }
 	
 	/**
@@ -163,10 +169,13 @@ object JawaAlirInfoProvider {
    */
   
   def getRda(p : JawaProcedure, cfg : ControlFlowGraph[VirtualLabel]) = {
-    this.synchronized{
-	    p.checkLevelAndThrowException(Center.ResolveLevel.BODY, p.getName)
-	    buildRda(p.getProcedureBody, cfg)
+    if(!(p ? RDA)){
+      this.synchronized{
+	      val rda = buildRda(p.getProcedureBody, cfg)
+	      p.setProperty(RDA, rda)
+      }
     }
+    p.getProperty(RDA).asInstanceOf[AmandroidReachingDefinitionAnalysis.Result]
   }
   
   def getClassInstance(r : JawaRecord) : ClassInstance = {

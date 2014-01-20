@@ -18,11 +18,6 @@ abstract class Instance{
   def getFieldsUnknownDefSites = this.fieldsUnknownDefSites
 }
 
-final case class PTAInstance(typ : Type, defSite : Context) extends Instance{
-  override def clone(newDefSite : Context) : Instance = PTAInstance(typ, newDefSite)
-  override def toString : String = "PTAInst(name:" + this.typ + ".defsite:" + this.defSite + ")"
-}
-
 
 final case class ClassInstance(name: String, defSite : Context) extends Instance{
   override def clone(newDefSite : Context) : Instance = ClassInstance(name, newDefSite)

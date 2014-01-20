@@ -387,7 +387,8 @@ object Center {
     } else if (JawaCodeSource.containsRecord(ar.getName)){
 	    JawaCodeSource.getCodeType(ar.getName) match{
 	      case JawaCodeSource.CodeType.APP => ar.setApplicationRecord
-	      case JawaCodeSource.CodeType.LIBRARY => ar.setLibraryRecord
+	      case JawaCodeSource.CodeType.APP_USING_LIBRARY => ar.setLibraryRecord
+	      case JawaCodeSource.CodeType.ANDROID_LIBRARY => ar.setLibraryRecord
 	    }
     } else {
       ar.setLibraryRecord

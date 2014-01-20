@@ -432,7 +432,7 @@ class JawaRecord extends ResolveLevel{
 	  getProcedures.foreach{
 	    proc=>
 	      if(proc.getShortName == procShortName){
-	        if(found) throw new RuntimeException("ambiguous procedure" + procShortName)
+	        if(found) throw new RuntimeException("ambiguous procedure " + procShortName)
 	        else {
 	          found = true
 	          foundProcedure = proc
@@ -441,6 +441,24 @@ class JawaRecord extends ResolveLevel{
 	  }
 	  if(found) foundProcedure
 	  else throw new RuntimeException("couldn't find method " + procShortName + "(*) in " + this)
+	}
+	
+	/**
+	 * get procedure from this record by the given procedure name
+	 */
+	
+	def getProceduresByName(procName : String) : Set[JawaProcedure] = {
+	  if(!declaresProcedureByName(procName)) throw new RuntimeException("No procedure " + procName + " in record " + getName)
+	  getProcedures.filter(proc=> proc.getName == procName)
+	}
+	
+	/**
+	 * get procedure from this record by the given short proc name
+	 */
+	
+	def getProceduresByShortName(procShortName : String) : Set[JawaProcedure] = {
+	  if(!declaresProcedureByShortName(procShortName)) throw new RuntimeException("No procedure " + procShortName + " in record " + getName)
+	  getProcedures.filter(proc=> proc.getShortName == procShortName)
 	}
 	
 	/**
@@ -784,6 +802,7 @@ class JawaRecord extends ResolveLevel{
     this.packageName.startsWith("com.sun.") ||
     this.packageName.startsWith("org.omg.") ||
     this.packageName.startsWith("org.xml.")
+    
     
   /**
 	 * retrieve code belong to this record

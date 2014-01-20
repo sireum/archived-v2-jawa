@@ -4,6 +4,7 @@ import java.net._
 import java.io._
 import org.sireum.util._
 import org.sireum.jawa.JawaCodeSource
+import org.sireum.jawa.LibraryAPISummary
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -14,16 +15,16 @@ object LightWeightPilarParser {
     
   val DEBUG = false
   
-  def apply(source : Either[String, FileResourceUri], typ : JawaCodeSource.CodeType.Value) =
-    parseModel(source, typ)
+  def apply(source : Either[String, FileResourceUri], determiner : Either[JawaCodeSource.CodeType.Value, LibraryAPISummary]) =
+    parseModel(source, determiner)
 
-  def parseModel(source : Either[String, FileResourceUri], typ : JawaCodeSource.CodeType.Value) = {
+  def parseModel(source : Either[String, FileResourceUri], determiner : Either[JawaCodeSource.CodeType.Value, LibraryAPISummary]) = {
     source match {
       case Left(code) =>
-        readModelChunks(new StringReader(code), typ)
+        readModelChunks(new StringReader(code), determiner)
       case Right(fileResourceUri) =>
         val fr = new FileReader(new File(new URI(fileResourceUri)))
-        try readModelChunks(fr, typ) finally fr.close
+        try readModelChunks(fr, determiner) finally fr.close
     }
     if(DEBUG)
     	JawaCodeSource.printContent
@@ -107,7 +108,7 @@ object LightWeightPilarParser {
    * Note that each record block in pilar source starts with keyword "record"; 
    * so, the searching starts with keyword "record" and goes on until find another "record". The procs inside a record x are included in the code of x.
    */
-  def readModelChunks(r : Reader, typ : JawaCodeSource.CodeType.Value) = {
+  def readModelChunks(r : Reader, determiner : Either[JawaCodeSource.CodeType.Value, LibraryAPISummary]) = {
     val lnr = new LineNumberReader(r)
     var lineNo = 0
 
@@ -124,7 +125,7 @@ object LightWeightPilarParser {
 
       if (keyword == word) {
         if(recName!=null)
-        	JawaCodeSource.setRecordCode(recName, sb.toString, typ)
+        	JawaCodeSource.setRecordCode(recName, sb.toString, determiner)
         recName = getRecordName(lineText)
 
         sb = new StringBuilder
@@ -137,7 +138,7 @@ object LightWeightPilarParser {
 
       lineText = lnr.readLine
     }
-    JawaCodeSource.setRecordCode(recName, sb.toString, typ)
+    JawaCodeSource.setRecordCode(recName, sb.toString, determiner)
   }
 
   def getFirstWord(line : String) = {

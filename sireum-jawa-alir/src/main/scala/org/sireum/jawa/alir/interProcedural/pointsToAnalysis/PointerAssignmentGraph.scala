@@ -18,8 +18,9 @@ import org.sireum.jawa.alir.interProcedural.objectFlowAnalysis.InvokePointNode
 import org.sireum.jawa.alir.interProcedural.InterProceduralGraph
 import org.sireum.jawa.alir.interProcedural.InterProceduralNode
 import org.sireum.jawa.util.StringFormConverter
-import org.sireum.jawa.alir.PTAInstance
 import org.sireum.jawa.alir.JawaAlirInfoProvider
+import scala.collection.mutable.HashMap
+import scala.collection.mutable.SynchronizedMap
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -163,7 +164,23 @@ class PointerAssignmentGraph[Node <: PtaNode]
   with JavaObjectModelForPta[Node]{
   self=>
     
-  final val pointsToMap = new PointsToMap
+  val pointsToMap = new PointsToMap
+  
+  private val processed : MMap[(JawaProcedure, Context), PointProc] = new HashMap[(JawaProcedure, Context), PointProc] with SynchronizedMap[(JawaProcedure, Context), PointProc]
+  
+  def isProcessed(proc : JawaProcedure, callerContext : Context) : Boolean = processed.contains(proc, callerContext)
+  
+  def getPointProc(proc : JawaProcedure, callerContext : Context) : PointProc =  processed(proc, callerContext)
+  
+  def addProcessed(jp : JawaProcedure, c : Context, ps : Set[Point]) = {
+    ps.foreach{
+      p =>
+        if(p.isInstanceOf[PointProc])
+          this.processed += ((jp, c) -> p.asInstanceOf[PointProc])
+    }
+  }
+  
+  def getProcessed = this.processed
   
   def addEdge(source : Node, target : Node, typ : EdgeType.Value) : Edge = {
     val edge = graph.addEdge(getNode(source), getNode(target))
@@ -202,7 +219,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
         addEdge(edge)
       }  
     )
-//    iFieldDefRepo ++= ofg2.iFieldDefRepo
+    this.processed ++= pag2.getProcessed
     worklist ++= pag2.worklist
   }
   
@@ -212,12 +229,12 @@ class PointerAssignmentGraph[Node <: PtaNode]
    * to the given program point. If a value is added to a node, then that 
    * node is added to the worklist.
    */
-  def constructGraph(ap : JawaProcedure, ps : MList[Point], callerContext : Context) = {
-    ps.foreach(
-      p=>{
+  def constructGraph(ap : JawaProcedure, ps : Set[Point], callerContext : Context) = {
+    addProcessed(ap, callerContext.copy, ps)
+    ps.foreach{
+      p=>
         collectNodes(ap.getSignature, p, callerContext.copy)
-      }  
-    )
+    }
     ps.foreach(
       p=>{
         val cfg = JawaAlirInfoProvider.getCfg(ap)
@@ -294,9 +311,9 @@ class PointerAssignmentGraph[Node <: PtaNode]
 //            val ins = PTAStringInstance(pso.typ, context.copy, K_STRING)
 //            ins.addString(pso.str)
 //            pointsToMap.addInstance(rhsNode, ins)
-//          case pao : PointArrayO =>
-//            val ins = PTAInstance(pao.typ, pao.dimensions, context.copy)
-//            pointsToMap.addInstance(rhsNode, ins)
+          case pao : PointArrayO =>
+            val ins = PTAInstance(new NormalType(pao.typ, pao.dimensions), context.copy)
+            pointsToMap.addInstance(rhsNode, ins)
           case po : PointO =>
             val ins = PTAInstance(new NormalType(po.typ), context.copy)
             pointsToMap.addInstance(rhsNode, ins)

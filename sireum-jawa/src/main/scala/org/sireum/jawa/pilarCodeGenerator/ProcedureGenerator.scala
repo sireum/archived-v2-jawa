@@ -128,7 +128,7 @@ abstract class ProcedureGenerator {
     }
     procDeclTemplate.add("params", paramArray)
     val code = generateInternal(List())
-    msg_critical("environment code:\n" + code)
+    msg_normal("environment code:\n" + code)
     (JawaResolver.resolveProcedureCode(signature, code), code)
   }
   

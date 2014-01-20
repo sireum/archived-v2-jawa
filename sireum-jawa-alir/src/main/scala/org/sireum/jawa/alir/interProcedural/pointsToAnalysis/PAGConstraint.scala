@@ -12,7 +12,7 @@ trait PAGConstraint{
 	}
   
   def applyConstraint(p : Point,
-                      ps : MList[Point],
+                      ps : Set[Point],
                       cfg : ControlFlowGraph[String],
                       rda : AmandroidReachingDefinitionAnalysis.Result) 
                       : MMap[EdgeType.Value, MMap[Point, MSet[Point]]] = {
@@ -157,10 +157,10 @@ trait PAGConstraint{
   }
   
   def udChainForProcExit(p : PointRNoIndex,
-                         points : MList[Point],
-              cfg : ControlFlowGraph[String],
-              rda : AmandroidReachingDefinitionAnalysis.Result,
-              avoidMode : Boolean = true) : Set[Point] = {
+                         points : Set[Point],
+					               cfg : ControlFlowGraph[String],
+					               rda : AmandroidReachingDefinitionAnalysis.Result,
+					               avoidMode : Boolean = true) : Set[Point] = {
     val slots = rda.entrySet(cfg.exitNode)
     searchRda(p, points, slots, avoidMode)
   }
@@ -175,7 +175,7 @@ trait PAGConstraint{
 //  }
   
   def udChain(p : PointWithIndex,
-              points : MList[Point],
+              points : Set[Point],
               cfg : ControlFlowGraph[String],
               rda : AmandroidReachingDefinitionAnalysis.Result,
               avoidMode : Boolean = true) : Set[Point] = {
@@ -183,7 +183,7 @@ trait PAGConstraint{
     searchRda(p, points, slots, avoidMode)
   }
   
-  def searchRda(p : PointWithUri, points : MList[Point], slots : ISet[(Slot, DefDesc)], avoidMode : Boolean) : Set[Point] = {
+  def searchRda(p : PointWithUri, points : Set[Point], slots : ISet[(Slot, DefDesc)], avoidMode : Boolean) : Set[Point] = {
     var ps : Set[Point] = Set()
     slots.foreach{
       case (slot, defDesc)=> 
@@ -220,7 +220,7 @@ trait PAGConstraint{
     ps
   }
   
-  def getPoint(uri : ResourceUri, locUri : ResourceUri, locIndex : Int, ps : MList[Point], avoidMode : Boolean) : Point = {
+  def getPoint(uri : ResourceUri, locUri : ResourceUri, locIndex : Int, ps : Set[Point], avoidMode : Boolean) : Point = {
     var point : Point = null
     ps.foreach(
       p => {
@@ -251,7 +251,7 @@ trait PAGConstraint{
     point
   }
   
-  def getParamPoint_Return(uri : ResourceUri, paramIndex : Int, locUri : ResourceUri, locIndex : Int, ps : MList[Point], avoidMode : Boolean) : Point = {
+  def getParamPoint_Return(uri : ResourceUri, paramIndex : Int, locUri : ResourceUri, locIndex : Int, ps : Set[Point], avoidMode : Boolean) : Point = {
     var point : Point = null
     ps.foreach(
       p => {
@@ -280,7 +280,7 @@ trait PAGConstraint{
     point
   }
   
-  def getPointFromEntry(uri : ResourceUri, ps : MList[Point], avoidMode : Boolean) : Point = {
+  def getPointFromEntry(uri : ResourceUri, ps : Set[Point], avoidMode : Boolean) : Point = {
     var point : Point = null
     ps.foreach(
       p => {
