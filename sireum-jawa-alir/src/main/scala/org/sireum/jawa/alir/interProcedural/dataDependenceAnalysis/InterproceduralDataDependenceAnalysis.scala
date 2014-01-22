@@ -243,14 +243,14 @@ object InterproceduralDataDependenceAnalysis {
 			            case _ => VarSlot(exp.toString)
 			          }
 	          }
-	          argSlots.foreach{
-	            argSlot =>
-	              val argValue = ReachingFactsAnalysisHelper.getRelatedFacts(argSlot, rfaFacts).map(f => f.v)
-	              argValue.foreach{
-	                aIns =>
-	                  result += iddg.findDefSite(aIns.getDefSite)
-	              }
-	          }
+//	          argSlots.foreach{
+//	            argSlot =>
+//	              val argValue = ReachingFactsAnalysisHelper.getRelatedFacts(argSlot, rfaFacts).map(f => f.v)
+//	              argValue.foreach{
+//	                aIns =>
+//	                  result += iddg.findDefSite(aIns.getDefSite)
+//	              }
+//	          }
 	          result
 	        case _ => throw new RuntimeException("wrong exp type: " + ce + "  " + ce.arg)
 	      }

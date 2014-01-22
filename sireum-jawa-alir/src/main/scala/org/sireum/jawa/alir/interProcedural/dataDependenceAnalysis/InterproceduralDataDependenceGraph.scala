@@ -7,8 +7,6 @@ import org.jgrapht.alg.DijkstraShortestPath
 
 class InterProceduralDataDependenceGraph[Node <: CGNode] extends InterproceduralControlFlowGraph[Node]{
   
-  
-  
 	def addNodes(nodes : Set[Node]) = nodes.foreach(addNode(_))
 	
 	def initGraph(cg : InterproceduralControlFlowGraph[Node]) = {

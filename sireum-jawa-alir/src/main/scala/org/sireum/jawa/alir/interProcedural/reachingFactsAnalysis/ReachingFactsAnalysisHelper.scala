@@ -130,9 +130,9 @@ object ReachingFactsAnalysisHelper {
 	def getUnknownObject(calleeProc : JawaProcedure, s : ISet[RFAFact], args : Seq[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
 	  var genFacts : ISet[RFAFact] = isetEmpty
 	  var killFacts : ISet[RFAFact] = isetEmpty
-    val argSlots = args.map(arg=>VarSlot(arg))
-    val argValues = s.filter{f=>argSlots.contains(f.s)}.map(_.v)
-    argValues.foreach(_.addFieldsUnknownDefSite(currentContext))
+//    val argSlots = args.map(arg=>VarSlot(arg))
+//    val argValues = s.filter{f=>argSlots.contains(f.s)}.map(_.v)
+//    argValues.foreach(_.addFieldsUnknownDefSite(currentContext))
 //    killFacts ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(argValues, s)
     if(!Center.isJavaPrimitiveType(calleeProc.getReturnType))
 	    retVars.foreach{

@@ -36,7 +36,7 @@ trait ModelCallHandler {
    */
 	def doModelCall(s : ISet[RFAFact], calleeProc : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : ISet[RFAFact] = {
 	  var (newFacts, delFacts, byPassFlag) = caculateResult(s, calleeProc, args, retVars, currentContext)
-	  if(byPassFlag){
+	  if(true){
 	  	val (newF, delF) = ReachingFactsAnalysisHelper.getUnknownObject(calleeProc, s, args, retVars, currentContext)
 	  	newFacts ++= newF
 	  	delFacts ++= delF
