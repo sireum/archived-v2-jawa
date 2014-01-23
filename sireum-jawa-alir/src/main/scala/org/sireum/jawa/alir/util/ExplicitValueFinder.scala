@@ -25,8 +25,8 @@ object ExplicitValueFinder {
 	  }
 	}
 	
-	def traverseRdaToFindIntger(procedure : JawaProcedure, varName : String, loc : LocationDecl, cfg : ControlFlowGraph[String], rda : ReachingDefinitionAnalysis.Result) : ISet[Int] = {
-	  val slots = rda.entrySet(cfg.getNode(Some(loc.name.get.uri), loc.index))
+	def traverseRdaToFindIntger(procedure : JawaProcedure, varName : String, loc : LocationDecl, cfg : ControlFlowGraph[String], rda : ReachingDefinitionAnalysis.Result, resolvedStack : ISet[(org.sireum.alir.Slot, org.sireum.alir.DefDesc)] = isetEmpty) : ISet[Int] = {
+	  val slots = rda.entrySet(cfg.getNode(Some(loc.name.get.uri), loc.index)) -- resolvedStack
     var nums : ISet[Int] = isetEmpty
     slots.foreach{
       case(slot, defDesc) =>
@@ -36,7 +36,7 @@ object ExplicitValueFinder {
               val locDecl = procedure.getProcedureBody.location(ldd.locIndex)
               findIntegerFromLocationDecl(varName, locDecl) match{
                 case Left(num) => nums += num
-                case Right(varn) => nums ++= traverseRdaToFindIntger(procedure, varn, locDecl, cfg, rda)
+                case Right(varn) => nums ++= traverseRdaToFindIntger(procedure, varn, locDecl, cfg, rda, resolvedStack ++ slots)
               }
             case _ =>
           }

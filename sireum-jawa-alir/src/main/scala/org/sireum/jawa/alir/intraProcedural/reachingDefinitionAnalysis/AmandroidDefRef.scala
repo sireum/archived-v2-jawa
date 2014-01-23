@@ -155,22 +155,22 @@ final class AmandroidDefRef(st: SymbolTable, val varAccesses: VarAccesses)
           key match{
             case ne : NameExp =>
               resolveNameExp(ne)
-            case ae : AccessExp =>
-              if(is("object", a.annotations)){
-	              ae.exp match {
-	                case ane : NameExp =>
-	                  resolveNameExp(ane)
-	                case _ =>
-	              }
-              }
-            case ie : IndexingExp =>
-              if(is("object", a.annotations)){
-	              ie.exp match {
-	                case ine : NameExp =>
-	                  resolveNameExp(ine)
-	                case _ =>
-	              }
-              }
+//            case ae : AccessExp =>
+//              if(is("object", a.annotations)){
+//	              ae.exp match {
+//	                case ane : NameExp =>
+//	                  resolveNameExp(ane)
+//	                case _ =>
+//	              }
+//              }
+//            case ie : IndexingExp =>
+//              if(is("object", a.annotations)){
+//	              ie.exp match {
+//	                case ine : NameExp =>
+//	                  resolveNameExp(ine)
+//	                case _ =>
+//	              }
+//              }
             case _=>
           }
       }
@@ -184,14 +184,15 @@ final class AmandroidDefRef(st: SymbolTable, val varAccesses: VarAccesses)
     refCache.getOrElseUpdate(j, getRefs(j))
 
   def callReferences(j: CallJump): ISeq[ISet[Slot]] = {
-    val arg = j.callExp.arg
-    arg match {
-      case e: TupleExp =>
-        val result = e.exps.map { exp => refCache.getOrElseUpdate(exp, getRefs(exp)) }
-        result
-      case e =>
-        ivector(refCache.getOrElseUpdate(j, getRefs(e)))
-    }
+//    val arg = j.callExp.arg
+//    arg match {
+//      case e: TupleExp =>
+//        val result = e.exps.map { exp => refCache.getOrElseUpdate(exp, getRefs(exp)) }
+//        result
+//      case e =>
+//        ivector(refCache.getOrElseUpdate(j, getRefs(e)))
+//    }
+    ivectorEmpty
   }
 
   def callDefinitions(j: CallJump): ISeq[ISet[Slot]] = {

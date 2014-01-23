@@ -20,6 +20,7 @@ import org.sireum.jawa.alir.interProcedural.controlFlowGraph._
 import org.sireum.jawa.PilarAstHelper
 import org.sireum.alir.AlirEdge
 import org.sireum.jawa.alir.interProcedural.InterProceduralMonotoneDataFlowAnalysisResult
+import org.sireum.jawa.util.StringFormConverter
 
 trait InterproceduralDataDependenceInfo{
   def getIddg : InterProceduralDataDependenceGraph[InterproceduralDataDependenceAnalysis.Node]
@@ -66,7 +67,7 @@ object InterproceduralDataDependenceAnalysis {
 				      val loc = ownerProc.getProcedureBody.location(ln.getLocIndex)
 				      val rfaFacts = rfaResult.entrySet(ln)
 				      val irdaFacts = irdaResult(ln)
-				      targetNodes ++= processLocation(loc, rfaFacts, irdaFacts, iddg)
+				      targetNodes ++= processLocation(node, loc, rfaFacts, irdaFacts, iddg)
 	          case _ =>
 	        }
 	      }
@@ -79,7 +80,7 @@ object InterproceduralDataDependenceAnalysis {
 	  new Iddi(iddg)
 	}
 	
-	def processLocation(loc : LocationDecl, rfaFacts : ISet[RFAFact], irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
+	def processLocation(node : Node, loc : LocationDecl, rfaFacts : ISet[RFAFact], irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
 	  var result = isetEmpty[Node]
 	  loc match{
 		  case al : ActionLocation =>
@@ -88,7 +89,7 @@ object InterproceduralDataDependenceAnalysis {
 	          val lhss = PilarAstHelper.getLHSs(aa)
 			      val rhss = PilarAstHelper.getRHSs(aa)
 			      result ++= processLHSs(lhss, rfaFacts, irdaFacts, iddg)
-			      result ++= processRHSs(rhss, rfaFacts, irdaFacts, iddg)
+			      result ++= processRHSs(node, rhss, rfaFacts, irdaFacts, iddg)
 	        case _ =>
 	      }
 	    case jl : JumpLocation =>
@@ -97,22 +98,22 @@ object InterproceduralDataDependenceAnalysis {
 			      val lhss = PilarAstHelper.getLHSs(t)
 			      val rhss = PilarAstHelper.getRHSs(t)
 			      result ++= processLHSs(lhss, rfaFacts, irdaFacts, iddg)
-			      result ++= processRHSs(rhss, rfaFacts, irdaFacts, iddg)
+			      result ++= processRHSs(node, rhss, rfaFacts, irdaFacts, iddg)
 			    case gj : GotoJump =>
 			    case rj : ReturnJump =>
 			      if (rj.exp.isDefined) {
-		          processExp(rj.exp.get, rfaFacts, irdaFacts, iddg)
+		          processExp(node, rj.exp.get, rfaFacts, irdaFacts, iddg)
 		        }
 			    case ifj : IfJump =>
 			      for (ifThen <- ifj.ifThens) {
-              processCondition(ifThen.cond, rfaFacts, irdaFacts, iddg)
+              processCondition(node, ifThen.cond, rfaFacts, irdaFacts, iddg)
             }
             if (ifj.ifElse.isEmpty) {
             } else {
             }
 			    case sj : SwitchJump =>
 			      for (switchCase <- sj.cases) {
-              processCondition(switchCase.cond, rfaFacts, irdaFacts, iddg)
+              processCondition(node, switchCase.cond, rfaFacts, irdaFacts, iddg)
             }
             if (sj.defaultCase.isEmpty) {
             } else {
@@ -161,14 +162,14 @@ object InterproceduralDataDependenceAnalysis {
     result
 	}
 	
-	def processRHSs(rhss : Seq[Exp], rfaFacts : ISet[RFAFact], irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
+	def processRHSs(node : Node, rhss : Seq[Exp], rfaFacts : ISet[RFAFact], irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
     var result = isetEmpty[Node]
     if(!rhss.isEmpty)
-    	result ++= rhss.map(processExp(_, rfaFacts, irdaFacts, iddg)).reduce(iunion[Node])
+    	result ++= rhss.map(processExp(node, _, rfaFacts, irdaFacts, iddg)).reduce(iunion[Node])
     result
 	}
 	
-	def processExp(exp : Exp, rfaFacts : ISet[RFAFact], irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
+	def processExp(node : Node, exp : Exp, rfaFacts : ISet[RFAFact], irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
 	  var result = isetEmpty[Node]
 	  exp match{
       case ne : NameExp =>
@@ -232,6 +233,9 @@ object InterproceduralDataDependenceAnalysis {
           case _ => throw new RuntimeException("Wrong exp: " + ce.exp)
         }
       case ce : CallExp =>
+        val calleeSet =
+	        if(node.isInstanceOf[CGInvokeNode]) node.asInstanceOf[CGInvokeNode].getCalleeSet
+	        else Set[JawaProcedure]()
         ce.arg match{
 	        case te : TupleExp => 
 	          val argSlots = te.exps.map{
@@ -243,14 +247,30 @@ object InterproceduralDataDependenceAnalysis {
 			            case _ => VarSlot(exp.toString)
 			          }
 	          }
-//	          argSlots.foreach{
-//	            argSlot =>
-//	              val argValue = ReachingFactsAnalysisHelper.getRelatedFacts(argSlot, rfaFacts).map(f => f.v)
-//	              argValue.foreach{
-//	                aIns =>
-//	                  result += iddg.findDefSite(aIns.getDefSite)
-//	              }
-//	          }
+	          
+	          argSlots.foreach{
+	            argSlot =>
+	              var argFacts = ReachingFactsAnalysisHelper.getRelatedFacts(argSlot, rfaFacts)
+	              if(calleeSet.exists(_.getDeclaringRecord.isLibraryRecord)){
+		              argFacts = argFacts.filter{
+		                case RFAFact(s, i) =>
+		                  if(s.isInstanceOf[FieldSlot]){
+		                    val recName = StringFormConverter.getRecordNameFromFieldSignature(s.asInstanceOf[FieldSlot].fieldName)
+		                    val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
+		                    if(rec.hasField(s.asInstanceOf[FieldSlot].fieldName)){
+			                    val field = rec.getField(s.asInstanceOf[FieldSlot].fieldName)
+			                    field.getDeclaringRecord.isLibraryRecord
+		                    } else false
+		                  }
+		                  else true
+		              }
+	              }
+	              val argValue = argFacts.map(f => f.v)
+	              argValue.foreach{
+	                aIns =>
+	                  result += iddg.findDefSite(aIns.getDefSite)
+	              }
+	          }
 	          result
 	        case _ => throw new RuntimeException("wrong exp type: " + ce + "  " + ce.arg)
 	      }
@@ -259,12 +279,12 @@ object InterproceduralDataDependenceAnalysis {
 	  result
 	}
 	
-	def processCondition(cond : Exp, rfaFacts : ISet[RFAFact], irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
+	def processCondition(node : Node, cond : Exp, rfaFacts : ISet[RFAFact], irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
 	  var result = isetEmpty[Node]
 	  cond match{
 	    case be : BinaryExp =>
-	      result ++= processExp(be.left, rfaFacts, irdaFacts, iddg)
-	      result ++= processExp(be.right, rfaFacts, irdaFacts, iddg)
+	      result ++= processExp(node, be.left, rfaFacts, irdaFacts, iddg)
+	      result ++= processExp(node, be.right, rfaFacts, irdaFacts, iddg)
 	    case _ =>
 	  }
 	  result

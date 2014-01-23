@@ -1,6 +1,7 @@
 package org.sireum.jawa
 
 import org.sireum.jawa.util.StringFormConverter
+import org.sireum.util._
 
 
 /**
@@ -237,19 +238,24 @@ class JawaRecord extends ResolveLevel{
 	
 	def getFields = {
     var results = getDeclaredFields
-    var record = this
-    this.getInterfaces.foreach{
-      int =>
-        Center.getRecordHierarchy.getAllSuperInterfacesOfIncluding(int).foreach{
-          sint =>
-            results ++= sint.getDeclaredFields.filter(!_.isPrivate)
-        }
-    }
-    if(!this.isInterface){
-	    Center.getRecordHierarchy.getAllSuperClassesOf(this).foreach{
-	      sc =>
-	        results ++= sc.getDeclaredFields.filter(!_.isPrivate)
-	    }
+    var worklist : Set[JawaRecord] = Set()
+    worklist += this
+    while(!worklist.isEmpty){
+      worklist =
+	      worklist.map{
+	        rec =>
+	          var parents = rec.getInterfaces
+	          if(rec.hasSuperClass) parents += rec.getSuperClass
+	          val fields =
+		          if(!parents.isEmpty)
+			          parents.map{
+			          	parent =>
+			          	  parent.getDeclaredFields.filter(f => !f.isPrivate && !results.exists(_.getName == f.getName))
+			          }.reduce(iunion[JawaField])
+			        else Set[JawaField]()
+	          results ++= fields
+	          parents
+	      }.reduce(iunion[JawaRecord])
     }
     results
   }
@@ -343,6 +349,21 @@ class JawaRecord extends ResolveLevel{
 	def declaresFieldByName(name : String) = !getDeclaredFields.filter(_.getName == name).isEmpty
 	
 	/**
+   * return true if the field is declared in this record
+   */
+  
+	def hasField(sig : String) : Boolean = {
+	  val name = StringFormConverter.getFieldNameFromFieldSignature(sig)
+	  hasFieldByName(name)
+	}
+	
+	/**
+	 * whether this record declares a field with the given name
+	 */
+	
+	def hasFieldByName(name : String) = !getFields.filter(_.getName == name).isEmpty
+	
+	/**
 	 * whether this record declares a field with the given name and type
 	 */
 	
@@ -375,7 +396,8 @@ class JawaRecord extends ResolveLevel{
 	 */
 	
 	def getField(sig : String) : JawaField = {
-	  val fopt = getFields.find(_.getSignature == sig)
+	  val fieldName = StringFormConverter.getFieldNameFromFieldSignature(sig)
+	  val fopt = getFields.find(_.getName == fieldName)
 	  fopt match{
 	    case Some(f) => f
 	    case None => throw new RuntimeException("No field signature " + sig + " in record " + getName)

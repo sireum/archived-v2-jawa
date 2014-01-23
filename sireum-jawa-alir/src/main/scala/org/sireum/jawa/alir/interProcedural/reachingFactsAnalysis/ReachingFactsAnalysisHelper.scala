@@ -186,9 +186,11 @@ object ReachingFactsAnalysisHelper {
                 if(ins.isInstanceOf[NullInstance])
                   err_msg_normal("Access field: " + baseSlot + "." + fieldSig + "@" + currentContext + "\nwith Null pointer: " + ins)
                 else{
-                  val fieldName = StringFormConverter.getFieldNameFromFieldSignature(fieldSig)
-	                if(baseValue.size>1) result(i) = (FieldSlot(ins, fieldName), false)
-	                else result(i) = (FieldSlot(ins, fieldName), true)
+                  val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
+                  val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
+                  val fSig = rec.getField(fieldSig).getSignature
+	                if(baseValue.size>1) result(i) = (FieldSlot(ins, fSig), false)
+	                else result(i) = (FieldSlot(ins, fSig), true)
                 }
             }
           case ie : IndexingExp =>
@@ -201,7 +203,7 @@ object ReachingFactsAnalysisHelper {
             baseValue.map{
               ins =>
                 if(ins.isInstanceOf[NullInstance])
-                  err_msg_critical("Access array: " + baseSlot + "@" + currentContext + "\nwith Null pointer: " + ins)
+                  err_msg_normal("Access array: " + baseSlot + "@" + currentContext + "\nwith Null pointer: " + ins)
                 result(i) = (ArraySlot(ins), false)
             }
           case _=>
@@ -299,8 +301,10 @@ object ReachingFactsAnalysisHelper {
                 if(ins.isInstanceOf[NullInstance])
                   err_msg_normal("Access field: " + baseSlot + "." + fieldSig + "@" + currentContext + "\nwith Null pointer: " + ins)
                 else{
-                  val fieldName = StringFormConverter.getFieldNameFromFieldSignature(fieldSig)
-                  val fieldSlot = FieldSlot(ins, fieldName)
+                  val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
+                  val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
+                  val fSig = rec.getField(fieldSig).getSignature
+                  val fieldSlot = FieldSlot(ins, fSig)
 	                val fieldValue : ISet[Instance] = factMap.getOrElse(fieldSlot, ins.getFieldsUnknownDefSites.map(defs=>UnknownInstance(defs)))
 			            result(i) = fieldValue
                 }
