@@ -470,7 +470,6 @@ class JawaRecord extends ResolveLevel{
 	 */
 	
 	def getProceduresByName(procName : String) : Set[JawaProcedure] = {
-	  if(!declaresProcedureByName(procName)) throw new RuntimeException("No procedure " + procName + " in record " + getName)
 	  getProcedures.filter(proc=> proc.getName == procName)
 	}
 	
@@ -479,7 +478,6 @@ class JawaRecord extends ResolveLevel{
 	 */
 	
 	def getProceduresByShortName(procShortName : String) : Set[JawaProcedure] = {
-	  if(!declaresProcedureByShortName(procShortName)) throw new RuntimeException("No procedure " + procShortName + " in record " + getName)
 	  getProcedures.filter(proc=> proc.getShortName == procShortName)
 	}
 	

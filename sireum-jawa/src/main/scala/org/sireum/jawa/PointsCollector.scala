@@ -565,6 +565,7 @@ class PointR(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceU
  */
 class PointFieldL(base : PointBaseL, uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointL(uri, loc, locIndex, o){ 
   val basePoint = base
+  def getFieldName = uri
   override def toString = basePoint.varName + "." + uri + "@" + loc
 }
 
@@ -573,6 +574,7 @@ class PointFieldL(base : PointBaseL, uri : ResourceUri, loc : ResourceUri, locIn
  */
 class PointFieldR(base : PointBaseR, uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointR(uri, loc, locIndex, o){ 
   val basePoint = base
+  def getFieldName = uri
   override def toString = basePoint.varName + "." + uri + "@" + loc
 }
 

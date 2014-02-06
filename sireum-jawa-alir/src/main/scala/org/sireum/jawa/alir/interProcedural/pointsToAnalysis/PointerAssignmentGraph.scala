@@ -21,6 +21,7 @@ import org.sireum.jawa.util.StringFormConverter
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.SynchronizedMap
+import org.sireum.jawa.alir.util.CallHandler
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -182,6 +183,42 @@ class PointerAssignmentGraph[Node <: PtaNode]
   
   def getProcessed = this.processed
   
+  private var newNodes : Set[Node] = isetEmpty
+  private var newEdges : Set[Edge] = isetEmpty
+  
+  final case class Callee(calleeProc : JawaProcedure, pi : PointI, node : Node)
+  
+  def processStaticCall : ISet[Callee] = {
+    val staticCallees = msetEmpty[Callee]
+    newNodes.foreach{
+      node =>
+        if(node.isInstanceOf[PtaInvokeNode]){
+          val pi = node.asInstanceOf[PtaInvokeNode].getPI
+          if(pi.typ.equals("static")){
+	          val callee = getStaticCallee(pi)
+	          staticCallees += Callee(callee, pi, node)
+	        }
+        }
+    }
+    newNodes = isetEmpty
+    staticCallees.toSet
+  }
+  
+  def processObjectAllocation = {
+    newEdges.foreach{
+      edge =>
+        getEdgeType(edge) match{
+          case EdgeType.ALLOCATION =>
+            if(pointsToMap.isDiff(edge.source, edge.target)){
+	            pointsToMap.propagatePointsToSet(edge.source, edge.target)
+	            worklist += edge.target
+            }
+          case _ =>
+        }
+    }
+    newEdges = isetEmpty
+  }
+  
   def addEdge(source : Node, target : Node, typ : EdgeType.Value) : Edge = {
     val edge = graph.addEdge(getNode(source), getNode(target))
     edge.setProperty(EDGE_TYPE, typ)
@@ -233,14 +270,14 @@ class PointerAssignmentGraph[Node <: PtaNode]
     addProcessed(ap, callerContext.copy, ps)
     ps.foreach{
       p=>
-        collectNodes(ap.getSignature, p, callerContext.copy)
+        newNodes ++= collectNodes(ap.getSignature, p, callerContext.copy)
     }
     ps.foreach(
       p=>{
         val cfg = JawaAlirInfoProvider.getCfg(ap)
         val rda = JawaAlirInfoProvider.getRda(ap, cfg)
         val constraintMap = applyConstraint(p, ps, cfg, rda)
-        buildingEdges(constraintMap, ap.getSignature, callerContext.copy)
+        newEdges ++= buildingEdges(constraintMap, ap.getSignature, callerContext.copy)
       }  
     )
   }
@@ -318,13 +355,19 @@ class PointerAssignmentGraph[Node <: PtaNode]
             val ins = PTAInstance(new NormalType(po.typ), context.copy)
             pointsToMap.addInstance(rhsNode, ins)
           case pi : PointI =>
-            if(pi.typ.equals("static")) worklist += rhsNode
+            if(pi.typ.equals("static")){
+              worklist += rhsNode
+            }
           case pr : PointR =>
         }
       case pi : PointI =>
         if(!pi.typ.equals("static")){
           nodes += getNodeOrElse(pi.recvOpt_Call.get, context.copy)
           nodes += getNodeOrElse(pi.recvOpt_Return.get, context.copy)
+        } else {
+          val node = getNodeOrElse(pi, context.copy)
+          nodes += node
+          worklist += node
         }
         val args_Entry = pi.args_Call
         val args_Exit = pi.args_Return
@@ -383,7 +426,8 @@ class PointerAssignmentGraph[Node <: PtaNode]
     nodes
   }
   
-  def buildingEdges(map : MMap[EdgeType.Value, MMap[Point, MSet[Point]]], pSig : String, context : Context) = {
+  def buildingEdges(map : MMap[EdgeType.Value, MMap[Point, MSet[Point]]], pSig : String, context : Context) : Set[Edge] = {
+    var edges : Set[Edge] = isetEmpty
     map.foreach{
       case(typ, edgeMap) =>
         edgeMap.foreach{
@@ -397,10 +441,11 @@ class PointerAssignmentGraph[Node <: PtaNode]
 		            t.setContext(pSig, dst.getLoc)
 		            val targetNode = getNode(dst, t)
 		            if(!graph.containsEdge(srcNode, targetNode))
-		              addEdge(srcNode, targetNode, typ)
+		              edges += addEdge(srcNode, targetNode, typ)
 		        }
         }
   	}
+    edges
   }
   
   def breakPiEdges(pi : PointI, calleeAccessTyp : String, srcContext : Context) = {
@@ -411,7 +456,8 @@ class PointerAssignmentGraph[Node <: PtaNode]
 	        val targetNode = getNode(pi.recvOpt_Return.get, srcContext.copy)
 //	        if(arrayRepo.contains(p.toString) || fieldVarRepo.contains(p.toString))
 //	          deleteEdge(targetNode, srcNode)
-	        deleteEdge(srcNode, targetNode)
+	        if(hasEdge(srcNode, targetNode))
+	        	deleteEdge(srcNode, targetNode)
 	      case None =>
 	    }
     }
@@ -421,7 +467,8 @@ class PointerAssignmentGraph[Node <: PtaNode]
         val targetNode = getNode(pi.args_Return(i), srcContext.copy)
 //        if(arrayRepo.contains(aCall.toString) || fieldVarRepo.contains(aCall.toString))
 //	        deleteEdge(targetNode, srcNode)
-        deleteEdge(srcNode, targetNode)
+        if(hasEdge(srcNode, targetNode))
+        	deleteEdge(srcNode, targetNode)
     }
   }
   
@@ -497,16 +544,16 @@ class PointerAssignmentGraph[Node <: PtaNode]
     }
   }
   
-  def getDirectCallee(pi : PointI) : JawaProcedure = Center.getDirectCalleeProcedure(pi.varName)
+  def getDirectCallee(pi : PointI) : JawaProcedure = CallHandler.getDirectCalleeProcedure(pi.varName)
   
-  def getStaticCallee(pi : PointI) : JawaProcedure = Center.getStaticCalleeProcedure(pi.varName)
+  def getStaticCallee(pi : PointI) : JawaProcedure = CallHandler.getStaticCalleeProcedure(pi.varName)
   
   def getSuperCalleeSet(diff : MSet[PTAInstance],
 	                 pi : PointI) : MSet[JawaProcedure] = {
     val calleeSet : MSet[JawaProcedure] = msetEmpty
     diff.foreach{
       d =>
-        val p = Center.getSuperCalleeProcedure(pi.varName)
+        val p = CallHandler.getSuperCalleeProcedure(pi.varName)
         calleeSet += p
     }
     calleeSet
@@ -518,7 +565,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
     val subSig = Center.getSubSigFromProcSig(pi.varName)
     diff.foreach{
       d =>
-        val p = Center.getVirtualCalleeProcedure(d.typ, subSig)
+        val p = CallHandler.getVirtualCalleeProcedure(d.typ, subSig)
         calleeSet += p
     }
     calleeSet

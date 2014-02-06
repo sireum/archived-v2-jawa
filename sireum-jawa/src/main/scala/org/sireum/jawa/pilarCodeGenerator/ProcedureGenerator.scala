@@ -13,6 +13,7 @@ import org.sireum.jawa.JawaResolver
 import java.util.Arrays
 import org.sireum.jawa.NormalType
 import org.sireum.jawa.util.SignatureParser
+import org.sireum.jawa.JawaCodeSource
 
 
 abstract class ProcedureGenerator {
@@ -105,7 +106,7 @@ abstract class ProcedureGenerator {
     (JawaResolver.resolveProcedureCode(signature, code), code)
   }
   
-  def generateWithParam(params : List[String], name : String) : (JawaProcedure, String) = {
+  def generateWithParam(params : List[String], name : String) : JawaProcedure = {
     val recordName = this.currentComponent
     val procedureName = recordName.substring(0, recordName.length() - 2) + "." + name + "|]"
 	  val annotations = new ArrayList[ST]
@@ -129,7 +130,8 @@ abstract class ProcedureGenerator {
     procDeclTemplate.add("params", paramArray)
     val code = generateInternal(List())
     msg_normal("environment code:\n" + code)
-    (JawaResolver.resolveProcedureCode(signature, code), code)
+    JawaCodeSource.addAppRecordCode(recordName, code)
+    JawaResolver.resolveProcedureCode(signature, code)
   }
   
   protected def generateParamAnnotation(flag : String, params : List[String]) : ST = {

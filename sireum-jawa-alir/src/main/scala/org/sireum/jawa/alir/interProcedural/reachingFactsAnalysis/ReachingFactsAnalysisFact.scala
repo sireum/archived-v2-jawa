@@ -5,7 +5,7 @@ import org.sireum.alir.Slot
 import org.sireum.jawa.alir.Instance
 import org.sireum.util._
 
-final case class VarSlot(varName : String) extends Slot{
+final case class VarSlot(varName : String) extends Slot {
   def isGlobal : Boolean = varName.startsWith("@@")
   override def toString = varName
 }

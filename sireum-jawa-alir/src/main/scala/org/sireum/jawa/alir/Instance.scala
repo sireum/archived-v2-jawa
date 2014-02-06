@@ -12,9 +12,9 @@ abstract class Instance{
   def defSite : Context
   def getDefSite = defSite
   def clone(newDefSite : Context) : Instance
-  var fieldsUnknownDefSites : ISet[Context] = isetEmpty
-  def addFieldsUnknownDefSite(defSite : Context) = this.fieldsUnknownDefSites += defSite
-  def setFieldsUnknownDefSites(defSites : ISet[Context]) = this.fieldsUnknownDefSites = defSites
+  var fieldsUnknownDefSites : IMap[Context, Set[String]] = imapEmpty
+  def addFieldsUnknownDefSite(defSite : Context, fields : Set[String]) = this.fieldsUnknownDefSites += (defSite -> fields)
+  def setFieldsUnknownDefSites(defSites : IMap[Context, Set[String]]) = this.fieldsUnknownDefSites = defSites
   def getFieldsUnknownDefSites = this.fieldsUnknownDefSites
 }
 

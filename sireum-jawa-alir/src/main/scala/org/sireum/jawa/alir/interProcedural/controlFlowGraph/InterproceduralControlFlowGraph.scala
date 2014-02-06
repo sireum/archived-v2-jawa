@@ -20,6 +20,7 @@ import org.jgrapht.alg.DijkstraShortestPath
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.GlobalConfig
 import org.sireum.jawa.Center
+import org.sireum.jawa.alir.interProcedural.Callee
 
 /**
  * @author Fengguo Wei & Sankardas Roy
@@ -90,6 +91,8 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   private var callMap : IMap[JawaProcedure, ISet[JawaProcedure]] = imapEmpty
   
   def setCallMap(from : JawaProcedure, to : JawaProcedure) = this.callMap += (from -> (this.callMap.getOrElse(from, isetEmpty) + to))
+  
+  def getCallMap = this.callMap
 
   def getReachableProcedures(procs : Set[JawaProcedure]) : Set[JawaProcedure] = {
     calculateReachableProcedures(procs, isetEmpty) ++ procs
@@ -104,7 +107,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 	          Set[JawaProcedure]()
 	        } else {
 		        val callees = this.callMap.getOrElse(proc, isetEmpty)
-		        callees ++ calculateReachableProcedures(callees, processed ++ callees)
+		        callees ++ calculateReachableProcedures(callees, processed + proc)
 	        }
 	    }.reduce((s1, s2) => s1 ++ s2)
   }
@@ -446,8 +449,10 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     val targetNode = getCGEntryNode(calleeContext)
     val retSrcNode = getCGExitNode(calleeContext)
     this.synchronized{
-	    addEdge(callNode, targetNode)
-	    addEdge(retSrcNode, returnNode)
+      if(!hasEdge(callNode, targetNode))
+      	addEdge(callNode, targetNode)
+      if(!hasEdge(retSrcNode, returnNode))
+      	addEdge(retSrcNode, returnNode)
     }
     targetNode
   }
@@ -611,8 +616,8 @@ abstract class CGLocNode(context : Context) extends CGNode(context) {
 abstract class CGInvokeNode(context : Context) extends CGLocNode(context) {
   final val CALLEES = "callee_set"
   def getInvokeLabel : String
-  def setCalleeSet(calleeSet : ISet[JawaProcedure]) = this.setProperty(CALLEES, calleeSet)
-  def getCalleeSet : ISet[JawaProcedure] = this.getPropertyOrElse(CALLEES, isetEmpty)
+  def setCalleeSet(calleeSet : ISet[Callee]) = this.setProperty(CALLEES, calleeSet)
+  def getCalleeSet : ISet[Callee] = this.getPropertyOrElse(CALLEES, isetEmpty)
   override def toString : String = getInvokeLabel + "@" + context
 }
 

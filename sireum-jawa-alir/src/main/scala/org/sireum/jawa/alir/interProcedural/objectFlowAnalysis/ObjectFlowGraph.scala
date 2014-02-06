@@ -14,6 +14,7 @@ import java.io.Writer
 import org.jgrapht.ext.DOTExporter
 import org.sireum.jawa._
 import org.sireum.jawa.alir.Context
+import org.sireum.jawa.alir.util.CallHandler
 
 abstract class ObjectFlowGraph[Node <: OfaNode, ValueSet <: NormalValueSet](val fac: () => ValueSet)
   extends AlirGraph[Node]
@@ -753,9 +754,9 @@ abstract class ObjectFlowGraph[Node <: OfaNode, ValueSet <: NormalValueSet](val 
     }
   }
   
-  def getDirectCallee(pi : PointI) : JawaProcedure = Center.getDirectCalleeProcedure(pi.varName)
+  def getDirectCallee(pi : PointI) : JawaProcedure = CallHandler.getDirectCalleeProcedure(pi.varName)
   
-  def getStaticCallee(pi : PointI) : JawaProcedure = Center.getStaticCalleeProcedure(pi.varName)
+  def getStaticCallee(pi : PointI) : JawaProcedure = CallHandler.getStaticCalleeProcedure(pi.varName)
   
   /**
    * This is the beta method in original algo

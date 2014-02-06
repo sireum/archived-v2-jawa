@@ -142,6 +142,11 @@ object JawaCodeSource {
     }
   }
 	
+	def addAppRecordCode(name : String, procCode : String) = {
+	  val recCode = this.appRecordsCodes.getOrElse(name, throw new RuntimeException("Record " + name + " does not exist in the app code."))
+	  val newRecCode = recCode + "\n" + procCode
+	  setAppRecordCode(name, newRecCode)
+	}
 	
 	/**
 	 * get record code

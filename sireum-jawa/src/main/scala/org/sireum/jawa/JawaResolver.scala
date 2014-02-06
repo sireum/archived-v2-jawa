@@ -74,7 +74,6 @@ object JawaResolver {
     val typ = StringFormConverter.getTypeFromName(recordName)
     if(!typ.isArray && !JawaCodeSource.containsRecord(recordName)){
       if(!Center.containsRecord(recordName) || Center.getRecord(recordName).getResolvingLevel < desiredLevel){
-        Center.tryRemoveRecord(recordName)
 	      val rec = new JawaRecord().init(recordName)
 	      rec.setPhantom
 	      rec.setResolvingLevel(desiredLevel)

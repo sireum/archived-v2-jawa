@@ -55,17 +55,15 @@ class InterproceduralPointsToAnalysis {
     workListPropagation(pag, cg, wholeProgram)
   }
   
+  private def processStaticInfo(pag : PointerAssignmentGraph[PtaNode], cg : InterproceduralControlFlowGraph[CGNode], wholeProgram : Boolean) = {
+    pag.processObjectAllocation
+    val staticCallees = pag.processStaticCall
+    staticCallees.foreach(callee=>extendGraphWithConstructGraph(callee.calleeProc, callee.pi, callee.node.getContext.copy, pag, cg))
+  }
+  
   def workListPropagation(pag : PointerAssignmentGraph[PtaNode],
 		  					 cg : InterproceduralControlFlowGraph[CGNode], wholeProgram : Boolean) : Unit = {
-    pag.edges.foreach{
-      edge =>
-        pag.getEdgeType(edge) match{
-          case pag.EdgeType.ALLOCATION =>
-            pag.pointsToMap.propagatePointsToSet(edge.source, edge.target)
-            pag.worklist += edge.target
-          case _ =>
-        }
-    }
+    processStaticInfo(pag, cg, wholeProgram)
     while (!pag.worklist.isEmpty) {
       while (!pag.worklist.isEmpty) {
       	val srcNode = pag.worklist.remove(0)
@@ -186,29 +184,16 @@ class InterproceduralPointsToAnalysis {
           calleeSet += pag.getDirectCallee(pi)
         } else if(pi.typ.equals("super")){
           calleeSet ++= pag.getSuperCalleeSet(d, pi)
-        } else if(pi.typ.equals("static")){
-          calleeSet += pag.getStaticCallee(pi)
         } else {
           calleeSet ++= pag.getVirtualCalleeSet(d, pi)
         }
-        
         calleeSet.foreach(
           callee => {
             if(wholeProgram || callee.getDeclaringRecord.isApplicationRecord)
             	extendGraphWithConstructGraph(callee, pi, callerContext.copy, pag, cg)
           }  
         )
-        pag.edges.foreach{
-		      edge =>
-		        pag.getEdgeType(edge) match{
-		          case pag.EdgeType.ALLOCATION =>
-		            if(pag.pointsToMap.isDiff(edge.source, edge.target)){
-			            pag.pointsToMap.propagatePointsToSet(edge.source, edge.target)
-			            pag.worklist += edge.target
-		            }
-		          case _ =>
-		        }
-		    }
+        processStaticInfo(pag, cg, wholeProgram)
       case None =>
     }
   }
@@ -222,7 +207,7 @@ class InterproceduralPointsToAnalysis {
     val calleeSig = calleeProc.getSignature
     if(!pag.isProcessed(calleeProc, callerContext)){
     	val points = new PointsCollector().points(calleeProc.getSignature, calleeProc.getProcedureBody)
-      pag.constructGraph(calleeProc, points, callerContext.copy)  
+      pag.constructGraph(calleeProc, points, callerContext.copy)
       cg.collectCfgToBaseGraph(calleeProc, callerContext.copy)
     }
     val procPoint = pag.getPointProc(calleeProc, callerContext)

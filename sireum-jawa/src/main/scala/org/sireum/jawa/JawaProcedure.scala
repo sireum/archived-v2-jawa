@@ -168,8 +168,9 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
   
   def init(sig : String) : JawaProcedure = {
     val name = StringFormConverter.getProcedureNameFromProcedureSignature(sig)
+    val recName = StringFormConverter.getRecordNameFromProcedureSignature(sig)
     val sigP = new SignatureParser(sig).getParamSig
-    val paramTyps = sigP.getParameterTypes
+    val paramTyps = StringFormConverter.getTypeFromName(recName) :: sigP.getParameterTypes
     val returnTyp = sigP.getReturnType
 	  init(name, sig, paramTyps, returnTyp, 0, List())
 	}
@@ -180,7 +181,8 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
   
   def init(name : String, sig : String) : JawaProcedure = {
     val sigP = new SignatureParser(sig).getParamSig
-    val paramTyps = sigP.getParameterTypes
+    val recName = StringFormConverter.getRecordNameFromProcedureSignature(sig)
+    val paramTyps = StringFormConverter.getTypeFromName(recName) :: sigP.getParameterTypes
     val returnTyp = sigP.getReturnType
 	  init(name, sig, paramTyps, returnTyp, 0, List())
 	}
@@ -292,9 +294,11 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
     val rt = getReturnType
     val pts = getParamTypes
     sb.append(this.shortName + ":(")
-    pts.foreach{
-      pt =>
-        sb.append(StringFormConverter.formatTypeToSigForm(pt.typ))
+    for(i <- 0 to pts.size - 1){
+      if(i != 0){
+	      val pt = pts(i) 
+	      sb.append(StringFormConverter.formatTypeToSigForm(pt.typ))
+      }
     }
     sb.append(StringFormConverter.formatTypeToSigForm(rt.typ))
     sb.toString().intern()

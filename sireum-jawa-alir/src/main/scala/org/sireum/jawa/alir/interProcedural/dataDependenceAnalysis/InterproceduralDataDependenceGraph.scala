@@ -13,6 +13,32 @@ class InterProceduralDataDependenceGraph[Node <: CGNode] extends Interprocedural
 	  this.pl.clear
 	  this.pl ++= cg.pool
 	  addNodes(cg.nodes.toSet)
+//	  cg.nodes.foreach{
+//	    node =>
+//	      node match{
+//	        case en : CGEntryNode =>
+//	          val owner = en.getOwner
+//	          val pnames = owner.getParamNames
+//	          for(i <- 0 to pnames.size - 1){
+//	            val node = IDDGEntryParamNode(en.context, i)
+//	            addNode(node.asInstanceOf[Node])
+//	          }
+//	        case en : CGExitNode =>
+//	          val owner = en.getOwner
+//	          val pnames = owner.getParamNames
+//	          for(i <- 0 to pnames.size - 1){
+//	            val node = IDDGExitParamNode(en.context, i)
+//	            addNode(node.asInstanceOf[Node])
+//	          }
+//	        case cn : CGCallNode =>
+//	          val loc = cn.getOwner.getProcedureBody.location(cn.getLocIndex)
+//	          loc match{
+//	            case 
+//	          }
+//	        case rn : CGReturnNode =>
+//	        case a => addNode(a)
+//	      }
+//	  }
 	  this.entryN = getNode(cg.entryNode)
 	  this.exitN = getNode(cg.exitNode)
 	  this.centerN = getNode(cg.centerNode)
@@ -27,4 +53,24 @@ class InterProceduralDataDependenceGraph[Node <: CGNode] extends Interprocedural
 	  else throw new RuntimeException("Cannot find node: " + defSite)
 	}
 	
+}
+
+final case class IDDGEntryParamNode(context : Context, position : Int) extends CGVirtualNode(context){
+  def getVirtualLabel : String = "EntryParam:" + position
+}
+
+final case class IDDGExitParamNode(context : Context, position : Int) extends CGVirtualNode(context){
+  def getVirtualLabel : String = "ExitParam:" + position
+}
+
+final case class IDDGCallArgNode(context : Context, position : Int) extends CGInvokeNode(context){
+  def getInvokeLabel : String = "CallArg:" + position
+}
+
+final case class IDDGReturnArgNode(context : Context, position : Int) extends CGInvokeNode(context){
+  def getInvokeLabel : String = "ReturnArg:" + position
+}
+
+final case class IDDGReturnVarNode(context : Context) extends CGInvokeNode(context){
+  def getInvokeLabel : String = "ReturnVar"
 }

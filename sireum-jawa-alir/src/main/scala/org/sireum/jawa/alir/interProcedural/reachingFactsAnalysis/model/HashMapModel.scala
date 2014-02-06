@@ -45,10 +45,10 @@ object HashMapModel {
 	  val strValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "[|java:util:HashMap.entrys|]"), isetEmpty)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("[|java:util:HashSet|]", 0), retVar, currentContext).get
 	  result += rf
-	  result ++= strValue.map{
-	    s => 
-	      require(s.isInstanceOf[RFATupleInstance])
-	      RFAFact(FieldSlot(rf.v, "[|java:util:HashSet.items|]"), s.asInstanceOf[RFATupleInstance].left)
+	  strValue.foreach{
+	    s =>
+	      if(s.isInstanceOf[RFATupleInstance])
+	      	result += RFAFact(FieldSlot(rf.v, "[|java:util:HashSet.items|]"), s.asInstanceOf[RFATupleInstance].left)
 	  }
 	  result
   }
