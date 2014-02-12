@@ -218,7 +218,7 @@ abstract class ProcedureGenerator {
     var paramVars : Map[Int, String] = Map()
     params.foreach{
 	    case(i, param) =>
-        var r = Center.resolveRecord(param.typ, Center.ResolveLevel.HIERARCHY)
+        var r = Center.resolveRecord(param.name, Center.ResolveLevel.HIERARCHY)
         val outterClassOpt = if(r.isInnerClass) Some(r.getOuterClass) else None
         if(!r.isConcrete){
           var substRecordName = this.substituteRecordMap.getOrElse(r.getName, null)
@@ -313,15 +313,16 @@ abstract class ProcedureGenerator {
 	  var oneCallBackFragment = codefg
 		callbackRecords.foreach{
 		  case(callbackRecord, callbackProcedures) =>
+		    
 		    val classLocalVar : String =
 		      if(isCompatible(record, callbackRecord)) parentClassLocalVar
 		      // create a new instance of this class
-		      else{
+		      else if(callbackRecord.isConcrete){
 			      val va = generateInstanceCreation(callbackRecord.getName, oneCallBackFragment)
 		        this.localVarsForClasses += (callbackRecord.getName -> va)
 		        generateRecordConstructor(callbackRecord, msetEmpty + record, oneCallBackFragment)
 		        va
-		      }
+		      } else null
 		    if(classLocalVar != null){
 		      // build the calls to all callback procedures in this record
 		      generateCallToAllCallbacks(callbackRecord, callbackProcedures, classLocalVar, oneCallBackFragment)

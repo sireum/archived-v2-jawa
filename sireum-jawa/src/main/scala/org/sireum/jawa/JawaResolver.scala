@@ -250,7 +250,7 @@ object JawaResolver {
 	      }
 	      rec.setResolvingLevel(level)
 	      rec
-	  }
+	  }.toSet
 	  records.foreach(Center.addRecord(_))
 	  Center.resolveRecordsRelationWholeProgram
 //	  else Center.resolveRecordsRelation

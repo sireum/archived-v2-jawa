@@ -354,14 +354,16 @@ class RecordHierarchy {
   
   private def findProcedureThroughHierarchy(record : JawaRecord, subSig : String) : Option[JawaProcedure] = {
     if(record.isPhantom){
-      record.tryGetProcedure(subSig) match{
-        case Some(p) => Some(p)
-        case None =>
-          val ap = new JawaProcedure
-          ap.init(StringFormConverter.getSigFromOwnerAndProcSubSig(record.getName, subSig))
-          ap.setPhantom
-          record.addProcedure(ap)
-          Some(ap)
+      this.synchronized{
+	      record.tryGetProcedure(subSig) match{
+	        case Some(p) => Some(p)
+	        case None =>
+	          val ap = new JawaProcedure
+	          ap.init(StringFormConverter.getSigFromOwnerAndProcSubSig(record.getName, subSig))
+	          ap.setPhantom
+	          record.addProcedure(ap)
+	          Some(ap)
+	      }
       }
     } else {
 	    record.tryGetProcedure(subSig) match{

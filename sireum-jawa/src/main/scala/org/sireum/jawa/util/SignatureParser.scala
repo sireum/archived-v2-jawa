@@ -141,7 +141,7 @@ class SignatureParser(sig : String) {
       val iterator = new ParameterSignatureIterator()
       while(iterator.hasNext){
         val p = iterator.next()
-        if(p.startsWith("L")){
+        if(p.startsWith("L") || p.startsWith("[")){
         	params(count) = StringFormConverter.formatSigToTypeForm(p)
         }
         count+=1

@@ -477,12 +477,14 @@ class PointerAssignmentGraph[Node <: PtaNode]
     targetContext.setContext(met.pSig, met.getLoc)
     met.params_Entry.keys.foreach(
       i => {
-        val srcNode = getNode(pi.args_Call(i), srcContext.copy)
-        val targetNode = getNode(met.params_Entry(i), targetContext.copy)
-        worklist += srcNode
-        if(!graph.containsEdge(srcNode, targetNode))
-          addEdge(srcNode, targetNode, EdgeType.TRANSFER)
-      }  
+        if(pi.args_Call.contains(i)){
+          val srcNode = getNode(pi.args_Call(i), srcContext.copy)
+	        val targetNode = getNode(met.params_Entry(i), targetContext.copy)
+	        worklist += srcNode
+	        if(!graph.containsEdge(srcNode, targetNode))
+	          addEdge(srcNode, targetNode, EdgeType.TRANSFER)
+        }
+      } 
     )
     met.params_Exit.keys.foreach(
       i => {

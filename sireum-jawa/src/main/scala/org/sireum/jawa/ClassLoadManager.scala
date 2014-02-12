@@ -3,7 +3,7 @@ package org.sireum.jawa
 import org.sireum.util._
 import scala.collection.immutable.BitSet
 
-object ClassLoadManager {
+class ClassLoadManager {
   /**
    * set of classes can be loaded by the program
    */
@@ -12,7 +12,9 @@ object ClassLoadManager {
 	def reset = classes = ilistEmpty
 	
 	protected def addClass(clazz : JawaRecord) = {
-	  this.classes :+= clazz
+	  this.synchronized(
+	  		this.classes :+= clazz
+	  )
 	}
 	
 	def getClassPosition(clazz : JawaRecord) : Int = {
@@ -22,6 +24,9 @@ object ClassLoadManager {
 	
 	def loadClass(clazz : JawaRecord) : BitSet = {
 	  val position = getClassPosition(clazz)
+	  if(position < 0){
+	    throw new RuntimeException("Negative position:" + position)
+	  }
 	  BitSet(position)
 	}
 	
@@ -29,8 +34,7 @@ object ClassLoadManager {
 	  require(!isLoaded(clazz, bitset))
 	  val position = getClassPosition(clazz)
 	  if(position < 0){
-	    println("position:" + position)
-	    return bitset
+	    throw new RuntimeException("Negative position:" + position)
 	  }
 	  bitset + position
 	}

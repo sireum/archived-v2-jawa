@@ -124,7 +124,11 @@ object HashMapModel {
 	  val value2 = factMap.getOrElse(slot2, isetEmpty)
 	  thisValue.foreach{
 	    ins =>
-	      result ++= value2.map(e => RFAFact(FieldSlot(ins, "[|java:util:HashMap.entrys|]"), e))
+	      value2.foreach{
+	        e => 
+	          val ents = factMap.getOrElse(FieldSlot(e, "[|java:util:HashMap.entrys|]"), isetEmpty)
+	          result ++= ents.map(RFAFact(FieldSlot(ins, "[|java:util:HashMap.entrys|]"), _))
+	      }
 	  }
 	  result
   }

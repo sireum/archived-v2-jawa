@@ -58,7 +58,11 @@ class InterproceduralPointsToAnalysis {
   private def processStaticInfo(pag : PointerAssignmentGraph[PtaNode], cg : InterproceduralControlFlowGraph[CGNode], wholeProgram : Boolean) = {
     pag.processObjectAllocation
     val staticCallees = pag.processStaticCall
-    staticCallees.foreach(callee=>extendGraphWithConstructGraph(callee.calleeProc, callee.pi, callee.node.getContext.copy, pag, cg))
+    staticCallees.foreach{
+      callee=>
+        if(wholeProgram || callee.calleeProc.getDeclaringRecord.isApplicationRecord)
+        	extendGraphWithConstructGraph(callee.calleeProc, callee.pi, callee.node.getContext.copy, pag, cg)
+    }
   }
   
   def workListPropagation(pag : PointerAssignmentGraph[PtaNode],

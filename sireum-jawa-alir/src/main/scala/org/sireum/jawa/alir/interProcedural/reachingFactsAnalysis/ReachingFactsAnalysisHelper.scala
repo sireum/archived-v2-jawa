@@ -71,7 +71,7 @@ object ReachingFactsAnalysisHelper {
   }
 	
 	def getCalleeSet(s : ISet[RFAFact], cj : CallJump, callerContext : Context) : ISet[Callee] = {
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
+    val factMap = getFactMap(s)
     val sig = cj.getValueAnnotation("signature") match {
         case Some(s) => s match {
           case ne : NameExp => ne.name.name
@@ -165,7 +165,7 @@ object ReachingFactsAnalysisHelper {
 	}
 	
 	def processLHSs(lhss : List[Exp], s : ISet[RFAFact], currentContext : Context) : Map[Int, (Slot, Boolean)] = {
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
+    val factMap = getFactMap(s)
     val result = mmapEmpty[Int, (Slot, Boolean)]
     var i = -1
     lhss.foreach{
@@ -223,7 +223,7 @@ object ReachingFactsAnalysisHelper {
   }
   
   def checkRHSs(rhss : List[Exp], s : ISet[RFAFact]) : Boolean = {
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
+    val factMap = getFactMap(s)
     var result = true
     rhss.foreach{
       key=>
@@ -251,7 +251,7 @@ object ReachingFactsAnalysisHelper {
   }
   
   def processRHSs(rhss : List[Exp], s : ISet[RFAFact], currentContext : Context) : Map[Int, Set[Instance]] = {
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
+    val factMap = getFactMap(s)
     val result = mmapEmpty[Int, Set[Instance]]
     var i = -1
     rhss.foreach{

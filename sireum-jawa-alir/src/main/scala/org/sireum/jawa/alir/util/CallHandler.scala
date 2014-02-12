@@ -61,20 +61,23 @@ object CallHandler {
 	 * check and get direct callee procedure from Center. Input: [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|]
 	 */
 	def getDirectCalleeProcedure(procSig : String) : JawaProcedure = {
+	  val pSubSig = Center.getSubSigFromProcSig(procSig)
 	  val recType = StringFormConverter.getRecordTypeFromProcedureSignature(procSig)
 	  val rec = Center.resolveRecord(recType.name, Center.ResolveLevel.HIERARCHY)
 	  if(rec.isPhantom){
-	    Center.getProcedure(procSig) match {
-		    case Some(ap) => ap
-		    case None => 
-		      val ap = new JawaProcedure
-		      ap.init(procSig)
-		      ap.setPhantom
-		      rec.addProcedure(ap)
-		      ap
-		  }
+	    this.synchronized{
+		    Center.getProcedure(procSig) match {
+			    case Some(ap) => ap
+			    case None => 
+			      val ap = new JawaProcedure
+			      ap.init(procSig)
+			      ap.setPhantom
+			      rec.addProcedure(ap)
+			      ap
+			  }
+	    }
 	  } else {
-	    Center.getProcedureWithoutFailing(procSig)
+	    rec.getProcedure(pSubSig)
 	  }
 	}
 	
