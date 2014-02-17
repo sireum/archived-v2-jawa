@@ -47,7 +47,7 @@ final case class TupleType(val left : Type, val right : Type) extends Type {
   }
 }
 
-final case class NullType extends Type {
+final case class NullType() extends Type {
   def typ = "[|Null|]"
   def dimensions = 0
   def isArray = false
@@ -65,7 +65,7 @@ final case class NullType extends Type {
   }
 }
 
-final case class UnknownType extends Type {
+final case class UnknownType() extends Type {
   def typ = "[|Unknown|]"
   def dimensions = 0
   def isArray = false
