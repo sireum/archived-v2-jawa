@@ -22,7 +22,9 @@ import org.sireum.jawa.alir.LibSideEffectProvider
 import org.sireum.jawa.alir.UnknownInstance
 
 object ReachingFactsAnalysisHelper {
-	def getFactMap(s : ISet[RFAFact]) : Map[Slot, Set[Instance]] = s.groupBy(_.s).mapValues(_.map(_.v))
+	def getFactMap(s : ISet[RFAFact]) : Map[Slot, Set[Instance]] = {
+	  s.groupBy(_.s).mapValues(_.map(_.v))
+	}
 	
 	def getHeapFacts(s : ISet[RFAFact]) : ISet[(HeapSlot, Instance)] = {
 	  s.filter(_.s.isInstanceOf[HeapSlot]).map{f=>(f.s, f.v).asInstanceOf[(HeapSlot, Instance)]}.toSet
@@ -140,7 +142,9 @@ object ReachingFactsAnalysisHelper {
     for(i <- 0 to argSlots.size - 1){
       val argSlot = argSlots(i)
       val argValues = s.filter{f=>argSlot == f.s}.map(_.v)
-      val influencedFields = LibSideEffectProvider.getInfluencedFields(i, calleeProc.getSignature)
+      val influencedFields = if(LibSideEffectProvider.isDefined)
+        												LibSideEffectProvider.getInfluencedFields(i, calleeProc.getSignature)
+        										 else Set("ALL")
       argValues.foreach(_.addFieldsUnknownDefSite(currentContext, influencedFields))
     }
 //    killFacts ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(argValues, s)
@@ -310,7 +314,7 @@ object ReachingFactsAnalysisHelper {
               ins =>
                 if(ins.isInstanceOf[NullInstance])
                   err_msg_normal("Access field: " + baseSlot + "." + fieldSig + "@" + currentContext + "\nwith Null pointer: " + ins)
-                else{
+                else {
                   val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
                   val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
                   val fSig = rec.getField(fieldSig).getSignature

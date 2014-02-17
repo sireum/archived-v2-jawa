@@ -20,6 +20,8 @@ object LibSideEffectProvider {
     this.ipsear = interPSEA
   }
   
+  def isDefined : Boolean = ipsear != null
+  
   def getInfluencedFields(position : Int, calleeSig : String) : ISet[String] = {
     val resultopt = this.ipsear.result(calleeSig)
     resultopt match{

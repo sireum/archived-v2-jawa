@@ -5,7 +5,7 @@ trait ResolveLevel {
    * resolving level of current record
    */
   
-  protected var resolvingLevel : Center.ResolveLevel.Value = Center.ResolveLevel.NO
+  protected var resolvingLevel : Center.ResolveLevel.Value = null
   
   /**
    * check whether we already resolved to desired level

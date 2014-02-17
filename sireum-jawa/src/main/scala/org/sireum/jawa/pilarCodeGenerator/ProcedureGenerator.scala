@@ -223,6 +223,8 @@ abstract class ProcedureGenerator {
         if(!r.isConcrete){
           var substRecordName = this.substituteRecordMap.getOrElse(r.getName, null)
           if(substRecordName != null) r = Center.resolveRecord(substRecordName, Center.ResolveLevel.HIERARCHY)
+          else if(r.isInterface) Center.getRecordHierarchy.getAllImplementersOf(r).foreach(i => if(constructionStack.contains(i)) r = i)
+          else if(r.isAbstract) Center.getRecordHierarchy.getAllSubClassesOf(r).foreach(s => if(s.isConcrete && constructionStack.contains(s)) r = s)
         }
         // to protect from going into dead constructor create loop
         if(!r.isConcrete){

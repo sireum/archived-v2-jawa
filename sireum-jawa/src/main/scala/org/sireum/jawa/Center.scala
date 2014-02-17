@@ -651,7 +651,7 @@ object Center {
 	 */
 	
 	object ResolveLevel extends Enumeration {
-	  val NO, HIERARCHY, BODY = Value
+	  val HIERARCHY, BODY = Value
 	}
 	
 	/**

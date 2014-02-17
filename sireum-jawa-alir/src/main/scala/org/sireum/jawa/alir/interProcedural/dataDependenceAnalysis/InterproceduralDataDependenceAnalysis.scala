@@ -24,6 +24,8 @@ import org.sireum.jawa.util.StringFormConverter
 import org.sireum.jawa.alir.interProcedural.sideEffectAnalysis.InterProceduralSideEffectAnalysisResult
 import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.alir.interProcedural.InstanceCallee
+import org.sireum.jawa.alir.LibSideEffectProvider
+import org.sireum.jawa.alir.Instance
 
 trait InterproceduralDataDependenceInfo{
   def getIddg : InterProceduralDataDependenceGraph[InterproceduralDataDependenceAnalysis.Node]
@@ -33,16 +35,14 @@ trait InterproceduralDataDependenceInfo{
 
 object InterproceduralDataDependenceAnalysis {
   
-  type Node = CGNode
+  type Node = IDDGNode
   type Edge = AlirEdge[Node]
   
-	def apply(cg : InterproceduralControlFlowGraph[Node], 
-	    			rfaResult : InterProceduralMonotoneDataFlowAnalysisResult[RFAFact], 
-	    			libSideEffectResultOpt : Option[InterProceduralSideEffectAnalysisResult] = None) : InterproceduralDataDependenceInfo = build(cg, rfaResult, libSideEffectResultOpt)
+	def apply(cg : InterproceduralControlFlowGraph[CGNode], 
+	    			rfaResult : InterProceduralMonotoneDataFlowAnalysisResult[RFAFact]) : InterproceduralDataDependenceInfo = build(cg, rfaResult)
 	
-	def build(cg : InterproceduralControlFlowGraph[Node], 
-	    			rfaResult : InterProceduralMonotoneDataFlowAnalysisResult[RFAFact], 
-	    			libSideEffectResultOpt : Option[InterProceduralSideEffectAnalysisResult]) : InterproceduralDataDependenceInfo = {
+	def build(cg : InterproceduralControlFlowGraph[CGNode], 
+	    			rfaResult : InterProceduralMonotoneDataFlowAnalysisResult[RFAFact]) : InterproceduralDataDependenceInfo = {
     
     class Iddi(iddg : InterProceduralDataDependenceGraph[Node]) extends InterproceduralDataDependenceInfo{
       def getIddg : InterProceduralDataDependenceGraph[InterproceduralDataDependenceAnalysis.Node] = iddg
@@ -59,23 +59,50 @@ object InterproceduralDataDependenceAnalysis {
 	  iddg.nodes.foreach{
 	    node =>
 	      var targetNodes : ISet[Node] = isetEmpty
-	      if(node != iddg.entryNode && node != iddg.exitNode){
+	      if(node != iddg.entryNode){
 	        node match{
-	          case en : CGEntryNode =>
+	          case en : IDDGEntryParamNode =>
 	            val cgN = cg.getCGEntryNode(en.getContext)
 	            val cgTarN = cg.predecessors(cgN)
-	            targetNodes ++= cgTarN.map(iddg.getNode(_))
-	          case en : CGExitNode =>
-	          case rn : CGReturnNode =>
-	            val tarN = cg.getCGCallNode(rn.getContext)
-	            targetNodes += iddg.getNode(tarN)
-	          case ln : CGLocNode =>
+	            targetNodes ++= cgTarN.map(n => iddg.findDefSite(n.getContext, en.position))
+	          case en : IDDGExitParamNode =>
+	            val cgN = cg.getCGExitNode(en.getContext)
+	            val proc = cgN.getOwner
+	            val procName = proc.getParamNames(en.position)
+	            val irdaFacts = irdaResult(cgN)
+	            targetNodes ++= searchRda(procName, en, irdaFacts, iddg)
+	          case cn : IDDGCallArgNode =>
+	            val cgN = cg.getCGCallNode(cn.getContext)
+				      val rfaFacts = rfaResult.entrySet(cgN)
+				      val irdaFacts = irdaResult(cgN)
+				      targetNodes ++= processCallArg(cn, rfaFacts, irdaFacts, iddg)
+	          case rn : IDDGReturnArgNode =>
+	            val cgN = cg.getCGReturnNode(rn.getContext)
+	            val cgTarN = cg.predecessors(cgN)
+	            cgTarN.foreach{
+	              N =>
+	                N match{
+	                  case cn : CGCallNode =>
+	                    targetNodes += iddg.findDefSite(cn.getContext, rn.position)
+	                  case en : CGExitNode =>
+	                    targetNodes += iddg.findDefSite(en.getContext, rn.position)
+	                  case _ =>
+	                }
+	            }
+	          case rn : IDDGReturnVarNode =>
+	          case vn : IDDGVirtualBodyNode =>
+	            val cgN = cg.getCGCallNode(vn.getContext)
+	            val rfaFacts = rfaResult.entrySet(cgN)
+				      val irdaFacts = irdaResult(cgN)
+	            targetNodes ++= processVirtualBody(vn, rfaFacts, irdaFacts, iddg)
+	          case ln : IDDGNormalNode =>
+	            val cgN = cg.getCGNormalNode(ln.getContext)
 	            val ownerProc = ln.getOwner
 				      val loc = ownerProc.getProcedureBody.location(ln.getLocIndex)
-				      val rfaFacts = rfaResult.entrySet(ln)
-				      val irdaFacts = irdaResult(ln)
-				      targetNodes ++= processLocation(node, loc, rfaFacts, irdaFacts, iddg, libSideEffectResultOpt)
-	          case _ =>
+				      val rfaFacts = rfaResult.entrySet(cgN)
+				      val irdaFacts = irdaResult(cgN)
+				      targetNodes ++= processLocation(node, loc, rfaFacts, irdaFacts, iddg)
+	          case a => println("Error in node type:" + a)
 	        }
 	      }
 	      targetNodes.foreach(tn=>iddg.addEdge(node, tn))
@@ -84,13 +111,79 @@ object InterproceduralDataDependenceAnalysis {
 	  msg_normal("[IDDG building done!]")
 	  new Iddi(iddg)
 	}
+  
+  def processCallArg(callArgNode : IDDGCallArgNode,
+      							rfaFacts : ISet[RFAFact], 
+		    						irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], 
+		    						iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
+    var result = isetEmpty[Node]
+    val calleeSet = callArgNode.getCalleeSet
+    calleeSet.foreach{
+      callee =>
+        val calleep = callee.calleeProc
+        result ++= searchRda(callArgNode.argName, callArgNode, irdaFacts, iddg)
+        val argSlot = VarSlot(callArgNode.argName)
+        val argFacts = 
+          if(callee.isInstanceOf[InstanceCallee] && callArgNode.position == 0) Set(RFAFact(argSlot, callee.asInstanceOf[InstanceCallee].ins))
+          else rfaFacts.filter(fact=> argSlot == fact.s)
+        argFacts.foreach{case RFAFact(slot, ins) => result += iddg.findDefSite(ins.getDefSite)}
+    }
+    result
+  }
+  
+  def processVirtualBody(virtualBodyNode : IDDGVirtualBodyNode,
+      							rfaFacts : ISet[RFAFact], 
+		    						irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], 
+		    						iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
+    var result = isetEmpty[Node]
+    val calleeSet = virtualBodyNode.getCalleeSet
+    calleeSet.foreach{
+      callee =>
+        val calleep = callee.calleeProc
+        if(calleep.getDeclaringRecord.isLibraryRecord){
+          val sideEffectResult = if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleep.getSignature)
+          											 else None
+          for(i <- 0 to virtualBodyNode.argNames.size - 1){
+	          val argSlot = VarSlot(virtualBodyNode.argNames(i))
+	          val argFacts = 
+	            if(callee.isInstanceOf[InstanceCallee] && i == 0) Set(RFAFact(argSlot, callee.asInstanceOf[InstanceCallee].ins))
+	            else rfaFacts.filter(fact=> argSlot == fact.s)
+	          argFacts.foreach{case RFAFact(slot, ins) => result += iddg.findDefSite(ins.getDefSite)}
+	          if(sideEffectResult.isDefined){
+	            val readmap = sideEffectResult.get.readMap
+	            val writemap = sideEffectResult.get.writeMap
+	            val position = i
+	            val fields = readmap.getOrElse(position, Set()) ++ writemap.getOrElse(position, Set())
+	            argFacts.foreach{
+	              case RFAFact(slot, argIns) =>
+	                fields.foreach{
+	                  f => 
+	                    val fs = FieldSlot(argIns, f)
+	                    val argRelatedFacts = ReachingFactsAnalysisHelper.getRelatedFacts(fs, rfaFacts)
+			                val fieldUnknownFacts : MSet[RFAFact] = msetEmpty
+		                  argIns.getFieldsUnknownDefSites.foreach{
+		                  	case (defsite, udfields) =>
+		                  	  if(udfields.contains("ALL")) fieldUnknownFacts += RFAFact(FieldSlot(argIns, f), UnknownInstance(defsite))
+		                  	  else if(udfields.contains(f)) fieldUnknownFacts += RFAFact(FieldSlot(argIns, f), UnknownInstance(defsite))
+		                	}
+	                    (argRelatedFacts ++ fieldUnknownFacts).foreach{case RFAFact(slot, ins) => result += iddg.findDefSite(ins.getDefSite)}
+	                }
+	            }
+	          } else if(calleep.isConcrete) {
+	            val argRelatedFacts = ReachingFactsAnalysisHelper.getRelatedHeapFactsFrom(argFacts, rfaFacts)
+	            argRelatedFacts.foreach{case RFAFact(slot, ins) => result += iddg.findDefSite(ins.getDefSite)}
+	          }
+          }
+        } else println("Error! in IDDA, "  + calleep)
+    }
+    result
+  }
 	
 	def processLocation(node : Node, 
 	    						loc : LocationDecl, 
 	    						rfaFacts : ISet[RFAFact], 
 	    						irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], 
-	    						iddg : InterProceduralDataDependenceGraph[Node], 
-	    						libSideEffectResultOpt : Option[InterProceduralSideEffectAnalysisResult]) : ISet[Node] = {
+	    						iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
 	  var result = isetEmpty[Node]
 	  loc match{
 		  case al : ActionLocation =>
@@ -98,8 +191,8 @@ object InterproceduralDataDependenceAnalysis {
 	        case aa : AssignAction =>
 	          val lhss = PilarAstHelper.getLHSs(aa)
 			      val rhss = PilarAstHelper.getRHSs(aa)
-			      result ++= processLHSs(lhss, rfaFacts, irdaFacts, iddg)
-			      result ++= processRHSs(node, rhss, rfaFacts, irdaFacts, iddg, libSideEffectResultOpt)
+			      result ++= processLHSs(node, lhss, rfaFacts, irdaFacts, iddg)
+			      result ++= processRHSs(node, rhss, rfaFacts, irdaFacts, iddg)
 	        case _ =>
 	      }
 	    case jl : JumpLocation =>
@@ -107,23 +200,23 @@ object InterproceduralDataDependenceAnalysis {
 	        case t : CallJump if t.jump.isEmpty =>
 			      val lhss = PilarAstHelper.getLHSs(t)
 			      val rhss = PilarAstHelper.getRHSs(t)
-			      result ++= processLHSs(lhss, rfaFacts, irdaFacts, iddg)
-			      result ++= processRHSs(node, rhss, rfaFacts, irdaFacts, iddg, libSideEffectResultOpt)
+			      result ++= processLHSs(node, lhss, rfaFacts, irdaFacts, iddg)
+			      result ++= processRHSs(node, rhss, rfaFacts, irdaFacts, iddg)
 			    case gj : GotoJump =>
 			    case rj : ReturnJump =>
 			      if (rj.exp.isDefined) {
-		          processExp(node, rj.exp.get, rfaFacts, irdaFacts, iddg, libSideEffectResultOpt)
+		          processExp(node, rj.exp.get, rfaFacts, irdaFacts, iddg)
 		        }
 			    case ifj : IfJump =>
 			      for (ifThen <- ifj.ifThens) {
-              processCondition(node, ifThen.cond, rfaFacts, irdaFacts, iddg, libSideEffectResultOpt)
+              processCondition(node, ifThen.cond, rfaFacts, irdaFacts, iddg)
             }
             if (ifj.ifElse.isEmpty) {
             } else {
             }
 			    case sj : SwitchJump =>
 			      for (switchCase <- sj.cases) {
-              processCondition(node, switchCase.cond, rfaFacts, irdaFacts, iddg, libSideEffectResultOpt)
+              processCondition(node, switchCase.cond, rfaFacts, irdaFacts, iddg)
             }
             if (sj.defaultCase.isEmpty) {
             } else {
@@ -134,7 +227,7 @@ object InterproceduralDataDependenceAnalysis {
 	  result
 	}
 	
-	def processLHSs(lhss : Seq[Exp], rfaFacts : ISet[RFAFact], irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
+	def processLHSs(node : Node, lhss : Seq[Exp], rfaFacts : ISet[RFAFact], irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
     var result = isetEmpty[Node]
 	  lhss.foreach{
 	    lhs =>
@@ -143,29 +236,29 @@ object InterproceduralDataDependenceAnalysis {
           case ae : AccessExp =>
             val baseSlot = ae.exp match {
               case ne : NameExp => 
-                result ++= searchRda(ne.name.name, irdaFacts, iddg)
+                result ++= searchRda(ne.name.name, node, irdaFacts, iddg)
                 VarSlot(ne.name.name)
               case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
             }
-            val baseValue = rfaFacts.filter(f => f.s == baseSlot).map(f => f.v)
-            baseValue.foreach{
-              ins =>
-                val defSite = ins.getDefSite
-                result += iddg.findDefSite(defSite)
-            }
+//            val baseValue = rfaFacts.filter(f => f.s == baseSlot).map(f => f.v)
+//            baseValue.foreach{
+//              ins =>
+//                val defSite = ins.getDefSite
+//                result += iddg.findDefSite(defSite)
+//            }
           case ie : IndexingExp =>
             val baseSlot = ie.exp match {
               case ine : NameExp =>
-                result ++= searchRda(ine.name.name, irdaFacts, iddg)
+                result ++= searchRda(ine.name.name, node, irdaFacts, iddg)
                 VarSlot(ine.name.name)
               case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
             }
-            val baseValue = rfaFacts.filter(f => f.s == baseSlot).map(f => f.v)
-            baseValue.foreach{
-              ins =>
-                val defSite = ins.getDefSite
-                result += iddg.findDefSite(defSite)
-            }
+//            val baseValue = rfaFacts.filter(f => f.s == baseSlot).map(f => f.v)
+//            baseValue.foreach{
+//              ins =>
+//                val defSite = ins.getDefSite
+//                result += iddg.findDefSite(defSite)
+//            }
           case _=>
 	      }
 	  }
@@ -176,11 +269,10 @@ object InterproceduralDataDependenceAnalysis {
 	    			rhss : Seq[Exp], 
 	    			rfaFacts : ISet[RFAFact], 
 	    			irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], 
-	    			iddg : InterProceduralDataDependenceGraph[Node],
-	    			libSideEffectResultOpt : Option[InterProceduralSideEffectAnalysisResult]) : ISet[Node] = {
+	    			iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
     var result = isetEmpty[Node]
     if(!rhss.isEmpty)
-    	result ++= rhss.map(processExp(node, _, rfaFacts, irdaFacts, iddg, libSideEffectResultOpt)).reduce(iunion[Node])
+    	result ++= rhss.map(processExp(node, _, rfaFacts, irdaFacts, iddg)).reduce(iunion[Node])
     result
 	}
 	
@@ -188,12 +280,11 @@ object InterproceduralDataDependenceAnalysis {
 	    		exp : Exp, 
 	    		rfaFacts : ISet[RFAFact], 
 	    		irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], 
-	    		iddg : InterProceduralDataDependenceGraph[Node],
-	    		libSideEffectResultOpt : Option[InterProceduralSideEffectAnalysisResult]) : ISet[Node] = {
+	    		iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
 	  var result = isetEmpty[Node]
 	  exp match{
       case ne : NameExp =>
-        result ++= searchRda(ne.name.name, irdaFacts, iddg)
+        result ++= searchRda(ne.name.name, node, irdaFacts, iddg)
         val slot = VarSlot(ne.name.name)
         val value = rfaFacts.filter(f => f.s == slot).map(f => f.v)
         value.foreach{
@@ -205,14 +296,14 @@ object InterproceduralDataDependenceAnalysis {
         val fieldSig = ae.attributeName.name
         val baseSlot = ae.exp match {
           case ne : NameExp => 
-            result ++= searchRda(ne.name.name, irdaFacts, iddg)
+            result ++= searchRda(ne.name.name, node, irdaFacts, iddg)
             VarSlot(ne.name.name)
           case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
         }
         val baseValue = rfaFacts.filter(f => f.s == baseSlot).map(f => f.v)
         baseValue.foreach{
           ins =>
-            result += iddg.findDefSite(ins.getDefSite)
+//            result += iddg.findDefSite(ins.getDefSite)
             if(!ins.isInstanceOf[NullInstance] && !ins.isInstanceOf[UnknownInstance]){
               val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
               val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
@@ -220,6 +311,12 @@ object InterproceduralDataDependenceAnalysis {
 	              val fSig = rec.getField(fieldSig).getSignature
 		            val fieldSlot = FieldSlot(ins, fSig)
 	              val fieldValue = rfaFacts.filter(f => f.s == fieldSlot).map(f => f.v)
+                val fieldUnknownValue : MSet[Instance] = msetEmpty
+                ins.getFieldsUnknownDefSites.foreach{
+                	case (defsite, fields) =>
+                	  if(fields.contains("ALL")) fieldUnknownValue += UnknownInstance(defsite)
+                	  else if(fields.contains(fSig)) fieldUnknownValue += UnknownInstance(defsite)
+              	}
 	              fieldValue.foreach(fIns => result += iddg.findDefSite(fIns.getDefSite))
               }
             }
@@ -227,14 +324,14 @@ object InterproceduralDataDependenceAnalysis {
       case ie : IndexingExp =>
         val baseSlot = ie.exp match {
           case ine : NameExp =>
-            result ++= searchRda(ine.name.name, irdaFacts, iddg)
+            result ++= searchRda(ine.name.name, node, irdaFacts, iddg)
             VarSlot(ine.name.name)
           case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
         }
         val baseValue = rfaFacts.filter(f => f.s == baseSlot).map(f => f.v)
         baseValue.foreach{
           ins =>
-            result += iddg.findDefSite(ins.getDefSite)
+//            result += iddg.findDefSite(ins.getDefSite)
             val arraySlot = ArraySlot(ins)
             val arrayValue = ReachingFactsAnalysisHelper.getRelatedFacts(arraySlot, rfaFacts).map(f => f.v)
             arrayValue.foreach(aIns => result += iddg.findDefSite(aIns.getDefSite))
@@ -242,7 +339,7 @@ object InterproceduralDataDependenceAnalysis {
       case ce : CastExp =>
         ce.exp match{
           case ice : NameExp =>
-            result ++= searchRda(ice.name.name, irdaFacts, iddg)
+            result ++= searchRda(ice.name.name, node, irdaFacts, iddg)
             val slot = VarSlot(ice.name.name)
             val value = rfaFacts.filter(f => f.s == slot).map(f => f.v)
             value.foreach{
@@ -254,14 +351,14 @@ object InterproceduralDataDependenceAnalysis {
           case _ => throw new RuntimeException("Wrong exp: " + ce.exp)
         }
       case ce : CallExp =>
-        val calleeSet = if(node.isInstanceOf[CGInvokeNode]) node.asInstanceOf[CGInvokeNode].getCalleeSet else Set[Callee]()
+        val calleeSet = if(node.isInstanceOf[IDDGInvokeNode]) node.asInstanceOf[IDDGInvokeNode].getCalleeSet else Set[Callee]()
         ce.arg match{
 	        case te : TupleExp => 
 	          val argSlots = te.exps.map{
 	            exp =>
 	              exp match{
 			            case ne : NameExp => 
-			              result ++= searchRda(ne.name.name, irdaFacts, iddg)
+			              result ++= searchRda(ne.name.name, node, irdaFacts, iddg)
 			              VarSlot(ne.name.name)
 			            case _ => VarSlot(exp.toString)
 			          }
@@ -270,7 +367,7 @@ object InterproceduralDataDependenceAnalysis {
 	            callee =>
 	              val calleep = callee.calleeProc
 	              if(calleep.getDeclaringRecord.isLibraryRecord){
-	                val sideEffectResult = if(libSideEffectResultOpt.isDefined) libSideEffectResultOpt.get.result(calleep.getSignature)
+	                val sideEffectResult = if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleep.getSignature)
 	                											 else None
 		              for(i <- 0 to argSlots.size - 1){
 				            val argSlot = argSlots(i)
@@ -281,7 +378,7 @@ object InterproceduralDataDependenceAnalysis {
 			              if(sideEffectResult.isDefined){
 			                val readmap = sideEffectResult.get.readMap
 			                val writemap = sideEffectResult.get.writeMap
-			                val position = calleep.getParamNames.indexOf(argSlot.varName)
+			                val position = i
 			                val fields = readmap.getOrElse(position, Set()) ++ writemap.getOrElse(position, Set())
 			                argFacts.foreach{
 			                  case RFAFact(slot, argIns) =>
@@ -289,7 +386,13 @@ object InterproceduralDataDependenceAnalysis {
 			                      f => 
 			                        val fs = FieldSlot(argIns, f)
 			                        val argRelatedFacts = ReachingFactsAnalysisHelper.getRelatedFacts(fs, rfaFacts)
-			                        argRelatedFacts.foreach{case RFAFact(slot, ins) => result += iddg.findDefSite(ins.getDefSite)}
+							                val fieldUnknownFacts : MSet[RFAFact] = msetEmpty
+						                  argIns.getFieldsUnknownDefSites.foreach{
+						                  	case (defsite, udfields) =>
+						                  	  if(udfields.contains("ALL")) fieldUnknownFacts += RFAFact(FieldSlot(argIns, f), UnknownInstance(defsite))
+						                  	  else if(udfields.contains(f)) fieldUnknownFacts += RFAFact(FieldSlot(argIns, f), UnknownInstance(defsite))
+						                	}
+			                        (argRelatedFacts ++ fieldUnknownFacts).foreach{case RFAFact(slot, ins) => result += iddg.findDefSite(ins.getDefSite)}
 			                    }
 			                }
 			              } else if(calleep.isConcrete) {
@@ -319,19 +422,18 @@ object InterproceduralDataDependenceAnalysis {
 	    			cond : Exp, 
 	    			rfaFacts : ISet[RFAFact], 
 	    			irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], 
-	    			iddg : InterProceduralDataDependenceGraph[Node],
-	    			libSideEffectResultOpt : Option[InterProceduralSideEffectAnalysisResult]) : ISet[Node] = {
+	    			iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
 	  var result = isetEmpty[Node]
 	  cond match{
 	    case be : BinaryExp =>
-	      result ++= processExp(node, be.left, rfaFacts, irdaFacts, iddg, libSideEffectResultOpt)
-	      result ++= processExp(node, be.right, rfaFacts, irdaFacts, iddg, libSideEffectResultOpt)
+	      result ++= processExp(node, be.left, rfaFacts, irdaFacts, iddg)
+	      result ++= processExp(node, be.right, rfaFacts, irdaFacts, iddg)
 	    case _ =>
 	  }
 	  result
 	}
 	
-	def searchRda(varName : String, irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
+	def searchRda(varName : String, node : Node, irdaFacts : ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], iddg : InterProceduralDataDependenceGraph[Node]) : ISet[Node] = {
     var result : ISet[Node] = isetEmpty
     val varN = varName.replaceAll("\\[\\|", "%5B%7C").replaceAll("\\|\\]", "%7C%5D")
     irdaFacts.foreach{
@@ -341,7 +443,7 @@ object InterproceduralDataDependenceAnalysis {
             case pdd : ParamDefDesc =>
               pdd.locUri match{
                 case Some(locU) =>
-                  result += iddg.getCGReturnNode(tarContext)
+                  result += iddg.findDefSite(tarContext, pdd.paramIndex)
                 case None =>
                   throw new RuntimeException("Unexpected ParamDefDesc: " + pdd)
               }
@@ -354,7 +456,7 @@ object InterproceduralDataDependenceAnalysis {
               }
             case dd : DefDesc =>
               if(dd.isDefinedInitially){
-	              result += iddg.getCGEntryNode(tarContext)
+	              result += iddg.findDefSite(tarContext, node.getOwner.getParamNames.indexOf(varName))
               }
           }
         }

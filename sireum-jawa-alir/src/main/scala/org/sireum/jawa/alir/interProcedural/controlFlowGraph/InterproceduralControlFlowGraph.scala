@@ -48,7 +48,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   
   val centerContext = new Context(GlobalConfig.CG_CONTEXT_K)
   centerContext.setContext("Center", "L0000")
-  private val cNode = addCGEntryNode(centerContext)
+  private val cNode = addCGCenterNode(centerContext)
   cNode.setOwner(Center.getProcedureWithoutFailing(Center.CENTER_PROCEDURE_SIG))
   protected var centerN : CGNode = cNode
   
@@ -76,13 +76,6 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     }
     throw new RuntimeException("Cannot find entry node for: " + proc)
   }
-  
-  def findPath(srcNode : Node, tarNode : Node) : IList[Edge] = {
-    import scala.collection.JavaConversions._
-	  val path = DijkstraShortestPath.findPathBetween(this.graph, srcNode, tarNode)
-	  if(path != null) path.toList
-	  else null
-	}
   
   /**
    * map from procedures to it's callee procedures
@@ -555,6 +548,28 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   protected def newCGEntryNode(context : Context) =
     CGEntryNode(context)
     
+  def addCGCenterNode(context : Context) : Node = {
+    val node = newCGCenterNode(context).asInstanceOf[Node]
+    val n =
+      if (pool.contains(node)) pool(node)
+      else {
+        pl += (node -> node)
+        node
+      }
+    graph.addVertex(n)
+    n
+  }
+  
+  def cgCGCenterNodeExists(context : Context) : Boolean = {
+    graph.containsVertex(newCGCenterNode(context).asInstanceOf[Node])
+  }
+  
+  def getCGCenterNode(context : Context) : Node =
+    pool(newCGCenterNode(context))
+  
+  protected def newCGCenterNode(context : Context) =
+    CGCenterNode(context)
+    
   def addCGExitNode(context : Context) : Node = {
     val node = newCGExitNode(context).asInstanceOf[Node]
     val n =
@@ -599,11 +614,14 @@ abstract class CGVirtualNode(context : Context) extends CGNode(context) {
 
 final case class CGEntryNode(context : Context) extends CGVirtualNode(context){
   def getVirtualLabel : String = "Entry"
-  
 }
 
 final case class CGExitNode(context : Context) extends CGVirtualNode(context){
   def getVirtualLabel : String = "Exit"
+}
+
+final case class CGCenterNode(context : Context) extends CGVirtualNode(context){
+  def getVirtualLabel : String = "Center"
 }
 
 abstract class CGLocNode(context : Context) extends CGNode(context) {

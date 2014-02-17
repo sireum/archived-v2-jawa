@@ -419,13 +419,21 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
     getDeclaringRecord.updateResolvingLevel
   }
   
+  /**
+   * resolve current procedure to body level
+   */
+  
+  def tryResolveBody = {
+    if(isPhantom) throw new RuntimeException("Trying to get the body for a phantom procedure: " + this)
+    if(!checkLevel(Center.ResolveLevel.BODY)) resolveBody
+  }
+  
 	/**
 	 * get procedure body
 	 */
 	
 	def getProcedureBody = {
-	  if(isPhantom) throw new RuntimeException("Trying to get the body for a phantom procedure: " + this)
-	  if(!checkLevel(Center.ResolveLevel.BODY)) resolveBody
+	  tryResolveBody
 	  this.procBody
 	}
   

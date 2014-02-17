@@ -58,7 +58,6 @@ object JawaResolver {
 	    val r = desiredLevel match{
 	      case Center.ResolveLevel.BODY => resolveToBody(recordName)
 	      case Center.ResolveLevel.HIERARCHY => resolveToHierarchy(recordName)
-	      case Center.ResolveLevel.NO => new JawaRecord().init(recordName)
 	    }
 	    Some(r)
     } else {
@@ -86,11 +85,6 @@ object JawaResolver {
 	    desiredLevel match{
 	      case Center.ResolveLevel.BODY => resolveToBody(recordName)
 	      case Center.ResolveLevel.HIERARCHY => resolveToHierarchy(recordName)
-	      case Center.ResolveLevel.NO => 
-	        val rec = new JawaRecord().init(recordName)
-	        Center.tryRemoveRecord(recordName)
-	        Center.addRecord(rec)
-	        rec
 	    }
     }
   }
@@ -103,11 +97,6 @@ object JawaResolver {
     desiredLevel match{
       case Center.ResolveLevel.BODY => forceResolveToBody(recordName)
       case Center.ResolveLevel.HIERARCHY => forceResolveToHierarchy(recordName)
-      case Center.ResolveLevel.NO =>
-        val rec = new JawaRecord().init(recordName)
-        Center.tryRemoveRecord(recordName)
-        Center.addRecord(rec)
-        rec
     }
   }
   
@@ -142,8 +131,22 @@ object JawaResolver {
    */
   
   def resolveToBody(recordName : String) : JawaRecord = {
-    if(!Center.containsRecord(recordName) || Center.getRecord(recordName).getResolvingLevel < Center.ResolveLevel.BODY) forceResolveToBody(recordName)
-    Center.getRecord(recordName)
+    if(!Center.containsRecord(recordName)) forceResolveToBody(recordName)
+    else if(Center.getRecord(recordName).getResolvingLevel < Center.ResolveLevel.BODY) escalateReolvingLevel(Center.getRecord(recordName), Center.ResolveLevel.BODY)
+    else Center.getRecord(recordName)
+  }
+  
+  /**
+   * escalate resolving level
+   */
+  
+  private def escalateReolvingLevel(rec : JawaRecord, desiredLevel : Center.ResolveLevel.Value) : JawaRecord = {
+    require(rec.getResolvingLevel < desiredLevel)
+    if(desiredLevel == Center.ResolveLevel.BODY){
+      rec.getProcedures.foreach(_.tryResolveBody)
+      rec.setResolvingLevel(Center.ResolveLevel.BODY)
+    }
+    rec
   }
   
   /**

@@ -10,6 +10,7 @@ import org.jgrapht.ext.VertexNameProvider
 import scala.collection.mutable.SynchronizedMap
 import scala.collection.mutable.HashMap
 import org.sireum.jawa.alir.Context
+import org.jgrapht.alg.DijkstraShortestPath
 
 trait InterProceduralGraph[Node <: InterProceduralNode]
   extends AlirGraph[Node]
@@ -60,6 +61,13 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
     val de = new DOTExporter[Node, Edge](vlabelProvider, vlabelProvider, null)
     de.export(w, graph)
   }
+  
+  def findPath(srcNode : Node, tarNode : Node) : IList[Edge] = {
+    import scala.collection.JavaConversions._
+	  val path = DijkstraShortestPath.findPathBetween(this.graph, srcNode, tarNode)
+	  if(path != null) path.toList
+	  else null
+	}
 }
 
 abstract class InterProceduralNode(context : Context) extends PropertyProvider {
