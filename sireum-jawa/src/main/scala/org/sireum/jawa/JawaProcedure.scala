@@ -170,7 +170,7 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
     val name = StringFormConverter.getProcedureNameFromProcedureSignature(sig)
     val recName = StringFormConverter.getRecordNameFromProcedureSignature(sig)
     val sigP = new SignatureParser(sig).getParamSig
-    val paramTyps = StringFormConverter.getTypeFromName(recName) :: sigP.getParameterTypes
+    val paramTyps = sigP.getParameterTypes
     val returnTyp = sigP.getReturnType
 	  init(name, sig, paramTyps, returnTyp, 0, List())
 	}
@@ -182,7 +182,7 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
   def init(name : String, sig : String) : JawaProcedure = {
     val sigP = new SignatureParser(sig).getParamSig
     val recName = StringFormConverter.getRecordNameFromProcedureSignature(sig)
-    val paramTyps = StringFormConverter.getTypeFromName(recName) :: sigP.getParameterTypes
+    val paramTyps = sigP.getParameterTypes
     val returnTyp = sigP.getReturnType
 	  init(name, sig, paramTyps, returnTyp, 0, List())
 	}
@@ -342,13 +342,17 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
    * get paramTypes of this procedure
    */
   
-  def getParamTypes = this.paramTyps
+  def getParamTypes = {
+    if(!isStatic){
+      StringFormConverter.getTypeFromName(getDeclaringRecord.getName) :: this.paramTyps
+    } else this.paramTyps
+  }
   
   /**
    * get i'th parameter's type of this procedure
    */
   
-  def getParamType(i : Int) = this.paramTyps(i)
+  def getParamType(i : Int) = getParamTypes(i)
   
   /**
    * set parameter names of this procedure

@@ -91,7 +91,9 @@ object InterproceduralDataDependenceAnalysis {
 	            }
 	          case rn : IDDGReturnVarNode =>
 	          case vn : IDDGVirtualBodyNode =>
-	            val cgN = cg.getCGCallNode(vn.getContext)
+	            val cgN = vn.cgN
+	            val idEntNs = iddg.getIDDGCallArgNodes(cgN)
+	            targetNodes ++= idEntNs
 	            val rfaFacts = rfaResult.entrySet(cgN)
 				      val irdaFacts = irdaResult(cgN)
 	            targetNodes ++= processVirtualBody(vn, rfaFacts, irdaFacts, iddg)
@@ -102,7 +104,7 @@ object InterproceduralDataDependenceAnalysis {
 				      val rfaFacts = rfaResult.entrySet(cgN)
 				      val irdaFacts = irdaResult(cgN)
 				      targetNodes ++= processLocation(node, loc, rfaFacts, irdaFacts, iddg)
-	          case a => println("Error in node type:" + a)
+	          case a => 
 	        }
 	      }
 	      targetNodes.foreach(tn=>iddg.addEdge(node, tn))
@@ -174,7 +176,7 @@ object InterproceduralDataDependenceAnalysis {
 	            argRelatedFacts.foreach{case RFAFact(slot, ins) => result += iddg.findDefSite(ins.getDefSite)}
 	          }
           }
-        } else println("Error! in IDDA, "  + calleep)
+        }
     }
     result
   }
@@ -455,8 +457,23 @@ object InterproceduralDataDependenceAnalysis {
                   throw new RuntimeException("Unexpected LocDefDesc: " + ldd)
               }
             case dd : DefDesc =>
-              if(dd.isDefinedInitially){
-	              result += iddg.findDefSite(tarContext, node.getOwner.getParamNames.indexOf(varName))
+              if(dd.isDefinedInitially && !varName.startsWith("@@")){
+                val indexs : MSet[Int] = msetEmpty
+                val paramNames = node.getOwner.getParamNames
+                val paramTyps = node.getOwner.getParamTypes
+                var index = 0
+                for(i <- 0 to paramNames.size - 1){
+                  val paramName = paramNames(i)
+                  val ptypName = paramTyps(i).name
+                  if(paramName == varName) indexs += index
+                  if(ptypName == "[|double|]" || ptypName == "[|long|]"){
+                  	index += 1
+                  	if(paramName == varName) indexs += index
+                  }
+                  index += 1
+                }
+                
+	              result ++= indexs.map(i => iddg.findDefSite(tarContext, i))
               }
           }
         }

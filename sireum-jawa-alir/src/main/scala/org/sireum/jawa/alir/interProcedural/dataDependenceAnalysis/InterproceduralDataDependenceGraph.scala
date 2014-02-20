@@ -30,9 +30,18 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	        case en : CGEntryNode =>
 	          val owner = en.getOwner
 	          val pnames = owner.getParamNames
+	          val ptyps = owner.getParamTypes
+	          var position = 0
 	          for(i <- 0 to pnames.size - 1){
-	            val n = addIDDGEntryParamNode(en, i)
+	            val ptypName = ptyps(i).name
+	            val n = addIDDGEntryParamNode(en, position)
 	            n.asInstanceOf[IDDGEntryParamNode].paramName = pnames(i)
+	            if(ptypName == "[|double|]" || ptypName == "[|long|]"){
+	              position += 1
+	              val n = addIDDGEntryParamNode(en, position)
+	              n.asInstanceOf[IDDGEntryParamNode].paramName = pnames(i)
+	            }
+	            position += 1
 	          }
 	        case en : CGExitNode =>
 	          val owner = en.getOwner
@@ -124,14 +133,12 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	    if(this.cg.cgCallNodeExists(defSite)) this.cg.getCGCallNode(defSite)
 	    else if(this.cg.cgReturnNodeExists(defSite)) this.cg.getCGReturnNode(defSite)
 	    else if(this.cg.cgEntryNodeExists(defSite)) this.cg.getCGEntryNode(defSite)
-	    else if(this.cg.cgExitNodeExists(defSite)) this.cg.getCGExitNode(defSite)
 		  else throw new RuntimeException("Cannot find node: " + defSite)
 	  }
 	  if(cgN.isInstanceOf[CGCallNode] && iddgCallArgNodeExists(cgN.asInstanceOf[CGCallNode], position)) getIDDGCallArgNode(cgN.asInstanceOf[CGCallNode], position)
 	  else if(cgN.isInstanceOf[CGReturnNode] && iddgReturnArgNodeExists(cgN.asInstanceOf[CGReturnNode], position)) getIDDGReturnArgNode(cgN.asInstanceOf[CGReturnNode], position)
 	  else if(cgN.isInstanceOf[CGEntryNode] && iddgEntryParamNodeExists(cgN.asInstanceOf[CGEntryNode], position)) getIDDGEntryParamNode(cgN.asInstanceOf[CGEntryNode], position)
-	  else if(cgN.isInstanceOf[CGExitNode] && iddgExitParamNodeExists(cgN.asInstanceOf[CGExitNode], position)) getIDDGExitParamNode(cgN.asInstanceOf[CGExitNode], position)
-	  else throw new RuntimeException("Cannot find node: " + defSite)
+	  else throw new RuntimeException("Cannot find node: " + defSite + ":" + position)
 	}
 	
 	def extendGraphForSinkApis(callArgNode : IDDGCallArgNode, rfaFacts : ISet[RFAFact]) = {
@@ -142,13 +149,20 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
         val argSlot = VarSlot(callArgNode.argName)
         val argFacts = rfaFacts.filter(fact=> argSlot == fact.s)
 			  val argRelatedFacts = ReachingFactsAnalysisHelper.getRelatedHeapFactsFrom(argFacts, rfaFacts)
-			  println("rfaFacts-->" + rfaFacts)
-			  println("argFacts-->" + argFacts)
 		    argRelatedFacts.foreach{
           case RFAFact(slot, ins) =>
 		      	val t = findDefSite(ins.getDefSite)
-		      	println("edge-->" + callArgNode + "---" + t)
 		      	addEdge(callArgNode.asInstanceOf[Node], t)
+        }
+        argFacts.foreach{
+          case RFAFact(slot, argIns) => 
+	          argIns.getFieldsUnknownDefSites.foreach{
+	          	case (defsite, udfields) =>
+	          	  if(callArgNode.getContext != defsite){
+		          	  val t = findDefSite(defsite)
+		          	  addEdge(callArgNode.asInstanceOf[Node], t)
+	          	  }
+	        	}
         }
 	  }
 	}
@@ -215,6 +229,16 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 
   def getIDDGCallArgNode(cgN : CGCallNode, position : Int) : Node =
     pool(newIDDGCallArgNode(cgN, position))
+    
+  def getIDDGCallArgNodes(cgN : CGCallNode) : Set[Node] = {
+    val result : MSet[Node] = msetEmpty
+    var position = 0
+    while(iddgCallArgNodeExists(cgN, position)){
+    	result += pool(newIDDGCallArgNode(cgN, position))
+    	position += 1
+    }
+    result.toSet
+  }
     
   protected def newIDDGCallArgNode(cgN : CGCallNode, position : Int) = IDDGCallArgNode(cgN, position)
     

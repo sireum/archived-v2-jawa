@@ -582,8 +582,6 @@ class JawaRecord extends ResolveLevel{
 	 */
 	
 	def addProcedure(ap : JawaProcedure) = {
-	  if(ap.getSignature == "[|Lde/ecspride/AnnonymousClass1$1;.onLocationChanged:(Landroid/location/Location;)V|]") 
-	    println("Here")
 	  if(ap.isDeclared) throw new RuntimeException(ap.getName + " is already declared in record " + ap.getDeclaringRecord.getName)
 
 	  if(this.subSigToProcedures.contains(ap.getSubSignature)) throw new RuntimeException("The procedure " + ap.getName + " is already declared in record " + getName)
