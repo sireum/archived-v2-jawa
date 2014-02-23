@@ -245,12 +245,19 @@ abstract class ProcedureGenerator {
     invokeStmt.add("funcName", StringFormConverter.getProcedureNameFromProcedureSignature(pSig))
     val finalParamVars : ArrayList[String] = new ArrayList[String]
     finalParamVars.add(0, localClassVar)
+    var index = 0
     for(i <- 0 to paramNum - 1){
       if(paramVars.contains(i)){
-        finalParamVars.add(i + 1, paramVars(i))
+        finalParamVars.add(index + 1, paramVars(i))
       } else {
-        finalParamVars.add(i + 1, "0")
+        finalParamVars.add(index + 1, "x")
+        val paramName = sigParser.getParameterTypes()(i).name
+        if(paramName == "[|double|]" || paramName == "[|long|]"){
+          index += 1
+          finalParamVars.add(index + 1, "x")
+        }
       }
+      index += 1
     }
     invokeStmt.add("params", finalParamVars)
     val annotations = new ArrayList[ST]

@@ -153,9 +153,10 @@ object InterproceduralDataDependenceAnalysis {
 	          argFacts.foreach{case RFAFact(slot, ins) => result += iddg.findDefSite(ins.getDefSite)}
 	          if(sideEffectResult.isDefined){
 	            val readmap = sideEffectResult.get.readMap
-	            val writemap = sideEffectResult.get.writeMap
+//	            val writemap = sideEffectResult.get.writeMap
 	            val position = i
-	            val fields = readmap.getOrElse(position, Set()) ++ writemap.getOrElse(position, Set())
+	            val fields = readmap.getOrElse(position, Set()) 
+//	            ++ writemap.getOrElse(position, Set())
 	            argFacts.foreach{
 	              case RFAFact(slot, argIns) =>
 	                fields.foreach{

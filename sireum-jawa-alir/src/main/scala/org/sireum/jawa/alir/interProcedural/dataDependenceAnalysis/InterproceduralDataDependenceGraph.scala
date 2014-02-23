@@ -123,8 +123,8 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	  if(cgN.isInstanceOf[CGNormalNode] && iddgNormalNodeExists(cgN.asInstanceOf[CGNormalNode])) getIDDGNormalNode(cgN.asInstanceOf[CGNormalNode])
 	  else if(cgN.isInstanceOf[CGCallNode] && iddgVirtualBodyNodeExists(cgN.asInstanceOf[CGCallNode])) getIDDGVirtualBodyNode(cgN.asInstanceOf[CGCallNode])
 	  else if(cgN.isInstanceOf[CGCallNode] && iddgReturnVarNodeExists(cgN.asInstanceOf[CGCallNode])) getIDDGReturnVarNode(cgN.asInstanceOf[CGCallNode])
-	  else if(cgN.isInstanceOf[CGEntryNode]) this.entryNode
-	  else if(cgN.isInstanceOf[CGCenterNode]) this.centerNode
+	  else if(cgN == this.cg.entryNode) this.entryNode
+	  else if(cgN == this.cg.centerNode) this.centerNode
 	  else throw new RuntimeException("Cannot find node: " + defSite)
 	}
 	

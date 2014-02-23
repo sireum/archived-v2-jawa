@@ -1,8 +1,9 @@
 package org.sireum.jawa.util
 
-class Timer(limit : Long) {
+// limit is in minute
+class Timer(limit : Int) {
 	private val startTime = System.currentTimeMillis()
-	def isTimeOut : Boolean = (System.currentTimeMillis() - this.startTime) > limit
+	def isTimeOut : Boolean = (System.currentTimeMillis() - this.startTime) > limit * 60000
 	def isTimeOutAndThrow = if(isTimeOut) throw new TimeOutException
 }
 
