@@ -14,6 +14,7 @@ LocalVars(locals) ::= <<
 local temp;
   RandomCoinToss;
   head;
+  x;
   $locals ; separator="\n"$
 >>
 

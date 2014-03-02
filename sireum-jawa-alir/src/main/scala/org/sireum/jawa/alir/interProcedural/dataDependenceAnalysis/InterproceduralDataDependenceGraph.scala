@@ -11,6 +11,7 @@ import org.sireum.jawa.alir.interProcedural.InstanceCallee
 import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.VarSlot
 import org.sireum.jawa.alir.interProcedural.InterProceduralNode
 import org.sireum.jawa.alir.interProcedural.InterProceduralGraph
+import org.sireum.jawa.util.ASTUtil
 
 class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProceduralGraph[Node]{
 	
@@ -56,25 +57,13 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	          val argNames : MList[String] = mlistEmpty
 	          loc match{
 	            case jumploc : JumpLocation =>
-	              jumploc.jump match {
-	                case t : CallJump if t.jump.isEmpty =>
-	                  t.callExp.arg match {
-						          case te : TupleExp =>
-						            val exps = te.exps
-						            for(i <- 0 to (exps.size-1)) {
-						              val varName = exps(i) match{
-						                case ne : NameExp => ne.name.name
-						                case a => a.toString()
-						              }
-						              argNames += varName
-						            	val n = addIDDGCallArgNode(cn, i)
-						            	n.asInstanceOf[IDDGCallArgNode].argName = varName
-				                }
-						          case _ =>
-						        }
-	                case _ =>
-	              }
+	              argNames ++= ASTUtil.getCallArgs(jumploc)
 	            case _ =>
+	          }
+	          for(i <- 0 to (argNames.size - 1)){
+	            val argName = argNames(i)
+	            val n = addIDDGCallArgNode(cn, i)
+	            n.asInstanceOf[IDDGCallArgNode].argName = argName
 	          }
 	          val rn = addIDDGReturnVarNode(cn)
 	          if(cn.getCalleeSet.exists(p => p.calleeProc.getDeclaringRecord.isLibraryRecord)){
@@ -83,26 +72,16 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	          }
 	        case rn : CGReturnNode =>
 	          val loc = rn.getOwner.getProcedureBody.location(rn.getLocIndex)
+	          val argNames : MList[String] = mlistEmpty
 	          loc match{
 	            case jumploc : JumpLocation =>
-	              jumploc.jump match {
-	                case t : CallJump if t.jump.isEmpty =>
-	                  t.callExp.arg match {
-						          case te : TupleExp =>
-						            val exps = te.exps
-						            for(i <- 0 to (exps.size-1)) {
-						              val varName = exps(i) match{
-						                case ne : NameExp => ne.name.name
-						                case a => a.toString()
-						              }
-						            	val n = addIDDGReturnArgNode(rn, i)
-						            	n.asInstanceOf[IDDGReturnArgNode].argName = varName
-				                }
-						          case _ =>
-						        }
-	                case _ =>
-	              }
+	              argNames ++= ASTUtil.getCallArgs(jumploc)
 	            case _ =>
+	          }
+	          for(i <- 0 to (argNames.size - 1)){
+	            val argName = argNames(i)
+	            val n = addIDDGReturnArgNode(rn, i)
+	            n.asInstanceOf[IDDGReturnArgNode].argName = argName
 	          }
 	        case nn : CGNormalNode => addIDDGNormalNode(nn)
 	        case _ =>
@@ -123,8 +102,8 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	  if(cgN.isInstanceOf[CGNormalNode] && iddgNormalNodeExists(cgN.asInstanceOf[CGNormalNode])) getIDDGNormalNode(cgN.asInstanceOf[CGNormalNode])
 	  else if(cgN.isInstanceOf[CGCallNode] && iddgVirtualBodyNodeExists(cgN.asInstanceOf[CGCallNode])) getIDDGVirtualBodyNode(cgN.asInstanceOf[CGCallNode])
 	  else if(cgN.isInstanceOf[CGCallNode] && iddgReturnVarNodeExists(cgN.asInstanceOf[CGCallNode])) getIDDGReturnVarNode(cgN.asInstanceOf[CGCallNode])
-	  else if(cgN.isInstanceOf[CGEntryNode]) this.entryNode
-	  else if(cgN.isInstanceOf[CGCenterNode]) this.centerNode
+	  else if(cgN == this.cg.entryNode) this.entryNode
+	  else if(cgN == this.cg.centerNode) this.centerNode
 	  else throw new RuntimeException("Cannot find node: " + defSite)
 	}
 	

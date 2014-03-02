@@ -116,13 +116,13 @@ class SignatureParser(sig : String) {
     }
     
     def getParameterTypes() : List[Type] = {
-      var params : List[Type] = List()
+      val params : MList[Type] = mlistEmpty
       val iterator = new ParameterSignatureIterator()
       while(iterator.hasNext){
         val p = StringFormConverter.formatSigToTypeForm(iterator.next())
-        params ::= p
+        params += p
       }
-      params
+      params.toList
     }
     
     def getParameterNum() : Int = {

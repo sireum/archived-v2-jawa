@@ -507,7 +507,8 @@ object Center {
 	  r.tryGetProcedure(subSig)
 	}
 	
-	def getProcedureDeclaration(procSig : String) : JawaProcedure = {
+	def getProcedureDeclarations(procSig : String) : Set[JawaProcedure] = {
+	  val result : MSet[JawaProcedure] = msetEmpty
 	  val rName = StringFormConverter.getRecordNameFromProcedureSignature(procSig)
 	  val subSig = getSubSigFromProcSig(procSig)
 	  if(!containsRecord(rName)) resolveRecord(rName, ResolveLevel.HIERARCHY)
@@ -517,13 +518,13 @@ object Center {
 	  while(!worklist.isEmpty){
 	    val rec = worklist.remove(0)
 	    rec.tryGetProcedure(subSig) match{
-	      case Some(proc) => return proc
+	      case Some(proc) => result += proc
 	      case None =>
 	        if(rec.hasSuperClass) worklist += rec.getSuperClass
 	        worklist ++= rec.getInterfaces
 	    }
 	  }
-	  throw new RuntimeException("Cannot find procedure declaration for: " + procSig)
+	  result.toSet
 	}
 	
 	/**
