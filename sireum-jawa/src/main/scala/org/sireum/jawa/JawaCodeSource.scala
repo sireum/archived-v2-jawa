@@ -10,7 +10,7 @@ import java.io.InputStream
 object JawaCodeSource {
   
   object CodeType extends Enumeration {
-    val APP, APP_USING_LIBRARY, ANDROID_LIBRARY = Value
+    val APP, APP_USING_LIBRARY, LIBRARY = Value
   }
   
   /**
@@ -20,7 +20,7 @@ object JawaCodeSource {
   def preLoad(fileResourceUris : ISet[FileResourceUri]) = {
     fileResourceUris.foreach{
       fUri =>
-        LightWeightPilarParser(Right(fUri), Left(CodeType.ANDROID_LIBRARY))
+        LightWeightPilarParser(Right(fUri), Left(CodeType.LIBRARY))
     }
     this.preLoaded = true
   }
@@ -130,7 +130,7 @@ object JawaCodeSource {
     determiner match{
       case Left(typ) =>
         typ match{
-          case CodeType.ANDROID_LIBRARY => setLibraryRecordCode(name, code)
+          case CodeType.LIBRARY => setLibraryRecordCode(name, code)
           case CodeType.APP => setAppRecordCode(name, code)
           case CodeType.APP_USING_LIBRARY => setAppUsingLibraryRecordCode(name, code)
         }
@@ -175,7 +175,7 @@ object JawaCodeSource {
 	def getCodeType(name : String) : CodeType.Value = {
 	  if(this.appRecordsCodes.contains(name)) CodeType.APP
 	  else if(this.appUsingLibRecordsCodes.contains(name)) CodeType.APP_USING_LIBRARY
-	  else if(this.libRecordsCodes.contains(name)) CodeType.ANDROID_LIBRARY
+	  else if(this.libRecordsCodes.contains(name)) CodeType.LIBRARY
 	  else throw new RuntimeException("record " + name + " does not exist in the current code base.")
 	}
 	

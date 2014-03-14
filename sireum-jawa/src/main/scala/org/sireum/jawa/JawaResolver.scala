@@ -16,7 +16,7 @@ import org.sireum.jawa.MessageCenter._
 
 object JawaResolver {
   
-  val DEBUG : Boolean = false
+  val DEBUG : Boolean = true
   val TITLE : String = "AmandroidResolver"
   
   /**
@@ -240,9 +240,9 @@ object JawaResolver {
 	          require(field.typeSpec.isDefined)
 	          var d = 0
 			      var tmpTs = field.typeSpec.get
-			      while(tmpTs.isInstanceOf[ListTypeSpec]){
+			      while(tmpTs.isInstanceOf[SeqTypeSpec]){
 		          d += 1
-		          tmpTs = tmpTs.asInstanceOf[ListTypeSpec].elementType
+		          tmpTs = tmpTs.asInstanceOf[SeqTypeSpec].elementType
 		        }
 			      require(tmpTs.isInstanceOf[NamedTypeSpec])
 			      val fieldType : NormalType = new NormalType(tmpTs.asInstanceOf[NamedTypeSpec].name.name, d)
@@ -293,9 +293,9 @@ object JawaResolver {
 	      require(gvd.typeSpec.isDefined)
 	      var d = 0
 	      var tmpTs = gvd.typeSpec.get
-	      while(tmpTs.isInstanceOf[ListTypeSpec]){
+	      while(tmpTs.isInstanceOf[SeqTypeSpec]){
           d += 1
-          tmpTs = tmpTs.asInstanceOf[ListTypeSpec].elementType
+          tmpTs = tmpTs.asInstanceOf[SeqTypeSpec].elementType
         }
 	      require(tmpTs.isInstanceOf[NamedTypeSpec])
 	      val globalVarType : NormalType = new NormalType(tmpTs.asInstanceOf[NamedTypeSpec].name.name, d)
