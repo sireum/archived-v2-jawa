@@ -12,23 +12,23 @@ class JawaSymbolTable extends SymbolTable with SymbolTableProducer {
   val tables = SymbolTableData()
   val tags = marrayEmpty[LocationTag]
   var hasErrors = false
-    
+
   val ERROR_TAG_TYPE = MarkerType(
-  "org.sireum.pilar.tag.error.symtab",
-  None,
-  "Pilar Symbol Resolution Error",
-  MarkerTagSeverity.Error,
-  MarkerTagPriority.Normal,
-  ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
-  
+    "org.sireum.pilar.tag.error.symtab",
+    None,
+    "Pilar Symbol Resolution Error",
+    MarkerTagSeverity.Error,
+    MarkerTagPriority.Normal,
+    ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
+
   val WARNING_TAG_TYPE = MarkerType(
-  "org.sireum.pilar.tag.error.symtab",
-  None,
-  "Pilar Symbol Resolution Warning",
-  MarkerTagSeverity.Warning,
-  MarkerTagPriority.Normal,
-  ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
-   
+    "org.sireum.pilar.tag.error.symtab",
+    None,
+    "Pilar Symbol Resolution Warning",
+    MarkerTagSeverity.Warning,
+    MarkerTagPriority.Normal,
+    ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
+
   def reportError(source : Option[FileResourceUri], line : Int,
                   column : Int, message : String) : Unit = {
     tags += Tag.toTag(source, line, column, message, ERROR_TAG_TYPE)
@@ -38,6 +38,20 @@ class JawaSymbolTable extends SymbolTable with SymbolTableProducer {
   def reportWarning(fileUri : Option[String], line : Int,
                     column : Int, message : String) : Unit =
     tags += Tag.toTag(fileUri, line, column, message, WARNING_TAG_TYPE)
+
+  def reportError(source : Option[FileResourceUri], line : Int,
+                  column : Int, offset : Int, length : Int,
+                  message : String) : Unit = {
+    tags += Tag.toTag(source, line, column, offset, length, message,
+      ERROR_TAG_TYPE)
+    hasErrors = true
+  }
+
+  def reportWarning(fileUri : Option[String], line : Int,
+                    column : Int, offset : Int, length : Int,
+                    message : String) : Unit =
+    tags += Tag.toTag(fileUri, line, column, offset, length, message,
+      WARNING_TAG_TYPE)
 
   val pdMap = mmapEmpty[ResourceUri, ProcedureBody]
 
