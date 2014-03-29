@@ -6,6 +6,7 @@ import org.sireum.jawa.alir.interProcedural.controlFlowGraph.InterproceduralCont
 import org.sireum.jawa.alir.interProcedural.pointsToAnalysis.PtaNode
 import org.sireum.jawa.alir.interProcedural.controlFlowGraph.CGNode
 import org.sireum.jawa.alir.interProcedural.pointsToAnalysis.InterproceduralPointsToAnalysis
+import org.sireum.jawa.Center
 
 object ReachabilityAnalysis {
   
@@ -19,7 +20,7 @@ object ReachabilityAnalysis {
     val pag = new PointerAssignmentGraph[PtaNode]()
     val cg = new InterproceduralControlFlowGraph[CGNode]
     new InterproceduralPointsToAnalysis().pta(pag, cg, procedures, wholeProgram)
-    cg.getReachableProcedures(procedures)
+    cg.getReachableProcedures(procedures.map(_.getSignature)).map(Center.getProcedureWithoutFailing(_))
 	}
 	
 	def getReachableProceduresBySBCG(procedures : Set[JawaProcedure], wholeProcs : Set[JawaProcedure], par : Boolean) : Set[JawaProcedure] = {

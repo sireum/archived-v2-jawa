@@ -347,7 +347,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
       protected def visitForward(
         currentNode : CGLocNode,
         esl : Option[EntrySetListener[LatticeElement]]) : IMap[N, DFF] = {
-        val pst = currentNode.getOwner.getProcedureBody
+        val pst = Center.getProcedureWithoutFailing(currentNode.getOwner).getProcedureBody
         val l = pst.location(currentNode.getLocIndex)
         val currentContext = currentNode.getContext
         val callerContext = currentContext.copy.removeTopContext

@@ -1,12 +1,11 @@
 package org.sireum.jawa.alir.interProcedural
 
-import org.sireum.jawa.JawaProcedure
 import org.sireum.jawa.alir.Instance
 
 abstract class Callee {
-  def calleeProc : JawaProcedure
+  def callee : String
 }
 
-final case class InstanceCallee(calleeProc : JawaProcedure, ins : Instance) extends Callee
+final case class InstanceCallee(callee : String, ins : Instance) extends Callee
 
-final case class StaticCallee(calleeProc : JawaProcedure) extends Callee
+final case class StaticCallee(callee : String) extends Callee

@@ -9,7 +9,6 @@ import java.io._
 import org.jgrapht.ext.DOTExporter
 import dk.brics.automaton._
 import org.sireum.jawa.alir.intraProcedural.compressedControlFlowGraph.AlirIntraProceduralGraphExtra
-import org.sireum.jawa.JawaProcedure
 import org.sireum.jawa.alir.interProcedural.InterProceduralGraph
 import org.sireum.jawa.alir.interProcedural.InterProceduralNode
 import org.sireum.jawa.alir.Context
@@ -21,6 +20,7 @@ import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.GlobalConfig
 import org.sireum.jawa.Center
 import org.sireum.jawa.alir.interProcedural.Callee
+import org.sireum.jawa.JawaProcedure
 
 /**
  * @author Fengguo Wei & Sankardas Roy
@@ -49,7 +49,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   val centerContext = new Context(GlobalConfig.CG_CONTEXT_K)
   centerContext.setContext("Center", "L0000")
   private val cNode = addCGCenterNode(centerContext)
-  cNode.setOwner(Center.getProcedureWithoutFailing(Center.CENTER_PROCEDURE_SIG))
+  cNode.setOwner(Center.CENTER_PROCEDURE_SIG)
   protected var centerN : CGNode = cNode
   
   def centerNode : Node = this.centerN.asInstanceOf[Node]
@@ -59,17 +59,17 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   def exitNode : Node = this.exitN.asInstanceOf[Node]
   
   
-  private val processed : MMap[(JawaProcedure, Context), ISet[Node]] = new HashMap[(JawaProcedure, Context), ISet[Node]] with SynchronizedMap[(JawaProcedure, Context), ISet[Node]]
+  private val processed : MMap[(String, Context), ISet[Node]] = new HashMap[(String, Context), ISet[Node]] with SynchronizedMap[(String, Context), ISet[Node]]
   
-  def isProcessed(proc : JawaProcedure, callerContext : Context) : Boolean = processed.contains(proc, callerContext)
+  def isProcessed(proc : String, callerContext : Context) : Boolean = processed.contains(proc, callerContext)
   
-  def addProcessed(jp : JawaProcedure, c : Context, nodes : ISet[Node]) = {
+  def addProcessed(jp : String, c : Context, nodes : ISet[Node]) = {
     this.processed += ((jp, c) -> nodes)
   }
   
   def getProcessed = this.processed
   
-  def entryNode(proc : JawaProcedure, callerContext : Context) : Node = {
+  def entryNode(proc : String, callerContext : Context) : Node = {
     require(isProcessed(proc, callerContext))
     processed(proc, callerContext).foreach{
       n => if(n.isInstanceOf[CGEntryNode]) return n
@@ -79,25 +79,25 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   
   /**
    * map from procedures to it's callee procedures
+   * map from caller sig to callee sigs
    */
+  private var callMap : IMap[String, ISet[String]] = imapEmpty
   
-  private var callMap : IMap[JawaProcedure, ISet[JawaProcedure]] = imapEmpty
-  
-  def setCallMap(from : JawaProcedure, to : JawaProcedure) = this.callMap += (from -> (this.callMap.getOrElse(from, isetEmpty) + to))
+  def setCallMap(from : String, to : String) = this.callMap += (from -> (this.callMap.getOrElse(from, isetEmpty) + to))
   
   def getCallMap = this.callMap
 
-  def getReachableProcedures(procs : Set[JawaProcedure]) : Set[JawaProcedure] = {
+  def getReachableProcedures(procs : Set[String]) : Set[String] = {
     calculateReachableProcedures(procs, isetEmpty) ++ procs
   }
   
-  private def calculateReachableProcedures(procs : Set[JawaProcedure], processed : Set[JawaProcedure]) : Set[JawaProcedure] = {
+  private def calculateReachableProcedures(procs : Set[String], processed : Set[String]) : Set[String] = {
     if(procs.isEmpty) Set()
     else
       procs.map{
 	      proc =>
 	        if(processed.contains(proc)){
-	          Set[JawaProcedure]()
+	          Set[String]()
 	        } else {
 		        val callees = this.callMap.getOrElse(proc, isetEmpty)
 		        callees ++ calculateReachableProcedures(callees, processed + proc)
@@ -310,12 +310,12 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 		          vn.label.toString match{
 		            case "Entry" => 
 		              val entryNode = addCGEntryNode(callerContext.copy.setContext(calleeSig, calleeSig))
-		              entryNode.setOwner(calleeProc)
+		              entryNode.setOwner(calleeProc.getSignature)
 		              nodes += entryNode
 		              if(isFirst) this.entryN = entryNode
 		            case "Exit" => 
 		              val exitNode = addCGExitNode(callerContext.copy.setContext(calleeSig, calleeSig))
-		              exitNode.setOwner(calleeProc)
+		              exitNode.setOwner(calleeProc.getSignature)
 		              nodes += exitNode
 		              if(isFirst) this.exitN = exitNode
 		            case a => throw new RuntimeException("unexpected virtual label: " + a)
@@ -324,23 +324,23 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 		          val l = body.location(ln.locIndex)
 		          if(isCall(l)){
 	              val c = addCGCallNode(callerContext.copy.setContext(calleeSig, ln.locUri))
-	              c.setOwner(calleeProc)
+	              c.setOwner(calleeProc.getSignature)
 	              c.asInstanceOf[CGLocNode].setLocIndex(ln.locIndex)
 	              nodes += c
 	              val r = addCGReturnNode(callerContext.copy.setContext(calleeSig, ln.locUri))
-	              r.setOwner(calleeProc)
+	              r.setOwner(calleeProc.getSignature)
 	              r.asInstanceOf[CGLocNode].setLocIndex(ln.locIndex)
 	              nodes += r
 	//              addEdge(c, r)
 		          } else {
 		            val node = addCGNormalNode(callerContext.copy.setContext(calleeSig, ln.locUri))
-		            node.setOwner(calleeProc)
+		            node.setOwner(calleeProc.getSignature)
 		            node.asInstanceOf[CGLocNode].setLocIndex(ln.locIndex)
 		            nodes += node
 		          }
 		        case a : AlirLocationNode => 
 		          val node = addCGNormalNode(callerContext.copy.setContext(calleeSig, a.locIndex.toString))
-		          node.setOwner(calleeProc)
+		          node.setOwner(calleeProc.getSignature)
 		          node.asInstanceOf[CGLocNode].setLocIndex(a.locIndex)
 		          nodes += node
 		      }
@@ -429,7 +429,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 	          }
 	      }
 	    }
-	    addProcessed(calleeProc, callerContext, nodes)
+	    addProcessed(calleeProc.getSignature, callerContext, nodes)
 	    nodes
     }
   }
@@ -595,9 +595,9 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 }
 
 sealed abstract class CGNode(context : Context) extends InterProceduralNode(context){
-  protected var owner : JawaProcedure = null
+  protected var owner : String = null
   protected var loadedClassBitSet : BitSet = BitSet.empty
-  def setOwner(owner : JawaProcedure)  = this.owner = owner
+  def setOwner(owner : String)  = this.owner = owner
   def getOwner = this.owner
   def setLoadedClassBitSet(bitset : BitSet) = this.loadedClassBitSet = bitset
   def getLoadedClassBitSet = this.loadedClassBitSet

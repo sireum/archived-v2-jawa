@@ -2,7 +2,6 @@ package org.sireum.jawa.alir.interProcedural
 
 import org.sireum.util._
 import org.sireum.alir._
-import org.jgrapht.graph.DirectedMultigraph
 import org.jgrapht.EdgeFactory
 import java.io.Writer
 import org.jgrapht.ext.DOTExporter
@@ -11,15 +10,17 @@ import scala.collection.mutable.SynchronizedMap
 import scala.collection.mutable.HashMap
 import org.sireum.jawa.alir.Context
 import org.jgrapht.alg.DijkstraShortestPath
+import org.jgrapht.graph.DirectedPseudograph
 
 trait InterProceduralGraph[Node <: InterProceduralNode]
   extends AlirGraph[Node]
   with AlirEdgeAccesses[Node]
-  with AlirSuccPredAccesses[Node] {
+  with AlirSuccPredAccesses[Node]
+  with Serializable {
 
   self=>
   
-  protected val graph = new DirectedMultigraph(
+  protected val graph = new DirectedPseudograph(
     new EdgeFactory[Node, Edge] {
       def createEdge(source : Node, target : Node) =
         new AlirEdge(self, source, target)
@@ -70,7 +71,7 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
 	}
 }
 
-abstract class InterProceduralNode(context : Context) extends PropertyProvider {
+abstract class InterProceduralNode(context : Context) extends PropertyProvider with Serializable {
   val propertyMap = mlinkedMapEmpty[Property.Key, Any]
   def getContext = this.context
 }

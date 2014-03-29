@@ -104,20 +104,20 @@ object ReachingFactsAnalysisHelper {
 			          err_msg_normal("Try to invoke method: " + sig + "@" + callerContext + "\nwith Null pointer:" + ins)
 			        else if(ins.isInstanceOf[UnknownInstance]) {
 			          err_msg_detail("Invoke method: " + sig + "@" + callerContext + "\n with Unknown Instance: " + ins)
-			          calleeSet += InstanceCallee(Center.getProcedureWithoutFailing(Center.UNKNOWN_PROCEDURE_SIG), ins)
+			          calleeSet += InstanceCallee(Center.UNKNOWN_PROCEDURE_SIG, ins)
 			        } else {
 				        val p = 
 				          if(typ == "super") CallHandler.getSuperCalleeProcedure(sig)
 				          else if(typ == "direct") CallHandler.getDirectCalleeProcedure(sig)
 				        	else CallHandler.getVirtualCalleeProcedure(ins.typ, subSig)
-				        calleeSet += InstanceCallee(p, ins)
+				        calleeSet += InstanceCallee(p.getSignature, ins)
               }
 			    }
         case _ => throw new RuntimeException("wrong exp type: " + cj.callExp.arg)
       }
     } else {
       val p = CallHandler.getStaticCalleeProcedure(sig)
-      calleeSet += StaticCallee(p)
+      calleeSet += StaticCallee(p.getSignature)
     }
     calleeSet.toSet
   }

@@ -42,7 +42,6 @@ class PilarTestFramework extends TestFramework {
 	    if(modelOpt.isDefined){
 	      msg_critical("Parsing OK!")
 	      val st = JawaSymbolTableBuilder.apply(List(modelOpt.get), { _ : Unit => new JawaSymbolTable }, false)
-	      println(st)
 	    } else {
 	      err_msg_critical(reporter.errorAsString)
 	    }

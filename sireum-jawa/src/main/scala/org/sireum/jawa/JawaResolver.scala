@@ -16,7 +16,7 @@ import org.sireum.jawa.MessageCenter._
 
 object JawaResolver {
   
-  val DEBUG : Boolean = true
+  val DEBUG : Boolean = false
   val TITLE : String = "AmandroidResolver"
   
   /**

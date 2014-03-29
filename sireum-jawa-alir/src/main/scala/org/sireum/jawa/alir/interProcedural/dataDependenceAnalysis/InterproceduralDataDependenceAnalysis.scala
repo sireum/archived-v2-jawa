@@ -67,7 +67,7 @@ object InterproceduralDataDependenceAnalysis {
 	            targetNodes ++= cgTarN.map(n => iddg.findDefSite(n.getContext, en.position))
 	          case en : IDDGExitParamNode =>
 	            val cgN = cg.getCGExitNode(en.getContext)
-	            val proc = cgN.getOwner
+	            val proc =  Center.getProcedureWithoutFailing(cgN.getOwner)
 	            val procName = proc.getParamNames(en.position)
 	            val irdaFacts = irdaResult(cgN)
 	            targetNodes ++= searchRda(procName, en, irdaFacts, iddg)
@@ -99,7 +99,7 @@ object InterproceduralDataDependenceAnalysis {
 	            targetNodes ++= processVirtualBody(vn, rfaFacts, irdaFacts, iddg)
 	          case ln : IDDGNormalNode =>
 	            val cgN = cg.getCGNormalNode(ln.getContext)
-	            val ownerProc = ln.getOwner
+	            val ownerProc = Center.getProcedureWithoutFailing(ln.getOwner)
 				      val loc = ownerProc.getProcedureBody.location(ln.getLocIndex)
 				      val rfaFacts = rfaResult.entrySet(cgN)
 				      val irdaFacts = irdaResult(cgN)
@@ -122,7 +122,6 @@ object InterproceduralDataDependenceAnalysis {
     val calleeSet = callArgNode.getCalleeSet
     calleeSet.foreach{
       callee =>
-        val calleep = callee.calleeProc
         result ++= searchRda(callArgNode.argName, callArgNode, irdaFacts, iddg)
         val argSlot = VarSlot(callArgNode.argName)
         val argFacts = 
@@ -141,7 +140,7 @@ object InterproceduralDataDependenceAnalysis {
     val calleeSet = virtualBodyNode.getCalleeSet
     calleeSet.foreach{
       callee =>
-        val calleep = callee.calleeProc
+        val calleep = Center.getProcedureWithoutFailing(callee.callee)
         if(calleep.getDeclaringRecord.isLibraryRecord){
           val sideEffectResult = if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleep.getSignature)
           											 else None
@@ -368,7 +367,7 @@ object InterproceduralDataDependenceAnalysis {
 	          }
 	          calleeSet.foreach{
 	            callee =>
-	              val calleep = callee.calleeProc
+	              val calleep = Center.getProcedureWithoutFailing(callee.callee)
 	              if(calleep.getDeclaringRecord.isLibraryRecord){
 	                val sideEffectResult = if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleep.getSignature)
 	                											 else None
@@ -460,8 +459,9 @@ object InterproceduralDataDependenceAnalysis {
             case dd : DefDesc =>
               if(dd.isDefinedInitially && !varName.startsWith("@@")){
                 val indexs : MSet[Int] = msetEmpty
-                val paramNames = node.getOwner.getParamNames
-                val paramTyps = node.getOwner.getParamTypes
+                val owner = Center.getProcedureWithoutFailing(node.getOwner)
+                val paramNames = owner.getParamNames
+                val paramTyps = owner.getParamTypes
                 var index = 0
                 for(i <- 0 to paramNames.size - 1){
                   val paramName = paramNames(i)

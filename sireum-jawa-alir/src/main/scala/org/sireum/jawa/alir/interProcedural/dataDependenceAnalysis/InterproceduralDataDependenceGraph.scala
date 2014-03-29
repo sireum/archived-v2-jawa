@@ -29,7 +29,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	    node =>
 	      node match{
 	        case en : CGEntryNode =>
-	          val owner = en.getOwner
+	          val owner = Center.getProcedureWithoutFailing(en.getOwner)
 	          val pnames = owner.getParamNames
 	          val ptyps = owner.getParamTypes
 	          var position = 0
@@ -45,7 +45,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	            position += 1
 	          }
 	        case en : CGExitNode =>
-	          val owner = en.getOwner
+	          val owner = Center.getProcedureWithoutFailing(en.getOwner)
 	          val pnames = owner.getParamNames
 	          for(i <- 0 to pnames.size - 1){
 	            val n = addIDDGExitParamNode(en, i)
@@ -53,7 +53,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	          }
 	        case en : CGCenterNode =>
 	        case cn : CGCallNode =>
-	          val loc = cn.getOwner.getProcedureBody.location(cn.getLocIndex)
+	          val loc = Center.getProcedureWithoutFailing(cn.getOwner).getProcedureBody.location(cn.getLocIndex)
 	          val argNames : MList[String] = mlistEmpty
 	          loc match{
 	            case jumploc : JumpLocation =>
@@ -66,12 +66,12 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	            n.asInstanceOf[IDDGCallArgNode].argName = argName
 	          }
 	          val rn = addIDDGReturnVarNode(cn)
-	          if(cn.getCalleeSet.exists(p => p.calleeProc.getDeclaringRecord.isLibraryRecord)){
+	          if(cn.getCalleeSet.exists(p => Center.getProcedureWithoutFailing(p.callee).getDeclaringRecord.isLibraryRecord)){
 	            val vn = addIDDGVirtualBodyNode(cn)
 	            vn.asInstanceOf[IDDGVirtualBodyNode].argNames = argNames.toList
 	          }
 	        case rn : CGReturnNode =>
-	          val loc = rn.getOwner.getProcedureBody.location(rn.getLocIndex)
+	          val loc =  Center.getProcedureWithoutFailing(rn.getOwner).getProcedureBody.location(rn.getLocIndex)
 	          val argNames : MList[String] = mlistEmpty
 	          loc match{
 	            case jumploc : JumpLocation =>
@@ -124,7 +124,6 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	  val calleeSet = callArgNode.getCalleeSet
     calleeSet.foreach{
       callee =>
-        val calleep = callee.calleeProc
         val argSlot = VarSlot(callArgNode.argName)
         val argFacts = rfaFacts.filter(fact=> argSlot == fact.s)
 			  val argRelatedFacts = ReachingFactsAnalysisHelper.getRelatedHeapFactsFrom(argFacts, rfaFacts)

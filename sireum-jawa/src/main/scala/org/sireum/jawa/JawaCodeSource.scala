@@ -6,8 +6,11 @@ import org.sireum.jawa.pilarParser.LightWeightPilarParser
 import org.sireum.jawa.util.StringFormConverter
 import org.sireum.util.ISet
 import java.io.InputStream
+import org.sireum.jawa.util.MyFileUtil
 
 object JawaCodeSource {
+  
+  final val TITLE = "JawaCodeSource"
   
   object CodeType extends Enumeration {
     val APP, APP_USING_LIBRARY, LIBRARY = Value
@@ -33,7 +36,63 @@ object JawaCodeSource {
     LightWeightPilarParser(Right(fileUri), Right(summary))
   }
   
+  /**
+   * pre-load all the code of the library
+   */
   
+  def preLoad(fileRootUri : FileResourceUri, ext : String) = {
+    val fileUris = FileUtil.listFiles(fileRootUri, ext, true)
+    fileUris.foreach{
+      fileUri => 
+        val recCode = MyFileUtil.readFileContent(fileUri)
+        val recName = getRecordName(recCode)
+        setRecordCode(recName, recCode, Left(CodeType.LIBRARY))
+    }
+    this.preLoaded = true
+  }
+  
+  /**
+   * load code from given root dir
+   */
+  
+  def load(fileRootUri : FileResourceUri, ext : String, summary : LibraryAPISummary) = {
+    val fileUris = FileUtil.listFiles(fileRootUri, ext, true)
+    fileUris.foreach{
+      fileUri => 
+        val recCode = MyFileUtil.readFileContent(fileUri)
+        val recName = getRecordName(recCode)
+        setRecordCode(recName, recCode, Right(summary))
+    }
+  }
+  
+  private def getRecordName(rCode : String) : String = {
+    require(getFirstWord(rCode) == "record")
+    val size = rCode.size
+    var i = rCode.indexOf("record") + 7
+    while (i < size && (rCode.charAt(i).isWhitespace || rCode.charAt(i) == '`')) {
+      i += 1
+    }
+    var j = i
+    while (j < size && !(rCode.charAt(j) == '`') && !rCode.charAt(j).equals("@")) {
+      j += 1
+    }
+    if (i < size && j <= size) rCode.substring(i, j)
+    else throw new RuntimeException("Doing " + TITLE + ". Cannot find name from record code: " + rCode)
+  }
+  
+  private def getFirstWord(line : String) = {
+    val size = line.size
+    var i = 0
+    while (i < size && line.charAt(i).isWhitespace) {
+      i += 1
+    }
+    var j = i
+    while (j < size && !line.charAt(j).isWhitespace) {
+      j += 1
+    }
+    if (i < size && j <= size) line.substring(i, j)
+    else ""
+  }
   
   /**
    * did preLoad happen or not?
@@ -48,19 +107,19 @@ object JawaCodeSource {
   def isPreLoaded = this.preLoaded
   
   /**
-   * map from record name to pilar code of library. E.g. record name [|java:lang:Object|] to its pilar code 
+   * map from record name to pilar code of library. E.g. record name java.lang.Object to its pilar code 
    */
   
 	protected var libRecordsCodes : Map[String, String] = Map()
 	
 	 /**
-   * map from record name to pilar code of library. E.g. record name [|java:lang:Object|] to its pilar code 
+   * map from record name to pilar code of library. E.g. record name java.lang.Object to its pilar code 
    */
   
 	protected var appUsingLibRecordsCodes : Map[String, String] = Map()
 	
 	/**
-   * map from record name to pilar code of app. E.g. record name [|java:lang:MyObject|] to its pilar code 
+   * map from record name to pilar code of app. E.g. record name java.lang.MyObject to its pilar code 
    */
   
 	protected var appRecordsCodes : Map[String, String] = Map()

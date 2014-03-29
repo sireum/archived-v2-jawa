@@ -217,8 +217,8 @@ class InterproceduralPointsToAnalysis {
     val procPoint = pag.getPointProc(calleeProc, callerContext)
     require(procPoint != null)
     pag.extendGraph(procPoint, pi, callerContext.copy)
-    val callerProc = Center.getProcedureWithoutFailing(pi.owner)
-    cg.setCallMap(callerProc, calleeProc)
+    val callersig = pi.owner
+    cg.setCallMap(callersig, calleeSig)
   	cg.extendGraph(calleeSig, callerContext.copy)
   }
 }

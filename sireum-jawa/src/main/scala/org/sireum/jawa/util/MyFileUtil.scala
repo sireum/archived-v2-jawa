@@ -5,8 +5,28 @@ import java.net.URL
 import java.io.File
 import java.util.jar.JarFile
 import java.net.URLDecoder
+import java.io.FileReader
+import java.io.LineNumberReader
+import java.net.URI
 
 object MyFileUtil {
+  
+  def readFileContent(fileResourceUri : FileResourceUri) : String = {
+    val fr = new FileReader(new File(new URI(fileResourceUri)))
+    try{
+      val lnr = new LineNumberReader(fr)
+	    var sb = new StringBuilder
+	    var lineText = lnr.readLine
+	    while (lineText != null) {
+	      sb.append(lineText)
+	      sb.append('\n')
+	      lineText = lnr.readLine
+	    }
+      sb.toString
+    } finally fr.close
+  }
+  
+  
 	/**
    * List directory contents for a resource folder. Not recursive.
    * This is basically a brute-force implementation.

@@ -8,6 +8,8 @@ import java.io.File
  */
 
 object GlobalConfig {
+  
+  final val PILAR_FILE_EXT = ".pilar"
 	
 	/**
 	 * is whole program mode or not

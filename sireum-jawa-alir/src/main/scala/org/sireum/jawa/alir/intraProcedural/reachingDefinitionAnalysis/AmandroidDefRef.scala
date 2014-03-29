@@ -131,7 +131,6 @@ final class AmandroidDefRef(st: SymbolTable, val varAccesses: VarAccesses)
     }
 
   def strongDefinitions(a: Assignment): ISet[Slot] =
-    
     defCache.getOrElseUpdate(a, {
       val lhss = PilarAstUtil.getLHSs(a)
       var result = isetEmpty[Slot]
@@ -144,7 +143,7 @@ final class AmandroidDefRef(st: SymbolTable, val varAccesses: VarAccesses)
             case Some(u) => uri = u
             case None =>
           }
-          if(uri == null) err_msg_normal("global var " + ne.name.name + " cannot resolved.")
+          if(uri == null) err_msg_critical("global var " + ne.name.name + " cannot resolved.")
         } else {
           uri = ne.name.uri
         }
@@ -155,22 +154,6 @@ final class AmandroidDefRef(st: SymbolTable, val varAccesses: VarAccesses)
           key match{
             case ne : NameExp =>
               resolveNameExp(ne)
-//            case ae : AccessExp =>
-//              if(is("object", a.annotations)){
-//	              ae.exp match {
-//	                case ane : NameExp =>
-//	                  resolveNameExp(ane)
-//	                case _ =>
-//	              }
-//              }
-//            case ie : IndexingExp =>
-//              if(is("object", a.annotations)){
-//	              ie.exp match {
-//	                case ine : NameExp =>
-//	                  resolveNameExp(ine)
-//	                case _ =>
-//	              }
-//              }
             case _=>
           }
       }
