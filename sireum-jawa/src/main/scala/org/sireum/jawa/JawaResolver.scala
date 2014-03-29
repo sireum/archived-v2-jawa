@@ -8,7 +8,7 @@ import org.sireum.pilar.symbol.ProcedureSymbolTable
 import org.sireum.jawa.util.StringFormConverter
 import org.sireum.pilar.symbol.SymbolTable
 import org.sireum.jawa.MessageCenter._
-
+import scala.collection.Parallel
 
 /**
  * this object collects info from the symbol table and builds Center, JawaRecord, and JawaProcedure
@@ -307,7 +307,7 @@ object JawaResolver {
 	      val ownerRecord = Center.getRecord(ownerName)
 	      (f, ownerRecord)
 	  }
-	  if(ownerRelation.isParallel) throw new RuntimeException("Doing " + TITLE + ": ownerRelation is parallel, but we are trying to add things to JawaRecord.")
+	  if(ownerRelation.isInstanceOf[Parallel]) throw new RuntimeException("Doing " + TITLE + ": ownerRelation is parallel, but we are trying to add things to JawaRecord.")
 	  ownerRelation.foreach{
 	    case (f, own) =>
 	      own.addField(f)
@@ -365,7 +365,7 @@ object JawaResolver {
 	      }
 	      (proc, ownerRecord)
 	  }
-	  if(ownerRelation.isParallel) throw new RuntimeException("Doing " + TITLE + ": ownerRelation is parallel, but we are trying to add things to JawaRecord.")
+	  if(ownerRelation.isInstanceOf[Parallel]) throw new RuntimeException("Doing " + TITLE + ": ownerRelation is parallel, but we are trying to add things to JawaRecord.")
 	  ownerRelation.foreach{
 	    case (proc, own) =>
 	      own.addProcedure(proc)

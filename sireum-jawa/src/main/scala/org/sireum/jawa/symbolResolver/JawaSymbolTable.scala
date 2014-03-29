@@ -12,23 +12,23 @@ class JawaSymbolTable extends SymbolTable with SymbolTableProducer {
   val tables = SymbolTableData()
   val tags = marrayEmpty[LocationTag]
   var hasErrors = false
-    
+
   val ERROR_TAG_TYPE = MarkerType(
-  "org.sireum.pilar.tag.error.symtab",
-  None,
-  "Pilar Symbol Resolution Error",
-  MarkerTagSeverity.Error,
-  MarkerTagPriority.Normal,
-  ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
-  
+    "org.sireum.pilar.tag.error.symtab",
+    None,
+    "Pilar Symbol Resolution Error",
+    MarkerTagSeverity.Error,
+    MarkerTagPriority.Normal,
+    ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
+
   val WARNING_TAG_TYPE = MarkerType(
-  "org.sireum.pilar.tag.error.symtab",
-  None,
-  "Pilar Symbol Resolution Warning",
-  MarkerTagSeverity.Warning,
-  MarkerTagPriority.Normal,
-  ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
-   
+    "org.sireum.pilar.tag.error.symtab",
+    None,
+    "Pilar Symbol Resolution Warning",
+    MarkerTagSeverity.Warning,
+    MarkerTagPriority.Normal,
+    ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
+
   def reportError(source : Option[FileResourceUri], line : Int,
                     column : Int, message : String) : Unit = {
       tags += Tag.toTag(source, line, column, message, ERROR_TAG_TYPE)
