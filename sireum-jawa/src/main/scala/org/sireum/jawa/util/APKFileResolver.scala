@@ -22,9 +22,10 @@ object APKFileResolver {
 	  val zipis = new ZipInputStream(new FileInputStream(apkFile))
     val dirName = apkFile.getName().substring(0, apkFile.getName().lastIndexOf("."))
     val outputDir = new File(new URI(outputUri + "/" + dirName))
-    if(!outputDir.exists()){
-      outputDir.mkdirs()
+    if(outputDir.exists()){
+      MyFileUtil.deleteDir(outputDir)
     }
+	  outputDir.mkdirs()
 	  val outputFile = new File(outputDir + "/" + dirName + ".dex")
 	  val ops = new FileOutputStream(outputFile)
     //resolve with apk file

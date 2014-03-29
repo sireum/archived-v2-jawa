@@ -26,6 +26,18 @@ object MyFileUtil {
     } finally fr.close
   }
   
+  def deleteDir(dir : File) : Boolean = {
+    if (dir.isDirectory()) {
+       val children = dir.list()
+       for (i <- 0 to children.length - 1) {
+      	 val success = deleteDir(new File(dir, children(i)));
+          if (!success) {
+             return false;
+          }
+       }
+    }
+    dir.delete();
+  }
   
 	/**
    * List directory contents for a resource folder. Not recursive.
