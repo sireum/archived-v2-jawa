@@ -8,7 +8,7 @@ import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.ReachingFactsA
 import org.sireum.jawa.alir.Instance
 
 object HashMapModel {
-	def isHashMap(r : JawaRecord) : Boolean = r.getName == "[|java:util:HashMap|]"
+	def isHashMap(r : JawaRecord) : Boolean = r.getName == "java.util.HashMap"
 	
 	private def getPointStringToRet(retVar : String, currentContext : Context): RFAFact = {
     val newThisValue = RFAPointStringInstance(currentContext.copy)
@@ -29,10 +29,10 @@ object HashMapModel {
     require(args.size >0)
     val thisSlot = VarSlot(args(0))
 	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
-	  val strValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "[|java:util:HashMap.entrys|]"), isetEmpty)}.reduce(iunion[Instance])
-	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("[|java:util:HashSet|]", 0), retVar, currentContext).get
+	  val strValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
+	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("java:util:HashSet", 0), retVar, currentContext).get
 	  result += rf
-	  result ++= strValue.map{s => RFAFact(FieldSlot(rf.v, "[|java:util:HashSet.items|]"), s)}
+	  result ++= strValue.map{s => RFAFact(FieldSlot(rf.v, "java.util.HashSet.items"), s)}
 	  result
   }
 	
@@ -42,13 +42,13 @@ object HashMapModel {
     require(args.size >0)
     val thisSlot = VarSlot(args(0))
 	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
-	  val strValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "[|java:util:HashMap.entrys|]"), isetEmpty)}.reduce(iunion[Instance])
-	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("[|java:util:HashSet|]", 0), retVar, currentContext).get
+	  val strValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
+	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("java.util.HashSet", 0), retVar, currentContext).get
 	  result += rf
 	  strValue.foreach{
 	    s =>
 	      if(s.isInstanceOf[RFATupleInstance])
-	      	result += RFAFact(FieldSlot(rf.v, "[|java:util:HashSet.items|]"), s.asInstanceOf[RFATupleInstance].left)
+	      	result += RFAFact(FieldSlot(rf.v, "java.util.HashSet.items"), s.asInstanceOf[RFATupleInstance].left)
 	  }
 	  result
   }
@@ -59,13 +59,13 @@ object HashMapModel {
     require(args.size >0)
     val thisSlot = VarSlot(args(0))
 	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
-	  val strValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "[|java:util:HashMap.entrys|]"), isetEmpty)}.reduce(iunion[Instance])
-	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("[|java:util:HashSet|]", 0), retVar, currentContext).get
+	  val strValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
+	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("java:util:HashSet", 0), retVar, currentContext).get
 	  result += rf
 	  result ++= strValue.map{
 	    s => 
 	      require(s.isInstanceOf[RFATupleInstance])
-	      RFAFact(FieldSlot(rf.v, "[|java:util:HashSet.items|]"), s.asInstanceOf[RFATupleInstance].right)
+	      RFAFact(FieldSlot(rf.v, "java.util.HashSet.items"), s.asInstanceOf[RFATupleInstance].right)
 	  }
 	  result
   }
@@ -78,7 +78,7 @@ object HashMapModel {
 	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
 	  val keySlot = VarSlot(args(1))
 	  val keyValue = factMap.getOrElse(keySlot, isetEmpty)
-	  val entValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "[|java:util:HashMap.entrys|]"), isetEmpty)}.reduce(iunion[Instance])
+	  val entValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
 	  entValue.foreach{
 	    v =>
 	      require(v.isInstanceOf[RFATupleInstance])
@@ -109,7 +109,7 @@ object HashMapModel {
 	  }
 	  thisValue.foreach{
 	    ins =>
-	      result ++= entrys.map(e => RFAFact(FieldSlot(ins, "[|java:util:HashMap.entrys|]"), e))
+	      result ++= entrys.map(e => RFAFact(FieldSlot(ins, "java.util.HashMap.entrys"), e))
 	  }
 	  result
   }
@@ -126,8 +126,8 @@ object HashMapModel {
 	    ins =>
 	      value2.foreach{
 	        e => 
-	          val ents = factMap.getOrElse(FieldSlot(e, "[|java:util:HashMap.entrys|]"), isetEmpty)
-	          result ++= ents.map(RFAFact(FieldSlot(ins, "[|java:util:HashMap.entrys|]"), _))
+	          val ents = factMap.getOrElse(FieldSlot(e, "java.util.HashMap.entrys"), isetEmpty)
+	          result ++= ents.map(RFAFact(FieldSlot(ins, "java.util.HashMap.entrys"), _))
 	      }
 	  }
 	  result
@@ -138,70 +138,70 @@ object HashMapModel {
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
 	  p.getSignature match{
-	    case "[|Ljava/util/HashMap;.<clinit>:()V|]" =>
-		  case "[|Ljava/util/HashMap;.<init>:()V|]" =>
-		  case "[|Ljava/util/HashMap;.<init>:(I)V|]" =>
-		  case "[|Ljava/util/HashMap;.<init>:(IF)V|]" =>
-		  case "[|Ljava/util/HashMap;.<init>:(Ljava/util/Map;)V|]" =>
-		  case "[|Ljava/util/HashMap;.access$600:(Ljava/util/HashMap;Ljava/lang/Object;Ljava/lang/Object;)Z|]" =>
-		  case "[|Ljava/util/HashMap;.access$700:(Ljava/util/HashMap;Ljava/lang/Object;Ljava/lang/Object;)Z|]" =>
-		  case "[|Ljava/util/HashMap;.addNewEntry:(Ljava/lang/Object;Ljava/lang/Object;II)V|]" =>
-		  case "[|Ljava/util/HashMap;.addNewEntryForNullKey:(Ljava/lang/Object;)V|]" =>
-		  case "[|Ljava/util/HashMap;.capacityForInitSize:(I)I|]" =>
-		  case "[|Ljava/util/HashMap;.clear:()V|]" =>
-		  case "[|Ljava/util/HashMap;.clone:()Ljava/lang/Object;|]" =>
+	    case "Ljava/util/HashMap;.<clinit>:()V" =>
+		  case "Ljava/util/HashMap;.<init>:()V" =>
+		  case "Ljava/util/HashMap;.<init>:(I)V" =>
+		  case "Ljava/util/HashMap;.<init>:(IF)V" =>
+		  case "Ljava/util/HashMap;.<init>:(Ljava/util/Map;)V" =>
+		  case "Ljava/util/HashMap;.access$600:(Ljava/util/HashMap;Ljava/lang/Object;Ljava/lang/Object;)Z" =>
+		  case "Ljava/util/HashMap;.access$700:(Ljava/util/HashMap;Ljava/lang/Object;Ljava/lang/Object;)Z" =>
+		  case "Ljava/util/HashMap;.addNewEntry:(Ljava/lang/Object;Ljava/lang/Object;II)V" =>
+		  case "Ljava/util/HashMap;.addNewEntryForNullKey:(Ljava/lang/Object;)V" =>
+		  case "Ljava/util/HashMap;.capacityForInitSize:(I)I" =>
+		  case "Ljava/util/HashMap;.clear:()V" =>
+		  case "Ljava/util/HashMap;.clone:()Ljava/lang/Object;" =>
 		    require(retVars.size == 1)
 		    newFacts ++= cloneHashMap(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "[|Ljava/util/HashMap;.constructorNewEntry:(Ljava/lang/Object;Ljava/lang/Object;ILjava/util/HashMap$HashMapEntry;)Ljava/util/HashMap$HashMapEntry;|]" =>
-		  case "[|Ljava/util/HashMap;.constructorPut:(Ljava/lang/Object;Ljava/lang/Object;)V|]" =>
-		  case "[|Ljava/util/HashMap;.constructorPutAll:(Ljava/util/Map;)V|]" =>
-		  case "[|Ljava/util/HashMap;.containsKey:(Ljava/lang/Object;)Z|]" =>
-		  case "[|Ljava/util/HashMap;.containsMapping:(Ljava/lang/Object;Ljava/lang/Object;)Z|]" =>
-		  case "[|Ljava/util/HashMap;.containsValue:(Ljava/lang/Object;)Z|]" =>
-		  case "[|Ljava/util/HashMap;.doubleCapacity:()[Ljava/util/HashMap$HashMapEntry;|]" =>
-		  case "[|Ljava/util/HashMap;.ensureCapacity:(I)V|]" =>
-		  case "[|Ljava/util/HashMap;.entrySet:()Ljava/util/Set;|]" =>
+		  case "Ljava/util/HashMap;.constructorNewEntry:(Ljava/lang/Object;Ljava/lang/Object;ILjava/util/HashMap$HashMapEntry;)Ljava/util/HashMap$HashMapEntry;" =>
+		  case "Ljava/util/HashMap;.constructorPut:(Ljava/lang/Object;Ljava/lang/Object;)V" =>
+		  case "Ljava/util/HashMap;.constructorPutAll:(Ljava/util/Map;)V" =>
+		  case "Ljava/util/HashMap;.containsKey:(Ljava/lang/Object;)Z" =>
+		  case "Ljava/util/HashMap;.containsMapping:(Ljava/lang/Object;Ljava/lang/Object;)Z" =>
+		  case "Ljava/util/HashMap;.containsValue:(Ljava/lang/Object;)Z" =>
+		  case "Ljava/util/HashMap;.doubleCapacity:()[Ljava/util/HashMap$HashMapEntry;" =>
+		  case "Ljava/util/HashMap;.ensureCapacity:(I)V" =>
+		  case "Ljava/util/HashMap;.entrySet:()Ljava/util/Set;" =>
 		    require(retVars.size == 1)
 		    newFacts ++= getHashMapEntrySetFactToRet(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "[|Ljava/util/HashMap;.get:(Ljava/lang/Object;)Ljava/lang/Object;|]" =>
+		  case "Ljava/util/HashMap;.get:(Ljava/lang/Object;)Ljava/lang/Object;" =>
 		    require(retVars.size == 1)
 		    newFacts ++= getHashMapValue(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "[|Ljava/util/HashMap;.init:()V|]" =>
-		  case "[|Ljava/util/HashMap;.isEmpty:()Z|]" =>
-		  case "[|Ljava/util/HashMap;.keySet:()Ljava/util/Set;|]" =>
+		  case "Ljava/util/HashMap;.init:()V" =>
+		  case "Ljava/util/HashMap;.isEmpty:()Z" =>
+		  case "Ljava/util/HashMap;.keySet:()Ljava/util/Set;" =>
 		    require(retVars.size == 1)
 		    newFacts ++= getHashMapKeySetToRet(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "[|Ljava/util/HashMap;.makeTable:(I)[Ljava/util/HashMap$HashMapEntry;|]" =>
-		  case "[|Ljava/util/HashMap;.newEntryIterator:()Ljava/util/Iterator;|]" =>
-		  case "[|Ljava/util/HashMap;.newKeyIterator:()Ljava/util/Iterator;|]" =>
-		  case "[|Ljava/util/HashMap;.newValueIterator:()Ljava/util/Iterator;|]" =>
-		  case "[|Ljava/util/HashMap;.postRemove:(Ljava/util/HashMap$HashMapEntry;)V|]" =>
-		  case "[|Ljava/util/HashMap;.preModify:(Ljava/util/HashMap$HashMapEntry;)V|]" =>
-		  case "[|Ljava/util/HashMap;.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;|]" =>
+		  case "Ljava/util/HashMap;.makeTable:(I)[Ljava/util/HashMap$HashMapEntry;" =>
+		  case "Ljava/util/HashMap;.newEntryIterator:()Ljava/util/Iterator;" =>
+		  case "Ljava/util/HashMap;.newKeyIterator:()Ljava/util/Iterator;" =>
+		  case "Ljava/util/HashMap;.newValueIterator:()Ljava/util/Iterator;" =>
+		  case "Ljava/util/HashMap;.postRemove:(Ljava/util/HashMap$HashMapEntry;)V" =>
+		  case "Ljava/util/HashMap;.preModify:(Ljava/util/HashMap$HashMapEntry;)V" =>
+		  case "Ljava/util/HashMap;.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;" =>
 		    newFacts ++= putHashMapValue(s, args, currentContext)
 		    byPassFlag = false
-		  case "[|Ljava/util/HashMap;.putAll:(Ljava/util/Map;)V|]" =>
+		  case "Ljava/util/HashMap;.putAll:(Ljava/util/Map;)V" =>
 		    newFacts ++= putAllHashMapValues(s, args, currentContext)
 		    byPassFlag = false
-		  case "[|Ljava/util/HashMap;.putValueForNullKey:(Ljava/lang/Object;)Ljava/lang/Object;|]" =>
-		  case "[|Ljava/util/HashMap;.readObject:(Ljava/io/ObjectInputStream;)V|]" =>
-		  case "[|Ljava/util/HashMap;.remove:(Ljava/lang/Object;)Ljava/lang/Object;|]" =>
+		  case "Ljava/util/HashMap;.putValueForNullKey:(Ljava/lang/Object;)Ljava/lang/Object;" =>
+		  case "Ljava/util/HashMap;.readObject:(Ljava/io/ObjectInputStream;)V" =>
+		  case "Ljava/util/HashMap;.remove:(Ljava/lang/Object;)Ljava/lang/Object;" =>
 		    require(retVars.size == 1)
 		    newFacts ++= getHashMapValue(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "[|Ljava/util/HashMap;.removeMapping:(Ljava/lang/Object;Ljava/lang/Object;)Z|]" =>
-		  case "[|Ljava/util/HashMap;.removeNullKey:()Ljava/lang/Object;|]" =>
-		  case "[|Ljava/util/HashMap;.secondaryHash:(Ljava/lang/Object;)I|]" =>
-		  case "[|Ljava/util/HashMap;.size:()I|]" =>
-		  case "[|Ljava/util/HashMap;.values:()Ljava/util/Collection;|]" =>
+		  case "Ljava/util/HashMap;.removeMapping:(Ljava/lang/Object;Ljava/lang/Object;)Z" =>
+		  case "Ljava/util/HashMap;.removeNullKey:()Ljava/lang/Object;" =>
+		  case "Ljava/util/HashMap;.secondaryHash:(Ljava/lang/Object;)I" =>
+		  case "Ljava/util/HashMap;.size:()I" =>
+		  case "Ljava/util/HashMap;.values:()Ljava/util/Collection;" =>
 		    require(retVars.size == 1)
 		    newFacts ++= getHashMapValuesToRet(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "[|Ljava/util/HashMap;.writeObject:(Ljava/io/ObjectOutputStream;)V|]" =>
+		  case "Ljava/util/HashMap;.writeObject:(Ljava/io/ObjectOutputStream;)V" =>
 	  }
 	  (newFacts, delFacts, byPassFlag)
 	}

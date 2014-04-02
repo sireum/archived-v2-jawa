@@ -6,6 +6,7 @@ import org.sireum.pilar.ast._
 import org.sireum.pilar.symbol._
 import org.sireum.pilar.parser.ChunkingPilarParser
 import org.sireum.jawa.symbolResolver.JawaSymbolTableBuilder
+import org.sireum.pilar.parser.Parser
 
 
 object Transform {
@@ -16,15 +17,9 @@ object Transform {
 	  codes.foreach{
 	    code => sb.append(code + "\n")
 	  }
-	  ChunkingPilarParser(Left(sb.toString), reporter) match{case Some(m) => m; case None => throw new RuntimeException(sb.toString)}
-	}
-	
-	def reporter = {
-	  new org.sireum.pilar.parser.PilarParser.ErrorReporter {
-      def report(source : Option[FileResourceUri], line : Int,
-                 column : Int, message : String) =
-        System.err.println("source:" + source + ".line:" + line + ".column:" + column + "message" + message)
-    }
+//	  ChunkingPilarParser(Left(sb.toString), reporter) match{case Some(m) => m; case None => throw new RuntimeException(sb.toString)}
+	  val (modelopt, err) = Parser.parseWithErrorAsString[Model](Left(sb.toString)) 
+	  modelopt match{case Some(m) => m; case None => throw new RuntimeException(err)}
 	}
 	
 	def getSymbolResolveResult(codes : Set[String]) : SymbolTable = {

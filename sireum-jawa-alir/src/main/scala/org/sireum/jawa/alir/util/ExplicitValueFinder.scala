@@ -53,7 +53,7 @@ object ExplicitValueFinder {
 	        case assignAction : AssignAction =>
 	          assignAction.rhs match{
 	            case lExp : LiteralExp =>
-	              if(lExp.typ == LiteralType.INT) result = Left(Integer.parseInt(lExp.text))
+	              if(lExp.typ == LiteralType.INT) result = Left(lExp.literal.asInstanceOf[Int])
 	            case ne : NameExp =>
 	              result = Right(ne.name.name)
 	            case a =>

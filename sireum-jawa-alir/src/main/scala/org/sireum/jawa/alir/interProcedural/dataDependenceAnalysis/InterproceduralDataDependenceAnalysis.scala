@@ -34,7 +34,7 @@ trait InterproceduralDataDependenceInfo{
 }
 
 object InterproceduralDataDependenceAnalysis {
-  
+  final val TITLE = "InterproceduralDataDependenceAnalysis"
   type Node = IDDGNode
   type Edge = AlirEdge[Node]
   
@@ -110,7 +110,7 @@ object InterproceduralDataDependenceAnalysis {
 	      targetNodes.foreach(tn=>iddg.addEdge(node, tn))
 	  }
 	  
-	  msg_normal("[IDDG building done!]")
+	  msg_normal(TITLE, "[IDDG building done!]")
 	  new Iddi(iddg)
 	}
   

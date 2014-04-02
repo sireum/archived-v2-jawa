@@ -19,7 +19,7 @@ class JawaRecord extends ResolveLevel{
 	val staticInitializerName : String = "<clinit>"
   
   /**
-   * name is with this style: [|java:lang:Object|] or [|java:lang:Object|][]
+   * name is with this style: java.lang.Object or java.lang.Object[]
    */
   
   protected var name : String = null
@@ -152,21 +152,21 @@ class JawaRecord extends ResolveLevel{
   
   def setName(name : String) = {
     this.name = name
-    val index = name.lastIndexOf(':')
+    val index = name.lastIndexOf('.')
     if(index > 0){
       if(isArray){
-        this.shortName = name.substring(index + 1, name.lastIndexOf("|]")) + name.substring(name.indexOf("[]"), name.length())
+        this.shortName = name.substring(index + 1)
         this.packageName = null
       } else {
-	      this.shortName = name.substring(index + 1, name.length() - 2)
-	      this.packageName = name.substring(2, index)
+	      this.shortName = name.substring(index + 1)
+	      this.packageName = name.substring(0, index)
       }
     } else {
       if(isArray){
-        this.shortName = name.substring(2, name.lastIndexOf("|]")) + name.substring(name.indexOf("[]"), name.length())
+        this.shortName = name
         this.packageName = null
       } else {
-	      this.shortName = name.substring(2, name.length() - 2)
+	      this.shortName = name
 	      this.packageName = ""
       }
     }

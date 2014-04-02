@@ -150,26 +150,18 @@ class SignatureParser(sig : String) {
     }
     
     /**
-		 * get record name from procedure signature. e.g. [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|] -> [|java:lang:Object|]
+		 * get record name from procedure signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object
 		 */
     
     def getRecordName : String = StringFormConverter.getRecordNameFromProcedureSignature(this.signature)
     
     /**
-     * before cut: [|LSavings;.interest:(I)V|], after cut: (I)V
+     * before cut: LSavings;.interest:(I)V, after cut: (I)V
      */
     def getParamSig = {
-      signature = signature.substring(signature.indexOf(':') + 1, signature.length()-2)
+      signature = signature.substring(signature.indexOf(':') + 1, signature.length())
       this
     }
-    
-//    /**
-//     * before cut: [|LSavings;.interest:(I)V|], after cut: LSavings;.interest:(I)V
-//     */
-//    def cutSigToJavaForm = {
-//      signature = signature.substring(2, signature.length()-2)
-//      this
-//    }
 
     private var signature : String = sig
 }

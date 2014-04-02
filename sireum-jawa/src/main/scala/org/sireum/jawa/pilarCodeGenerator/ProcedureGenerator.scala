@@ -17,6 +17,9 @@ import org.sireum.jawa.JawaCodeSource
 
 
 abstract class ProcedureGenerator {
+  
+  private final val TITLE = "ProcedureGenerator"
+  
   protected var currentComponent : String = null
   protected var androidClasses : Set[String] = Set()
   /**
@@ -97,23 +100,25 @@ abstract class ProcedureGenerator {
 	 */
   def generate(methods : List[String], name : String) : (JawaProcedure, String) = {
     val recordName = this.currentComponent
-    val procedureName = recordName.substring(0, recordName.length() - 2) + "." + name + "|]"
+    val procedureName = recordName + "." + name
 	  val annotations = new ArrayList[ST]
-	  val signature = procedureName.replaceAll("\\[\\|", "[|L").replaceAll("\\:", "/").replaceAll("\\." + name, ";." + name + ":()V")
-	  initProcedureHead("[|void|]", procedureName, recordName, signature, "STATIC")
+	  val signature = 
+	    "L" + recordName.replaceAll("\\.", "/") + ";" + "." + name + ":" + "()V"
+	  initProcedureHead("void", procedureName, recordName, signature, "STATIC")
 	  val code = generateInternal(List())
-    msg_normal("environment code:\n" + code)
+    msg_normal(TITLE, "environment code:\n" + code)
     (JawaResolver.resolveProcedureCode(signature, code), code)
   }
   
   def generateWithParam(params : List[String], name : String) : JawaProcedure = {
     val recordName = this.currentComponent
-    val procedureName = recordName.substring(0, recordName.length() - 2) + "." + name + "|]"
+    val procedureName = recordName + "." + name
 	  val annotations = new ArrayList[ST]
     var parSigStr : String = ""
-    params.indices.foreach{i => parSigStr += params(i).replaceAll("\\[\\|", "L").replaceAll("\\:", "/").replaceAll("\\|\\]", ";")}
-	  val signature = procedureName.replaceAll("\\[\\|", "[|L").replaceAll("\\:", "/").replaceAll("\\." + name, ";." + name + ":("+parSigStr+")V")
-	  initProcedureHead("[|void|]", procedureName, recordName, signature, "STATIC")
+    params.foreach{param => parSigStr += StringFormConverter.formatTypeToSigForm(param)}
+	  val signature = 
+	    "L" + recordName.replaceAll("\\.", "/") + ";" + "." + name + ":" + "(" + parSigStr + ")V"
+	  initProcedureHead("void", procedureName, recordName, signature, "STATIC")
     val paramArray = new ArrayList[ST]
     params.indices.foreach{
       i =>
@@ -129,7 +134,7 @@ abstract class ProcedureGenerator {
     }
     procDeclTemplate.add("params", paramArray)
     val code = generateInternal(List())
-    msg_normal("environment code:\n" + code)
+    msg_normal(TITLE, "environment code:\n" + code)
     JawaCodeSource.addAppRecordCode(recordName, code)
     JawaResolver.resolveProcedureCode(signature, code)
   }
@@ -172,7 +177,7 @@ abstract class ProcedureGenerator {
 	
 	protected def generateInstanceCreation(recordName : String, codefg : CodeFragmentGenerator) : String = {
 	  val rhs =
-		  if(recordName == "[|java:lang:String|]"){
+		  if(recordName == "java.lang.String"){
 		    val stringAnnot = generateExpAnnotation("type", List("object"))
 		    "\"\" " + stringAnnot.render() 
 		  } else {
@@ -197,7 +202,7 @@ abstract class ProcedureGenerator {
 	  constructionStack.add(r)
 	  val ps = r.getProcedures
 	  var cons : String = null
-	  val conProcs = ps.filter(p => p.isConstructor && !p.isStatic && !p.getParamTypes.contains(NormalType("[|java:lang:Class|]", 0)))
+	  val conProcs = ps.filter(p => p.isConstructor && !p.isStatic && !p.getParamTypes.contains(NormalType("java.lang.Class", 0)))
 	  if(!conProcs.isEmpty){
 	    val p = conProcs.minBy(_.getParamTypes.size)
 	  	cons = p.getSignature
@@ -205,7 +210,7 @@ abstract class ProcedureGenerator {
 	  if(cons != null){
 	    generateProcedureCall(cons, "direct", localVarsForClasses(r.getName), constructionStack, codefg)
 	  } else {
-	    err_msg_normal("Warning, cannot find constructor for " + r)
+	    err_msg_normal(TITLE, "Warning, cannot find constructor for " + r)
 	  }
 	  cons
 	}
@@ -231,7 +236,7 @@ abstract class ProcedureGenerator {
           val va = varGen.generate(r.getName)
           localVarsForClasses += (r.getName -> va)
           paramVars += (i -> va)
-          err_msg_normal("Cannot create valid constructer for " + r + ", because it is " + r.getAccessFlagString + " and cannot find substitute.")
+          err_msg_normal(TITLE, "Cannot create valid constructer for " + r + ", because it is " + r.getAccessFlagString + " and cannot find substitute.")
         } else if(!constructionStack.contains(r)){
 				  val va = generateInstanceCreation(r.getName, codefg)
 				  localVarsForClasses += (r.getName -> va)
@@ -252,7 +257,7 @@ abstract class ProcedureGenerator {
       } else {
         finalParamVars.add(index + 1, "x")
         val paramName = sigParser.getParameterTypes()(i).name
-        if(paramName == "[|double|]" || paramName == "[|long|]"){
+        if(paramName == "double" || paramName == "long"){
           index += 1
           finalParamVars.add(index + 1, "x")
         }
@@ -295,7 +300,7 @@ abstract class ProcedureGenerator {
 		    assert(ap.isStatic || localVarsForClasses(record.getName) != null)
 		    generateProcedureCall(ap.getSignature, "virtual", localVarsForClasses(record.getName), constructionStack, codefg)
 	    case None =>
-	      err_msg_normal("Could not find Android entry point procedure: " + subsignature)
+	      err_msg_normal(TITLE, "Could not find Android entry point procedure: " + subsignature)
 	      null
 	  }
 	}
@@ -316,7 +321,7 @@ abstract class ProcedureGenerator {
 	        case Some(proc) =>
 			      callbackRecords += (theRecord -> (callbackRecords.getOrElse(theRecord, isetEmpty) + proc))
 	        case None =>
-	          err_msg_normal("Could not find callback method " + pSig)
+	          err_msg_normal(TITLE, "Could not find callback method " + pSig)
 	      }
 	  }
 	  var oneCallBackFragment = codefg
@@ -336,7 +341,7 @@ abstract class ProcedureGenerator {
 		      // build the calls to all callback procedures in this record
 		      generateCallToAllCallbacks(callbackRecord, callbackProcedures, classLocalVar, oneCallBackFragment)
 		    } else {
-		      err_msg_normal("Constructor cannot be generated for callback class " + callbackRecord)
+		      err_msg_normal(TITLE, "Constructor cannot be generated for callback class " + callbackRecord)
 		    }
 		    oneCallBackFragment = new CodeFragmentGenerator
 		    oneCallBackFragment.addLabel

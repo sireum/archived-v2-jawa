@@ -9,7 +9,7 @@ import org.sireum.jawa._
 object StringFormConverter {
   
   /**
-	 * get record name from procedure signature. e.g. [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|] -> [|java:lang:Object|]
+	 * get record name from procedure signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object
 	 */
   
   def getRecordNameFromProcedureSignature(sig : String) : String = {
@@ -18,86 +18,87 @@ object StringFormConverter {
   }
   
   /**
-	 * get record type from procedure signature. e.g. [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|] -> [|java:lang:Object|]
+	 * get record type from procedure signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> (java.lang.Object, 0)
 	 */
   
   def getRecordTypeFromProcedureSignature(sig : String) : Type = {
     if(!isValidProcSig(sig)) throw new RuntimeException("wrong sig: " + sig)
-    formatSigToTypeForm(sig.substring(2, sig.indexOf('.')))
+    formatSigToTypeForm(sig.substring(0, sig.indexOf('.')))
   }
   
   /**
-	 * get proc name from procedure signature. e.g. [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|] -> [|java:lang:Object.equals|]
+	 * get proc name from procedure signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object.equals
 	 */
   
   def getProcedureNameFromProcedureSignature(sig : String) : String = {
-	  val strs = sig.substring(3, sig.indexOf(":"))
-	  "[|" + strs.replaceAll("\\/", ":").replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll(";", "") + "|]"
+	  val strs = sig.substring(1, sig.indexOf(":"))
+	  strs.replaceAll("\\/", ".").replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll(";", "")
 	}
   
   /**
-	 * convert type string from signature style to type style. [Ljava/lang/Object; -> [|java:lang:Object|][]
+	 * convert type string from signature style to type style. [Ljava/lang/Object; -> (java.lang.Object, 1)
 	 */
 	
 	def formatSigToTypeForm(sig : String) : Type = {
-	  if(!isValidTypeSig(sig)) throw new RuntimeException("wrong type sig: " + sig)
+//	  if(!isValidTypeSig(sig)) throw new RuntimeException("wrong type sig: " + sig)
 	  val (tmp, d) = getDimensionsAndRemoveArrayFromSig(sig)
     tmp match{
-      case "B" => 	getType("[|byte|]", d)
-      case "C" => 	getType("[|char|]", d)
-      case "D" => 	getType("[|double|]", d)
-      case "F" => 	getType("[|float|]", d)
-      case "I" => 	getType("[|int|]", d)
-      case "J" => 	getType("[|long|]", d)
-      case "S" =>		getType("[|short|]", d)
-      case "Z" =>		getType("[|boolean|]", d)
-      case "V" =>		getType("[|void|]", d)
+      case "B" => 	getType("byte", d)
+      case "C" => 	getType("char", d)
+      case "D" => 	getType("double", d)
+      case "F" => 	getType("float", d)
+      case "I" => 	getType("int", d)
+      case "J" => 	getType("long", d)
+      case "S" =>		getType("short", d)
+      case "Z" =>		getType("boolean", d)
+      case "V" =>		getType("void", d)
       case _ =>
-        getType("[|" + tmp.substring(1, tmp.length() - 1).replaceAll("\\/", ":") + "|]", d)
+        getType(tmp.substring(1, tmp.length() - 1).replaceAll("\\/", "."), d)
     }
 	}
 	
 	/**
-   * input looks like [|java:lang:String|], output is Ljava/lang/String;
+   * input looks like java.lang.String
+   * output looks like Ljava/lang/String;
    * or 'B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z'
    */
   
   def formatTypeToSigForm(typ : String) : String = {
-    if(!isValidType(typ)) throw new RuntimeException("wrong type: " + typ)
+//    if(!isValidType(typ)) throw new RuntimeException("wrong type: " + typ)
     val t = getTypeFromName(typ)
     val d = t.dimensions
     t.typ match{
-      case "[|byte|]" => 		getTypeSig("B", d)
-      case "[|char|]" => 		getTypeSig("C", d)
-      case "[|double|]" => 	getTypeSig("D", d)
-      case "[|float|]" => 	getTypeSig("F", d)
-      case "[|int|]" => 		getTypeSig("I", d)
-      case "[|long|]" => 		getTypeSig("J", d)
-      case "[|short|]" =>		getTypeSig("S", d)
-      case "[|boolean|]" =>	getTypeSig("Z", d)
-      case "[|void|]" =>		"V"
+      case "byte" => 		getTypeSig("B", d)
+      case "char" => 		getTypeSig("C", d)
+      case "double" => 	getTypeSig("D", d)
+      case "float" => 	getTypeSig("F", d)
+      case "int" => 		getTypeSig("I", d)
+      case "long" => 		getTypeSig("J", d)
+      case "short" =>		getTypeSig("S", d)
+      case "boolean" =>	getTypeSig("Z", d)
+      case "void" =>		"V"
       case _ =>
-        getTypeSig("L" + t.typ.substring(2, t.typ.length() - 2).replaceAll(":", "/") + ";", d)
+        getTypeSig("L" + t.typ.replaceAll("\\.", "/") + ";", d)
     }
   }
   
   /**
-   * check whether it is a valid pilar type e.g. [|java:lang:String|] or [|java:lang:String|][]
+   * check whether it is a valid pilar type e.g. java.lang.String or java.lang.String[]
    */
   
-  def isValidType(typ : String) : Boolean = typ.startsWith("[|") && (typ.endsWith("|]") || typ.endsWith("[]"))
+//  def isValidType(typ : String) : Boolean = typ.startsWith("[|") && (typ.endsWith("|]") || typ.endsWith("[]"))
   
   /**
-   * check whether it is a valid pilar proc signature e.g. [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|]
+   * check whether it is a valid pilar proc signature e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
    */
   
-  def isValidProcSig(sig : String) : Boolean = sig.startsWith("[|") && sig.endsWith("|]") && sig.lastIndexOf('.') > 0
+  def isValidProcSig(sig : String) : Boolean = sig.lastIndexOf('.') > 0
   
   /**
    * check whether it is a valid type signature e.g. Ljava/lang/Object
    */
   
-  def isValidTypeSig(sig : String) : Boolean = !sig.startsWith("[|") && !sig.endsWith("|]")
+//  def isValidTypeSig(sig : String) : Boolean = !sig.startsWith("[|") && !sig.endsWith("|]")
   
   /**
    * input ("Ljava/lang/String;", 1) output "[Ljava/lang/String;"
@@ -129,11 +130,11 @@ object StringFormConverter {
   protected def getType(typ : String, dimension : Int) : Type = new NormalType(typ, dimension)
   
   /**
-   * input: "[|java:lang:String|][]"  output: ("[|java:lang:String|]", 1)
+   * input: "java.lang.String[]"  output: ("java.lang.String", 1)
    */
   
   def getTypeFromName(name : String) : Type = {
-    if(!isValidType(name)) throw new RuntimeException("wrong type: " + name)
+//    if(!isValidType(name)) throw new RuntimeException("wrong type: " + name)
     var d : Int = 0
     var tmp = name
     while(tmp.endsWith("[]")){
@@ -144,12 +145,12 @@ object StringFormConverter {
   }
   
   /**
-   * get outer class name from inner class name. e.g. [|android:os:Handler$Callback|] -> [|android:os:Handler|]
+   * get outer class name from inner class name. e.g. android.os.Handler$Callback -> android.os.Handler
    */
   
   def getOuterNameFrom(innerName : String) = {
-    if(!isValidType(innerName) && innerName.lastIndexOf("$") <= 0) throw new RuntimeException("wrong innerName: " + innerName)
-    innerName.substring(0, innerName.lastIndexOf("$")) + "|]"
+    if(innerName.lastIndexOf("$") <= 0) throw new RuntimeException("wrong innerName: " + innerName)
+    innerName.substring(0, innerName.lastIndexOf("$"))
   }
   
   /**
@@ -166,59 +167,59 @@ object StringFormConverter {
   }
   
   /**
-	 * get sub-signature from signature. e.g. [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|] -> equals:(Ljava/lang/Object;)Z
+	 * get sub-signature from signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> equals:(Ljava/lang/Object;)Z
 	 */
   
   def getSubSigFromProcSig(sig : String) : String = {
     if(!isValidProcSig(sig)) throw new RuntimeException("wrong procedure sig: " + sig)
-    sig.substring(sig.lastIndexOf('.') + 1, sig.length() - 2)
+    sig.substring(sig.lastIndexOf('.') + 1)
   }
   
    /**
-	 * get procedure signature from the owner record name and the procedure sub-signature. e.g. ( [|java:lang:Object|], equals:(Ljava/lang/Object;)Z ) -> [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|] 
+	 * get procedure signature from the owner record name and the procedure sub-signature. e.g. ( java.lang.Object, equals:(Ljava/lang/Object;)Z ) -> Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z 
 	 */
   
   def getSigFromOwnerAndProcSubSig(recordName: String, subSig : String) : String = {
-      if(!isValidType(recordName)) throw new RuntimeException("given type is not a valid form: " + recordName)
-      val recSig =  formatTypeToSigForm(recordName)
+//      if(!isValidType(recordName)) throw new RuntimeException("given type is not a valid form: " + recordName)
+    val recSig =  formatTypeToSigForm(recordName)
 	  val sb = new StringBuffer
-	  sb.append("[|" + recSig + "." + subSig + "|]")
+	  sb.append(recSig + "." + subSig)
 	  sb.toString().intern()
   }
   
   
   /**
-	 * signature of the field. e.g. [|java:lang:Throwable.stackState|] or @@[|java:lang:Enum.sharedConstantsCache|]
+	 * signature of the field. e.g. java.lang.Throwable.stackState or @@java:lang:Enum.sharedConstantsCache
 	 */
   
-  def isValidFieldSig(sig : String) : Boolean = (sig.startsWith("[|") || sig.startsWith("@@[|")) && sig.endsWith("|]") && sig.lastIndexOf('.') > 0
+  def isValidFieldSig(sig : String) : Boolean = sig.lastIndexOf('.') > 0
   
   /**
-   * get field name from field signature. e.g. [|java:lang:Throwable.stackState|] -> stackState
+   * get field name from field signature. e.g. java.lang.Throwable.stackState -> stackState
    */
   
   def getFieldNameFromFieldSignature(sig : String) : String = {
     if(!isValidFieldSig(sig)) throw new RuntimeException("given field signature is not a valid form: " + sig)
-    else sig.substring(sig.lastIndexOf('.') + 1, sig.lastIndexOf("|]"))
+    else sig.substring(sig.lastIndexOf('.') + 1)
   }
   
   /**
-   * get record name from field signature. e.g. [|java:lang:Throwable.stackState|] -> [|java:lang:Throwable|]
+   * get record name from field signature. e.g. java.lang.Throwable.stackState -> java.lang.Throwable
    */
   
   def getRecordNameFromFieldSignature(sig : String) : String = {
     if(!isValidFieldSig(sig)) throw new RuntimeException("given field signature is not a valid form: " + sig)
-    else{
-      if(sig.indexOf("[]") > 0){
-        sig.substring(sig.indexOf("[|"), sig.indexOf("[]")) + "|]" + sig.substring(sig.indexOf("[]"), sig.lastIndexOf('.'))
-      } else {
-      	sig.substring(sig.indexOf("[|"), sig.lastIndexOf('.')) + "|]"
-      }
+    var tmp = sig
+    if(tmp.startsWith("@@")) tmp = tmp.substring(2)
+    if(tmp.indexOf("[]") > 0){
+      tmp.substring(0, tmp.indexOf("[]")) + tmp.substring(tmp.indexOf("[]"), tmp.lastIndexOf('.'))
+    } else {
+    	tmp.substring(0, tmp.lastIndexOf('.'))
     }
   }
   
   /**
-   * get record name from field signature. e.g. [|java:lang:Throwable.stackState|] -> [|java:lang:Throwable|]
+   * get record Type from field signature. e.g. java.lang.Throwable.stackState -> (java.lang.Throwable, 0)
    */
   
   def getRecordTypeFromFieldSignature(sig : String) : Type = {
@@ -227,34 +228,34 @@ object StringFormConverter {
   }
   
   /**
-	 * generate signature of this field. input: ("[|java:lang:Throwable|]", "stackState") output: "[|java:lang:Throwable.stackState|]"
+	 * generate signature of this field. input: ("java.lang.Throwable", "stackState") output: "java.lang.Throwable.stackState"
 	 */
 	
 	def generateFieldSignature(recordName : String, name : String, isStatic : Boolean) : String = {
-	  if(!isValidType(recordName)) throw new RuntimeException("given type is not a valid form: " + recordName)
+//	  if(!isValidType(recordName)) throw new RuntimeException("given type is not a valid form: " + recordName)
 	  val sb = new StringBuffer
 	  if(isStatic) sb.append("@@")
-	  sb.append(recordName.substring(0, recordName.length() - 2) + "." + name + "|]")
+	  sb.append(recordName + "." + name)
 	  sb.toString().intern()
 	}
   
 	
-	  /**
-	 * generate a procedure full name from a record name and proc short name. input: ("[|java:lang:Throwable|]", "foo") output: "[|java:lang:Throwable.foo|]"
+	/**
+	 * generate a procedure full name from a record name and proc short name. input: ("java.lang.Throwable", "foo") output: "java.lang.Throwable.foo"
 	 */
 	
 	def generateProcName(recordName : String, name : String) : String = {
-	  if(!isValidType(recordName)) throw new RuntimeException("given type is not a valid form: " + recordName)
+//	  if(!isValidType(recordName)) throw new RuntimeException("given type is not a valid form: " + recordName)
 	  val sb = new StringBuffer
-	  sb.append(recordName.substring(0, recordName.length() - 2) + "." + name + "|]")
+	  sb.append(recordName + "." + name)
 	  sb.toString().intern()
 	}
 	
-	def isValidClassName(str : String) : Boolean = !str.startsWith("[|") && !str.contains(":")
+//	def isValidClassName(str : String) : Boolean = !str.startsWith("[|") && !str.contains(":")
 	
 	/**
-   * input: "[Ljava.lang.String;"  output: ("[|java:lang:String|]", 1)
-   * input: "[[I" output: ("[|int|]", 2)
+   * input: "[Ljava.lang.String;"  output: ("java.lang.String", 1)
+   * input: "[[I" output: ("int", 2)
    */
   
   def getDimensionsAndTypeFromClassName(name : String) : (String, Int) = {
@@ -265,37 +266,37 @@ object StringFormConverter {
     val tmp =
 	    if(d>0){
 	      if(name.endsWith(";")){
-	        "[|" + name.substring(name.lastIndexOf('[') + 2, name.lastIndexOf(';')).replaceAll("\\.", ":") + "|]"
+	        name.substring(name.lastIndexOf('[') + 2, name.lastIndexOf(';'))
 	      }
 	      else{
 	        name.substring(name.lastIndexOf('[') + 1) match{
-	          case "B" => 	"[|byte|]"
-			      case "C" => 	"[|char|]"
-			      case "D" => 	"[|double|]"
-			      case "F" => 	"[|float|]"
-			      case "I" => 	"[|int|]"
-			      case "J" => 	"[|long|]"
-			      case "S" =>		"[|short|]"
-			      case "Z" =>		"[|boolean|]"
-			      case "V" =>		"[|void|]"
+	          case "B" => 	"byte"
+			      case "C" => 	"char"
+			      case "D" => 	"double"
+			      case "F" => 	"float"
+			      case "I" => 	"int"
+			      case "J" => 	"long"
+			      case "S" =>		"short"
+			      case "Z" =>		"boolean"
+			      case "V" =>		"void"
 	        }
 	      }
 	    } else {
-	      "[|" + name.replaceAll("\\.", ":") + "|]"
+	      name
 	    }
     (tmp, d)
   }
 	
 	
 	/**
-	 * format java class name to amandriod type. 
+	 * format java class name to jawa type. 
 	 * input: "com.example.activity.XActivity" 
-	 * output: "[|com:example:acitivity:XActivity|]"
+	 * output: "(com:example.acitivity.XActivity, 0)"
 	 * input: "[[Lwfg.test.A;"
-	 * output: "[|wfg:test:A|][][]"
+	 * output: "(wfg.test.A, 2)"
 	 */
 	def formatClassNameToType(cName : String) : Type = {
-	  if(!isValidClassName(cName)) throw new RuntimeException("given class name is not a valid form: " + cName)
+//	  if(!isValidClassName(cName)) throw new RuntimeException("given class name is not a valid form: " + cName)
 	  val (tmp, d) = getDimensionsAndTypeFromClassName(cName)
     getType(tmp, d)
 	}
@@ -305,40 +306,28 @@ object StringFormConverter {
 	}
 	
 	/**
-   * convert amandroid record name to java class name.
-   *  e.g. [|java:lang:String|][] -> [Ljava.lang.String;   [|java:lang:String|] -> java.lang.String
+   * convert jawa record name to java class name.
+   *  e.g. java.lang.String[] -> [Ljava.lang.String;   java.lang.String -> java.lang.String
    */
   def formatRecordNameToClassName(name : String) : String = {
-    require(isValidType(name))
+//    require(isValidType(name))
     val t = getTypeFromName(name)
     val d = t.dimensions
     if(d > 0){
 	    t.typ match{
-	      case "[|byte|]" => 		getClassName("B", d)
-	      case "[|char|]" => 		getClassName("C", d)
-	      case "[|double|]" => 	getClassName("D", d)
-	      case "[|float|]" => 	getClassName("F", d)
-	      case "[|int|]" => 		getClassName("I", d)
-	      case "[|long|]" => 		getClassName("J", d)
-	      case "[|short|]" =>		getClassName("S", d)
-	      case "[|boolean|]" =>	getClassName("Z", d)
+	      case "byte" => 		getClassName("B", d)
+	      case "char" => 		getClassName("C", d)
+	      case "double" => 	getClassName("D", d)
+	      case "float" => 	getClassName("F", d)
+	      case "int" => 		getClassName("I", d)
+	      case "long" => 		getClassName("J", d)
+	      case "short" =>		getClassName("S", d)
+	      case "boolean" =>	getClassName("Z", d)
 	      case _ =>
-	        getClassName("L" + t.typ.substring(2, t.typ.length() - 2).replaceAll(":", ".") + ";", d)
+	        getClassName("L" + t.typ + ";", d)
 	    }
     } else {
-      t.typ match{
-	      case "[|byte|]" => 		"byte"
-	      case "[|char|]" => 		"char"
-	      case "[|double|]" => 	"double"
-	      case "[|float|]" => 	"float"
-	      case "[|int|]" => 		"int"
-	      case "[|long|]" => 		"long"
-	      case "[|short|]" =>		"short"
-	      case "[|boolean|]" =>	"boolean"
-	      case "[|void|]" =>		"void"
-	      case _ =>
-	        t.typ.substring(2, t.typ.length() - 2).replaceAll(":", ".")
-	    }
+      t.typ
     }
   }
   

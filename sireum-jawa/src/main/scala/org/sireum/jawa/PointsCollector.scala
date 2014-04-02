@@ -204,7 +204,7 @@ class PointsCollector {
           case le : LiteralExp =>
             if(le.typ.name.equals("STRING")){
               pl = processLHS(as.lhs)
-              pr = new PointStringO(le.text, "[|java:lang:String|]", loc, locIndex, ownerSig)
+              pr = new PointStringO(le.text, "java.lang.String", loc, locIndex, ownerSig)
 //              ofg.iFieldDefRepo(pr.asInstanceOf[PointStringO]) = mmapEmpty
             }
           case n : NewExp =>

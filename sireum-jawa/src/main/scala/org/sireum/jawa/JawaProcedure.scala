@@ -14,6 +14,7 @@ import org.sireum.util._
  */
 class JawaProcedure extends ResolveLevel with PropertyProvider {
 
+  final val TITLE = "JawaProcedure"
 	var DEBUG : Boolean = false
 	
 	/**
@@ -23,13 +24,13 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
 	protected var shortName : String = null
 	
 	/**
-	 * full name of the procedure. e.g. [|java:lang:Object.equals|]
+	 * full name of the procedure. e.g. java.lang.Object.equals
 	 */
 	
 	protected var name : String = null
 	
 	/**
-	 * signature of the procedure. e.g. [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|]
+	 * signature of the procedure. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
 	
 	protected var signature : String = null
@@ -41,7 +42,7 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
 	protected var subSignature : String = null
 	
 	/**
-	 * list of parameter types. e.g. List([java:lang:Object], [java:lang:String])
+	 * list of parameter types. e.g. List(java.lang.Object, java.lang.String)
 	 */
 	
 	protected var paramTyps : List[Type] = List()
@@ -53,7 +54,7 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
 	protected var paramNames : List[String] = List()
 	
 	/**
-	 * return type. e.g. [|boolean|]
+	 * return type. e.g. boolean
 	 */
 	
 	protected var returnTyp : Type = null
@@ -194,11 +195,11 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
   def getShortName : String = this.shortName
   
   def getShortName(name : String) : String = {
-    if(isFullName(name)) name.substring(name.lastIndexOf('.') + 1, name.length() - 2)
+    if(isFullName(name)) name.substring(name.lastIndexOf('.') + 1)
     else throw new RuntimeException("procedure name not correct: " + name)
   }
 
-  def isFullName(name : String) : Boolean = name.startsWith("[|") && name.lastIndexOf('.') > 0
+  def isFullName(name : String) : Boolean = name.lastIndexOf('.') > 0
   
   /**
    * get name of this procedure
@@ -251,7 +252,7 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
     } else throw new RuntimeException("not a full-qualified signature: " + sig)
   }
   
-  protected def checkSignature(sig : String) = sig.startsWith("[|") && sig.lastIndexOf('.') > 0
+  protected def checkSignature(sig : String) = sig.lastIndexOf('.') > 0
   
   /**
    * get signature of this procedure
@@ -265,7 +266,7 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
   
   def getSubSignature : String = {
     if(this.signature != null) {
-      this.signature.substring(this.signature.lastIndexOf('.') + 1, this.signature.length() - 2)
+      this.signature.substring(this.signature.lastIndexOf('.') + 1, this.signature.length())
     } else {
       generateSubSignature
     }
@@ -279,8 +280,8 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
     val sb : StringBuffer = new StringBuffer
     if(this.declaringRecord != null){
 	    val dc = this.declaringRecord
-	    sb.append("[|" + StringFormConverter.formatTypeToSigForm(dc.getName))
-	    sb.append("." + generateSubSignature + "|]")
+	    sb.append(StringFormConverter.formatTypeToSigForm(dc.getName))
+	    sb.append("." + generateSubSignature)
 	    sb.toString().intern()
     } else throw new RuntimeException("not declared: " + this.name)
   }
@@ -476,7 +477,7 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
    */
   
   def addExceptionHandler(excName : String, fromTarget : String, toTarget : String, jumpTo : String) = {
-    val recName = if(excName == "[|any|]") Center.DEFAULT_TOPLEVEL_OBJECT else excName
+    val recName = if(excName == "any") Center.DEFAULT_TOPLEVEL_OBJECT else excName
     val exc = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
     val handler = ExceptionHandler(exc, fromTarget, toTarget, jumpTo)
     if(DEBUG) println("Adding Exception Handler: " + handler)
@@ -511,7 +512,7 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
       han =>
         if(han.handleException(exc, locUri)) return Some(han.jumpTo)
     }
-    err_msg_detail("Given exception " + exc + " throw from " + locUri + ", cannot find a handler to handle it.")
+    err_msg_detail(TITLE, "Given exception " + exc + " throw from " + locUri + ", cannot find a handler to handle it.")
     None
   }
   
@@ -606,13 +607,13 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
   def isMain : Boolean = isPublic && isStatic && this.subSignature == "main:([Ljava/lang/string;)V"
     
   /**
-   * return false if this procedure is a special one with empty body. e.g. [|A.class|]
+   * return false if this procedure is a special one with empty body. e.g. A.class
    */
     
   def isPhantom : Boolean = this.phantom
   
   /**
-   * set the reality of the procedure. e.g. for [|A.class|] we set the reality as false
+   * set the reality of the procedure. e.g. for A.class we set the reality as false
    */
   
   def setPhantom = this.phantom = true

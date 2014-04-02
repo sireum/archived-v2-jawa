@@ -12,7 +12,7 @@ import org.sireum.jawa.alir.Instance
  */
 object StringBuilderModel {
   
-  def isStringBuilder(r : JawaRecord) : Boolean = r.getName == "[|java:lang:StringBuilder|]"
+  def isStringBuilder(r : JawaRecord) : Boolean = r.getName == "java.lang.StringBuilder"
 	
 	private def getReturnFactsWithAlias(rType : Type, retVar : String, currentContext : Context, alias : ISet[Instance]) : ISet[RFAFact] = 
     alias.map{a=>RFAFact(VarSlot(retVar), a)}
@@ -48,7 +48,7 @@ object StringBuilderModel {
 	
   private def getPointStringForRet(retVar : String, currentContext : Context) :ISet[RFAFact] ={
     
-	  ReachingFactsAnalysisHelper.getReturnFact(new NormalType("[|java:lang:String|]"), retVar, currentContext) match{
+	  ReachingFactsAnalysisHelper.getReturnFact(new NormalType("java.lang.String"), retVar, currentContext) match{
 		  case Some(fact) =>           
 		      //deleteFacts += fact
 		      val value = RFAPointStringInstance(currentContext.copy)
@@ -61,7 +61,7 @@ object StringBuilderModel {
   private def getFactFromThisForRet(s : ISet[RFAFact], args : List[String], retVarOpt : Option[String], currentContext : Context) :ISet[RFAFact] ={
   	require(args.size > 0)
     val factMap = ReachingFactsAnalysisHelper.getFactMap(s)      
-    ReachingFactsAnalysisHelper.getReturnFact(new NormalType("[|java:lang:String|]"), retVarOpt.get, currentContext) match{
+    ReachingFactsAnalysisHelper.getReturnFact(new NormalType("java.lang.String"), retVarOpt.get, currentContext) match{
       case Some(fact) => 
         val thisSlot = VarSlot(args(0))
 		    if(factMap.contains(thisSlot)){
@@ -83,7 +83,7 @@ object StringBuilderModel {
 	  val newStringIns = RFAPointStringInstance(currentContext)
 	  thisValue.foreach{
       ins =>
-        newfacts += (RFAFact(FieldSlot(ins, "[|java:lang:StringBuilder.value|]"), newStringIns))
+        newfacts += (RFAFact(FieldSlot(ins, "java.lang.StringBuilder.value"), newStringIns))
     }
 	  newfacts
 	}
@@ -97,7 +97,7 @@ object StringBuilderModel {
 	  val newStringIns = RFAConcreteStringInstance(str, currentContext)
 	  thisValue.foreach{
 		      ins =>
-		        newfacts += (RFAFact(FieldSlot(ins, "[|java:lang:StringBuilder.value|]"), newStringIns))
+		        newfacts += (RFAFact(FieldSlot(ins, "java.lang.StringBuilder.value"), newStringIns))
       }
 	  newfacts
 	}
@@ -112,7 +112,7 @@ object StringBuilderModel {
 	  val paramValues = factMap.getOrElse(paramSlot, isetEmpty)
 	  thisValue.foreach{
       ins =>
-        newfacts ++= paramValues.map{v => RFAFact(FieldSlot(ins, "[|java:lang:StringBuilder.value|]"), v)}
+        newfacts ++= paramValues.map{v => RFAFact(FieldSlot(ins, "java.lang.StringBuilder.value"), v)}
     }
 	  newfacts
 	}
@@ -126,9 +126,9 @@ object StringBuilderModel {
       val newStringIns = RFAPointStringInstance(currentContext)
       thisValue.foreach{
 	      ins =>
-	        newfacts += (RFAFact(FieldSlot(ins, "[|java:lang:StringBuilder.value|]"), newStringIns))
+	        newfacts += (RFAFact(FieldSlot(ins, "java.lang.StringBuilder.value"), newStringIns))
       }
-		  val facts = getReturnFactsWithAlias(new NormalType("[|java:lang:StringBuilder|]"), retVar, currentContext, thisValue)
+		  val facts = getReturnFactsWithAlias(new NormalType("java.lang.StringBuilder"), retVar, currentContext, thisValue)
 		  newfacts ++= facts
       newfacts
     }
@@ -138,7 +138,7 @@ object StringBuilderModel {
       require(args.size >0)
       val thisSlot = VarSlot(args(0))
 		  val thisValues = factMap.getOrElse(thisSlot, isetEmpty)
-		  val strValues = thisValues.map{ins => factMap.getOrElse(FieldSlot(ins, "[|java:lang:StringBuilder.value|]"), isetEmpty)}.reduce(iunion[Instance])
+		  val strValues = thisValues.map{ins => factMap.getOrElse(FieldSlot(ins, "java.lang.StringBuilder.value"), isetEmpty)}.reduce(iunion[Instance])
 		  strValues.map(v => RFAFact(VarSlot(retVar), v))	 
     }
     
@@ -151,7 +151,7 @@ object StringBuilderModel {
 	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
 	  thisValue.foreach{
         sbIns => 
-          val fieldValue = factMap.getOrElse(FieldSlot(sbIns, "[|java:lang:StringBuilder.value|]"), isetEmpty)
+          val fieldValue = factMap.getOrElse(FieldSlot(sbIns, "java.lang.StringBuilder.value"), isetEmpty)
           var newFieldValue = isetEmpty[Instance]
           fieldValue.foreach{
             fIns => 
@@ -165,9 +165,9 @@ object StringBuilderModel {
                newFieldValue += fIns
             
           }
-          newfacts ++= newFieldValue.map(v => RFAFact(FieldSlot(sbIns, "[|java:lang:StringBuilder.value|]"), v))
+          newfacts ++= newFieldValue.map(v => RFAFact(FieldSlot(sbIns, "java.lang.StringBuilder.value"), v))
           if(!fieldValue.isEmpty)
-           deletefacts ++= fieldValue.map(v => RFAFact(FieldSlot(sbIns, "[|java:lang:StringBuilder.value|]"), v))
+           deletefacts ++= fieldValue.map(v => RFAFact(FieldSlot(sbIns, "java.lang.StringBuilder.value"), v))
         }
 	  (newfacts	, deletefacts) 
     }
@@ -179,188 +179,188 @@ object StringBuilderModel {
 	  var deleteFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
 	  p.getSignature match{
-    case "[|Ljava/lang/StringBuilder;.<init>:()V|]" =>
+    case "Ljava/lang/StringBuilder;.<init>:()V" =>
       newFacts ++= getConcreteStringToField("", s, args, currentContext)
       byPassFlag = false
-    case "[|Ljava/lang/StringBuilder;.<init>:(I)V|]" =>
+    case "Ljava/lang/StringBuilder;.<init>:(I)V" =>
       newFacts ++= getPointStringToField(s, args, currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.<init>:(Ljava/lang/CharSequence;)V|]" =>
+		case "Ljava/lang/StringBuilder;.<init>:(Ljava/lang/CharSequence;)V" =>
       newFacts ++= getPointStringToField(s, args, currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.<init>:(Ljava/lang/String;)V|]" =>
+		case "Ljava/lang/StringBuilder;.<init>:(Ljava/lang/String;)V" =>
       newFacts ++= getFactFromArgToField(s, args, currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(C)Ljava/lang/Appendable;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(C)Ljava/lang/Appendable;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(C)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(C)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(D)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(D)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(F)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(F)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(I)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(I)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(J)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(J)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(Ljava/lang/CharSequence;)Ljava/lang/Appendable;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(Ljava/lang/CharSequence;)Ljava/lang/Appendable;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(Ljava/lang/CharSequence;)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(Ljava/lang/CharSequence;)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(Ljava/lang/CharSequence;II)Ljava/lang/Appendable;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(Ljava/lang/CharSequence;II)Ljava/lang/Appendable;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(Ljava/lang/CharSequence;II)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(Ljava/lang/CharSequence;II)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(Ljava/lang/StringBuffer;)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(Ljava/lang/StringBuffer;)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:(Z)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:(Z)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:([C)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:([C)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.append:([CII)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.append:([CII)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.appendCodePoint:(I)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.appendCodePoint:(I)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-    case "[|Ljava/lang/StringBuilder;.capacity:()I|]" =>
-    case "[|Ljava/lang/StringBuilder;.charAt:(I)C|]" =>
-    case "[|Ljava/lang/StringBuilder;.codePointAt:(I)I|]" =>
-    case "[|Ljava/lang/StringBuilder;.codePointBefore:(I)I|]" =>
-    case "[|Ljava/lang/StringBuilder;.codePointCount:(II)I|]" =>
-    case "[|Ljava/lang/StringBuilder;.delete:(II)Ljava/lang/StringBuilder;|]" =>
+    case "Ljava/lang/StringBuilder;.capacity:()I" =>
+    case "Ljava/lang/StringBuilder;.charAt:(I)C" =>
+    case "Ljava/lang/StringBuilder;.codePointAt:(I)I" =>
+    case "Ljava/lang/StringBuilder;.codePointBefore:(I)I" =>
+    case "Ljava/lang/StringBuilder;.codePointCount:(II)I" =>
+    case "Ljava/lang/StringBuilder;.delete:(II)Ljava/lang/StringBuilder;" =>
       require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.deleteCharAt:(I)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.deleteCharAt:(I)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.ensureCapacity:(I)V|]" =>
-		case "[|Ljava/lang/StringBuilder;.getChars:(II[CI)V|]" =>
-		case "[|Ljava/lang/StringBuilder;.indexOf:(Ljava/lang/String;)I|]" =>
-		case "[|Ljava/lang/StringBuilder;.indexOf:(Ljava/lang/String;I)I|]" =>
-		case "[|Ljava/lang/StringBuilder;.insert:(IC)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.ensureCapacity:(I)V" =>
+		case "Ljava/lang/StringBuilder;.getChars:(II[CI)V" =>
+		case "Ljava/lang/StringBuilder;.indexOf:(Ljava/lang/String;)I" =>
+		case "Ljava/lang/StringBuilder;.indexOf:(Ljava/lang/String;I)I" =>
+		case "Ljava/lang/StringBuilder;.insert:(IC)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.insert:(ID)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.insert:(ID)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.insert:(IF)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.insert:(IF)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.insert:(II)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.insert:(II)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.insert:(IJ)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.insert:(IJ)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.insert:(ILjava/lang/CharSequence;)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.insert:(ILjava/lang/CharSequence;)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.insert:(ILjava/lang/CharSequence;II)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.insert:(ILjava/lang/CharSequence;II)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.insert:(ILjava/lang/Object;)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.insert:(ILjava/lang/Object;)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.insert:(ILjava/lang/String;)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.insert:(ILjava/lang/String;)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.insert:(IZ)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.insert:(IZ)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.insert:(I[C)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.insert:(I[C)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.insert:(I[CII)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.insert:(I[CII)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.lastIndexOf:(Ljava/lang/String;)I|]" =>
-		case "[|Ljava/lang/StringBuilder;.lastIndexOf:(Ljava/lang/String;I)I|]" =>
-		case "[|Ljava/lang/StringBuilder;.length:()I|]" =>
-		case "[|Ljava/lang/StringBuilder;.offsetByCodePoints:(II)I|]" =>
-		case "[|Ljava/lang/StringBuilder;.readObject:(Ljava/io/ObjectInputStream;)V|]" =>
-		case "[|Ljava/lang/StringBuilder;.replace:(IILjava/lang/String;)Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.lastIndexOf:(Ljava/lang/String;)I" =>
+		case "Ljava/lang/StringBuilder;.lastIndexOf:(Ljava/lang/String;I)I" =>
+		case "Ljava/lang/StringBuilder;.length:()I" =>
+		case "Ljava/lang/StringBuilder;.offsetByCodePoints:(II)I" =>
+		case "Ljava/lang/StringBuilder;.readObject:(Ljava/io/ObjectInputStream;)V" =>
+		case "Ljava/lang/StringBuilder;.replace:(IILjava/lang/String;)Ljava/lang/StringBuilder;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringToFieldAndThisToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
 		/*TODO*/
-		case "[|Ljava/lang/StringBuilder;.reverse:()Ljava/lang/StringBuilder;|]" =>
+		case "Ljava/lang/StringBuilder;.reverse:()Ljava/lang/StringBuilder;" =>
 		  getNewAndOldFieldFact(s, args, currentContext) match {
 		    case (newF, oldF) => 
 		      newFacts ++=newF
 		      // deleteFacts ++=oldF
 		  }
 		  byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.setCharAt:(IC)V|]" =>
-		case "[|Ljava/lang/StringBuilder;.setLength:(I)V|]" =>
-		case "[|Ljava/lang/StringBuilder;.subSequence:(II)Ljava/lang/CharSequence;|]" =>
+		case "Ljava/lang/StringBuilder;.setCharAt:(IC)V" =>
+		case "Ljava/lang/StringBuilder;.setLength:(I)V" =>
+		case "Ljava/lang/StringBuilder;.subSequence:(II)Ljava/lang/CharSequence;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringForRet(retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.substring:(I)Ljava/lang/String;|]" =>
+		case "Ljava/lang/StringBuilder;.substring:(I)Ljava/lang/String;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringForRet(retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.substring:(II)Ljava/lang/String;|]" =>
+		case "Ljava/lang/StringBuilder;.substring:(II)Ljava/lang/String;" =>
 		  require(retVars.size == 1)
       newFacts ++= getPointStringForRet(retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.toString:()Ljava/lang/String;|]" =>
+		case "Ljava/lang/StringBuilder;.toString:()Ljava/lang/String;" =>
 		  require(retVars.size == 1)
       newFacts ++= getStringBuilderFieldFactToRet(s, args, retVars(0), currentContext)
       byPassFlag = false
-		case "[|Ljava/lang/StringBuilder;.trimToSize:()V|]" =>
-		case "[|Ljava/lang/StringBuilder;.writeObject:(Ljava/io/ObjectOutputStream;)V|]" =>
+		case "Ljava/lang/StringBuilder;.trimToSize:()V" =>
+		case "Ljava/lang/StringBuilder;.writeObject:(Ljava/io/ObjectOutputStream;)V" =>
 		case _ =>
 	  }
 	  //val s1 = s -- deleteFacts

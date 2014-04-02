@@ -53,21 +53,21 @@ object Center {
 	
 	private var hierarchy : RecordHierarchy = null
 	
-	val DEFAULT_TOPLEVEL_OBJECT = "[|java:lang:Object|]"
+	val DEFAULT_TOPLEVEL_OBJECT = "java.lang.Object"
 	  
 	/**
 	 * We need center record and procedure to provide the container for Context(Center, L0000) e.g. X.class
 	 */
-	final val CENTER_RECORD = "[|Center|]"
-	final val CENTER_PROCEDURE_SIG = "[|LCenter;.center:()LCenter;|]"
+	final val CENTER_RECORD = "Center"
+	final val CENTER_PROCEDURE_SIG = "LCenter;.center:()V"
 	  
 	/**
 	 * We need Unknown record and procedure to account for Modeled calls and Native calls
 	 */
-	final val UNKNOWN_RECORD = "[|Center:Unknown|]"
-	final val UNKNOWN_PROCEDURE_SIG = "[|LCenter/Unknown;.unknown:()LCenter/Unknown;|]"
+	final val UNKNOWN_RECORD = "Center.Unknown"
+	final val UNKNOWN_PROCEDURE_SIG = "LCenter/Unknown;.unknown:()LCenter/Unknown;"
 	  
-	val JAVA_PRIMITIVE_TYPES = Set("[|byte|]", "[|short|]", "[|int|]", "[|long|]", "[|float|]", "[|double|]", "[|boolean|]", "[|char|]")
+	val JAVA_PRIMITIVE_TYPES = Set("byte", "short", "int", "long", "float", "double", "boolean", "char")
 
 	/**
 	 * map from global variable signature to uri; it's just a temp map
@@ -243,7 +243,7 @@ object Center {
 	def hasRecord(name : String) : Boolean = this.nameToRecord.contains(name)
 	
 	/**
-	 * get record by a record name. e.g. [|java:lang:Object|]
+	 * get record by a record name. e.g. java.lang.Object
 	 */
 	
 	def getRecord(name : String) : JawaRecord =
@@ -426,30 +426,29 @@ object Center {
 	}
 	
 	/**
-	 * get record name from procedure name. e.g. [|java:lang:Object.equals|] -> [|java:lang:Object|]
+	 * get record name from procedure name. e.g. java.lang.Object.equals -> java.lang.Object
 	 */
 	
 	def procedureNameToRecordName(name : String) : String = {
-	  if(!name.startsWith("[|") || !name.endsWith("|]")) throw new RuntimeException("wrong procedure name: " + name)
 	  val index = name.lastIndexOf('.')
 	  if(index < 0) throw new RuntimeException("wrong procedure name: " + name)
-	  name.substring(0, index) + "|]"
+	  name.substring(0, index)
 	}
 	
 	/**
-	 * get record name from procedure signature. e.g. [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|] -> [|java:lang:Object|]
+	 * get record name from procedure signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object
 	 */
 	
 	def getRecordNameFromProcedureSignature(sig : String) : String = StringFormConverter.getRecordNameFromProcedureSignature(sig)
 	
 	/**
-	 * convert type string from signature style to type style. Ljava/lang/Object; -> [|java:lang:Object|] 
+	 * convert type string from signature style to type style. Ljava/lang/Object; -> java.lang.Object 
 	 */
 	
 	def formatSigToTypeForm(sig : String) : Type = StringFormConverter.formatSigToTypeForm(sig)
 	
 	/**
-	 * get sub-signature from signature. e.g. [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|] -> equals:(Ljava/lang/Object;)Z
+	 * get sub-signature from signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> equals:(Ljava/lang/Object;)Z
 	 */
 	
 	def getSubSigFromProcSig(sig : String) : String = StringFormConverter.getSubSigFromProcSig(sig)
@@ -464,7 +463,7 @@ object Center {
 	 * return true if the given name is a inner class name or not
 	 */
 	
-	def isInnerClassName(name : String) : Boolean = StringFormConverter.isValidType(name) && name.lastIndexOf("$") > 0
+	def isInnerClassName(name : String) : Boolean = name.lastIndexOf("$") > 0
 	
 	/**
 	 * current Center contains the given record or not
@@ -479,7 +478,7 @@ object Center {
 	def containsRecord(name : String) = this.nameToRecord.contains(name)
 	
 	/**
-	 * grab field from Center. Input example is [|java:lang:Throwable.stackState|]
+	 * grab field from Center. Input example is java.lang.Throwable.stackState
 	 */
 	def getField(fieldSig : String) : Option[JawaField] = {
 	  val rName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
@@ -490,13 +489,13 @@ object Center {
 	}
 	
 	/**
-	 * return true if contains the given field. Input example is [|java:lang:Throwable.stackState|]
+	 * return true if contains the given field. Input example is java.lang.Throwable.stackState
 	 */
 	
 	def containsField(fieldSig : String) : Boolean = getField(fieldSig).isDefined
 	
 	/**
-	 * get procedure from Center. Input example is [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|]
+	 * get procedure from Center. Input example is Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
 	
 	def getProcedure(procSig : String) : Option[JawaProcedure] = {
@@ -528,13 +527,13 @@ object Center {
 	}
 	
 	/**
-	 * return true if contains the given procedure. Input example is [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|]
+	 * return true if contains the given procedure. Input example is Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
 	
 	def containsProcedure(procSig : String) : Boolean = getProcedure(procSig).isDefined
 	
 	/**
-	 * get field from Center. Input example is [|java:lang:Throwable.stackState|]
+	 * get field from Center. Input example is java.lang.Throwable.stackState
 	 */
 	def getFieldWithoutFailing(fieldSig : String) : JawaField = {
 	  getField(fieldSig) match{
@@ -544,7 +543,7 @@ object Center {
 	}
 	
 	/**
-	 * find field from Center. Input: [|java:lang:Throwable.stackState|]
+	 * find field from Center. Input: java.lang.Throwable.stackState
 	 */
 	def findField(baseType : Type, fieldSig : String) : Option[JawaField] = {
 	  val rName = baseType.name
@@ -560,14 +559,14 @@ object Center {
 	}
 	
 	/**
-	 * find field from Center. Input: [|java:lang:Throwable.stackState|]
+	 * find field from Center. Input: java.lang.Throwable.stackState
 	 */
 	def findFieldWithoutFailing(baseType : Type, fieldSig : String) : JawaField = {
 	  findField(baseType, fieldSig).getOrElse(throw new RuntimeException("Given baseType " + baseType + " and field signature " + fieldSig + " is not in the Center."))
 	}
 	
 	/**
-	 * find field from Center. Input: @@[|java:lang:Throwable.stackState|]
+	 * find field from Center. Input: @@java.lang.Throwable.stackState
 	 */
 	def findStaticField(fieldSig : String) : Option[JawaField] = {
 	  val baseType = StringFormConverter.getRecordTypeFromFieldSignature(fieldSig)
@@ -587,14 +586,14 @@ object Center {
 	}
 	
 	/**
-	 * find field from Center. Input: @@[|java:lang:Throwable.stackState|]
+	 * find field from Center. Input: @@java.lang.Throwable.stackState
 	 */
 	def findStaticFieldWithoutFailing(fieldSig : String) : JawaField = {
 	  findStaticField(fieldSig).getOrElse(throw new RuntimeException("Given static field signature " + fieldSig + " is not in the Center."))
 	}
 	
 	/**
-	 * get procedure from Center. Input: [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|]
+	 * get procedure from Center. Input: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
 	
 	def getProcedureWithoutFailing(procSig : String) : JawaProcedure = {

@@ -17,7 +17,7 @@ import scala.collection.Parallel
 object JawaResolver {
   
   val DEBUG : Boolean = false
-  val TITLE : String = "AmandroidResolver"
+  private final val TITLE : String = "JawaResolver"
   
   /**
    * resolve the given procedure code. Normally for dummyMain 
@@ -78,7 +78,7 @@ object JawaResolver {
 	      rec.setResolvingLevel(desiredLevel)
 	      Center.tryRemoveRecord(recordName)
 	      Center.addRecord(rec)
-	      msg_detail("add phantom record " + rec)
+	      msg_detail(TITLE, "add phantom record " + rec)
 	      rec
       } else Center.getRecord(recordName)
     } else {
@@ -267,7 +267,7 @@ object JawaResolver {
 	private def createClassField(rec : JawaRecord) : JawaField = {
 	  val field : JawaField = new JawaField
     val fSig = StringFormConverter.generateFieldSignature(rec.getName, "class", false)
-    field.init(fSig, NormalType("[|java:lang:Class|]", 0))
+    field.init(fSig, NormalType("java.lang.Class", 0))
     field.setAccessFlags("FINAL_STATIC")
     field
 	}
@@ -281,7 +281,7 @@ object JawaResolver {
 	  val col : GenMap[ResourceUri, GlobalVarDecl] = if(par) stp.tables.globalVarTable.par else stp.tables.globalVarTable
 	  val ownerRelation = col.map{
 	    case (uri, gvd) =>
-	      val globalVarSig = gvd.name.name // e.g. @@[|java:lang:Enum.serialVersionUID|]
+	      val globalVarSig = gvd.name.name // e.g. @@java.lang.Enum.serialVersionUID
 	      import org.sireum.pilar.symbol.Symbol.pp2r
 	      Center.setGlobalVarSigToUri(gvd.name.name, gvd.name.uri)
 	      val globalVarAccessFlag = 

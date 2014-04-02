@@ -16,6 +16,9 @@ import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.Center
 
 class PilarTestFramework extends TestFramework {
+  
+  final val TITLE = "PilarTestFramework"
+  
 	def Analyzing : this.type = this
 
   def title(s : String) : this.type = {
@@ -34,18 +37,18 @@ class PilarTestFramework extends TestFramework {
    srcRes : FileResourceUri) {
 
     test(title) {
-    	msg_critical("####" + title + "#####")
+    	msg_critical(TITLE, "####" + title + "#####")
     	
     	val pilarFileUri = srcRes
     	val reporter = new Parser.StringErrorReporter
 	    val modelOpt = Parser.parse[Model](Right(pilarFileUri), reporter, false)
 	    if(modelOpt.isDefined){
-	      msg_critical("Parsing OK!")
+	      msg_critical(TITLE, "Parsing OK!")
 	      val st = JawaSymbolTableBuilder.apply(List(modelOpt.get), { _ : Unit => new JawaSymbolTable }, false)
 	    } else {
-	      err_msg_critical(reporter.errorAsString)
+	      err_msg_critical(TITLE, reporter.errorAsString)
 	    }
-    	msg_critical("************************************\n")
+    	msg_critical(TITLE, "************************************\n")
     }
   }
 

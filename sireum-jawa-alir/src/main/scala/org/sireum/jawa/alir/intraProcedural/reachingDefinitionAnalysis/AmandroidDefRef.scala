@@ -98,6 +98,8 @@ final class AmandroidVarAccesses(st: SymbolTable) extends VarAccesses {
 final class AmandroidDefRef(st: SymbolTable, val varAccesses: VarAccesses)
   extends DefRef {
 
+  final val TITLE = "AmandroidDefRef"
+  
   def definitions(a: Assignment): ISet[Slot] = {
     import org.sireum.pilar.symbol.H
 
@@ -143,7 +145,7 @@ final class AmandroidDefRef(st: SymbolTable, val varAccesses: VarAccesses)
             case Some(u) => uri = u
             case None =>
           }
-          if(uri == null) err_msg_critical("global var " + ne.name.name + " cannot resolved.")
+          if(uri == null) err_msg_critical(TITLE, "global var " + ne.name.name + " cannot resolved.")
         } else {
           uri = ne.name.uri
         }

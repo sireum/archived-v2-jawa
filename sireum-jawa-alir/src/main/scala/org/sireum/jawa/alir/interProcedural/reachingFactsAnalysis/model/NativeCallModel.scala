@@ -22,9 +22,9 @@ object NativeCallModel {
 	  val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
 	  	  
 	  p.getSignature match{
-	    case "[|Ljava/lang/Object;.getClass:()Ljava/lang/Class;|]" =>
+	    case "Ljava/lang/Object;.getClass:()Ljava/lang/Class;" =>
 	      // algo:thisvalue.foreach {ins => set insRec's classObj field with a classIns whose type is java:lang:Class and name is same as ins's type
-	               // then, create two facts (a) (retVarSlot, insRec.classObj), (b) ([insRec.classObj, "[|java:lang:Class.name|]"], concreteString(ins.typ))}
+	               // then, create two facts (a) (retVarSlot, insRec.classObj), (b) ([insRec.classObj, "java:lang:Class.name"], concreteString(ins.typ))}
 	      require(args.size > 0)
           val thisSlot = VarSlot(args(0))
 	      val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
@@ -35,11 +35,11 @@ object NativeCallModel {
 	          val insClasObj = JawaAlirInfoProvider.getClassInstance(insRec)
 	          newFacts += RFAFact(VarSlot(retVars(0)), insClasObj)
 	          val strIns = RFAConcreteStringInstance(insClasObj.getName, insClasObj.getDefSite)
-	          newFacts += (RFAFact(FieldSlot(insClasObj, "[|java:lang:Class.name|]"), strIns))
+	          newFacts += (RFAFact(FieldSlot(insClasObj, "java.lang.Class.name"), strIns))
 	      }
 	      byPassFlag = false
-	    case "[|Ljava/lang/Class;.getNameNative:()Ljava/lang/String;|]" =>
-	      // algo:thisValue.foreach.{ cIns => get value of (cIns.name|]") and create fact (retVar, value)}
+	    case "Ljava/lang/Class;.getNameNative:()Ljava/lang/String;" =>
+	      // algo:thisValue.foreach.{ cIns => get value of (cIns.name") and create fact (retVar, value)}
 	      require(args.size > 0)
           val thisSlot = VarSlot(args(0))
 	      val thisValue = factMap.getOrElse(thisSlot, isetEmpty)

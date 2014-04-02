@@ -3,7 +3,7 @@ group PilarCodeGenerator;
 delimiters "$", "$"
 
 ProcedureDecl(retTyp, procedureName, params, localVars, annotations, body) ::= <<
-procedure $retTyp$ $procedureName$($params ; separator=", "$) $annotations ; separator=" "$ {
+procedure `$retTyp$` `$procedureName$`($params ; separator=", "$) $annotations ; separator=" "$ {
   $localVars$
 	
   $body$
@@ -11,7 +11,7 @@ procedure $retTyp$ $procedureName$($params ; separator=", "$) $annotations ; sep
 >>
 
 LocalVars(locals) ::= <<
-local temp;
+  temp;
   RandomCoinToss;
   head;
   x;
@@ -19,19 +19,19 @@ local temp;
 >>
 
 LocalVar(typ, name) ::= <<
-$typ$ $name$;
+`$typ$` $name$;
 >>
 
 ParamVar(typ, name, annotations) ::= <<
-$typ$ $name$ $annotations ; separator=" "$
+`$typ$` $name$ $annotations ; separator=" "$
 >>
 
 annotationWithParam(flag, params) ::= <<
-@$flag$ ($params ; separator=", "$)
+@$flag$ (`$params ; separator=", `"$`)
 >>
 
 annotationWithExp(flag, exps) ::= <<
-@$flag$ $exps ; separator=", "$
+@$flag$ `$exps ; separator=", `"$`
 >>
 
 Body(codeFragments) ::= <<
@@ -72,13 +72,13 @@ $lhs$ == $rhs$
 >>
 
 NewExp(name) ::= <<
-new $name$
+new `$name$`
 >>
 
 InvokeStmt(funcName, params, annotations) ::= <<
-call temp:= $funcName$($params ; separator=", "$) $annotations ; separator=" "$
+call temp:= `$funcName$`($params ; separator=", "$) $annotations ; separator=" "$
 >>
 
 FieldAccessExp(base, field) ::= <<
-$base$.$field$
+$base$.`$field$`
 >>

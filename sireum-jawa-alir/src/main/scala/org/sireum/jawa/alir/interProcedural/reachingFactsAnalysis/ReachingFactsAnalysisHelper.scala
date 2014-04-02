@@ -22,6 +22,7 @@ import org.sireum.jawa.alir.LibSideEffectProvider
 import org.sireum.jawa.alir.UnknownInstance
 
 object ReachingFactsAnalysisHelper {
+  final val TITLE = "ReachingFactsAnalysisHelper"
 	def getFactMap(s : ISet[RFAFact]) : Map[Slot, Set[Instance]] = {
 	  s.groupBy(_.s).mapValues(_.map(_.v))
 	}
@@ -101,9 +102,9 @@ object ReachingFactsAnalysisHelper {
           recvValue.foreach{
 			      ins =>
 			        if(ins.isInstanceOf[NullInstance])
-			          err_msg_normal("Try to invoke method: " + sig + "@" + callerContext + "\nwith Null pointer:" + ins)
+			          err_msg_normal(TITLE, "Try to invoke method: " + sig + "@" + callerContext + "\nwith Null pointer:" + ins)
 			        else if(ins.isInstanceOf[UnknownInstance]) {
-			          err_msg_detail("Invoke method: " + sig + "@" + callerContext + "\n with Unknown Instance: " + ins)
+			          err_msg_detail(TITLE, "Invoke method: " + sig + "@" + callerContext + "\n with Unknown Instance: " + ins)
 			          calleeSet += InstanceCallee(Center.UNKNOWN_PROCEDURE_SIG, ins)
 			        } else {
 				        val p = 
@@ -183,7 +184,7 @@ object ReachingFactsAnalysisHelper {
                 case Some(af) =>
                   result(i) = (VarSlot(af.getSignature), true)
                 case None =>
-                  err_msg_normal("Given field may be in other library: " + ne.name.name)
+                  err_msg_normal(TITLE, "Given field may be in other library: " + ne.name.name)
               }
             } else {
             	result(i) = (vs, true)
@@ -198,7 +199,7 @@ object ReachingFactsAnalysisHelper {
             baseValue.map{
               ins =>
                 if(ins.isInstanceOf[NullInstance])
-                  err_msg_normal("Access field: " + baseSlot + "." + fieldSig + "@" + currentContext + "\nwith Null pointer: " + ins)
+                  err_msg_normal(TITLE, "Access field: " + baseSlot + "." + fieldSig + "@" + currentContext + "\nwith Null pointer: " + ins)
                 else{
                   val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
                   val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
@@ -217,7 +218,7 @@ object ReachingFactsAnalysisHelper {
             baseValue.map{
               ins =>
                 if(ins.isInstanceOf[NullInstance])
-                  err_msg_normal("Access array: " + baseSlot + "@" + currentContext + "\nwith Null pointer: " + ins)
+                  err_msg_normal(TITLE, "Access array: " + baseSlot + "@" + currentContext + "\nwith Null pointer: " + ins)
                 result(i) = (ArraySlot(ins), false)
             }
           case _=>
@@ -274,7 +275,7 @@ object ReachingFactsAnalysisHelper {
                 case Some(af) =>
                   value ++= factMap.getOrElse(VarSlot(af.getSignature), isetEmpty[Instance] + UnknownInstance(currentContext))
                 case None =>
-                  err_msg_normal("Given field may be in other library: " + ne.name.name)
+                  err_msg_normal(TITLE, "Given field may be in other library: " + ne.name.name)
               }
             } else value ++= factMap.getOrElse(slot, isetEmpty[Instance])
             result(i) = value
@@ -313,7 +314,7 @@ object ReachingFactsAnalysisHelper {
             baseValue.map{
               ins =>
                 if(ins.isInstanceOf[NullInstance])
-                  err_msg_normal("Access field: " + baseSlot + "." + fieldSig + "@" + currentContext + "\nwith Null pointer: " + ins)
+                  err_msg_normal(TITLE, "Access field: " + baseSlot + "." + fieldSig + "@" + currentContext + "\nwith Null pointer: " + ins)
                 else {
                   val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
                   val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
@@ -339,7 +340,7 @@ object ReachingFactsAnalysisHelper {
             baseValue.map{
               ins =>
                 if(ins.isInstanceOf[NullInstance])
-                  err_msg_normal("Access array: " + baseSlot + "@" + currentContext + "\nwith Null pointer: " + ins)
+                  err_msg_normal(TITLE, "Access array: " + baseSlot + "@" + currentContext + "\nwith Null pointer: " + ins)
                 else if(ins.isInstanceOf[UnknownInstance]){
                   val arraySlot = ArraySlot(ins)
                   val arrayValue : ISet[Instance] = factMap.getOrElse(arraySlot, isetEmpty[Instance]) + UnknownInstance(ins.getDefSite)

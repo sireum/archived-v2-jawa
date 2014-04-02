@@ -13,7 +13,7 @@ import org.sireum.jawa.alir.interProcedural.reachingFactsAnalysis.ReachingFactsA
 import org.sireum.jawa.alir.Context
 
 object HashSetModel {
-	def isHashSet(r : JawaRecord) : Boolean = r.getName == "[|java:util:HashSet|]"
+	def isHashSet(r : JawaRecord) : Boolean = r.getName == "java.util.HashSet"
 	  
   private def addItemToHashSetField(s : ISet[RFAFact], args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
@@ -25,7 +25,7 @@ object HashSetModel {
 	  val paramValues = factMap.getOrElse(paramSlot, isetEmpty)
 	  thisValues.foreach{
       ins =>
-        newfacts ++= paramValues.map{p=>RFAFact(FieldSlot(ins, "[|java:util:HashSet.items|]"), p)}
+        newfacts ++= paramValues.map{p=>RFAFact(FieldSlot(ins, "java.util.HashSet.items"), p)}
     }
 	  newfacts 
 	}
@@ -43,38 +43,38 @@ object HashSetModel {
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
 	  p.getSignature match{
-      case "[|Ljava/util/HashSet;.<init>:()V|]" =>
+      case "Ljava/util/HashSet;.<init>:()V" =>
 //        newFacts ++= initializeHashSetField(s, args, currentContext)
-		  case "[|Ljava/util/HashSet;.<init>:(I)V|]" =>
+		  case "Ljava/util/HashSet;.<init>:(I)V" =>
 //		    newFacts ++= initializeHashSetField(s, args, currentContext)
-		  case "[|Ljava/util/HashSet;.<init>:(IF)V|]" =>
+		  case "Ljava/util/HashSet;.<init>:(IF)V" =>
 //		    newFacts ++= initializeHashSetField(s, args, currentContext)
-		  case "[|Ljava/util/HashSet;.<init>:(Ljava/util/Collection;)V|]" =>
+		  case "Ljava/util/HashSet;.<init>:(Ljava/util/Collection;)V" =>
 //		    newFacts ++= initializeHashSetField(s, args, currentContext)
-		  case "[|Ljava/util/HashSet;.<init>:(Ljava/util/HashMap;)V|]" =>
+		  case "Ljava/util/HashSet;.<init>:(Ljava/util/HashMap;)V" =>
 //		    newFacts ++= initializeHashSetField(s, args, currentContext)
-		  case "[|Ljava/util/HashSet;.add:(Ljava/lang/Object;)Z|]" =>
+		  case "Ljava/util/HashSet;.add:(Ljava/lang/Object;)Z" =>
 		    newFacts ++= addItemToHashSetField(s, args, currentContext)
 		    byPassFlag = false
-		  case "[|Ljava/util/HashSet;.clear:()V|]" =>
-		  case "[|Ljava/util/HashSet;.clone:()Ljava/lang/Object;|]" =>
+		  case "Ljava/util/HashSet;.clear:()V" =>
+		  case "Ljava/util/HashSet;.clone:()Ljava/lang/Object;" =>
 		    require(retVars.size == 1)
 		    newFacts ++= cloneHashSetToRet(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "[|Ljava/util/HashSet;.contains:(Ljava/lang/Object;)Z|]" =>
-		  case "[|Ljava/util/HashSet;.createBackingMap:(IF)Ljava/util/HashMap;|]" =>
+		  case "Ljava/util/HashSet;.contains:(Ljava/lang/Object;)Z" =>
+		  case "Ljava/util/HashSet;.createBackingMap:(IF)Ljava/util/HashMap;" =>
 		    require(retVars.size == 1)
-		    ReachingFactsAnalysisHelper.getReturnFact(NormalType("[|java:util:HashMap|]", 0), retVars(0), currentContext) match{
+		    ReachingFactsAnalysisHelper.getReturnFact(NormalType("java:util:HashMap", 0), retVars(0), currentContext) match{
 		      case Some(fact) => newFacts += fact
 		      case None =>
 		    }
 		    byPassFlag = false
-		  case "[|Ljava/util/HashSet;.isEmpty:()Z|]" =>
-		  case "[|Ljava/util/HashSet;.iterator:()Ljava/util/Iterator;|]" =>
-		  case "[|Ljava/util/HashSet;.readObject:(Ljava/io/ObjectInputStream;)V|]" =>
-		  case "[|Ljava/util/HashSet;.remove:(Ljava/lang/Object;)Z|]" =>
-		  case "[|Ljava/util/HashSet;.size:()I|]" =>
-		  case "[|Ljava/util/HashSet;.writeObject:(Ljava/io/ObjectOutputStream;)V|]" =>
+		  case "Ljava/util/HashSet;.isEmpty:()Z" =>
+		  case "Ljava/util/HashSet;.iterator:()Ljava/util/Iterator;" =>
+		  case "Ljava/util/HashSet;.readObject:(Ljava/io/ObjectInputStream;)V" =>
+		  case "Ljava/util/HashSet;.remove:(Ljava/lang/Object;)Z" =>
+		  case "Ljava/util/HashSet;.size:()I" =>
+		  case "Ljava/util/HashSet;.writeObject:(Ljava/io/ObjectOutputStream;)V" =>
 		  case _ =>
     }
     (newFacts, delFacts, byPassFlag)

@@ -10,29 +10,40 @@ object MessageCenter {
 	  val NO, CRITICAL, NORMAL, VERBOSE = Value
 	}
 	var msglevel : MSG_LEVEL.Value = MSG_LEVEL.CRITICAL
+	var showLevel : Boolean = true
+	var showTitle : Boolean = true
 
-	implicit def msg_critical(msg : String) = {
+	private def printMSG(level : MSG_LEVEL.Value, title : String, msg : String, err : Boolean) = {
+	  var tmp = ""
+    if(showLevel) tmp += "[" + level + "]"
+    if(showTitle) tmp += "[" + title + "]"
+    tmp += msg
+    if(err) System.err.println(tmp)
+  	else println(tmp)
+	}
+	
+	implicit def msg_critical(title : String, msg : String) = {
 	  if(msglevel >= MSG_LEVEL.CRITICAL)
-	  	println("[CRITICAL]" + msg)
+	    printMSG(MSG_LEVEL.CRITICAL, title, msg, false)
 	}
-	implicit def err_msg_critical(msg : String) = {
+	implicit def err_msg_critical(title : String, msg : String) = {
 	  if(msglevel >= MSG_LEVEL.CRITICAL)
-	  	System.err.println("[ERROR_CRITICAL]" + msg)
+	  	printMSG(MSG_LEVEL.CRITICAL, title, msg, true)
 	}
-	implicit def msg_normal(msg : String) = {
+	implicit def msg_normal(title : String, msg : String) = {
 	  if(msglevel >= MSG_LEVEL.NORMAL)
-	  	println("[NORMAL]" + msg)
+	  	printMSG(MSG_LEVEL.NORMAL, title, msg, false)
 	}
-	implicit def err_msg_normal(msg : String) = {
+	implicit def err_msg_normal(title : String, msg : String) = {
 	  if(msglevel >= MSG_LEVEL.NORMAL)
-	  	System.err.println("[ERROR_NORMAL]" + msg)
+	  	printMSG(MSG_LEVEL.NORMAL, title, msg, true)
 	}
-	implicit def msg_detail(msg : String) = {
+	implicit def msg_detail(title : String, msg : String) = {
 	  if(msglevel >= MSG_LEVEL.VERBOSE)
-	  	println("[VERBOSE]" + msg)
+	  	printMSG(MSG_LEVEL.VERBOSE, title, msg, false)
 	}
-	implicit def err_msg_detail(msg : String) = {
+	implicit def err_msg_detail(title : String, msg : String) = {
 	  if(msglevel >= MSG_LEVEL.VERBOSE)
-	  	System.err.println("[ERROR_VERBOSE]" + msg)
+	  	printMSG(MSG_LEVEL.VERBOSE, title, msg, true)
 	}
 }

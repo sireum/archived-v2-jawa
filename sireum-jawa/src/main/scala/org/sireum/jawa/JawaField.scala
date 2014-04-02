@@ -17,7 +17,7 @@ class JawaField {
 	protected var name : String = null
 	
 	/**
-	 * signature of the field. e.g. [|java:lang:Throwable.stackState|]
+	 * signature of the field. e.g. java.lang.Throwable.stackState
 	 */
 	
 	protected var signature : String = null
