@@ -32,7 +32,7 @@ object CallHandler {
 	}
 	
 	/**
-	 * check and get super callee procedure from Center. Input: [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|]
+	 * check and get super callee procedure from Center. Input: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
 	def getSuperCalleeProcedure(pSig : String) : JawaProcedure = {
 	  val fromType = StringFormConverter.getRecordTypeFromProcedureSignature(pSig)
@@ -45,7 +45,7 @@ object CallHandler {
 	}
 	
 	/**
-	 * check and get static callee procedure from Center. Input: [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|]
+	 * check and get static callee procedure from Center. Input: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
 	def getStaticCalleeProcedure(procSig : String) : JawaProcedure = {
 	  val recType = StringFormConverter.getRecordTypeFromProcedureSignature(procSig)
@@ -58,7 +58,7 @@ object CallHandler {
 	}
 	
 	/**
-	 * check and get direct callee procedure from Center. Input: [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|]
+	 * check and get direct callee procedure from Center. Input: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
 	def getDirectCalleeProcedure(procSig : String) : JawaProcedure = {
 	  val pSubSig = Center.getSubSigFromProcSig(procSig)

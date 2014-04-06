@@ -9,9 +9,9 @@ object MessageCenter {
 	object MSG_LEVEL extends Enumeration {
 	  val NO, CRITICAL, NORMAL, VERBOSE = Value
 	}
-	var msglevel : MSG_LEVEL.Value = MSG_LEVEL.CRITICAL
+	var msglevel : MSG_LEVEL.Value = MSG_LEVEL.NORMAL
 	var showLevel : Boolean = true
-	var showTitle : Boolean = true
+	var showTitle : Boolean = false
 
 	private def printMSG(level : MSG_LEVEL.Value, title : String, msg : String, err : Boolean) = {
 	  var tmp = ""

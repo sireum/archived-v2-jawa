@@ -34,7 +34,7 @@ final case class RFATupleInstance(left : Instance, right : Instance, defSite : C
 }
 
 abstract class RFAAbstractStringInstance(defSite : Context) extends RFAAbstractInstance{
-  def typ : Type = NormalType("[|java:lang:String|]", 0) 
+  def typ : Type = NormalType("java.lang.String", 0) 
   override def toString : String = "AbstractStringInstance(name:" + this.typ + ". defsite:" + this.defSite + ")"   
 }
 

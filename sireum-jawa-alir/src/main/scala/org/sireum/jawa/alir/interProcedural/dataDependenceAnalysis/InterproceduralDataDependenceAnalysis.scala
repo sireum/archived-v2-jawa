@@ -26,6 +26,7 @@ import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.alir.interProcedural.InstanceCallee
 import org.sireum.jawa.alir.LibSideEffectProvider
 import org.sireum.jawa.alir.Instance
+import java.io.PrintWriter
 
 trait InterproceduralDataDependenceInfo{
   def getIddg : InterProceduralDataDependenceGraph[InterproceduralDataDependenceAnalysis.Node]
@@ -111,6 +112,7 @@ object InterproceduralDataDependenceAnalysis {
 	  }
 	  
 	  msg_normal(TITLE, "[IDDG building done!]")
+//	  iddg.toDot(new PrintWriter(System.out))
 	  new Iddi(iddg)
 	}
   
@@ -467,7 +469,7 @@ object InterproceduralDataDependenceAnalysis {
                   val paramName = paramNames(i)
                   val ptypName = paramTyps(i).name
                   if(paramName == varName) indexs += index
-                  if(ptypName == "[|double|]" || ptypName == "[|long|]"){
+                  if(ptypName == "double" || ptypName == "long"){
                   	index += 1
                   	if(paramName == varName) indexs += index
                   }

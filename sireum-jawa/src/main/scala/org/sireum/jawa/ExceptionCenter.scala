@@ -5,7 +5,7 @@ import org.sireum.util._
 
 object ExceptionCenter {
   
-  final val ANY_EXCEPTION = "[|any|]"
+  final val ANY_EXCEPTION = "any"
   final val EXCEPTION_VAR_NAME = "Exception"  
   
   

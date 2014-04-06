@@ -124,8 +124,8 @@ object ReachingFactsAnalysisHelper {
   }
 	
 	def getInstanceFromType(typ : Type, currentContext : Context) : Option[Instance] = {
-	  if(Center.isJavaPrimitiveType(typ) || typ.typ == "[|void|]") None
-	  else if(typ.typ == "[|java:lang:String|]" && !typ.isArray) Some(RFAPointStringInstance(currentContext))
+	  if(Center.isJavaPrimitiveType(typ) || typ.typ == "void") None
+	  else if(typ.typ == "java.lang.String" && !typ.isArray) Some(RFAPointStringInstance(currentContext))
 	  else Some(RFAInstance(typ, currentContext))
 	}
 	  
@@ -296,7 +296,7 @@ object ReachingFactsAnalysisHelper {
             }
             
             val ins = 
-	            if(name == "[|java:lang:String|]" && dimensions == 0){
+	            if(name == "java.lang.String" && dimensions == 0){
 	              RFAConcreteStringInstance("", currentContext.copy)
 	            } else {
 	              RFAInstance(new NormalType(name, dimensions), currentContext.copy)

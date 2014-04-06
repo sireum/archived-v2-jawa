@@ -37,7 +37,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	            val ptypName = ptyps(i).name
 	            val n = addIDDGEntryParamNode(en, position)
 	            n.asInstanceOf[IDDGEntryParamNode].paramName = pnames(i)
-	            if(ptypName == "[|double|]" || ptypName == "[|long|]"){
+	            if(ptypName == "double" || ptypName == "long"){
 	              position += 1
 	              val n = addIDDGEntryParamNode(en, position)
 	              n.asInstanceOf[IDDGEntryParamNode].paramName = pnames(i)
