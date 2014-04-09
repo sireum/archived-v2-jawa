@@ -108,7 +108,7 @@ object SideEffectAnalysis {
       
       override def equals(cr : Any) : Boolean = {
         if(cr.isInstanceOf[InterProceduralSideEffectAnalysisResult])
-        	results.forall{case (sig, r) => (r.toString == cr.asInstanceOf[InterProceduralSideEffectAnalysisResult].result(sig).toString)}
+        	results.forall{case (sig, r) => (r.toString == cr.asInstanceOf[InterProceduralSideEffectAnalysisResult].result(sig).get.toString)}
         else false
       }
       
