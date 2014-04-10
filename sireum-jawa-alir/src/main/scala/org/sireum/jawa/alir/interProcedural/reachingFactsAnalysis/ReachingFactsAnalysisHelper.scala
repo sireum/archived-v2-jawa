@@ -306,6 +306,7 @@ object ReachingFactsAnalysisHelper {
             result(i) = value
           case ae : AccessExp =>
             val fieldSig = ae.attributeName.name
+            println("fieldSig:" + fieldSig)
             val baseSlot = ae.exp match {
               case ne : NameExp => VarSlot(ne.name.name)
               case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
