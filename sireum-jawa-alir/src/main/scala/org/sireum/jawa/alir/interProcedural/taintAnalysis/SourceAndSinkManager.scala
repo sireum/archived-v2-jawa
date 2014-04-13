@@ -6,5 +6,5 @@ import org.sireum.pilar.ast.JumpLocation
 trait SourceAndSinkManager {
   def isSource(calleeProcedure : JawaProcedure, callerProcedure : JawaProcedure, callerLoc : JumpLocation) : Boolean
   def isSourceProcedure(procedure : JawaProcedure) : Boolean
-	def isSinkProcedure(procedure : JawaProcedure) : Boolean
+  def isSinkProcedure(procedure : JawaProcedure) : Boolean
 }
