@@ -30,7 +30,7 @@ object HashMapModel {
     val thisSlot = VarSlot(args(0))
 	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
 	  val strValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
-	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("java:util:HashSet", 0), retVar, currentContext).get
+	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("java.util.HashSet", 0), retVar, currentContext).get
 	  result += rf
 	  result ++= strValue.map{s => RFAFact(FieldSlot(rf.v, "java.util.HashSet.items"), s)}
 	  result
@@ -60,7 +60,7 @@ object HashMapModel {
     val thisSlot = VarSlot(args(0))
 	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
 	  val strValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
-	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("java:util:HashSet", 0), retVar, currentContext).get
+	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("java.util.HashSet", 0), retVar, currentContext).get
 	  result += rf
 	  result ++= strValue.map{
 	    s => 

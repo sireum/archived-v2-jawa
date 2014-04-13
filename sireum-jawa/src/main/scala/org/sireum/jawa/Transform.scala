@@ -19,7 +19,7 @@ object Transform {
 	  }
 //	  ChunkingPilarParser(Left(sb.toString), reporter) match{case Some(m) => m; case None => throw new RuntimeException(sb.toString)}
 	  val (modelopt, err) = Parser.parseWithErrorAsString[Model](Left(sb.toString)) 
-	  modelopt match{case Some(m) => m; case None => throw new RuntimeException(err)}
+	  modelopt match{case Some(m) => m; case None => throw new RuntimeException(err + "\n" + sb.toString)}
 	}
 	
 	def getSymbolResolveResult(codes : Set[String]) : SymbolTable = {

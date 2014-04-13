@@ -64,7 +64,7 @@ object HashSetModel {
 		  case "Ljava/util/HashSet;.contains:(Ljava/lang/Object;)Z" =>
 		  case "Ljava/util/HashSet;.createBackingMap:(IF)Ljava/util/HashMap;" =>
 		    require(retVars.size == 1)
-		    ReachingFactsAnalysisHelper.getReturnFact(NormalType("java:util:HashMap", 0), retVars(0), currentContext) match{
+		    ReachingFactsAnalysisHelper.getReturnFact(NormalType("java.util.HashMap", 0), retVars(0), currentContext) match{
 		      case Some(fact) => newFacts += fact
 		      case None =>
 		    }
