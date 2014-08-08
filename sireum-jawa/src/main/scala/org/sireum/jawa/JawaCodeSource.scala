@@ -66,7 +66,7 @@ object JawaCodeSource {
   }
   
   private def getRecordName(rCode : String) : String = {
-    require(getFirstWord(rCode) == "record")
+    if(getFirstWord(rCode) != "record") throw new RuntimeException("Following code has format problem: \n" + rCode)
     val size = rCode.size
     var i = rCode.indexOf("record") + 7
     while (i < size && (rCode.charAt(i).isWhitespace || rCode.charAt(i) == '`')) {

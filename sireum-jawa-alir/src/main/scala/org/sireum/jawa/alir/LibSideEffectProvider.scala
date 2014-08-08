@@ -20,9 +20,10 @@ object LibSideEffectProvider {
     this.ipsear = interPSEA
   }
   
-  def init : Unit = {
-    init("/Volumes/hd/fgwei/Stash/Amandroid/LibSummary/AndroidLibSideEffectResult.xml.zip")
-  }
+//  def init : Unit = {
+//    
+//    init(AndroidGlobal"/LibSummary/AndroidLibSideEffectResult.xml.zip")
+//  }
   
   def isDefined : Boolean = ipsear != null
   
