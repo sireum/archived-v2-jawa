@@ -46,4 +46,13 @@ object APKFileResolver {
 	  zipis.close()
 	  FileUtil.toUri(outputFile)
 	}
+	
+	def deleteOutputs(apkUri : FileResourceUri, outputUri : FileResourceUri) = {
+	  val apkFile = new File(new URI(apkUri))
+	  val dirName = apkFile.getName().substring(0, apkFile.getName().lastIndexOf("."))
+    val outputDir = new File(new URI(outputUri + "/" + dirName))
+    if(outputDir.exists()){
+      MyFileUtil.deleteDir(outputDir)
+    }
+	}
 }

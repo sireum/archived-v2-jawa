@@ -7,3 +7,7 @@ trait LibraryAPISummary {
    */
 	def isLibraryAPI(apiName : String) : Boolean
 }
+
+object DefaultLibraryAPISummary extends LibraryAPISummary {
+  def isLibraryAPI(apiName : String) : Boolean = false
+}

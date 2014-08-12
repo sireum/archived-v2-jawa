@@ -196,7 +196,7 @@ object JawaResolver {
    */
 	
 	def resolveFromST(st : SymbolTable, level : Center.ResolveLevel.Value, par : Boolean) : Unit = {
-    if(!JawaCodeSource.isPreLoaded) throw new RuntimeException("In whole program mode but library code did not been pre-loaded, call AmandroidCodeSource.preLoad first.")
+    if(!JawaCodeSource.isPreLoaded) throw new RuntimeException("In whole program mode but library code did not been pre-loaded, call JawaCodeSource.preLoad first.")
     val stp = st.asInstanceOf[SymbolTableProducer]
 	  resolveRecords(stp, level, par)
 	  resolveGlobalVars(stp, level, par)
