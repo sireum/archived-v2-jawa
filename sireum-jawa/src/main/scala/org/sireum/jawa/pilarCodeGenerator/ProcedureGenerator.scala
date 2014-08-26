@@ -23,7 +23,7 @@ abstract class ProcedureGenerator {
   protected var currentComponent : String = null
   protected var androidClasses : Set[String] = Set()
   /**
-   * Map from record to list of callback procedure
+   * Map from record (i.e. container class) to list of callback procedure
    */
   protected var callbackFunctions : Map[String, Set[String]] = Map()
   protected var conditionCounter : Int = 0
