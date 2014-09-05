@@ -13,7 +13,7 @@ import org.sireum.pilar.parser.ChunkingPilarParser
 import org.sireum.pilar.ast.Model
 import org.sireum.jawa.symbolResolver.JawaSymbolTableBuilder
 import org.sireum.alir.AlirIntraProceduralGraph
-import org.sireum.jawa.alir.intraProcedural.reachingDefinitionAnalysis.AmandroidReachingDefinitionAnalysis
+import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaReachingDefinitionAnalysis
 import org.sireum.jawa.GlobalConfig
 import org.sireum.jawa.Center
 import org.sireum.jawa.JawaProcedure
@@ -140,9 +140,9 @@ object JawaAlirInfoProvider {
 	  (pool, result)
 	}
 	
-	private def buildRda (pst : ProcedureSymbolTable, cfg : ControlFlowGraph[VirtualLabel], initialFacts : ISet[AmandroidReachingDefinitionAnalysis.RDFact] = isetEmpty) = {
+	private def buildRda (pst : ProcedureSymbolTable, cfg : ControlFlowGraph[VirtualLabel], initialFacts : ISet[JawaReachingDefinitionAnalysis.RDFact] = isetEmpty) = {
 	  val iiopp = iopp(pst)
-	  AmandroidReachingDefinitionAnalysis[VirtualLabel](pst,
+	  JawaReachingDefinitionAnalysis[VirtualLabel](pst,
 	    cfg,
 	    dr(pst.symbolTable),
 	    first2(iiopp),
@@ -175,7 +175,7 @@ object JawaAlirInfoProvider {
 	      p.setProperty(RDA, rda)
       }
     }
-    p.getProperty(RDA).asInstanceOf[AmandroidReachingDefinitionAnalysis.Result]
+    p.getProperty(RDA).asInstanceOf[JawaReachingDefinitionAnalysis.Result]
   }
   
   def getClassInstance(r : JawaRecord) : ClassInstance = {
@@ -185,4 +185,4 @@ object JawaAlirInfoProvider {
   }
 }
 
-case class TransformIntraProcedureResult(pst : ProcedureSymbolTable, cfg : ControlFlowGraph[String], rda : AmandroidReachingDefinitionAnalysis.Result)
+case class TransformIntraProcedureResult(pst : ProcedureSymbolTable, cfg : ControlFlowGraph[String], rda : JawaReachingDefinitionAnalysis.Result)

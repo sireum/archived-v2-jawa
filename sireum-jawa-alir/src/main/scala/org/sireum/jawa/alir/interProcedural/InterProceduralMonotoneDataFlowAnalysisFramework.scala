@@ -2,7 +2,7 @@ package org.sireum.jawa.alir.interProcedural
 
 import org.sireum.alir._
 import org.sireum.util._
-import org.sireum.jawa.alir.interProcedural.controlFlowGraph._
+import org.sireum.jawa.alir.controlFlowGraph._
 import org.sireum.pilar.ast._
 import org.sireum.jawa.JawaProcedure
 import org.sireum.pilar.symbol.ProcedureSymbolTable
@@ -16,7 +16,7 @@ import org.sireum.jawa.alir.Context
 /**
  * @author Fengguo Wei & Sankardas Roy
  */
-trait InterProceduralMonotoneDataFlowAnalysisResult[LatticeElement] {
+trait InterProceduralMonotoneDataFlowAnalysisResult[LatticeElement] extends InterProceduralDataFlowAnalysisResult[LatticeElement] {
   def entrySet : CGNode => ISet[LatticeElement]
   def exitSet : CGNode => ISet[LatticeElement]
   def entries(n : CGNode, callerContext : Context, esl : EntrySetListener[LatticeElement])

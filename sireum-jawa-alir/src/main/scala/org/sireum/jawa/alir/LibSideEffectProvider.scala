@@ -1,6 +1,6 @@
 package org.sireum.jawa.alir
 
-import org.sireum.jawa.alir.interProcedural.sideEffectAnalysis.InterProceduralSideEffectAnalysisResult
+import org.sireum.jawa.alir.sideEffectAnalysis.InterProceduralSideEffectAnalysisResult
 import java.util.zip.GZIPInputStream
 import java.io.FileInputStream
 import org.sireum.jawa.xml.AndroidXStream
