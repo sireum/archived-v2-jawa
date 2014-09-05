@@ -21,6 +21,8 @@ import org.sireum.jawa.JawaRecord
 import org.sireum.jawa.util.StringFormConverter
 import org.sireum.jawa.Transform
 import org.sireum.pilar.ast.NameExp
+import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaDefRef
+import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaVarAccesses
 
 object JawaAlirInfoProvider {
   
@@ -46,7 +48,7 @@ object JawaAlirInfoProvider {
   MarkerTagPriority.Normal,
   ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
   
-  var dr : SymbolTable => DefRef = null
+  var dr : SymbolTable => DefRef = { st => new JawaDefRef(st, new JawaVarAccesses(st)) }
   
   val iopp : ProcedureSymbolTable => (ResourceUri => Boolean, ResourceUri => Boolean) = { pst =>
     val params = pst.params.toSet[ResourceUri]
