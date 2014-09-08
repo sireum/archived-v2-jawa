@@ -200,7 +200,7 @@ class InterproceduralPointsToAnalysis {
     }
   }
   
-  // callee is signature
+  
   def extendGraphWithConstructGraph(calleeProc : JawaProcedure, 
       															pi : PointI, 
       															callerContext : Context,

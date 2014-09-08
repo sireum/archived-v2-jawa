@@ -29,9 +29,9 @@ import org.sireum.jawa.alir.objectFlowAnalysis.InvokePointNode
 class PointsToMap {
   private val ptMap : MMap[String, MSet[PTAInstance]] = mmapEmpty
   def pointsToMap = ptMap
-  def setInstance(n : PtaNode, i : PTAInstance) = addInstanceInternal(n.toString, i)
+  def setInstance(n : PtaNode, i : PTAInstance) = setInstanceInternal(n.toString, i)
   def setInstanceInternal(key : String, i : PTAInstance) = ptMap(key) = msetEmpty + i
-  def setInstances(n : PtaNode, is : MSet[PTAInstance]) = addInstancesInternal(n.toString, is)
+  def setInstances(n : PtaNode, is : MSet[PTAInstance]) = setInstancesInternal(n.toString, is)
   def setInstancesInternal(key : String, is : MSet[PTAInstance]) = ptMap(key) = is
   def addInstance(n : PtaNode, i : PTAInstance) : Boolean = addInstanceInternal(n.toString, i)
   def addInstanceInternal(key : String, i : PTAInstance) : Boolean = ptMap.getOrElseUpdate(key, msetEmpty).add(i)

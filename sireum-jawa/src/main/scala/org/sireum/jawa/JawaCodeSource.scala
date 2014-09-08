@@ -29,6 +29,12 @@ object JawaCodeSource {
   }
   
   /**
+   * force set preload
+   */
+  
+  def setPreLoadFlag = this.preLoaded = true
+  
+  /**
    * load code from given file resource
    */
   

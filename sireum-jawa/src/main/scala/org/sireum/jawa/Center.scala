@@ -3,6 +3,10 @@ package org.sireum.jawa
 import org.sireum.jawa.util.StringFormConverter
 import org.sireum.util._
 import org.sireum.jawa.MessageCenter._
+import java.util.zip.GZIPInputStream
+import java.io.FileInputStream
+import org.sireum.jawa.xml.AndroidXStream
+import java.io.File
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -707,6 +711,16 @@ object Center {
 	}
 	
 	/**
+	 * init center with a image file
+	 */
+	
+	def init(file : File) = {
+	  val reader = new GZIPInputStream(new FileInputStream(file))
+    val img = AndroidXStream.fromXml(reader).asInstanceOf[CenterImage]
+	  restore(img)
+	}
+	
+	/**
 	 * reset the current center
 	 */
 	
@@ -720,7 +734,58 @@ object Center {
 	  this.hierarchy = null
 	}
 	
+	/**
+	 * Create a class to store all center informations
+	 */
 	
+	class CenterImage {
+  	var records : Set[JawaRecord] = Center.records
+  	var applicationRecords : Set[JawaRecord] = Center.applicationRecords
+  	var libraryRecords : Set[JawaRecord] = Center.libraryRecords
+  	var nameToRecord : Map[String, JawaRecord] = Center.nameToRecord
+  	var mainRecord : JawaRecord = Center.mainRecord
+  	var entryPoints : Set[JawaProcedure] = Center.entryPoints
+  	var hierarchy : RecordHierarchy = Center.hierarchy
+  	
+//  	override def equals(obj : Any) : Boolean = {
+//  	  obj match {
+//  	    case img : CenterImage =>
+//  	      if(records == img.records &&
+//  	         applicationRecords == img.applicationRecords &&
+//  	         libraryRecords == img.libraryRecords &&
+//  	         nameToRecord == img.nameToRecord &&
+//  	         entryPoints == img.entryPoints 
+////  	         hierarchy == img.hierarchy
+//  	         )
+//  	        true
+//  	      else false
+//  	    case _ => false
+//  	  }
+//  	}
+	}
+	
+	/**
+	 * Create a image of current Center
+	 */
+	
+	def createImage : CenterImage = {
+	  new CenterImage
+	}
+	
+	/**
+	 * restore center from a image
+	 */
+	
+	def restore(img : CenterImage) = {
+	  reset
+	  this.records = img.records
+	  this.applicationRecords = img.applicationRecords
+	  this.libraryRecords = img.libraryRecords
+	  this.nameToRecord = img.nameToRecord
+	  this.mainRecord = img.mainRecord
+	  this.entryPoints = img.entryPoints
+	  this.hierarchy = img.hierarchy
+	}
 	
 	def printDetails = {
 	  println("***************Center***************")
