@@ -236,7 +236,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
   /**
    * represents max number of strings in the strings set of a StringInstance
    */
-  final val K_STRING : Int = 5
+//  final val K_STRING : Int = 5
   
   
   final val worklist : MList[Node] = mlistEmpty
