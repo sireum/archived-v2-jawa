@@ -11,6 +11,10 @@ import org.sireum.util._
 import org.sireum.alir._
 import org.sireum.jawa._
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait ConstraintModel[ValueSet <: NormalValueSet] extends ObjectFlowRepo[ValueSet]{
   
   val points : MList[Point] = mlistEmpty

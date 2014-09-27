@@ -9,6 +9,9 @@ package org.sireum.jawa.util
 
 import scala.annotation.tailrec
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object SubStringCounter {
 	def countSubstring(str1:String, str2:String):Int={
    @tailrec def count(pos:Int, c:Int):Int={

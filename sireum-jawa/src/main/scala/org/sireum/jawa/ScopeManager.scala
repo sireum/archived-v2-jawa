@@ -9,6 +9,10 @@ package org.sireum.jawa
 
 import org.sireum.util.ISet
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait ScopeManager {
   def setMode(inScopeMode : Boolean)
   /**

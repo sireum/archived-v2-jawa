@@ -12,6 +12,9 @@ import org.sireum.util._
 import org.sireum.pilar.ast._
 import org.sireum.jawa.util.SignatureParser
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 class PointsCollector {
   
   def collectProcPoint(pst : ProcedureSymbolTable) : PointProc = {

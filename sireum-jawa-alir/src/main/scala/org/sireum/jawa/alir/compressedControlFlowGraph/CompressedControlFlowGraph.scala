@@ -13,11 +13,19 @@ import org.sireum.pilar.symbol.ProcedureSymbolTable
 import org.sireum.util._
 import org.sireum.pilar.symbol.Symbol.pp2r
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait CompressedControlFlowGraph[VirtualLabel] extends ControlFlowGraph[VirtualLabel] 
  with AlirIntraProceduralGraphExtra[CompressedControlFlowGraph.Node, VirtualLabel] {
  
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object CompressedControlFlowGraph {
   val BRANCH_PROPERTY_KEY = ControlFlowGraph.BRANCH_PROPERTY_KEY  // try to this equating below to avoid code duplication with ControlFlowGraph
   type Node = AlirIntraProceduralNode

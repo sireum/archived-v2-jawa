@@ -28,6 +28,10 @@ import org.sireum.jawa.alir.interProcedural.StaticCallee
 import org.sireum.jawa.alir.LibSideEffectProvider
 import org.sireum.jawa.alir.UnknownInstance
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object ReachingFactsAnalysisHelper {
   final val TITLE = "ReachingFactsAnalysisHelper"
 	def getFactMap(s : ISet[RFAFact]) : Map[Slot, Set[Instance]] = {

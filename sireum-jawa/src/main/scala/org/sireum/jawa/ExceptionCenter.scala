@@ -10,6 +10,9 @@ package org.sireum.jawa
 import org.sireum.pilar.ast._
 import org.sireum.util._
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */
 object ExceptionCenter {
   
   final val ANY_EXCEPTION = "any"

@@ -13,6 +13,9 @@ import org.sireum.jawa.alir.reachingFactsAnalysis._
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.Instance
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object HashMapModel {
 	def isHashMap(r : JawaRecord) : Boolean = r.getName == "java.util.HashMap"
 	

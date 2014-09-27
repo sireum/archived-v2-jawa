@@ -11,6 +11,9 @@ import org.sireum.util._
 import org.sireum.jawa.alir.objectFlowAnalysis.InvokePointNode
 import org.sireum.jawa.NormalType
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 trait JavaObjectModelForPta[Node <: PtaNode] {
 	/**
    * contain all string operations and involved operation string parameter nodes and return nodes

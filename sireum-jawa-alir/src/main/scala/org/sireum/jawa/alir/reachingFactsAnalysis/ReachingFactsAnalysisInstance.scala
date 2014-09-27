@@ -15,6 +15,10 @@ import org.sireum.jawa.NormalType
 
 abstract class RFAAbstractInstance extends Instance
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class RFAInstance(typ : Type, defSite : Context) extends RFAAbstractInstance{
   override def clone(newDefSite : Context) : Instance = RFAInstance(typ, newDefSite)
   override def toString : String = {
@@ -27,6 +31,10 @@ final case class RFAInstance(typ : Type, defSite : Context) extends RFAAbstractI
   }
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class RFATupleInstance(left : Instance, right : Instance, defSite : Context) extends RFAAbstractInstance{
   override def clone(newDefSite : Context) : Instance = RFATupleInstance(left, right, newDefSite)
   def typ : Type = TupleType(left.typ, right.typ)
@@ -40,17 +48,30 @@ final case class RFATupleInstance(left : Instance, right : Instance, defSite : C
   }
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 abstract class RFAAbstractStringInstance(defSite : Context) extends RFAAbstractInstance{
   def typ : Type = NormalType("java.lang.String", 0) 
   override def toString : String = "AbstractStringInstance(name:" + this.typ + ". defsite:" + this.defSite + ")"   
 }
 
-// RFAPointStringInstance represents a general String instance whose content can be any string i.e. reg expression "*"
+/**
+ * RFAPointStringInstance represents a general String instance whose content can be any string i.e. reg expression "*"
+ * 
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class RFAPointStringInstance(defSite : Context) extends RFAAbstractStringInstance(defSite){
   override def clone(newDefSite : Context) : Instance = RFAPointStringInstance(newDefSite)
   override def toString : String = "PointStringInstance(name:" + this.typ + ". defsite:" + this.defSite + ")" 
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class RFAConcreteStringInstance(string : String, defSite : Context) extends RFAAbstractStringInstance(defSite){
   override def clone(newDefSite : Context) : Instance = RFAConcreteStringInstance(string, newDefSite)
   override def toString : String = {

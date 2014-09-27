@@ -15,6 +15,9 @@ import org.sireum.util.ISet
 import java.io.InputStream
 import org.sireum.jawa.util.MyFileUtil
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */
 object JawaCodeSource {
   
   final val TITLE = "JawaCodeSource"

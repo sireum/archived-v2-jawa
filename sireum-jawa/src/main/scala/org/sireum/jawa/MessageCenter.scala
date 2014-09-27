@@ -7,11 +7,15 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */
 object MessageCenter {
 	/**
 	 * CRITICAL: Only print critical message
 	 * NORMAL: Print some useful debug message
 	 * VERBOSE: Print all message
+	 * NO: Don't print any message
 	 */
 	object MSG_LEVEL extends Enumeration {
 	  val NO, CRITICAL, NORMAL, VERBOSE = Value

@@ -21,8 +21,9 @@ import scala.collection.mutable.SynchronizedMap
 import org.sireum.jawa.alir.Context
 
 /**
- * @author Fengguo Wei & Sankardas Roy
- */
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait InterProceduralMonotoneDataFlowAnalysisResult[LatticeElement] extends InterProceduralDataFlowAnalysisResult[LatticeElement] {
   def entrySet : CGNode => ISet[LatticeElement]
   def exitSet : CGNode => ISet[LatticeElement]
@@ -30,8 +31,9 @@ trait InterProceduralMonotoneDataFlowAnalysisResult[LatticeElement] extends Inte
 }
 
 /**
- * @author Fengguo Wei & Sankardas Roy
- */
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait InterProceduralMonotonicFunction[LatticeElement] {
 	import org.sireum.pilar.ast._
 
@@ -41,16 +43,18 @@ trait InterProceduralMonotonicFunction[LatticeElement] {
 }
 
 /**
- * @author Fengguo Wei & Sankardas Roy
- */
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait NodeListener {
   def onPreVisitNode(node : InterProceduralMonotoneDataFlowAnalysisFramework.N, preds : CSet[InterProceduralMonotoneDataFlowAnalysisFramework.N])
   def onPostVisitNode(node : InterProceduralMonotoneDataFlowAnalysisFramework.N, succs : CSet[InterProceduralMonotoneDataFlowAnalysisFramework.N])
 }
 
 /**
- * @author Fengguo Wei & Sankardas Roy
- */
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait CallResolver[LatticeElement] {
   /**
 	 * It returns the facts for each callee entry node and caller return node
@@ -60,8 +64,9 @@ trait CallResolver[LatticeElement] {
 }
 
 /**
- * @author Fengguo Wei & Sankardas Roy
- */
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object InterProceduralMonotoneDataFlowAnalysisFramework {
   
   final val TITLE = "InterProceduralMonotoneDataFlowAnalysisFramework"

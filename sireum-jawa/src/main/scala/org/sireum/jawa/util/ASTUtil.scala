@@ -10,6 +10,9 @@ package org.sireum.jawa.util
 import org.sireum.pilar.ast._
 import org.sireum.util._
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object ASTUtil {
 	def getCallArgs(jumploc : JumpLocation) : List[String] = {
 	  val argNames : MList[String] = mlistEmpty

@@ -12,6 +12,10 @@ import org.sireum.jawa.util.CombinationIterator
 import org.sireum.pilar.symbol.ProcedureSymbolTable
 import org.sireum.pilar.ast.NameExp
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait NativeMethodModel[Node <: OfaNode, ValueSet <: NormalValueSet] {
   /**
    * contain all native operation signatures and involved operation parameter nodes and return nodes

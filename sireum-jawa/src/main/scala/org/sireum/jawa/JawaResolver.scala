@@ -19,8 +19,10 @@ import scala.collection.Parallel
 
 /**
  * this object collects info from the symbol table and builds Center, JawaRecord, and JawaProcedure
+ *
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ *
  */
-
 object JawaResolver {
   
   val DEBUG : Boolean = false

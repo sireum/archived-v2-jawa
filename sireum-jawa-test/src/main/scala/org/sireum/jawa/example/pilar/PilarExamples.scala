@@ -12,8 +12,6 @@ import org.sireum.jawa.util.MyFileUtil
 import org.sireum.jawa.util.ResourceRetriever
 import org.sireum.jawa.test.TestConfig
 
-
-
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>

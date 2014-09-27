@@ -13,6 +13,9 @@ import org.sireum.jawa.PointsCollector
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.JawaProcedure
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 class IntraprocedurePointsToAnalysis {
 
   def apply(ap : JawaProcedure)

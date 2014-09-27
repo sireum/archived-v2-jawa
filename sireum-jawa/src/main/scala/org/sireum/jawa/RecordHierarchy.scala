@@ -10,6 +10,9 @@ package org.sireum.jawa
 import org.sireum.util._
 import org.sireum.jawa.util.StringFormConverter
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 class RecordHierarchy {
 	/**
 	 * this map is from class to it's sub-classes.

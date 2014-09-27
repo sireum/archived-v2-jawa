@@ -12,6 +12,9 @@ import org.sireum.alir._
 import org.sireum.jawa._
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaReachingDefinitionAnalysis
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 trait PAGConstraint{
   
   object EdgeType extends Enumeration {

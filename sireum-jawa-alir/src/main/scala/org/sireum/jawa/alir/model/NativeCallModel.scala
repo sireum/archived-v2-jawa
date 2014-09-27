@@ -16,8 +16,8 @@ import org.sireum.jawa.alir.ClassInstance
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 
 /**
- * @author Fengguo Wei & Sankardas Roy
- */
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object NativeCallModel {
 	 def isNativeCall(p : JawaProcedure) : Boolean = p.isNative
 	 

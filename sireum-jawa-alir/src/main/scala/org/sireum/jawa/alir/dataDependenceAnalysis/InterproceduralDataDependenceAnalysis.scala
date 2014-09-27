@@ -35,12 +35,20 @@ import org.sireum.jawa.alir.LibSideEffectProvider
 import org.sireum.jawa.alir.Instance
 import java.io.PrintWriter
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait InterproceduralDataDependenceInfo{
   def getIddg : InterProceduralDataDependenceGraph[InterproceduralDataDependenceAnalysis.Node]
   def getDependentPath(src : InterproceduralDataDependenceAnalysis.Node, dst : InterproceduralDataDependenceAnalysis.Node) : IList[InterproceduralDataDependenceAnalysis.Edge]
   def isDependent(src : InterproceduralDataDependenceAnalysis.Node, dst : InterproceduralDataDependenceAnalysis.Node) : Boolean
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object InterproceduralDataDependenceAnalysis {
   final val TITLE = "InterproceduralDataDependenceAnalysis"
   type Node = IDDGNode

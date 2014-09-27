@@ -7,6 +7,9 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */
 trait LibraryAPISummary {
   
   /**
@@ -15,6 +18,9 @@ trait LibraryAPISummary {
 	def isLibraryAPI(apiName : String) : Boolean
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */
 object DefaultLibraryAPISummary extends LibraryAPISummary {
   def isLibraryAPI(apiName : String) : Boolean = false
 }

@@ -13,6 +13,10 @@ import org.sireum.jawa.Center
 import org.sireum.jawa.Type
 import org.sireum.jawa.util.StringFormConverter
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object CallHandler {
 	/**
 	 * get callee procedure from Center. Input: .equals:(Ljava/lang/Object;)Z

@@ -7,6 +7,10 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 abstract class Type {
 	def typ : String
 	def dimensions : Int
@@ -14,6 +18,10 @@ abstract class Type {
 	def name : String
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class NormalType(val typ : String, val dimensions : Int) extends Type {
   def this(typ : String) = this(typ, 0)
   def isArray = dimensions > 0
@@ -32,6 +40,10 @@ final case class NormalType(val typ : String, val dimensions : Int) extends Type
   }
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class TupleType(val left : Type, val right : Type) extends Type {
   def typ : String = {
     val sb = new StringBuilder
@@ -54,6 +66,10 @@ final case class TupleType(val left : Type, val right : Type) extends Type {
   }
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class NullType() extends Type {
   def typ = "Null"
   def dimensions = 0
@@ -72,6 +88,10 @@ final case class NullType() extends Type {
   }
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class UnknownType() extends Type {
   def typ = "Unknown"
   def dimensions = 0

@@ -30,8 +30,9 @@ import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.JawaProcedure
 
 /**
- * @author Fengguo Wei & Sankardas Roy
- */
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGraph[Node]{
   private var succBranchMap : MMap[(Node, Option[Branch]), Node] = null
   private var predBranchMap : MMap[(Node, Option[Branch]), Node] = null

@@ -16,8 +16,9 @@ import org.sireum.jawa._
 import org.sireum.jawa.alir.Instance
 
 /**
- * @author Fengguo Wei & Sankardas Roy
- */
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object HashtableModel {
 	def isHashtable(r : JawaRecord) : Boolean = r.getName == "java.util.Hashtable"
 	

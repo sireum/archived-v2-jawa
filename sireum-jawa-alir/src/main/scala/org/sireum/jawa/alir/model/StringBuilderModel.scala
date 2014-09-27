@@ -14,8 +14,9 @@ import org.sireum.jawa.alir.reachingFactsAnalysis._
 import org.sireum.jawa.alir.Instance
 
 /**
- * @author Fengguo Wei & Sankardas Roy
- */
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object StringBuilderModel {
   
   def isStringBuilder(r : JawaRecord) : Boolean = r.getName == "java.lang.StringBuilder"

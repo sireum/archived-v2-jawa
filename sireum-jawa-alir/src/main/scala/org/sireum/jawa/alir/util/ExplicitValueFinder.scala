@@ -15,6 +15,10 @@ import org.sireum.alir.ControlFlowGraph
 import org.sireum.alir.ReachingDefinitionAnalysis
 import org.sireum.alir.LocDefDesc
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object ExplicitValueFinder {
 	def findExplicitIntValueForArgs(procedure : JawaProcedure, loc : JumpLocation, argNum : Int) : ISet[Int] = {
 	  loc.jump match{

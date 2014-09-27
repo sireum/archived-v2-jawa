@@ -16,6 +16,10 @@ import java.io.FileReader
 import java.io.LineNumberReader
 import java.net.URI
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object MyFileUtil {
   
   def readFileContent(fileResourceUri : FileResourceUri) : String = {

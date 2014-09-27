@@ -15,6 +15,10 @@ import org.sireum.util._
 import org.sireum.jawa.JawaProcedure
 import java.io.File
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object LibSideEffectProvider {
   var ipsear : InterProceduralSideEffectAnalysisResult = null
 	def init(ipsear : InterProceduralSideEffectAnalysisResult) = {

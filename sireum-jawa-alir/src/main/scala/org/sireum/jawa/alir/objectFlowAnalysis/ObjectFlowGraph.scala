@@ -23,6 +23,10 @@ import org.sireum.jawa._
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.util.CallHandler
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 abstract class ObjectFlowGraph[Node <: OfaNode, ValueSet <: NormalValueSet](val fac: () => ValueSet)
   extends AlirGraph[Node]
   with AlirEdgeAccesses[Node]

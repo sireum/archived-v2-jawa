@@ -11,7 +11,9 @@ import java.io.InputStreamReader
 import java.io.BufferedReader
 import java.net.URLClassLoader
 
-
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object JVMUtil {
 	def startSecondJVM[C](clazz : Class[C], javaHeapSize : String, args : List[String], redirectStream : Boolean) = {
     val separator = System.getProperty("file.separator")

@@ -15,6 +15,9 @@ import org.sireum.jawa.alir.controlFlowGraph.CGNode
 import org.sireum.jawa.alir.pointsToAnalysis.InterproceduralPointsToAnalysis
 import org.sireum.jawa.Center
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object ReachabilityAnalysis {
   
   /**

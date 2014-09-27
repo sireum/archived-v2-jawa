@@ -16,6 +16,9 @@ import org.sireum.jawa.MessageCenter._
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.alir.ClassInstance
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object ClassModel {
   val TITLE = "ClassModel"
 	def isClass(r : JawaRecord) : Boolean = r.getName == "java.lang.Class"

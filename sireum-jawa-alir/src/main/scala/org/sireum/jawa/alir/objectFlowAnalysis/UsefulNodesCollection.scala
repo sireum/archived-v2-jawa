@@ -10,6 +10,10 @@ package org.sireum.jawa.alir.objectFlowAnalysis
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa._
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 case class ProcedurePointNode[Node](thisEntryNodeOpt : Option[Node], 
     																 thisExitNodeOpt : Option[Node], 
     																 paramEntryNodes : Map[Int, Node], 
@@ -19,6 +23,10 @@ case class ProcedurePointNode[Node](thisEntryNodeOpt : Option[Node],
 
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 case class InvokePointNode[Node](recvCallNodeOpt : Option[Node], 
   																recvReturnNodeOpt : Option[Node], 
   																argCallNodes : Map[Int, Node], 

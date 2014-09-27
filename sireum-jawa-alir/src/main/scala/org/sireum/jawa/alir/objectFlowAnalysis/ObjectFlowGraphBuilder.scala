@@ -15,6 +15,10 @@ import org.sireum.pilar.ast._
 import org.sireum.alir.ReachingDefinitionAnalysis
 import org.sireum.jawa._
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 abstract class ObjectFlowGraphBuilder[Node <: OfaNode, ValueSet <: NormalValueSet] {
 
   type Edge = AlirEdge[Node]

@@ -11,11 +11,10 @@ import org.sireum.alir.AlirIntraProceduralNode
 import org.sireum.alir.AlirIntraProceduralGraph
 import org.sireum.util.ResourceUri
 
-
-
-
-// sankar and fengguo introduced it for removing edges for CFG compression
-
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait AlirIntraProceduralGraphExtra 
 [Node <: AlirIntraProceduralNode, VirtualLabel]
     extends AlirIntraProceduralGraph[Node, VirtualLabel] {

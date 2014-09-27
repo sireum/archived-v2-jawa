@@ -7,7 +7,12 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.util
 
-// limit is in minute
+/**
+ * @param limit limit is in minutes
+ * 
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 class Timer(limit : Int) {
 	private val startTime = System.currentTimeMillis()
 	def isTimeOut : Boolean = (System.currentTimeMillis() - this.startTime) > limit * 60000

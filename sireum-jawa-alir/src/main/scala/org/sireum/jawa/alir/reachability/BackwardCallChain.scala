@@ -15,6 +15,9 @@ import org.sireum.pilar.ast.LocationDecl
 import org.sireum.pilar.ast.CallJump
 import org.sireum.pilar.ast.NameExp
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object BackwardCallChain {
   
   def getReachableProceduresBySubSig(apiSubSig : String, par : Boolean) : Set[JawaProcedure] = {

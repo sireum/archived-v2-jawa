@@ -15,7 +15,9 @@ import org.sireum.pilar.parser.ChunkingPilarParser
 import org.sireum.jawa.symbolResolver.JawaSymbolTableBuilder
 import org.sireum.pilar.parser.Parser
 
-
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object Transform {
 	var fst = { _ : Unit => new JawaSymbolTable }
   

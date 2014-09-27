@@ -12,8 +12,11 @@ import java.net.MalformedURLException
 import org.sireum.util._
 import java.util.regex.Pattern
 import java.util.regex.Matcher
- 
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object URLInString {
   def extract(str : String) : Set[String] = {
     val results = msetEmpty[String]

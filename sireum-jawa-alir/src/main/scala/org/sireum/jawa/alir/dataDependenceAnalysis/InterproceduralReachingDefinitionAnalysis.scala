@@ -25,6 +25,10 @@ import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaReachingDefinitionAna
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.Center
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object InterproceduralReachingDefinitionAnalysis {
   type RDFact = JawaReachingDefinitionAnalysis.RDFact
   type IRDFact = (RDFact, Context)
@@ -42,6 +46,10 @@ object InterproceduralReachingDefinitionAnalysis {
   }
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 class InterproceduralReachingDefinitionAnalysis {
   type RDFact = InterproceduralReachingDefinitionAnalysis.RDFact
   type IRDFact = InterproceduralReachingDefinitionAnalysis.IRDFact

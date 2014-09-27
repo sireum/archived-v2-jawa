@@ -7,6 +7,9 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.util
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object OsUtils {
   def main(args: Array[String]): Unit = {
     println(getOsName)

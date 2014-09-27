@@ -21,6 +21,10 @@ import scala.collection.mutable.LinkedHashMap
 import org.jgrapht.util.ArrayUnenforcedSet
 import com.google.common.collect.HashBiMap
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object Converter {
   def javafy(o : Any)(
     implicit seen : MIdMap[AnyRef, Object]) : Object =

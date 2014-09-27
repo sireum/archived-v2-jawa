@@ -12,6 +12,10 @@ import org.sireum.util.ResourceUri
 import org.sireum.jawa._
 import org.sireum.jawa.alir.Context
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait JavaObjectModelForOfa[Node <: OfaNode, ValueSet <: NormalValueSet] {
 	/**
    * contain all string operations and involved operation string parameter nodes and return nodes

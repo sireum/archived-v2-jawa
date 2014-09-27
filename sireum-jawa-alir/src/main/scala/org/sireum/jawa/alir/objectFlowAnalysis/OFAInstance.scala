@@ -11,6 +11,10 @@ import org.sireum.jawa.Type
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.Instance
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 abstract class OFAInstance(typ : Type, defSite : Context) extends Instance{
 
   def copy : OFAInstance

@@ -10,4 +10,8 @@ package org.sireum.jawa.alir.interProcedural
 import org.sireum.jawa.alir.controlFlowGraph._
 import org.sireum.jawa.alir.reachingFactsAnalysis.RFAFact
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 case class InterProceduralDataFlowGraph(icfg : InterproceduralControlFlowGraph[CGNode], summary : InterProceduralMonotoneDataFlowAnalysisResult[RFAFact])

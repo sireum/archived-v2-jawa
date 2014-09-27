@@ -11,6 +11,9 @@ import org.sireum.jawa.Type
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.Instance
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 final case class PTAInstance(typ : Type, defSite : Context) extends Instance{
   override def clone(newDefSite : Context) : Instance = PTAInstance(typ, newDefSite)
   override def toString : String = "PTAInst(name:" + this.typ + ".defsite:" + this.defSite + ")"

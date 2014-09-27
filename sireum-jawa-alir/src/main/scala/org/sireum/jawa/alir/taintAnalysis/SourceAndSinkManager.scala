@@ -13,6 +13,10 @@ import org.sireum.pilar.ast.LocationDecl
 import org.sireum.util.ISet
 import org.sireum.jawa.alir.reachingFactsAnalysis.RFAFact
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait SourceAndSinkManager {
   def isSource(loc : LocationDecl, s : ISet[RFAFact]) : Boolean
   def isSource(calleeProcedure : JawaProcedure, callerProcedure : JawaProcedure, callerLoc : JumpLocation) : Boolean

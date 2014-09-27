@@ -22,7 +22,9 @@ import org.sireum.jawa.NormalType
 import org.sireum.jawa.util.SignatureParser
 import org.sireum.jawa.JawaCodeSource
 
-
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 abstract class ProcedureGenerator {
   
   private final val TITLE = "ProcedureGenerator"

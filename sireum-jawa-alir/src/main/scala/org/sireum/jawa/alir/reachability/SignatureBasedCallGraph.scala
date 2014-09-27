@@ -16,6 +16,9 @@ import org.sireum.pilar.ast.NameExp
 import org.sireum.jawa.JawaRecord
 import org.sireum.jawa.alir.util.CallHandler
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object SignatureBasedCallGraph {
   def getReachableProcedures(record : JawaRecord, wholeProcs : Set[JawaProcedure], par : Boolean) : Set[JawaProcedure] = {
     require(!record.isInterface && !record.isPhantom)

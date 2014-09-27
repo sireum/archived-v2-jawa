@@ -18,6 +18,10 @@ import org.sireum.jawa.alir.interProcedural.InterProceduralNode
 import org.sireum.jawa.alir.interProcedural.InterProceduralGraph
 import org.sireum.jawa.util.ASTUtil
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProceduralGraph[Node]{
 	
   protected var centerN : IDDGCenterNode = null
@@ -357,56 +361,108 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
     IDDGEntryNode(cgN)
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 sealed abstract class IDDGNode(cgN : CGNode) extends InterProceduralNode(cgN.getContext) {
   def getCGNode = cgN
   def getOwner = cgN.getOwner
   override def getContext = cgN.getContext
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 abstract class IDDGVirtualNode(cgN : CGNode) extends IDDGNode(cgN) 
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 abstract class IDDGLocNode(cgN : CGLocNode) extends IDDGNode(cgN) {
   def getLocUri = cgN.getLocUri
   def getLocIndex : Int = cgN.getLocIndex
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 abstract class IDDGInvokeNode(cgN : CGInvokeNode) extends IDDGLocNode(cgN) {
   def getCalleeSet = cgN.getCalleeSet
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class IDDGNormalNode(cgN : CGNormalNode) extends IDDGLocNode(cgN) 
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class IDDGEntryParamNode(cgN : CGEntryNode, position : Int) extends IDDGVirtualNode(cgN){
   var paramName : String = null
   def getVirtualLabel : String = "EntryParam:" + position
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class IDDGCenterNode(cgN : CGCenterNode) extends IDDGVirtualNode(cgN){
   def getVirtualLabel : String = "Center"
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class IDDGEntryNode(cgN : CGEntryNode) extends IDDGVirtualNode(cgN)
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class IDDGExitParamNode(cgN : CGExitNode, position : Int) extends IDDGVirtualNode(cgN){
   var paramName : String = null
   def getVirtualLabel : String = "ExitParam:" + position
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class IDDGVirtualBodyNode(cgN : CGCallNode) extends IDDGInvokeNode(cgN){
   var argNames : List[String] = null
   def getInvokeLabel : String = "VirtualBody"
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class IDDGCallArgNode(cgN : CGCallNode, position : Int) extends IDDGInvokeNode(cgN){
   var argName : String = null
   def getInvokeLabel : String = "CallArg:" + position
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class IDDGReturnArgNode(cgN : CGReturnNode, position : Int) extends IDDGInvokeNode(cgN){
   var argName : String = null
   def getInvokeLabel : String = "ReturnArg:" + position
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class IDDGReturnVarNode(cgN : CGCallNode) extends IDDGInvokeNode(cgN){
   def getInvokeLabel : String = "ReturnVar"
 }

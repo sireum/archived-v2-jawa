@@ -9,6 +9,10 @@ package org.sireum.jawa.alir.objectFlowAnalysis
 
 import org.sireum.util._
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 class NormalValueSet{
   def copy : NormalValueSet = {
     val clone = new NormalValueSet

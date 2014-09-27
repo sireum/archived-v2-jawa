@@ -18,6 +18,9 @@ import org.sireum.util.FileResourceUri
 import java.io.FileInputStream
 import java.net.URI
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object APKFileResolver {
   
   /**

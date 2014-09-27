@@ -18,10 +18,18 @@ import org.sireum.util._
 import scala.collection.parallel.immutable.ParMap
 import scala.collection.parallel.immutable.ParSet
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait InterProceduralSideEffectAnalysisResult {
   def result : String => Option[InterProceduralSideEffectResult]
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 case class InterProceduralSideEffectResult(procSig : String,
 																							readMap : Map[Int, Set[String]],
 																							writeMap : Map[Int, Set[String]],
@@ -50,6 +58,10 @@ case class InterProceduralSideEffectResult(procSig : String,
   }
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 case class IntraProceduralSideEffectResult(procedure : JawaProcedure,
 																						readMap : Map[Int, Set[String]],
 																						writeMap : Map[Int, Set[String]],
@@ -83,6 +95,10 @@ case class IntraProceduralSideEffectResult(procedure : JawaProcedure,
   }
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 case class CallInfo(callees : Set[JawaProcedure], paramMap : Map[Int, Int]){
   override def toString : String = {
     val sb : StringBuilder = new StringBuilder()
@@ -95,6 +111,10 @@ case class CallInfo(callees : Set[JawaProcedure], paramMap : Map[Int, Int]){
   }
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 object SideEffectAnalysis {	
   
   def interProceduralSideEffect(intraSEResults : ParMap[String, IntraProceduralSideEffectResult]) : InterProceduralSideEffectAnalysisResult = {

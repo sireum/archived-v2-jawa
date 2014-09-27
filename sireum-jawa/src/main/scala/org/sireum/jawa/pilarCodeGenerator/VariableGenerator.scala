@@ -9,6 +9,9 @@ package org.sireum.jawa.pilarCodeGenerator
 
 import org.sireum.util._
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 class VariableGenerator {
 	private var varMap : MMap[String, Int] = mmapEmpty
 	def generate(typ : String) : String = {

@@ -10,6 +10,9 @@ package org.sireum.jawa
 import org.sireum.util._
 import scala.collection.immutable.BitSet
 
+/**
+ * @author Fengguo Wei
+ */
 class ClassLoadManager {
   /**
    * set of classes can be loaded by the program

@@ -12,8 +12,9 @@ import java.io.File
 
 /**
  * All the global config's settings at the beginning
+ * 
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-
 object GlobalConfig {
   
   final val PILAR_FILE_EXT = ".pilar"

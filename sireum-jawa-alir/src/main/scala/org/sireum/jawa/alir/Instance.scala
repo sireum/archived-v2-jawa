@@ -13,6 +13,10 @@ import org.sireum.jawa.Type
 import org.sireum.jawa.UnknownType
 import org.sireum.jawa.NormalType
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 abstract class Instance{
   def typ : Type
   def getType = typ

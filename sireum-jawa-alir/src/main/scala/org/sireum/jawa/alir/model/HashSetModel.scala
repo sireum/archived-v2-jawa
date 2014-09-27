@@ -18,6 +18,9 @@ import org.sireum.jawa.Type
 import org.sireum.jawa.NormalType
 import org.sireum.jawa.alir.Context
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 object HashSetModel {
 	def isHashSet(r : JawaRecord) : Boolean = r.getName == "java.util.HashSet"
 	  

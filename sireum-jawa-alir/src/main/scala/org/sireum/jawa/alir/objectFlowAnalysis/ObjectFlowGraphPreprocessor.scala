@@ -12,6 +12,10 @@ import org.sireum.pilar.symbol.ProcedureSymbolTable
 import org.sireum.alir.ControlFlowGraph
 import org.sireum.alir.ReachingDefinitionAnalysis
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 abstract class ObjectFlowGraphPreprocessor[Node <: OfaNode, ValueSet <: NormalValueSet] {
   type Edge = AlirEdge[Node]
   

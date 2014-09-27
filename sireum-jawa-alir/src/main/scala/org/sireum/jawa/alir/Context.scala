@@ -7,7 +7,10 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir
 
-
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 class Context(var k : Int){
   def copy : Context = {
     val clone = new Context(k)

@@ -19,6 +19,10 @@ import org.sireum.jawa.alir.Context
 import org.jgrapht.alg.DijkstraShortestPath
 import org.jgrapht.graph.DirectedPseudograph
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 trait InterProceduralGraph[Node <: InterProceduralNode]
   extends AlirGraph[Node]
   with AlirEdgeAccesses[Node]
@@ -78,6 +82,10 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
 	}
 }
 
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 abstract class InterProceduralNode(context : Context) extends PropertyProvider with Serializable {
   val propertyMap = mlinkedMapEmpty[Property.Key, Any]
   def getContext = this.context

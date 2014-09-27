@@ -19,8 +19,8 @@ import org.sireum.jawa.alir.Instance
 import org.sireum.jawa.alir.reachingFactsAnalysis._
 
 /**
- * @author Fengguo Wei & Sankardas Roy
- */
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
 trait ModelCallHandler {
   
   /**
