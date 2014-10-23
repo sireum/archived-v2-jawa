@@ -35,7 +35,9 @@ object APKFileResolver {
     if(outputDir.exists()){
       MyFileUtil.deleteDir(outputDir)
     }
-	  outputDir.mkdirs()
+	  if(!outputDir.mkdirs()){
+	    println("cannot create dir: " + outputDir)
+	  }
 	  val outputFile = new File(outputDir + "/" + dirName + ".dex")
 	  val ops = new FileOutputStream(outputFile)
     //resolve with apk file
