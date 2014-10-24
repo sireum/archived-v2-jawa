@@ -17,9 +17,9 @@ import org.sireum.amandroid.example.interprocedural.PilarExamples
  */
 @RunWith(classOf[JUnitRunner])
 class PilarTest extends PilarTestFramework {
-		PilarExamples.modelFiles.
-//		filter { s => s.endsWith("model-name.pilar") }.
-		foreach { fileUri =>
-		  Analyzing title fileUri file fileUri
-		}
+//		PilarExamples.modelFiles.
+////		filter { s => s.endsWith("model-name.pilar") }.
+//		foreach { fileUri =>
+//		  Analyzing title fileUri file fileUri
+//		}
 }
