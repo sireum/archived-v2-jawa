@@ -77,6 +77,9 @@ object BackwardCallChain {
 	
 	def getReachableProcedures(apiSig : String, par : Boolean) : Set[JawaProcedure] = {
 	  var result : ISet[JawaProcedure] = isetEmpty
+	  if(Center.getApplicationRecords.isEmpty) {
+	    return Set()
+	  }
 	  val ps : Set[JawaProcedure] = Center.getApplicationRecords.map(_.getProcedures).reduce(iunion[JawaProcedure])
 	  
     val workList = mlistEmpty[String]

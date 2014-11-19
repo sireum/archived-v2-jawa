@@ -113,6 +113,51 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 	    }.reduce((s1, s2) => s1 ++ s2)
   }
   
+//  def getBackwardCallChains(procSig : String) : Set[Seq[String]] = {
+//    if(procSig.isEmpty() || procSig == null) Set()
+//    else {
+//      val chains : MSet[Seq[String]] = msetEmpty
+//      chains += Seq(procSig)
+//      
+//      val callers = getAllCaller(procSig)
+//      calculateBackwardCallChains(callers, chains)
+//      chains.toSet
+//    }
+//  }
+//  
+//  private def calculateBackwardCallChains(callers : Set[String], chains : MSet[Seq[String]]) : Boolean = {
+//    var validCaller : Set[String] = Set() 
+//    chains.foreach{
+//      chain =>
+//        callers.foreach{
+//          caller =>
+//            if(!chain.contains(caller)){
+//              validCaller += caller
+//              chains += chain :+ caller
+//            }
+//        }
+//    }
+//    if(validCaller.isEmpty) false
+//    else {
+//      validCaller.foreach{
+//        caller =>
+//          val newCallers = getAllCaller(caller)
+//          calculateBackwardCallChains(newCallers, chains)
+//      }
+//    }
+//  }
+//  
+//  private def getAllCaller(procSig : String) : Set[String] = {
+//    var result : Set[String] = Set()
+//    this.callMap.foreach{
+//      case (caller, callees) =>
+//        if(callees.contains(procSig)){
+//          result += caller
+//        } 
+//    }
+//    result
+//  }
+  
   def reverse : InterproceduralControlFlowGraph[Node] = {
     val result = new InterproceduralControlFlowGraph[Node]
     for (n <- nodes) result.addNode(n)
@@ -450,6 +495,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     val targetNode = getCGEntryNode(calleeContext)
     val retSrcNode = getCGExitNode(calleeContext)
     this.synchronized{
+      setCallMap(callNode.getOwner, targetNode.getOwner)
       if(!hasEdge(callNode, targetNode))
       	addEdge(callNode, targetNode)
       if(!hasEdge(retSrcNode, returnNode))
@@ -463,7 +509,11 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     val calleeContext = callerContext.copy
     calleeContext.setContext(calleeSig, calleeSig)
     val targetNode = getCGEntryNode(calleeContext)
-    addEdge(callNode, targetNode, typ)
+    this.synchronized{
+      setCallMap(callNode.getOwner, targetNode.getOwner)
+      if(!hasEdge(callNode, targetNode))
+        addEdge(callNode, targetNode, typ)
+    }
     targetNode
   }
   
