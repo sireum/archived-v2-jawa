@@ -30,7 +30,8 @@ class Context(var k : Int){
   }
   
   def getCurrentLocUri : String = {
-    callStack.head._2
+    if(callStack.isEmpty) ""
+    else callStack.head._2
   }
   
   /**
