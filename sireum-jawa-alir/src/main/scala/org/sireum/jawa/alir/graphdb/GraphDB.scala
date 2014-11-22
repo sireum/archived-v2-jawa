@@ -16,7 +16,7 @@ import org.sireum.jawa.alir.interProcedural.InterProceduralDataFlowGraph
 
 object GraphDB {
   
-  val factory : OrientGraphFactory = new OrientGraphFactory("remote:localhost/testdb", "admin", "admin")
+  val factory : OrientGraphFactory = new OrientGraphFactory("remote:129.130.10.134/TestDB", "amandroid", "Love Amandroid!")
 
   def storeIcfg[Node <: CGNode](owner : String, g : InterproceduralControlFlowGraph[Node]) = {
     /**
