@@ -18,7 +18,7 @@ object GraphDB {
   
   val factory : OrientGraphFactory = new OrientGraphFactory("remote:129.130.10.134/TestDB", "amandroid", "Love Amandroid!")
 
-  def storeIcfg[Node <: CGNode](owner : String, g : InterproceduralControlFlowGraph[Node]) = {
+  def storeIcfg[Node <: CGNode](app : String, owner : String, g : InterproceduralControlFlowGraph[Node]) = {
     /**
      * a cache map between context and it's vetex id
      */
@@ -29,21 +29,21 @@ object GraphDB {
       val es = graph.getEdges("owner", owner)
       import collection.JavaConversions._
       vs.foreach(_.remove())
-      startTransactions_icfg[Node](owner, g, graph, cache)
+      startTransactions_icfg[Node](app, owner, g, graph, cache)
     } finally {
       graph.shutdown()
     }
   }
   
-  private def startTransactions_icfg[Node <: CGNode](owner : String, g : InterproceduralControlFlowGraph[Node], graph : OrientGraph, cache : MMap[Int, Object]) = {
+  private def startTransactions_icfg[Node <: CGNode](app : String, owner : String, g : InterproceduralControlFlowGraph[Node], graph : OrientGraph, cache : MMap[Int, Object]) = {
     try{
       g.nodes.foreach{
         node =>
-          insertNode_icfg(owner, graph, node, cache)
+          insertNode_icfg(app, owner, graph, node, cache)
       }
       g.edges.foreach{
         edge =>
-          insertEdge_icfg(owner, graph, edge, cache)
+          insertEdge_icfg(app, owner, graph, edge, cache)
       }
       graph.commit()
     } catch {
@@ -53,8 +53,9 @@ object GraphDB {
     }
   }
   
-  private def insertNode_icfg[Node <: CGNode](owner : String, graph : OrientGraph, node : Node, cache : MMap[Int, Object]) : Vertex = {
+  private def insertNode_icfg[Node <: CGNode](app : String, owner : String, graph : OrientGraph, node : Node, cache : MMap[Int, Object]) : Vertex = {
     val vex : Vertex = graph.addVertex("class:ICFGNode", Nil:_*)
+    vex.setProperty("apk", app)
     vex.setProperty("owner", owner)
     vex.setProperty("context", node.getContext.toString())
     vex.setProperty("code", node.asInstanceOf[CGNode].getCode)
@@ -62,17 +63,18 @@ object GraphDB {
     vex
   }
   
-  private def insertEdge_icfg[Node <: CGNode](owner : String, graph : OrientGraph, e : AlirEdge[Node], cache : MMap[Int, Object]) : Edge = {
+  private def insertEdge_icfg[Node <: CGNode](app : String, owner : String, graph : OrientGraph, e : AlirEdge[Node], cache : MMap[Int, Object]) : Edge = {
     val srcid = cache.getOrElse(e.source.hashCode(), throw new RuntimeException("Could not find vetex of node: " + e.source.getContext))
     val dstid = cache.getOrElse(e.target.hashCode(), throw new RuntimeException("Could not find vetex of node: " + e.target.getContext))
     val src = graph.getVertex(srcid)
     val dst = graph.getVertex(dstid)
     val edge : Edge = graph.addEdge("class:ICFGEdge", src, dst, null)
+    edge.setProperty("apk", app)
     edge.setProperty("owner", owner)
     edge
   }
   
-  def storeIdfg(owner : String, g : InterProceduralDataFlowGraph) = {
+  def storeIdfg(app : String, owner : String, g : InterProceduralDataFlowGraph) = {
     /**
      * a cache map between context and it's vetex id
      */
@@ -82,19 +84,19 @@ object GraphDB {
       val vs = graph.getVertices("owner", owner)
       import collection.JavaConversions._
       vs.foreach(_.remove())
-      startTransactions_idfg(owner, g, graph, cache)
+      startTransactions_idfg(app, owner, g, graph, cache)
     } finally {
       graph.shutdown()
     }
   }
   
-  private def startTransactions_idfg(owner : String, g : InterProceduralDataFlowGraph, graph : OrientGraph, cache : MMap[Int, Object]) = {
+  private def startTransactions_idfg(app : String, owner : String, g : InterProceduralDataFlowGraph, graph : OrientGraph, cache : MMap[Int, Object]) = {
     try{
       val icfg = g.icfg
       val rfaRes = g.summary
       icfg.nodes.foreach{
         node =>
-          val vex = insertNode_icfg(owner, graph, node, cache)
+          val vex = insertNode_icfg(app, owner, graph, node, cache)
           val facts = rfaRes.entrySet(node)
           val str : String = 
             if(!facts.isEmpty && facts != null) facts.map(f => "(" + f.s + "->" + f.v + ")\n").reduce[String]((v1, v2) => v1 + v2)
@@ -103,7 +105,7 @@ object GraphDB {
       }
       icfg.edges.foreach{
         edge =>
-          insertEdge_icfg(owner, graph, edge, cache)
+          insertEdge_icfg(app, owner, graph, edge, cache)
       }
       graph.commit()
     } catch {
