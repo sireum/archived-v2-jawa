@@ -24,7 +24,7 @@ class PointsCollector {
 	        exp.name.name
 	      case _ => throw new RuntimeException("Can not find signature")
 	    }
-    val pProc : PointProc = new PointProc(procSig)
+    val pProc : PointProc = new PointProc(procSig, "Entry")
     val sig = pst.procedure.getValueAnnotation("signature") match {
       case Some(s) =>
         s match {
@@ -730,8 +730,8 @@ class PointRNoIndex(uri : ResourceUri, loc : ResourceUri) extends PointWithUri(u
 /**
  * Set of program points corresponding to params. 
  */
-class PointProc(loc : ResourceUri) extends Point(loc){
-  val pSig = loc
+class PointProc(sig : ResourceUri, loc : ResourceUri) extends Point(loc){
+  val pSig = sig
   var accessTyp : String = null
   var thisParamOpt_Entry : Option[PointThis_Entry] = None
   var thisParamOpt_Exit : Option[PointThis_Exit] = None
