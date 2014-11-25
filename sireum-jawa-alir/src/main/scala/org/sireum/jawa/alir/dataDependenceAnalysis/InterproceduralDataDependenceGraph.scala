@@ -368,6 +368,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 sealed abstract class IDDGNode(cgN : CGNode) extends InterProceduralNode(cgN.getContext) {
   def getCGNode = cgN
   def getOwner = cgN.getOwner
+  def getCode : String = cgN.getCode
   override def getContext = cgN.getContext
 }
 

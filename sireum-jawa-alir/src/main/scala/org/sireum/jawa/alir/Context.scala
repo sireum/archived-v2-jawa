@@ -30,7 +30,8 @@ class Context(var k : Int){
   }
   
   def getCurrentLocUri : String = {
-    callStack.head._2
+    if(callStack.isEmpty) ""
+    else callStack.head._2
   }
   
   /**
@@ -78,6 +79,15 @@ class Context(var k : Int){
         if(str.lastIndexOf('.') > 0)
         	sb.append("," + str.substring(sig.lastIndexOf('.') + 1, sig.lastIndexOf(':')) + ")")
         else sb.append("," + str + ")")
+    }
+    sb.toString.intern()
+  }
+  def toFullString = {
+    var sb = new StringBuilder
+    this.callStack.foreach{
+      case(sig, str) =>
+        sb.append("(" + sig)
+        sb.append("," + str + ")")
     }
     sb.toString.intern()
   }
