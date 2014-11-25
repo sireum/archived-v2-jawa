@@ -531,13 +531,13 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     res += "Nodes:\n"
     nodes.foreach{
       node =>
-        val nStr = node.getContext + " ::::> " + node.getCode
+        val nStr = node.getContext.toFullString + " ::::> " + node.getCode
         res += nStr + "\n"
     }
     res += "Edges:\n"
     edges.foreach{
       edge =>
-        val eStr = edge.source.getContext + " --> " + edge.target.getContext
+        val eStr = edge.source.getContext.toFullString + " --> " + edge.target.getContext.toFullString
         res += eStr + "\n"
     }
     res

@@ -82,4 +82,13 @@ class Context(var k : Int){
     }
     sb.toString.intern()
   }
+  def toFullString = {
+    var sb = new StringBuilder
+    this.callStack.foreach{
+      case(sig, str) =>
+        sb.append("(" + sig)
+        sb.append("," + str + ")")
+    }
+    sb.toString.intern()
+  }
 }
