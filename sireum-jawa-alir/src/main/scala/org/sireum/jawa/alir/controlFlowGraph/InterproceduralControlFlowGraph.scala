@@ -526,6 +526,23 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     targetNode
   }
   
+  def toTextGraph : String  = {
+    var res : String = ""
+    res += "Nodes:\n"
+    nodes.foreach{
+      node =>
+        val nStr = node.getContext + " ::::> " + node.getCode
+        res += nStr + "\n"
+    }
+    res += "Edges:\n"
+    edges.foreach{
+      edge =>
+        val eStr = edge.source.getContext + " --> " + edge.target.getContext
+        res += eStr + "\n"
+    }
+    res
+  }
+  
   def addCGNormalNode(context : Context) : Node = {
     val node = newCGNormalNode(context).asInstanceOf[Node]
     val n =
