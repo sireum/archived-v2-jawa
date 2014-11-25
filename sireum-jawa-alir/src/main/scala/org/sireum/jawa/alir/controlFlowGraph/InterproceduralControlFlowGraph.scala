@@ -365,12 +365,12 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 		        case vn : AlirVirtualNode[VirtualLabel] =>
 		          vn.label.toString match{
 		            case "Entry" => 
-		              val entryNode = addCGEntryNode(callerContext.copy.setContext(calleeSig, calleeSig))
+		              val entryNode = addCGEntryNode(callerContext.copy.setContext(calleeSig, "Entry"))
 		              entryNode.setOwner(calleeProc.getSignature)
 		              nodes += entryNode
 		              if(isFirst) this.entryN = entryNode
 		            case "Exit" => 
-		              val exitNode = addCGExitNode(callerContext.copy.setContext(calleeSig, calleeSig))
+		              val exitNode = addCGExitNode(callerContext.copy.setContext(calleeSig,  "Exit"))
 		              exitNode.setOwner(calleeProc.getSignature)
 		              nodes += exitNode
 		              if(isFirst) this.exitN = exitNode
