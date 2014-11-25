@@ -81,6 +81,31 @@ object Center {
 	val JAVA_PRIMITIVE_TYPES = Set("byte", "short", "int", "long", "float", "double", "boolean", "char")
 
 	/**
+   * before starting the analysis, prepares the Center with some additional info
+   * a record named "Unknown" with a procedure called "unknown()" is added to the Center
+   * this special record is used to handle out-of-scope calls 
+   */
+  def setupCenter = {
+    val unknown = new JawaRecord
+    unknown.init(Center.UNKNOWN_RECORD)
+    val up = new JawaProcedure
+    up.init(Center.UNKNOWN_PROCEDURE_SIG)
+    up.setPhantom
+    unknown.addProcedure(up)
+    Center.addRecord(unknown)
+    
+    val center = new JawaRecord
+    center.init(Center.CENTER_RECORD)
+    val cp = new JawaProcedure
+    cp.init(Center.CENTER_PROCEDURE_SIG)
+    cp.setPhantom
+    center.addProcedure(cp)
+    Center.addRecord(center)
+  }
+  
+  setupCenter
+	
+	/**
 	 * map from global variable signature to uri; it's just a temp map
 	 */
 	
