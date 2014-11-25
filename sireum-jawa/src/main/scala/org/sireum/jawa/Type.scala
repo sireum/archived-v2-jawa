@@ -32,11 +32,7 @@ final case class NormalType(val typ : String, val dimensions : Int) extends Type
     sb.toString.intern()
   }
   override def toString : String = {
-    val sb = new StringBuilder
-    sb.append("(" + typ)
-    if(dimensions != 0) sb.append("," + dimensions)
-    sb.append(")")
-    sb.toString.intern()
+    name
   }
 }
 
@@ -59,9 +55,8 @@ final case class TupleType(val left : Type, val right : Type) extends Type {
   }
   override def toString : String = {
     val sb = new StringBuilder
-    sb.append("(" + typ)
-    if(dimensions != 0) sb.append("," + dimensions)
-    sb.append(")")
+    sb.append(typ)
+    for(i <- 0 to dimensions - 1) sb.append("[]")
     sb.toString.intern()
   }
 }
@@ -82,8 +77,7 @@ final case class NullType() extends Type {
   }
   override def toString : String = {
     val sb = new StringBuilder
-    sb.append("(" + typ)
-    sb.append(")")
+    sb.append(typ)
     sb.toString.intern()
   }
 }
@@ -104,8 +98,7 @@ final case class UnknownType() extends Type {
   }
   override def toString : String = {
     val sb = new StringBuilder
-    sb.append("(" + typ)
-    sb.append(")")
+    sb.append(typ)
     sb.toString.intern()
   }
 }

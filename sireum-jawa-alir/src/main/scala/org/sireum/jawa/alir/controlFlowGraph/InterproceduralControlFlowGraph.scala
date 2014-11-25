@@ -28,6 +28,7 @@ import org.sireum.jawa.GlobalConfig
 import org.sireum.jawa.Center
 import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaCodeSource
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -112,6 +113,51 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 	        }
 	    }.reduce((s1, s2) => s1 ++ s2)
   }
+  
+//  def getBackwardCallChains(procSig : String) : Set[Seq[String]] = {
+//    if(procSig.isEmpty() || procSig == null) Set()
+//    else {
+//      val chains : MSet[Seq[String]] = msetEmpty
+//      chains += Seq(procSig)
+//      
+//      val callers = getAllCaller(procSig)
+//      calculateBackwardCallChains(callers, chains)
+//      chains.toSet
+//    }
+//  }
+//  
+//  private def calculateBackwardCallChains(callers : Set[String], chains : MSet[Seq[String]]) : Boolean = {
+//    var validCaller : Set[String] = Set() 
+//    chains.foreach{
+//      chain =>
+//        callers.foreach{
+//          caller =>
+//            if(!chain.contains(caller)){
+//              validCaller += caller
+//              chains += chain :+ caller
+//            }
+//        }
+//    }
+//    if(validCaller.isEmpty) false
+//    else {
+//      validCaller.foreach{
+//        caller =>
+//          val newCallers = getAllCaller(caller)
+//          calculateBackwardCallChains(newCallers, chains)
+//      }
+//    }
+//  }
+//  
+//  private def getAllCaller(procSig : String) : Set[String] = {
+//    var result : Set[String] = Set()
+//    this.callMap.foreach{
+//      case (caller, callees) =>
+//        if(callees.contains(procSig)){
+//          result += caller
+//        } 
+//    }
+//    result
+//  }
   
   def reverse : InterproceduralControlFlowGraph[Node] = {
     val result = new InterproceduralControlFlowGraph[Node]
@@ -309,6 +355,8 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 	    val calleeSig = calleeProc.getSignature
 	    if(!calleeProc.checkLevel(Center.ResolveLevel.BODY)) calleeProc.resolveBody
 	    val body = calleeProc.getProcedureBody
+	    val rawcode = JawaCodeSource.getProcedureCodeWithoutFailing(calleeProc.getSignature)
+	    val codes = rawcode.split("\\r?\\n")
 	    val cfg = JawaAlirInfoProvider.getCfg(calleeProc)
 	    var nodes = isetEmpty[Node]
 	    cfg.nodes map{
@@ -330,25 +378,31 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 		          }
 		        case ln : AlirLocationUriNode=>
 		          val l = body.location(ln.locIndex)
+		          val code = codes.find(_.contains("#" + ln.locUri + ".")).getOrElse(throw new RuntimeException("Could not find " + ln.locUri + " from \n" + rawcode))
 		          if(isCall(l)){
 	              val c = addCGCallNode(callerContext.copy.setContext(calleeSig, ln.locUri))
 	              c.setOwner(calleeProc.getSignature)
+	              c.setCode(code)
 	              c.asInstanceOf[CGLocNode].setLocIndex(ln.locIndex)
 	              nodes += c
 	              val r = addCGReturnNode(callerContext.copy.setContext(calleeSig, ln.locUri))
 	              r.setOwner(calleeProc.getSignature)
+	              r.setCode(code)
 	              r.asInstanceOf[CGLocNode].setLocIndex(ln.locIndex)
 	              nodes += r
 	//              addEdge(c, r)
 		          } else {
 		            val node = addCGNormalNode(callerContext.copy.setContext(calleeSig, ln.locUri))
 		            node.setOwner(calleeProc.getSignature)
+		            node.setCode(code)
 		            node.asInstanceOf[CGLocNode].setLocIndex(ln.locIndex)
 		            nodes += node
 		          }
 		        case a : AlirLocationNode => 
+		          // should not have a chance to reach here.
 		          val node = addCGNormalNode(callerContext.copy.setContext(calleeSig, a.locIndex.toString))
 		          node.setOwner(calleeProc.getSignature)
+		          node.setCode("unknown")
 		          node.asInstanceOf[CGLocNode].setLocIndex(a.locIndex)
 		          nodes += node
 		      }
@@ -450,6 +504,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     val targetNode = getCGEntryNode(calleeContext)
     val retSrcNode = getCGExitNode(calleeContext)
     this.synchronized{
+      setCallMap(callNode.getOwner, targetNode.getOwner)
       if(!hasEdge(callNode, targetNode))
       	addEdge(callNode, targetNode)
       if(!hasEdge(retSrcNode, returnNode))
@@ -463,7 +518,11 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     val calleeContext = callerContext.copy
     calleeContext.setContext(calleeSig, calleeSig)
     val targetNode = getCGEntryNode(calleeContext)
-    addEdge(callNode, targetNode, typ)
+    this.synchronized{
+      setCallMap(callNode.getOwner, targetNode.getOwner)
+      if(!hasEdge(callNode, targetNode))
+        addEdge(callNode, targetNode, typ)
+    }
     targetNode
   }
   
@@ -605,10 +664,14 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 sealed abstract class CGNode(context : Context) extends InterProceduralNode(context){
   protected var owner : String = null
   protected var loadedClassBitSet : BitSet = BitSet.empty
+  protected var code : String = null
   def setOwner(owner : String)  = this.owner = owner
   def getOwner = this.owner
+  def setCode(code : String) = this.code = code
+  def getCode : String = this.code
   def setLoadedClassBitSet(bitset : BitSet) = this.loadedClassBitSet = bitset
   def getLoadedClassBitSet = this.loadedClassBitSet
+  
 //  def updateLoadedClassBitSet(bitset : BitSet) = {
 //    if(getLoadedClassBitSet == BitSet.empty) setLoadedClassBitSet(bitset)
 //    else setLoadedClassBitSet(bitset.intersect(getLoadedClassBitSet))
@@ -617,18 +680,22 @@ sealed abstract class CGNode(context : Context) extends InterProceduralNode(cont
 
 abstract class CGVirtualNode(context : Context) extends CGNode(context) {
   def getVirtualLabel : String
+  
   override def toString : String = getVirtualLabel + "@" + context
 }
 
 final case class CGEntryNode(context : Context) extends CGVirtualNode(context){
+  this.code = "Entry: " + context.getProcedureSig
   def getVirtualLabel : String = "Entry"
 }
 
 final case class CGExitNode(context : Context) extends CGVirtualNode(context){
+  this.code = "Exit: " + context.getProcedureSig
   def getVirtualLabel : String = "Exit"
 }
 
 final case class CGCenterNode(context : Context) extends CGVirtualNode(context){
+  this.code = "L0000: Center;"
   def getVirtualLabel : String = "Center"
 }
 

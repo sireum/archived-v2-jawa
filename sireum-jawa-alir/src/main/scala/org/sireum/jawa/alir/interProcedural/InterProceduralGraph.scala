@@ -45,7 +45,7 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
   
   def getNode(n : Node) : Node =
     pool(n)
-  
+    
   def deleteNode(node : Node) : Boolean =
     graph.removeVertex(node)
 
