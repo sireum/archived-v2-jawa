@@ -121,11 +121,13 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	    if(this.cg.cgCallNodeExists(defSite)) this.cg.getCGCallNode(defSite)
 	    else if(this.cg.cgReturnNodeExists(defSite)) this.cg.getCGReturnNode(defSite)
 	    else if(this.cg.cgEntryNodeExists(defSite)) this.cg.getCGEntryNode(defSite)
+	    else if(this.cg.cgExitNodeExists(defSite)) this.cg.getCGExitNode(defSite)
 		  else throw new RuntimeException("Cannot find node: " + defSite)
 	  }
 	  if(cgN.isInstanceOf[CGCallNode] && iddgCallArgNodeExists(cgN.asInstanceOf[CGCallNode], position)) getIDDGCallArgNode(cgN.asInstanceOf[CGCallNode], position)
 	  else if(cgN.isInstanceOf[CGReturnNode] && iddgReturnArgNodeExists(cgN.asInstanceOf[CGReturnNode], position)) getIDDGReturnArgNode(cgN.asInstanceOf[CGReturnNode], position)
 	  else if(cgN.isInstanceOf[CGEntryNode] && iddgEntryParamNodeExists(cgN.asInstanceOf[CGEntryNode], position)) getIDDGEntryParamNode(cgN.asInstanceOf[CGEntryNode], position)
+	  else if(cgN.isInstanceOf[CGExitNode] && iddgExitParamNodeExists(cgN.asInstanceOf[CGExitNode], position)) getIDDGExitParamNode(cgN.asInstanceOf[CGExitNode], position)
 	  else throw new RuntimeException("Cannot find node: " + defSite + ":" + position)
 	}
 	

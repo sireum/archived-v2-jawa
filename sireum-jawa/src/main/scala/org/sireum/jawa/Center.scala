@@ -88,6 +88,7 @@ object Center {
   def setupCenter = {
     val unknown = new JawaRecord
     unknown.init(Center.UNKNOWN_RECORD)
+    unknown.setLibraryRecord
     val up = new JawaProcedure
     up.init(Center.UNKNOWN_PROCEDURE_SIG)
     up.setPhantom
@@ -96,6 +97,7 @@ object Center {
     
     val center = new JawaRecord
     center.init(Center.CENTER_RECORD)
+    center.setLibraryRecord
     val cp = new JawaProcedure
     cp.init(Center.CENTER_PROCEDURE_SIG)
     cp.setPhantom
@@ -764,6 +766,7 @@ object Center {
 	  this.mainRecord = null
 	  this.entryPoints = Set()
 	  this.hierarchy = null
+	  setupCenter
 	}
 	
 	/**
