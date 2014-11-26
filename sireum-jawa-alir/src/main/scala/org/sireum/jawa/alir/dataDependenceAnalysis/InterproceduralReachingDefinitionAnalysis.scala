@@ -114,9 +114,9 @@ class InterproceduralReachingDefinitionAnalysis {
         }
       case dd : DefDesc =>
         if(dd.isDefinedInitially){
-          tarContext.setContext(procSig, procSig)
+          tarContext.setContext(procSig, "Entry")
         } else if(dd.isUndefined) {
-          tarContext.setContext(procSig, procSig)
+          tarContext.setContext(procSig, "Entry")
         } else throw new RuntimeException("Unexpected DefDesc: " + dd)
     }
   }

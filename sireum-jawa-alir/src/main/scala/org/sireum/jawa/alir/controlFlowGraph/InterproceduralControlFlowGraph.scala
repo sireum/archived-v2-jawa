@@ -408,8 +408,8 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 		      }
 	    }
 	    for (e <- cfg.edges) {
-	      val entryNode = getCGEntryNode(callerContext.copy.setContext(calleeSig, calleeSig))
-	      val exitNode = getCGExitNode(callerContext.copy.setContext(calleeSig, calleeSig))
+	      val entryNode = getCGEntryNode(callerContext.copy.setContext(calleeSig, "Entry"))
+	      val exitNode = getCGExitNode(callerContext.copy.setContext(calleeSig, "Exit"))
 	      e.source match{
 	        case vns : AlirVirtualNode[VirtualLabel] =>
 	          e.target match{
@@ -499,10 +499,12 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   def extendGraph(calleeSig  : String, callerContext : Context) : Node = {
     val callNode = getCGCallNode(callerContext)
     val returnNode = getCGReturnNode(callerContext)
-    val calleeContext = callerContext.copy
-    calleeContext.setContext(calleeSig, calleeSig)
-    val targetNode = getCGEntryNode(calleeContext)
-    val retSrcNode = getCGExitNode(calleeContext)
+    val calleeEntryContext = callerContext.copy
+    calleeEntryContext.setContext(calleeSig, "Entry")
+    val calleeExitContext = callerContext.copy
+    calleeExitContext.setContext(calleeSig, "Exit")
+    val targetNode = getCGEntryNode(calleeEntryContext)
+    val retSrcNode = getCGExitNode(calleeExitContext)
     this.synchronized{
       setCallMap(callNode.getOwner, targetNode.getOwner)
       if(!hasEdge(callNode, targetNode))
@@ -515,9 +517,9 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   
   def extendGraphOneWay(calleeSig  : String, callerContext : Context, typ : String = null) : Node = {
     val callNode = getCGCallNode(callerContext)
-    val calleeContext = callerContext.copy
-    calleeContext.setContext(calleeSig, calleeSig)
-    val targetNode = getCGEntryNode(calleeContext)
+    val calleeEntryContext = callerContext.copy
+    calleeEntryContext.setContext(calleeSig, "Entry")
+    val targetNode = getCGEntryNode(calleeEntryContext)
     this.synchronized{
       setCallMap(callNode.getOwner, targetNode.getOwner)
       if(!hasEdge(callNode, targetNode))

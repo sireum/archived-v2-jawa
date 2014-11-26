@@ -452,7 +452,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
               latticeMap += (sn -> s)
             case j : ReturnJump =>
               val exitContext = callerContext.copy
-              exitContext.setContext(pSig, pSig)
+              exitContext.setContext(pSig, "Exit")
               val sn = cg.getCGExitNode(exitContext)
               val r = if (j.exp.isEmpty) s else fE(j.exp.get, s, currentNode)
               if (esl.isDefined) {
