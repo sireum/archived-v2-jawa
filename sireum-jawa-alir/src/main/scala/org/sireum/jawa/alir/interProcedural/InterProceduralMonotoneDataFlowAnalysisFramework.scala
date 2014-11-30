@@ -592,7 +592,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
 		      if(nl.isDefined) nl.get.onPostVisitNode(n, cg.successors(n))
 	      }
 	    }
-	    val nodes = if(par) cg.nodes.par else cg.nodes
+	    val nodes = if(false) cg.nodes.par else cg.nodes
 	    workList ++= nodes.map{
 	      node =>
 	        var newnodes = isetEmpty[N]
