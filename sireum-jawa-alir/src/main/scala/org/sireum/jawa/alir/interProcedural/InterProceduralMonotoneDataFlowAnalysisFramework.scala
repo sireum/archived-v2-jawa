@@ -575,7 +575,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
     workList += flow.entryNode
     while(!workList.isEmpty){
 	    while (!workList.isEmpty) {
-	      if(par){
+	      if(false){
 	        val newworkList = workList.par.map{
 	          n =>
 	            if(nl.isDefined) nl.get.onPreVisitNode(n, cg.predecessors(n))
