@@ -14,6 +14,7 @@ package org.sireum.jawa.util
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 class Timer(limit : Int) {
+  require(limit > 0)
 	private val startTime = System.currentTimeMillis()
 	def isTimeOut : Boolean = (System.currentTimeMillis() - this.startTime) > limit * 60000
 	def isTimeOutAndThrow = if(isTimeOut) throw new TimeOutException

@@ -8,5 +8,15 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/sireum-pilar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sireum-jawa"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sireum-parser"/>
+	<classpathentry kind="lib" path="/Users/FengguoWei/Developer/graphdb/orientdb-community-1.7.10/lib/gremlin-java-2.5.0.jar"/>
+	<classpathentry kind="lib" path="/Users/FengguoWei/Developer/graphdb/orientdb-community-1.7.10/lib/orient-commons-1.7.10.jar"/>
+	<classpathentry kind="lib" path="/Users/FengguoWei/Developer/graphdb/orientdb-community-1.7.10/lib/orientdb-client-1.7.10.jar"/>
+	<classpathentry kind="lib" path="/Users/FengguoWei/Developer/graphdb/orientdb-community-1.7.10/lib/orientdb-core-1.7.10.jar"/>
+	<classpathentry kind="lib" path="/Users/FengguoWei/Developer/graphdb/orientdb-community-1.7.10/lib/orientdb-distributed-1.7.10.jar"/>
+	<classpathentry kind="lib" path="/Users/FengguoWei/Developer/graphdb/orientdb-community-1.7.10/lib/orientdb-graphdb-1.7.10.jar"/>
+	<classpathentry kind="lib" path="/Users/FengguoWei/Developer/graphdb/orientdb-community-1.7.10/lib/orientdb-enterprise-1.7.10.jar"/>
+	<classpathentry kind="lib" path="/Users/FengguoWei/Developer/graphdb/orientdb-community-1.7.10/lib/orientdb-object-1.7.10.jar"/>
+	<classpathentry kind="lib" path="/Users/FengguoWei/Developer/graphdb/orientdb-community-1.7.10/lib/orientdb-tools-1.7.10.jar"/>
+	<classpathentry kind="lib" path="/Users/FengguoWei/Developer/graphdb/orientdb-community-1.7.10/lib/blueprints-core-2.5.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
