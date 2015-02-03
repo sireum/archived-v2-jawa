@@ -27,6 +27,7 @@ import org.sireum.jawa.alir.interProcedural.InstanceCallee
 import org.sireum.jawa.alir.interProcedural.StaticCallee
 import org.sireum.jawa.alir.LibSideEffectProvider
 import org.sireum.jawa.alir.UnknownInstance
+import org.sireum.jawa.alir.interProcedural.UnknownCallee
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -112,17 +113,34 @@ object ReachingFactsAnalysisHelper {
           val recvValue : ISet[Instance] = factMap.getOrElse(recvSlot, isetEmpty)
           recvValue.foreach{
 			      ins =>
-			        if(ins.isInstanceOf[NullInstance])
-			          err_msg_normal(TITLE, "Try to invoke method: " + sig + "@" + callerContext + "\nwith Null pointer:" + ins)
-			        else if(ins.isInstanceOf[UnknownInstance]) {
-			          err_msg_detail(TITLE, "Invoke method: " + sig + "@" + callerContext + "\n with Unknown Instance: " + ins)
-			          calleeSet += InstanceCallee(Center.UNKNOWN_PROCEDURE_SIG, ins)
-			        } else {
-				        val p = 
-				          if(typ == "super") CallHandler.getSuperCalleeProcedure(sig)
-				          else if(typ == "direct") CallHandler.getDirectCalleeProcedure(sig)
-				        	else CallHandler.getVirtualCalleeProcedure(ins.typ, subSig)
-				        calleeSet += InstanceCallee(p.getSignature, ins)
+              ins match{
+                case ni : NullInstance =>
+                  err_msg_normal(TITLE, "Try to invoke method: " + sig + "@" + callerContext + "with Null pointer:" + ins)
+//                case ui : UnknownInstance =>
+//                  err_msg_detail(TITLE, "Invoke method: " + sig + "@" + callerContext + "\n with Unknown Instance: " + ins)
+//                  val baseTyp = ui.baseTyp
+//                  val baseRecOpt = Center.tryGetRecord(baseTyp.name)
+//                  val possibleCalleeSig = Center.getRecordHierarchy.resolveAbstractDispatch(r, p)
+//                  calleeSet += UnknownCallee(Center.UNKNOWN_PROCEDURE_SIG, ins)
+                case _ =>
+                  if(typ == "super"){
+                    val p = CallHandler.getSuperCalleeProcedure(sig)
+                    calleeSet += InstanceCallee(p.getSignature, ins)
+                  }
+                  else if(typ == "direct"){
+                    val p = CallHandler.getDirectCalleeProcedure(sig)
+                    calleeSet += InstanceCallee(p.getSignature, ins)
+                  }
+                  else {
+                    if(ins.isInstanceOf[UnknownInstance]){
+                      val ps = CallHandler.getUnknownVirtualCalleeProcedures(ins.getType, subSig)
+                      calleeSet ++= ps.map{p=> UnknownCallee(p.getSignature)}
+                    } else {
+                      val p = CallHandler.getVirtualCalleeProcedure(ins.typ, subSig)
+                      calleeSet += InstanceCallee(p.getSignature, ins)
+                    }
+                  }
+                  
               }
 			    }
         case _ => throw new RuntimeException("wrong exp type: " + cj.callExp.arg)
@@ -164,7 +182,7 @@ object ReachingFactsAnalysisHelper {
 	    retVars.foreach{
 	      retVar =>
 		      val slot = VarSlot(retVar)
-	        val value = UnknownInstance(currentContext)
+	        val value = UnknownInstance(calleeProc.getReturnType, currentContext)
 	        genFacts += RFAFact(slot, value)
 	    }
 	  (genFacts, killFacts)
@@ -175,7 +193,7 @@ object ReachingFactsAnalysisHelper {
 	  val record = calleeProc.getDeclaringRecord
     record.getDeclaredStaticObjectTypeFields.foreach{
       field =>
-        result += RFAFact(VarSlot(field.getSignature), UnknownInstance(currentContext))
+        result += RFAFact(VarSlot(field.getSignature), UnknownInstance(field.getType, currentContext))
     }
 	  result
 	}
@@ -284,7 +302,7 @@ object ReachingFactsAnalysisHelper {
             } else if(slot.isGlobal){
               Center.findStaticField(ne.name.name) match{
                 case Some(af) =>
-                  value ++= factMap.getOrElse(VarSlot(af.getSignature), isetEmpty[Instance] + UnknownInstance(currentContext))
+                  value ++= factMap.getOrElse(VarSlot(af.getSignature), isetEmpty[Instance] + UnknownInstance(af.getType, currentContext))
                 case None =>
                   err_msg_normal(TITLE, "Given field may be in other library: " + ne.name.name)
               }
@@ -329,14 +347,15 @@ object ReachingFactsAnalysisHelper {
                 else {
                   val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
                   val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
-                  val fSig = rec.getField(fieldSig).getSignature
+                  val field = rec.getField(fieldSig)
+                  val fSig = field.getSignature
                   val fieldSlot = FieldSlot(ins, fSig)
 	                val fieldValue : ISet[Instance] = factMap.getOrElse(fieldSlot, isetEmpty)
 	                val fieldUnknownValue : MSet[Instance] = msetEmpty
                   ins.getFieldsUnknownDefSites.foreach{
                   	case (defsite, fields) =>
-                  	  if(fields.contains("ALL")) fieldUnknownValue += UnknownInstance(defsite)
-                  	  else if(fields.contains(fSig)) fieldUnknownValue += UnknownInstance(defsite)
+                  	  if(fields.contains("ALL")) fieldUnknownValue += UnknownInstance(field.getType, defsite)
+                  	  else if(fields.contains(fSig)) fieldUnknownValue += UnknownInstance(field.getType, defsite)
                 	}
 			            result(i) = fieldValue ++ fieldUnknownValue
                 }
@@ -351,10 +370,10 @@ object ReachingFactsAnalysisHelper {
             baseValue.map{
               ins =>
                 if(ins.isInstanceOf[NullInstance])
-                  err_msg_normal(TITLE, "Access array: " + baseSlot + "@" + currentContext + "\nwith Null pointer: " + ins)
+                  err_msg_normal(TITLE, "Access array: " + baseSlot + "@" + currentContext + " with Null pointer: " + ins)
                 else if(ins.isInstanceOf[UnknownInstance]){
                   val arraySlot = ArraySlot(ins)
-                  val arrayValue : ISet[Instance] = factMap.getOrElse(arraySlot, isetEmpty[Instance]) + UnknownInstance(ins.getDefSite)
+                  val arrayValue : ISet[Instance] = factMap.getOrElse(arraySlot, isetEmpty[Instance]) + UnknownInstance(ins.getType, ins.getDefSite)
 			            if(arrayValue != null)
 			            	result(i) = arrayValue
                 }
@@ -366,13 +385,33 @@ object ReachingFactsAnalysisHelper {
                 }
             }
           case ce : CastExp =>
+            var name : ResourceUri = ""
+            var dimensions = 0
+            ce.typeSpec match {
+              case nt : NamedTypeSpec => 
+                name = nt.name.name
+              case _ =>
+            }
+            
+            val ins = 
+              if(name == "java.lang.String" && dimensions == 0){
+                RFAConcreteStringInstance("", currentContext.copy)
+              } else {
+                RFAInstance(new NormalType(name, dimensions), currentContext.copy)
+              }
             ce.exp match{
               case ice : NameExp =>
                 val slot = VarSlot(ice.name.name)
                 val value : ISet[Instance] = factMap.getOrElse(slot, isetEmpty[Instance])
-		            result(i) = value
+                result(i) = value.map{
+                  v =>
+                    if(v.isInstanceOf[UnknownInstance]){
+                      UnknownInstance(ins.getType, v.defSite)
+                    } else v
+                }
               case nle : NewListExp =>
-                result(i) = isetEmpty[Instance] + UnknownInstance(currentContext)
+                System.err.println(TITLE, "NewListExp: " + nle)
+                result(i) = isetEmpty[Instance]// + UnknownInstance(currentContext)
               case _ => throw new RuntimeException("Wrong exp: " + ce.exp)
             }
           case _=>

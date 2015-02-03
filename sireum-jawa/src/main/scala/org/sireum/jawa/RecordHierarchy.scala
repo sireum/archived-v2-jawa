@@ -346,20 +346,22 @@ class RecordHierarchy {
   def resolveConcreteDispatch(concreteType : JawaRecord, p : JawaProcedure) : JawaProcedure = {
     if(concreteType.isInterface) throw new RuntimeException("concreteType need to be class type: " + concreteType)
     val pSubSig = p.getSubSignature
-    getAllSuperClassesOfIncluding(concreteType).foreach{
-      suRecord=>
-        if(suRecord.declaresProcedure(pSubSig) && isProcedureVisible(suRecord, p)) return suRecord.getProcedure(pSubSig)
-    }
-    throw new RuntimeException("Cannot resolve concrete dispatch!\n" + "Type:" + concreteType + "\nProcedure:" + p)
+    resolveConcreteDispatch(concreteType, pSubSig)
   }
   
   /**
    * Given an object created by o = new R as type R, return the procedure which will be called by o.p()
    */
   
-  def resolveConcreteDispatch(concreteType : JawaRecord, pSubSig : String) : Option[JawaProcedure] = {
+  def resolveConcreteDispatch(concreteType : JawaRecord, pSubSig : String) : JawaProcedure = {
     if(concreteType.isInterface) throw new RuntimeException("Receiver need to be class type: " + concreteType)
-    findProcedureThroughHierarchy(concreteType, pSubSig)
+    findProcedureThroughHierarchy(concreteType, pSubSig) match {
+      case Some(ap) => 
+        if(ap.isAbstract) throw new RuntimeException("Target procedure needs to be non-abstract method type: " + ap)
+        else if(!isProcedureVisible(concreteType, ap)) throw new RuntimeException("Target procedure " + ap + " needs to be visible from: " + concreteType)
+        else ap
+      case None => throw new RuntimeException("Cannot resolve concrete dispatch!\n" + "Type:" + concreteType + "\nProcedure:" + pSubSig)
+    }
   }
   
   private def findProcedureThroughHierarchy(record : JawaRecord, subSig : String) : Option[JawaProcedure] = {
@@ -378,7 +380,6 @@ class RecordHierarchy {
     } else {
 	    record.tryGetProcedure(subSig) match{
 	      case Some(p) =>
-	        if(p.isAbstract) throw new RuntimeException("Target procedure needs to be non-abstract method type: " + p)
 	        Some(p)
 	      case None =>
 	        if(record.hasSuperClass)
@@ -392,17 +393,31 @@ class RecordHierarchy {
    * Given an abstract dispatch to an object of type r and a procedure p, gives a list of possible receiver's methods
    */
   
-  def resolveAbstractDispatch(r : JawaRecord, p : JawaProcedure) : Set[JawaProcedure] = {
-    var records : Set[JawaRecord] = null
+  def resolveAbstractDispatch(r : JawaRecord, pSubSig : String) : Set[JawaProcedure] = {
+    val results : MSet[JawaProcedure] = msetEmpty
+    val records : MSet[JawaRecord] = msetEmpty
     if(r.isInterface){
-      val imps = getAllImplementersOf(r)
-      if(!imps.isEmpty)
-      	records = imps.map{getSubClassesOfIncluding(_)}.reduce((s1, s2) => s1 ++ s2)
-      else records = Set()
+      findProcedureThroughHierarchy(r, pSubSig) match {
+        case Some(p) => results += p
+        case None =>
+      }
+      records ++= getAllImplementersOf(r)
     } else {
-      records = getAllSubClassesOfIncluding(r)
+      records ++= getAllSubClassesOfIncluding(r)
     }
-    records.map{resolveConcreteDispatch(_, p)}
+    
+    records.filter { r => !r.isAbstract }.foreach{results += resolveConcreteDispatch(_, pSubSig)}
+    if(results.isEmpty) results += r.getProcedure(pSubSig)
+    results.toSet
+  }
+  
+  /**
+   * Given an abstract dispatch to an object of type r and a procedure p, gives a list of possible receiver's methods
+   */
+  
+  def resolveAbstractDispatch(r : JawaRecord, p : JawaProcedure) : Set[JawaProcedure] = {
+    val pSubSig = p.getSubSignature
+    resolveAbstractDispatch(r, pSubSig)
   }
   
   def printDetails = {

@@ -21,12 +21,12 @@ object CallHandler {
 	/**
 	 * get callee procedure from Center. Input: .equals:(Ljava/lang/Object;)Z
 	 */
-	def getCalleeProcedure(from : JawaRecord, pSubSig : String) : JawaProcedure = {
-	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig) match{
-  	  case Some(ap) => ap
-  	  case None => Center.getProcedureWithoutFailing(Center.UNKNOWN_PROCEDURE_SIG)
-  	}
-	}
+//	def getCalleeProcedure(from : JawaRecord, pSubSig : String) : JawaProcedure = {
+//	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig) match{
+//  	  case Some(ap) => ap
+//  	  case None => Center.getProcedureWithoutFailing(Center.UNKNOWN_PROCEDURE_SIG)
+//  	}
+//	}
 	
 	/**
 	 * check and get virtual callee procedure from Center. Input: .equals:(Ljava/lang/Object;)Z
@@ -36,11 +36,19 @@ object CallHandler {
 	  	if(Center.isJavaPrimitiveType(fromType)) Center.DEFAULT_TOPLEVEL_OBJECT  // any array in java is an Object, so primitive type array is an object, object's method can be called
 	  	else fromType.name	
 	  val from = Center.resolveRecord(name, Center.ResolveLevel.HIERARCHY)
-	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig) match{
-  	  case Some(ap) => ap
-  	  case None => Center.getProcedureWithoutFailing(Center.UNKNOWN_PROCEDURE_SIG)
-  	}
+	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig)
 	}
+  
+  /**
+   * check and get virtual callee procedure from Center. Input: .equals:(Ljava/lang/Object;)Z
+   */
+  def getUnknownVirtualCalleeProcedures(baseType : Type, pSubSig : String) : Set[JawaProcedure] = {
+    val baseName =
+      if(Center.isJavaPrimitiveType(baseType)) Center.DEFAULT_TOPLEVEL_OBJECT  // any array in java is an Object, so primitive type array is an object, object's method can be called
+      else baseType.name  
+    val baseRec = Center.resolveRecord(baseName, Center.ResolveLevel.HIERARCHY)
+    Center.getRecordHierarchy.resolveAbstractDispatch(baseRec, pSubSig)
+  }
 	
 	/**
 	 * check and get super callee procedure from Center. Input: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
@@ -49,10 +57,7 @@ object CallHandler {
 	  val fromType = StringFormConverter.getRecordTypeFromProcedureSignature(pSig)
 	  val pSubSig = StringFormConverter.getSubSigFromProcSig(pSig)
 	  val from = Center.resolveRecord(fromType.name, Center.ResolveLevel.HIERARCHY)
-	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig) match{
-  	  case Some(ap) => ap
-  	  case None => Center.getProcedureWithoutFailing(Center.UNKNOWN_PROCEDURE_SIG)
-  	}
+	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig)
 	}
 	
 	/**
@@ -62,10 +67,7 @@ object CallHandler {
 	  val recType = StringFormConverter.getRecordTypeFromProcedureSignature(procSig)
 	  val pSubSig = Center.getSubSigFromProcSig(procSig)
 	  val from = Center.resolveRecord(recType.name, Center.ResolveLevel.HIERARCHY)
-	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig) match{
-  	  case Some(ap) => ap
-  	  case None => Center.getProcedureWithoutFailing(Center.UNKNOWN_PROCEDURE_SIG)
-  	}
+	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig)
 	}
 	
 	/**

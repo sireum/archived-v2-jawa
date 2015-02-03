@@ -27,4 +27,10 @@ final case class InstanceCallee(callee : String, ins : Instance) extends Callee
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
+final case class UnknownCallee(callee : String) extends Callee
+
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
 final case class StaticCallee(callee : String) extends Callee

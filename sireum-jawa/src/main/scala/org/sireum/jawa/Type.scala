@@ -86,19 +86,19 @@ final case class NullType() extends Type {
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class UnknownType() extends Type {
-  def typ = "Unknown"
-  def dimensions = 0
-  def isArray = false
-  def name : String = {
-    val sb = new StringBuilder
-    sb.append(typ)
-    for(i <- 0 to dimensions - 1) sb.append("[]")
-    sb.toString.intern()
-  }
-  override def toString : String = {
-    val sb = new StringBuilder
-    sb.append(typ)
-    sb.toString.intern()
-  }
-}
+//final case class UnknownType() extends Type {
+//  def typ = "Unknown"
+//  def dimensions = 0
+//  def isArray = false
+//  def name : String = {
+//    val sb = new StringBuilder
+//    sb.append(typ)
+//    for(i <- 0 to dimensions - 1) sb.append("[]")
+//    sb.toString.intern()
+//  }
+//  override def toString : String = {
+//    val sb = new StringBuilder
+//    sb.append(typ)
+//    sb.toString.intern()
+//  }
+//}

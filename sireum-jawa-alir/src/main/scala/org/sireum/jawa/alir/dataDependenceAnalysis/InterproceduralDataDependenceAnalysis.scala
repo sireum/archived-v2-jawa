@@ -180,13 +180,12 @@ object InterproceduralDataDependenceAnalysis {
 	                  f => 
 	                    val fs = FieldSlot(argIns, f)
 	                    val argRelatedFacts = ReachingFactsAnalysisHelper.getRelatedFacts(fs, rfaFacts)
-			                val fieldUnknownFacts : MSet[RFAFact] = msetEmpty
+                      argRelatedFacts.foreach{case RFAFact(slot, ins) => result += iddg.findDefSite(ins.getDefSite)}
 		                  argIns.getFieldsUnknownDefSites.foreach{
 		                  	case (defsite, udfields) =>
-		                  	  if(udfields.contains("ALL")) fieldUnknownFacts += RFAFact(FieldSlot(argIns, f), UnknownInstance(defsite))
-		                  	  else if(udfields.contains(f)) fieldUnknownFacts += RFAFact(FieldSlot(argIns, f), UnknownInstance(defsite))
+		                  	  if(udfields.contains("ALL")) result += iddg.findDefSite(defsite)
+		                  	  else if(udfields.contains(f)) result += iddg.findDefSite(defsite)
 		                	}
-	                    (argRelatedFacts ++ fieldUnknownFacts).foreach{case RFAFact(slot, ins) => result += iddg.findDefSite(ins.getDefSite)}
 	                }
 	            }
 	          } else if(calleep.isConcrete) {
@@ -331,13 +330,12 @@ object InterproceduralDataDependenceAnalysis {
 	              val fSig = rec.getField(fieldSig).getSignature
 		            val fieldSlot = FieldSlot(ins, fSig)
 	              val fieldValue = rfaFacts.filter(f => f.s == fieldSlot).map(f => f.v)
-                val fieldUnknownValue : MSet[Instance] = msetEmpty
+                fieldValue.foreach(fIns => result += iddg.findDefSite(fIns.getDefSite))
                 ins.getFieldsUnknownDefSites.foreach{
                 	case (defsite, fields) =>
-                	  if(fields.contains("ALL")) fieldUnknownValue += UnknownInstance(defsite)
-                	  else if(fields.contains(fSig)) fieldUnknownValue += UnknownInstance(defsite)
+                	  if(fields.contains("ALL")) result += iddg.findDefSite(defsite)
+                	  else if(fields.contains(fSig)) result += iddg.findDefSite(defsite)
               	}
-	              fieldValue.foreach(fIns => result += iddg.findDefSite(fIns.getDefSite))
               }
             }
         }
@@ -406,13 +404,12 @@ object InterproceduralDataDependenceAnalysis {
 			                      f => 
 			                        val fs = FieldSlot(argIns, f)
 			                        val argRelatedFacts = ReachingFactsAnalysisHelper.getRelatedFacts(fs, rfaFacts)
-							                val fieldUnknownFacts : MSet[RFAFact] = msetEmpty
+                              argRelatedFacts.foreach{case RFAFact(slot, ins) => result += iddg.findDefSite(ins.getDefSite)}
 						                  argIns.getFieldsUnknownDefSites.foreach{
 						                  	case (defsite, udfields) =>
-						                  	  if(udfields.contains("ALL")) fieldUnknownFacts += RFAFact(FieldSlot(argIns, f), UnknownInstance(defsite))
-						                  	  else if(udfields.contains(f)) fieldUnknownFacts += RFAFact(FieldSlot(argIns, f), UnknownInstance(defsite))
+						                  	  if(udfields.contains("ALL")) result += iddg.findDefSite(defsite)
+						                  	  else if(udfields.contains(f)) result += iddg.findDefSite(defsite)
 						                	}
-			                        (argRelatedFacts ++ fieldUnknownFacts).foreach{case RFAFact(slot, ins) => result += iddg.findDefSite(ins.getDefSite)}
 			                    }
 			                }
 			              } else if(calleep.isConcrete) {
