@@ -323,10 +323,10 @@ object InterproceduralDataDependenceAnalysis {
         baseValue.foreach{
           ins =>
 //            result += iddg.findDefSite(ins.getDefSite)
-            if(!ins.isInstanceOf[NullInstance] && !ins.isInstanceOf[UnknownInstance]){
+            if(!ins.isInstanceOf[NullInstance]){ // if(!ins.isInstanceOf[NullInstance] && !ins.isInstanceOf[UnknownInstance]){
               val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
               val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
-              if(!rec.isPhantom && !rec.isArray){
+              if(!rec.isArray){ // if(!rec.isUnknown && !rec.isArray){
 	              val fSig = rec.getField(fieldSig).getSignature
 		            val fieldSlot = FieldSlot(ins, fSig)
 	              val fieldValue = rfaFacts.filter(f => f.s == fieldSlot).map(f => f.v)

@@ -365,14 +365,14 @@ class RecordHierarchy {
   }
   
   private def findProcedureThroughHierarchy(record : JawaRecord, subSig : String) : Option[JawaProcedure] = {
-    if(record.isPhantom){
+    if(record.isUnknown){
       this.synchronized{
 	      record.tryGetProcedure(subSig) match{
 	        case Some(p) => Some(p)
 	        case None =>
 	          val ap = new JawaProcedure
 	          ap.init(StringFormConverter.getSigFromOwnerAndProcSubSig(record.getName, subSig))
-	          ap.setPhantom
+	          ap.setUnknown
 	          record.addProcedure(ap)
 	          Some(ap)
 	      }
@@ -397,17 +397,30 @@ class RecordHierarchy {
     val results : MSet[JawaProcedure] = msetEmpty
     val records : MSet[JawaRecord] = msetEmpty
     if(r.isInterface){
-      findProcedureThroughHierarchy(r, pSubSig) match {
-        case Some(p) => results += p
-        case None =>
-      }
       records ++= getAllImplementersOf(r)
     } else {
       records ++= getAllSubClassesOfIncluding(r)
     }
     
     records.filter { r => !r.isAbstract }.foreach{results += resolveConcreteDispatch(_, pSubSig)}
-    if(results.isEmpty) results += r.getProcedure(pSubSig)
+    if(results.isEmpty){
+      if(r.isInterface){
+        findProcedureThroughHierarchy(r, pSubSig) match { //check whether this method is in the java.lang.Object class.
+          case Some(p) => results += p
+          case None => // It's an unknown method since we cannot find any implementer of this interface and such method is getting invoked.
+            val unknownrec = new JawaRecord
+            unknownrec.init(r.getName + "*")
+            unknownrec.setApplicationRecord
+            unknownrec.setUnknown
+            unknownrec.addInterface(r)
+            val unknownpro = new JawaProcedure
+            unknownpro.init(StringFormConverter.getSigFromOwnerAndProcSubSig(unknownrec.getName, pSubSig))
+            unknownpro.setUnknown
+            unknownrec.addProcedure(unknownpro)
+            results += unknownpro
+        }
+      } else throw new RuntimeException("Could not resolve abstract dispath for:\nclass:" + r + " method:" + pSubSig)
+    }
     results.toSet
   }
   

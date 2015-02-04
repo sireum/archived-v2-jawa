@@ -98,9 +98,10 @@ object Center {
     val center = new JawaRecord
     center.init(Center.CENTER_RECORD)
     center.setLibraryRecord
+    center.setUnknown
     val cp = new JawaProcedure
     cp.init(Center.CENTER_PROCEDURE_SIG)
-    cp.setPhantom
+    cp.setUnknown
     center.addProcedure(cp)
     Center.addRecord(center)
   }
@@ -231,7 +232,7 @@ object Center {
       
     getRecords.foreach{
       rec =>
-        if(!rec.isPhantom && !rec.hasSuperClass && rec.getName != DEFAULT_TOPLEVEL_OBJECT){
+        if(!rec.isUnknown && !rec.hasSuperClass && rec.getName != DEFAULT_TOPLEVEL_OBJECT){
           if(!hasRecord(DEFAULT_TOPLEVEL_OBJECT)) resolveRecord(DEFAULT_TOPLEVEL_OBJECT, ResolveLevel.HIERARCHY)
           rec.setSuperClass(getRecord(DEFAULT_TOPLEVEL_OBJECT))
         }

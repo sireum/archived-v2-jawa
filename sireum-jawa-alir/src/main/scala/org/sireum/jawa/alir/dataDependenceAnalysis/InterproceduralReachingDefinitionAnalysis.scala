@@ -69,7 +69,7 @@ class InterproceduralReachingDefinitionAnalysis {
     cg.nodes.foreach{
 	    node =>
 	      val owner = Center.getProcedureWithoutFailing(node.getOwner)
-	      if(!owner.isPhantom){
+	      if(!owner.isUnknown){
 		      val cfg = JawaAlirInfoProvider.getCfg(owner)
 		      val rda = JawaAlirInfoProvider.getRda(owner, cfg)
 		      node match{

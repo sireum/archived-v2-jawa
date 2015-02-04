@@ -77,14 +77,14 @@ object CallHandler {
 	  val pSubSig = Center.getSubSigFromProcSig(procSig)
 	  val recType = StringFormConverter.getRecordTypeFromProcedureSignature(procSig)
 	  val rec = Center.resolveRecord(recType.name, Center.ResolveLevel.HIERARCHY)
-	  if(rec.isPhantom){
+	  if(rec.isUnknown){
 	    this.synchronized{
 		    Center.getProcedure(procSig) match {
 			    case Some(ap) => ap
 			    case None => 
 			      val ap = new JawaProcedure
 			      ap.init(procSig)
-			      ap.setPhantom
+			      ap.setUnknown
 			      rec.addProcedure(ap)
 			      ap
 			  }
@@ -99,7 +99,7 @@ object CallHandler {
 	  val recName = Center.getRecordNameFromProcedureSignature(callSig)
     val subSig = Center.getSubSigFromProcSig(callSig)
     val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
-    if(!rec.isPhantom){
+    if(!rec.isUnknown){
 		  typ match{
 		    case "interface" =>
 		      require(rec.isInterface)
