@@ -27,6 +27,7 @@ import org.sireum.jawa.alir.interProcedural.InstanceCallee
 import org.sireum.jawa.alir.interProcedural.StaticCallee
 import org.sireum.jawa.alir.LibSideEffectProvider
 import org.sireum.jawa.alir.UnknownInstance
+import org.sireum.jawa.PilarAstHelper
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -380,4 +381,65 @@ object ReachingFactsAnalysisHelper {
     }
     result.toMap
   }
+  
+   def isObjectTypeRegAssignment(a : Assignment): Boolean = {
+      var res = false
+      a match{
+        case aa : AssignAction => 
+          a.getValueAnnotation("type") match{
+            case Some(e) => 
+              e match{
+                case ne : NameExp => res = (ne.name.name == "object")
+                case _ =>
+              }
+            case None => 
+          }
+        case _ =>
+      }
+      res
+  }
+  
+  def isStaticFieldRead(a : Assignment) : Boolean = {
+  var result = false
+  if(isObjectTypeRegAssignment(a))
+  {
+    val rhss = PilarAstHelper.getRHSs(a) 
+    var i = -1
+    rhss.foreach{
+      rhs=>
+        i += 1
+        rhs match{
+          case ne : NameExp =>
+            val slot = VarSlot(ne.name.name)
+            if(slot.isGlobal)
+                result = true
+          case _ =>
+        }
+    }    
+  }
+  result
+  }
+  
+  def isStaticFieldWrite(a : Assignment) : Boolean = {
+    var result = true
+    if(isObjectTypeRegAssignment(a))
+    {
+     val lhss = PilarAstHelper.getLHSs(a)
+     var i = -1
+     lhss.foreach{
+      key=>
+        i += 1
+        key match{
+          case ne : NameExp =>
+            val vs = VarSlot(ne.name.name)
+            if(vs.isGlobal){
+              result = true
+            }
+          case _ =>
+        }
+      }
+    }
+   result
+   }
+  
 }

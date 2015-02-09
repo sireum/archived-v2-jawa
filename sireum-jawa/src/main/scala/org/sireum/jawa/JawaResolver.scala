@@ -29,7 +29,7 @@ object JawaResolver {
   private final val TITLE : String = "JawaResolver"
   
   /**
-   * resolve the given procedure code. Normally for dummyMain 
+   * resolve the given procedure code. Normally only for dummyMain i.e. environment method
    */
     
   def resolveProcedureCode(procSig : String, code : String) : JawaProcedure = {
