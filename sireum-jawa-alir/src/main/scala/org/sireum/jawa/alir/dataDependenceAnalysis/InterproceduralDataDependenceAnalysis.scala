@@ -84,7 +84,7 @@ object InterproceduralDataDependenceAnalysis {
 	          case en : IDDGExitParamNode =>
 	            val cgN = cg.getCGExitNode(en.getContext)
 	            val proc =  Center.getProcedureWithoutFailing(cgN.getOwner)
-	            val procName = proc.getParamNames(en.position)
+	            val procName = en.paramName
 	            val irdaFacts = irdaResult(cgN)
 	            targetNodes ++= searchRda(procName, en, irdaFacts, iddg)
 	          case cn : IDDGCallArgNode =>
