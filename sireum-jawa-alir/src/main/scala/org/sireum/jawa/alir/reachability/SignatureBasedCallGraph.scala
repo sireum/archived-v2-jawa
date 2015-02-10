@@ -21,7 +21,7 @@ import org.sireum.jawa.alir.util.CallHandler
  */ 
 object SignatureBasedCallGraph {
   def getReachableProcedures(record : JawaRecord, wholeProcs : Set[JawaProcedure], par : Boolean) : Set[JawaProcedure] = {
-    require(!record.isInterface && !record.isPhantom)
+    require(!record.isInterface && !record.isUnknown)
     getReachableProcedures(record.getProcedures, wholeProcs, par)
   }
   

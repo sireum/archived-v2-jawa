@@ -109,10 +109,10 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
   protected var exceptionHandlers : IList[ExceptionHandler] = ilistEmpty
   
   /**
-   * represents if the procedure is a special one with empty body.
+   * represents if the procedure is unknown.
    */
   
-  protected var phantom : Boolean = false
+  protected var unknown : Boolean = false
   
   /**
    * hold the body symbol table of this procedure
@@ -416,7 +416,7 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
 	 * retrieve code belong to this procedure
 	 */
 	
-	def retrieveCode = if(!isPhantom) JawaCodeSource.getProcedureCode(getSignature) else throw new RuntimeException("Trying to retreive body code for a phantom procedure: " + this)
+	def retrieveCode = if(!isUnknown) JawaCodeSource.getProcedureCode(getSignature) else throw new RuntimeException("Trying to retreive body code for a unknown procedure: " + this)
 	
   /**
    * resolve current procedure to body level
@@ -424,7 +424,7 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
   
   def resolveBody = {
     if(this.resolvingLevel >= Center.ResolveLevel.BODY) throw new RuntimeException(getSignature +" is already resolved to " + this.resolvingLevel)
-    if(isPhantom) throw new RuntimeException(getSignature + " is a phantom procedure so cannot be resolved to body.")
+    if(isUnknown) throw new RuntimeException(getSignature + " is a unknown procedure so cannot be resolved to body.")
     val pb = JawaResolver.resolveProcedureBody(getSignature)
     setProcedureBody(pb)
     setResolvingLevel(Center.ResolveLevel.BODY)
@@ -436,7 +436,7 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
    */
   
   def tryResolveBody = {
-    if(isPhantom) throw new RuntimeException("Trying to get the body for a phantom procedure: " + this)
+    if(isUnknown) throw new RuntimeException("Trying to get the body for a unknown procedure: " + this)
     if(!checkLevel(Center.ResolveLevel.BODY)) resolveBody
   }
   
@@ -536,10 +536,10 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
   def getExceptions = this.exceptions
   
   /**
-   * return true if this procedure is concrete which means it is not abstract nor native nor phantom
+   * return true if this procedure is concrete which means it is not abstract nor native nor unknown
    */
   
-  def isConcrete = !isAbstract && !isNative && !isPhantom
+  def isConcrete = !isAbstract && !isNative && !isUnknown
     
   /**
    * return true if this procedure is abstract
@@ -617,13 +617,13 @@ class JawaProcedure extends ResolveLevel with PropertyProvider {
    * return false if this procedure is a special one with empty body. e.g. A.class
    */
     
-  def isPhantom : Boolean = this.phantom
+  def isUnknown : Boolean = this.unknown
   
   /**
    * set the reality of the procedure. e.g. for A.class we set the reality as false
    */
   
-  def setPhantom = this.phantom = true
+  def setUnknown = this.unknown = true
     
   /**
    * return true if this procedure is a record initializer or main function

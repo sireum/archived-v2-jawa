@@ -83,7 +83,7 @@ object JawaResolver {
     if(!typ.isArray && !JawaCodeSource.containsRecord(recordName)){
       if(!Center.containsRecord(recordName) || Center.getRecord(recordName).getResolvingLevel < desiredLevel){
 	      val rec = new JawaRecord().init(recordName)
-	      rec.setPhantom
+	      rec.setUnknown
 	      rec.setResolvingLevel(desiredLevel)
 	      Center.tryRemoveRecord(recordName)
 	      Center.addRecord(rec)

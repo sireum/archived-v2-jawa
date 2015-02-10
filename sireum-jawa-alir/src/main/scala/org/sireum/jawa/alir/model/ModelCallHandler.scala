@@ -34,7 +34,8 @@ trait ModelCallHandler {
 	  HashtableModel.isHashtable(r) ||
 	  HashMapModel.isHashMap(r) ||
 	  ClassModel.isClass(r) ||
-	  NativeCallModel.isNativeCall(calleeProc)
+	  NativeCallModel.isNativeCall(calleeProc) ||
+    UnknownCallModel.isUnknownCall(calleeProc)
   }
       
   /**
@@ -42,7 +43,7 @@ trait ModelCallHandler {
    */
 	def doModelCall(s : ISet[RFAFact], calleeProc : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : ISet[RFAFact] = {
 	  var (newFacts, delFacts, byPassFlag) = caculateResult(s, calleeProc, args, retVars, currentContext)
-	  if(true){
+	  if(byPassFlag){
 	  	val (newF, delF) = ReachingFactsAnalysisHelper.getUnknownObject(calleeProc, s, args, retVars, currentContext)
 	  	newFacts ++= newF
 	  	delFacts ++= delF
@@ -59,6 +60,7 @@ trait ModelCallHandler {
 	  else if(HashMapModel.isHashMap(r)) HashMapModel.doHashMapCall(s, calleeProc, args, retVars, currentContext)
 	  else if(ClassModel.isClass(r)) ClassModel.doClassCall(s, calleeProc, args, retVars, currentContext)
 	  else if(NativeCallModel.isNativeCall(calleeProc)) NativeCallModel.doNativeCall(s, calleeProc, args, retVars, currentContext)
+    else if(UnknownCallModel.isUnknownCall(calleeProc)) UnknownCallModel.doUnknownCall(s, calleeProc, args, retVars, currentContext)
 	  else throw new RuntimeException("given callee is not a model call: " + calleeProc)
 	}
 }

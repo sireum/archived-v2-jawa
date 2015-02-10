@@ -10,7 +10,6 @@ package org.sireum.jawa.alir
 import org.sireum.util._
 import org.sireum.jawa.NullType
 import org.sireum.jawa.Type
-import org.sireum.jawa.UnknownType
 import org.sireum.jawa.NormalType
 
 /**
@@ -43,8 +42,8 @@ final case class NullInstance(defSite : Context) extends Instance{
   override def toString : String = "Null" + "@" + defSite.getCurrentLocUri
 }
 
-final case class UnknownInstance(defSite : Context) extends Instance{
-  override def clone(newDefSite : Context) : Instance = UnknownInstance(newDefSite)
-  def typ : Type = new UnknownType
-  override def toString : String = "Unknown" + "@" + defSite.getCurrentLocUri
+final case class UnknownInstance(baseTyp : Type, defSite : Context) extends Instance{
+  override def clone(newDefSite : Context) : Instance = UnknownInstance(baseTyp, newDefSite)
+  def typ : Type = baseTyp
+  override def toString : String = baseTyp + "*" + "@" + defSite.getCurrentLocUri
 }

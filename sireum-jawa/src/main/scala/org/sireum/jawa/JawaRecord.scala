@@ -95,7 +95,7 @@ class JawaRecord extends ResolveLevel{
    * true: is phantom, which means it's not available in our code repo
    */
   
-  protected var phantom : Boolean = false
+  protected var unknown : Boolean = false
   
   /**
    * didn't resolve this extends-relation list. It's a set of record names.
@@ -123,13 +123,13 @@ class JawaRecord extends ResolveLevel{
   
   def addNeedToResolveExtends(recNames : Set[String]) = this.needToResolveExtends ++= recNames
   
-  def setPhantom = this.phantom = true
+  def setUnknown = this.unknown = true
   
   /**
    * return true if this record is phantom record
    */
   
-  def isPhantom = this.phantom
+  def isUnknown = this.unknown
   
   /**
    * when you construct a amandroid record instance, call this init function first
@@ -638,6 +638,7 @@ class JawaRecord extends ResolveLevel{
 	 */
 	
 	def addInterface(i : JawaRecord) = {
+    if(!i.isInterface) throw new RuntimeException("This is not an interface:" + i)
 	  this.interfaces += i
 	}
 	
@@ -647,7 +648,7 @@ class JawaRecord extends ResolveLevel{
 	
 	def addInterfaceCheck(i : JawaRecord) = {
 	  if(implementsInterface(i.getName)) throw new RuntimeException("already implements this interface: " + i.getName)
-	  this.interfaces += i
+	  addInterface(i)
 	}
 	
 	/**
@@ -655,6 +656,8 @@ class JawaRecord extends ResolveLevel{
 	 */
 	
 	def removeInterface(i : JawaRecord) = {
+    if(!i.isInterface) throw new RuntimeException("This is not an interface:" + i)
+    this.interfaces += i
 	  if(implementsInterface(i.getName)) throw new RuntimeException("no such interface: " + i.getName)
 	  this.interfaces -= i
 	}

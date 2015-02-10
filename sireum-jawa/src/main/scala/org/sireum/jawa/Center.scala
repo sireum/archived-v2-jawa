@@ -75,8 +75,8 @@ object Center {
 	/**
 	 * We need Unknown record and procedure to account for Modeled calls and Native calls
 	 */
-	final val UNKNOWN_RECORD = "Center.Unknown"
-	final val UNKNOWN_PROCEDURE_SIG = "LCenter/Unknown;.unknown:()LCenter/Unknown;"
+//	final val UNKNOWN_RECORD = "Center.Unknown"
+//	final val UNKNOWN_PROCEDURE_SIG = "LCenter/Unknown;.unknown:()LCenter/Unknown;"
 	  
 	val JAVA_PRIMITIVE_TYPES = Set("byte", "short", "int", "long", "float", "double", "boolean", "char")
 	
@@ -86,21 +86,22 @@ object Center {
    * this special record is used to handle out-of-scope calls 
    */
   def setupCenter = {
-    val unknown = new JawaRecord
-    unknown.init(Center.UNKNOWN_RECORD)
-    unknown.setLibraryRecord
-    val up = new JawaProcedure
-    up.init(Center.UNKNOWN_PROCEDURE_SIG)
-    up.setPhantom
-    unknown.addProcedure(up)
-    Center.addRecord(unknown)
+//    val unknown = new JawaRecord
+//    unknown.init(Center.UNKNOWN_RECORD)
+//    unknown.setLibraryRecord
+//    val up = new JawaProcedure
+//    up.init(Center.UNKNOWN_PROCEDURE_SIG)
+//    up.setPhantom
+//    unknown.addProcedure(up)
+//    Center.addRecord(unknown)
     
     val center = new JawaRecord
     center.init(Center.CENTER_RECORD)
     center.setLibraryRecord
+    center.setUnknown
     val cp = new JawaProcedure
     cp.init(Center.CENTER_PROCEDURE_SIG)
-    cp.setPhantom
+    cp.setUnknown
     center.addProcedure(cp)
     Center.addRecord(center)
   }
@@ -231,7 +232,7 @@ object Center {
       
     getRecords.foreach{
       rec =>
-        if(!rec.isPhantom && !rec.hasSuperClass && rec.getName != DEFAULT_TOPLEVEL_OBJECT){
+        if(!rec.isUnknown && !rec.hasSuperClass && rec.getName != DEFAULT_TOPLEVEL_OBJECT){
           if(!hasRecord(DEFAULT_TOPLEVEL_OBJECT)) resolveRecord(DEFAULT_TOPLEVEL_OBJECT, ResolveLevel.HIERARCHY)
           rec.setSuperClass(getRecord(DEFAULT_TOPLEVEL_OBJECT))
         }
