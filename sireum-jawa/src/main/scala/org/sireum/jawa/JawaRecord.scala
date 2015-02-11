@@ -805,21 +805,37 @@ class JawaRecord extends ResolveLevel{
 	}
 	
 	/**
-   * is this record  a library record
+   * is this record  a framework record
    */
   
-  def isLibraryRecord : Boolean = Center.getLibraryRecords.contains(this)
+  def isFrameworkRecord : Boolean = Center.getFrameworkRecords.contains(this)
+  
+  /**
+   * is this record  a third party lib record
+   */
+  
+  def isThirdPartyLibRecord : Boolean = Center.getThirdPartyLibRecords.contains(this)
   
   
   /**
-   * set this record as a library record
+   * set this record as a framework record
    */
   
-  def setLibraryRecord = {
+  def setFrameworkRecord = {
 	  val c = Center.getContainingSet(this)
 	  if(c != null) Center.removeFromContainingSet(this)
-	  Center.addLibraryRecord(this)
+	  Center.addFrameworkRecord(this)
 	}
+  
+  /**
+   * set this record as a third party lib record
+   */
+  
+  def setThirdPartyLibRecord = {
+    val c = Center.getContainingSet(this)
+    if(c != null) Center.removeFromContainingSet(this)
+    Center.addThirdPartyLibRecord(this)
+  }
   
   /**
    * whether this record is a java library class

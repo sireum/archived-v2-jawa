@@ -158,8 +158,8 @@ object InterproceduralDataDependenceAnalysis {
     val calleeSet = virtualBodyNode.getCalleeSet
     calleeSet.foreach{
       callee =>
-        val calleep = Center.getProcedureWithoutFailing(callee.callee)
-        if(calleep.getDeclaringRecord.isLibraryRecord){
+        val calleep = callee.callee
+        if(calleep.getDeclaringRecord.isFrameworkRecord || calleep.getDeclaringRecord.isThirdPartyLibRecord){
           val sideEffectResult = if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleep.getSignature)
           											 else None
           for(i <- 0 to virtualBodyNode.argNames.size - 1){
@@ -383,8 +383,8 @@ object InterproceduralDataDependenceAnalysis {
 	          }
 	          calleeSet.foreach{
 	            callee =>
-	              val calleep = Center.getProcedureWithoutFailing(callee.callee)
-	              if(calleep.getDeclaringRecord.isLibraryRecord){
+	              val calleep = callee.callee
+	              if(calleep.getDeclaringRecord.isFrameworkRecord || calleep.getDeclaringRecord.isThirdPartyLibRecord){
 	                val sideEffectResult = if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleep.getSignature)
 	                											 else None
 		              for(i <- 0 to argSlots.size - 1){

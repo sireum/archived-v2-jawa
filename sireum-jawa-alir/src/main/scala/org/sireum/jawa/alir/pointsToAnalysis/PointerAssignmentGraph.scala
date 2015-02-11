@@ -29,6 +29,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.SynchronizedMap
 import org.sireum.jawa.alir.util.CallHandler
 import org.sireum.jawa.alir.objectFlowAnalysis.InvokePointNode
+import org.sireum.jawa.alir.interProcedural.Callee
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -193,17 +194,17 @@ class PointerAssignmentGraph[Node <: PtaNode]
   private var newNodes : Set[Node] = isetEmpty
   private var newEdges : Set[Edge] = isetEmpty
   
-  final case class Callee(calleeProc : JawaProcedure, pi : PointI, node : Node)
+  final case class PTACallee(callee : JawaProcedure, pi : PointI, node : Node) extends Callee
   
-  def processStaticCall : ISet[Callee] = {
-    val staticCallees = msetEmpty[Callee]
+  def processStaticCall : ISet[PTACallee] = {
+    val staticCallees = msetEmpty[PTACallee]
     newNodes.foreach{
       node =>
         if(node.isInstanceOf[PtaInvokeNode]){
           val pi = node.asInstanceOf[PtaInvokeNode].getPI
           if(pi.typ.equals("static")){
 	          val callee = getStaticCallee(pi)
-	          staticCallees += Callee(callee, pi, node)
+	          staticCallees += PTACallee(callee, pi, node)
 	        }
         }
     }

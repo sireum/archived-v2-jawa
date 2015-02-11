@@ -126,19 +126,19 @@ object ReachingFactsAnalysisHelper {
                 case _ =>
                   if(typ == "super"){
                     val p = CallHandler.getSuperCalleeProcedure(sig)
-                    calleeSet += InstanceCallee(p.getSignature, ins)
+                    calleeSet += InstanceCallee(p, ins)
                   }
                   else if(typ == "direct"){
                     val p = CallHandler.getDirectCalleeProcedure(sig)
-                    calleeSet += InstanceCallee(p.getSignature, ins)
+                    calleeSet += InstanceCallee(p, ins)
                   }
                   else {
                     if(ins.isInstanceOf[UnknownInstance]){
                       val ps = CallHandler.getUnknownVirtualCalleeProcedures(ins.getType, subSig)
-                      calleeSet ++= ps.map{p=> UnknownCallee(p.getSignature)}
+                      calleeSet ++= ps.map{p=> UnknownCallee(p)}
                     } else {
                       val p = CallHandler.getVirtualCalleeProcedure(ins.typ, subSig)
-                      calleeSet += InstanceCallee(p.getSignature, ins)
+                      calleeSet += InstanceCallee(p, ins)
                     }
                   }
                   
@@ -148,7 +148,7 @@ object ReachingFactsAnalysisHelper {
       }
     } else {
       val p = CallHandler.getStaticCalleeProcedure(sig)
-      calleeSet += StaticCallee(p.getSignature)
+      calleeSet += StaticCallee(p)
     }
     calleeSet.toSet
   }

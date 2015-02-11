@@ -35,10 +35,16 @@ object Center {
 	private var applicationRecords : Set[JawaRecord] = Set()
 	
 	/**
-   * set of library records contained by the current Center
+   * set of framework records contained by the current Center
    */
 	
-	private var libraryRecords : Set[JawaRecord] = Set()
+	private var frameworkRecords : Set[JawaRecord] = Set()
+  
+  /**
+   * set of third party lib records contained by the current Center
+   */
+  
+  private var thirdPartyLibRecords : Set[JawaRecord] = Set()
 	
 	/**
 	 * map from record name to JawaRecord
@@ -97,7 +103,7 @@ object Center {
     
     val center = new JawaRecord
     center.init(Center.CENTER_RECORD)
-    center.setLibraryRecord
+    center.setFrameworkRecord
     center.setUnknown
     val cp = new JawaProcedure
     cp.init(Center.CENTER_PROCEDURE_SIG)
@@ -246,10 +252,16 @@ object Center {
 	def getApplicationRecords = this.applicationRecords
 	
 	/**
-	 * get all the library records
+	 * get all the framework records
 	 */
 	
-	def getLibraryRecords = this.libraryRecords
+	def getFrameworkRecords = this.frameworkRecords
+  
+  /**
+   * get all the third party lib records
+   */
+  
+  def getThirdPartyLibRecords = this.thirdPartyLibRecords
 	
 	/**
 	 * add an application record
@@ -261,13 +273,22 @@ object Center {
   }
 	
 	/**
-	 * add a library record
+	 * add a framework record
 	 */
 	
-	def addLibraryRecord(l : JawaRecord) = {
-    if(this.libraryRecords.contains(l)) throw new RuntimeException("record " + l.getName + " already exists in library record set.")
-    else this.libraryRecords += l
+	def addFrameworkRecord(l : JawaRecord) = {
+    if(this.frameworkRecords.contains(l)) throw new RuntimeException("record " + l.getName + " already exists in framework record set.")
+    else this.frameworkRecords += l
 	}
+  
+  /**
+   * add a framework record
+   */
+  
+  def addThirdPartyLibRecord(l : JawaRecord) = {
+    if(this.thirdPartyLibRecords.contains(l)) throw new RuntimeException("record " + l.getName + " already exists in third party lib record set.")
+    else this.thirdPartyLibRecords += l
+  }
 	
 	/**
 	 * get records
@@ -306,13 +327,22 @@ object Center {
   }
 	
 	/**
-	 * remove library record
+	 * remove framework record
 	 */
 	
-	def removeLibraryRecords(l : JawaRecord) = {
-    if(!this.libraryRecords.contains(l)) throw new RuntimeException("record " + l.getName + " does not exist in library record set.")
-    else this.libraryRecords -= l
+	def removeFrameworkRecords(l : JawaRecord) = {
+    if(!this.frameworkRecords.contains(l)) throw new RuntimeException("record " + l.getName + " does not exist in framework record set.")
+    else this.frameworkRecords -= l
 	}
+  
+  /**
+   * remove third party lib record
+   */
+  
+  def removeThirdPartyLibRecords(l : JawaRecord) = {
+    if(!this.thirdPartyLibRecords.contains(l)) throw new RuntimeException("record " + l.getName + " does not exist in third party lib record set.")
+    else this.thirdPartyLibRecords -= l
+  }
 	
 	/**
 	 * get containing set of given record
@@ -320,7 +350,8 @@ object Center {
 	
 	def getContainingSet(ar : JawaRecord) : Set[JawaRecord] = {
     if(ar.isApplicationRecord) this.applicationRecords
-    else if(ar.isLibraryRecord) this.libraryRecords
+    else if(ar.isFrameworkRecord) this.frameworkRecords
+    else if(ar.isThirdPartyLibRecord) this.thirdPartyLibRecords
     else null
   }
 	
@@ -330,7 +361,8 @@ object Center {
 	
 	def removeFromContainingSet(ar : JawaRecord) = {
     if(ar.isApplicationRecord) removeApplicationRecords(ar)
-    else if(ar.isLibraryRecord) removeLibraryRecords(ar)
+    else if(ar.isFrameworkRecord) removeFrameworkRecords(ar)
+    else if(ar.isThirdPartyLibRecord) removeThirdPartyLibRecords(ar)
   }
 	
 	/**
@@ -422,15 +454,15 @@ object Center {
 	  tryRemoveRecord(ar.getName)
     this.records += ar
     if(ar.isArray){
-      ar.setLibraryRecord
+      ar.setFrameworkRecord
     } else if (JawaCodeSource.containsRecord(ar.getName)){
 	    JawaCodeSource.getCodeType(ar.getName) match{
 	      case JawaCodeSource.CodeType.APP => ar.setApplicationRecord
-	      case JawaCodeSource.CodeType.APP_USING_LIBRARY => ar.setLibraryRecord
-	      case JawaCodeSource.CodeType.LIBRARY => ar.setLibraryRecord
+	      case JawaCodeSource.CodeType.THIRD_PARTY_LIB => ar.setThirdPartyLibRecord
+	      case JawaCodeSource.CodeType.FRAMEWORK => ar.setFrameworkRecord
 	    }
     } else {
-      ar.setLibraryRecord
+      ar.setFrameworkRecord
     }
     this.nameToRecord += (ar.getName -> ar)
     ar.setInCenter(true)
@@ -445,7 +477,8 @@ object Center {
 	  if(!ar.isInCenter) throw new RuntimeException("does not exist in center: " + ar.getName)
 	  this.records -= ar
 	  this.nameToRecord -= ar.getName
-	  if(ar.isLibraryRecord) this.libraryRecords -= ar
+	  if(ar.isFrameworkRecord) this.frameworkRecords -= ar
+    else if(ar.isThirdPartyLibRecord) this.thirdPartyLibRecords -= ar
 	  else if(ar.isApplicationRecord) this.applicationRecords -= ar
 	  ar.setInCenter(false)
 	  modifyHierarchy
@@ -762,7 +795,8 @@ object Center {
 	def reset = {
 	  this.records = Set()
 	  this.applicationRecords = Set()
-	  this.libraryRecords = Set()
+	  this.frameworkRecords = Set()
+    this.thirdPartyLibRecords = Set()
 	  this.nameToRecord = Map()
 	  this.mainRecord = null
 	  this.entryPoints = Set()
@@ -777,7 +811,8 @@ object Center {
 	class CenterImage {
   	var records : Set[JawaRecord] = Center.records
   	var applicationRecords : Set[JawaRecord] = Center.applicationRecords
-  	var libraryRecords : Set[JawaRecord] = Center.libraryRecords
+  	var frameworkRecords : Set[JawaRecord] = Center.frameworkRecords
+    var thirdPartyLibRecords : Set[JawaRecord] = Center.thirdPartyLibRecords
   	var nameToRecord : Map[String, JawaRecord] = Center.nameToRecord
   	var mainRecord : JawaRecord = Center.mainRecord
   	var entryPoints : Set[JawaProcedure] = Center.entryPoints
@@ -816,7 +851,8 @@ object Center {
 	  reset
 	  this.records = img.records
 	  this.applicationRecords = img.applicationRecords
-	  this.libraryRecords = img.libraryRecords
+	  this.frameworkRecords = img.frameworkRecords
+    this.thirdPartyLibRecords = img.thirdPartyLibRecords
 	  this.nameToRecord = img.nameToRecord
 	  this.mainRecord = img.mainRecord
 	  this.entryPoints = img.entryPoints
@@ -826,8 +862,9 @@ object Center {
 	def printDetails = {
 	  println("***************Center***************")
 	  println("applicationRecords: " + getApplicationRecords)
-	  println("libraryRecords: " + getLibraryRecords)
-	  println("noCategorizedRecords: " + (getRecords -- getLibraryRecords -- getApplicationRecords))
+    println("thirdPartyLibRecords: " + getThirdPartyLibRecords)
+	  println("frameworkRecords: " + getFrameworkRecords)
+	  println("noCategorizedRecords: " + (getRecords -- getFrameworkRecords -- getThirdPartyLibRecords -- getApplicationRecords))
 	  println("mainRecord: " + tryGetMainRecord)
 	  println("entryPoints: " + getEntryPoints)
 	  println("hierarchy: " + getRecordHierarchy)

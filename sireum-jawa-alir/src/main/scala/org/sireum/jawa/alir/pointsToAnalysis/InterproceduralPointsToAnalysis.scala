@@ -13,66 +13,60 @@ import org.sireum.jawa._
 import org.sireum.jawa.alir._
 import org.sireum.jawa.alir.controlFlowGraph.CGNode
 import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
+import org.sireum.jawa.alir.util.CallHandler
 
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-class InterproceduralPointsToAnalysis {
+object InterproceduralPointsToAnalysis {
   
-  def buildAppOnly(entryPoints : ISet[JawaProcedure]) : InterproceduralControlFlowGraph[CGNode] = {
+  def apply(entryPoints : ISet[JawaProcedure]) : InterproceduralControlFlowGraph[N] = build(entryPoints)
+  
+  type N = CGNode
+  
+  def build(entryPoints : ISet[JawaProcedure]) : InterproceduralControlFlowGraph[N] = {
     val pag = new PointerAssignmentGraph[PtaNode]()
-    val cg = new InterproceduralControlFlowGraph[CGNode]
-    pta(pag, cg, entryPoints, false)
-    val result = cg
-    result
-  }
-
-  def buildWholeProgram(entryPoints : ISet[JawaProcedure]) : InterproceduralControlFlowGraph[CGNode] = {
-    val pag = new PointerAssignmentGraph[PtaNode]()
-    val cg = new InterproceduralControlFlowGraph[CGNode]
-    pta(pag, cg, entryPoints, true)
-    val result = cg
-    result
+    val cg = new InterproceduralControlFlowGraph[N]
+    pta(pag, cg, entryPoints)
+    cg
   }
   
   def pta(pag : PointerAssignmentGraph[PtaNode],
-          cg : InterproceduralControlFlowGraph[CGNode],
-          entryPoints : Set[JawaProcedure],
-          wholeProgram : Boolean) = {
+          cg : InterproceduralControlFlowGraph[N],
+          entryPoints : Set[JawaProcedure]) = {
     entryPoints.foreach{
 		  ep =>
 		    if(ep.isConcrete){
 		      if(!ep.hasProcedureBody)ep.resolveBody
-		    	doPTA(ep, pag, cg, wholeProgram)
+		    	doPTA(ep, pag, cg)
 		    }
     }
   }
   
   def doPTA(ep : JawaProcedure,
             pag : PointerAssignmentGraph[PtaNode],
-            cg : InterproceduralControlFlowGraph[CGNode],
-            wholeProgram : Boolean) : Unit = {
+            cg : InterproceduralControlFlowGraph[N]) : Unit = {
     val points = new PointsCollector().points(ep.getSignature, ep.getProcedureBody)
     val context : Context = new Context(pag.K_CONTEXT)
     pag.constructGraph(ep, points, context.copy)
     cg.collectCfgToBaseGraph(ep, context.copy)
-    workListPropagation(pag, cg, wholeProgram)
+    workListPropagation(pag, cg)
   }
   
-  private def processStaticInfo(pag : PointerAssignmentGraph[PtaNode], cg : InterproceduralControlFlowGraph[CGNode], wholeProgram : Boolean) = {
+  private def processStaticInfo(pag : PointerAssignmentGraph[PtaNode], cg : InterproceduralControlFlowGraph[N]) = {
     pag.processObjectAllocation
     val staticCallees = pag.processStaticCall
     staticCallees.foreach{
       callee=>
-        if(wholeProgram || callee.calleeProc.getDeclaringRecord.isApplicationRecord)
-        	extendGraphWithConstructGraph(callee.calleeProc, callee.pi, callee.node.getContext.copy, pag, cg)
+        if(PTAScopeManager.shouldBypass(callee.callee.getDeclaringRecord))
+        	extendGraphWithConstructGraph(callee.callee, callee.pi, callee.node.getContext.copy, pag, cg)
     }
   }
   
   def workListPropagation(pag : PointerAssignmentGraph[PtaNode],
-		  					 cg : InterproceduralControlFlowGraph[CGNode], wholeProgram : Boolean) : Unit = {
-    processStaticInfo(pag, cg, wholeProgram)
+		  					 cg : InterproceduralControlFlowGraph[N]) : Unit = {
+    processStaticInfo(pag, cg)
     while (!pag.worklist.isEmpty) {
       while (!pag.worklist.isEmpty) {
       	val srcNode = pag.worklist.remove(0)
@@ -97,7 +91,7 @@ class InterproceduralPointsToAnalysis {
       	          val d = pag.pointsToMap.getDiff(srcNode, dstNode)
       	          pag.pointsToMap.transferPointsToSet(srcNode, dstNode)
 //      	          checkAndDoModelOperation(dstNode, pag)
-      	          checkAndDoCall(dstNode, d, pag, cg, wholeProgram)
+      	          checkAndDoCall(dstNode, d, pag, cg)
       	        }
       	      case pag.EdgeType.ASSIGNMENT => // e.g. q = p; Edge: p -> q
       	        val dstNode = pag.successor(edge)
@@ -182,8 +176,7 @@ class InterproceduralPointsToAnalysis {
   def checkAndDoCall(node : PtaNode,
       							d : MSet[PTAInstance],
       							pag : PointerAssignmentGraph[PtaNode],
-      							cg : InterproceduralControlFlowGraph[CGNode],
-      							wholeProgram : Boolean) = {
+      							cg : InterproceduralControlFlowGraph[N]) = {
     val piOpt = pag.recvInverse(node)
     piOpt match {
       case Some(pi) =>
@@ -198,11 +191,11 @@ class InterproceduralPointsToAnalysis {
         }
         calleeSet.foreach(
           callee => {
-            if(wholeProgram || callee.getDeclaringRecord.isApplicationRecord)
+            if(PTAScopeManager.shouldBypass(callee.getDeclaringRecord))
             	extendGraphWithConstructGraph(callee, pi, callerContext.copy, pag, cg)
           }  
         )
-        processStaticInfo(pag, cg, wholeProgram)
+        processStaticInfo(pag, cg)
       case None =>
     }
   }
@@ -212,7 +205,7 @@ class InterproceduralPointsToAnalysis {
       															pi : PointI, 
       															callerContext : Context,
       															pag : PointerAssignmentGraph[PtaNode], 
-      															cg : InterproceduralControlFlowGraph[CGNode]) = {
+      															cg : InterproceduralControlFlowGraph[N]) = {
     val calleeSig = calleeProc.getSignature
     if(!pag.isProcessed(calleeProc, callerContext)){
     	val points = new PointsCollector().points(calleeProc.getSignature, calleeProc.getProcedureBody)

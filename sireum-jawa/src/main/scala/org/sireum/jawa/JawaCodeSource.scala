@@ -23,7 +23,7 @@ object JawaCodeSource {
   final val TITLE = "JawaCodeSource"
   
   object CodeType extends Enumeration {
-    val APP, APP_USING_LIBRARY, LIBRARY = Value
+    val APP, THIRD_PARTY_LIB, FRAMEWORK = Value
   }
   
   /**
@@ -33,7 +33,7 @@ object JawaCodeSource {
   def preLoad(fileResourceUris : ISet[FileResourceUri]) = {
     fileResourceUris.foreach{
       fUri =>
-        LightWeightPilarParser(Right(fUri), Left(CodeType.LIBRARY))
+        LightWeightPilarParser(Right(fUri), Left(CodeType.FRAMEWORK))
     }
     this.preLoaded = true
   }
@@ -62,7 +62,7 @@ object JawaCodeSource {
       fileUri => 
         val recCode = MyFileUtil.readFileContent(fileUri)
         val recName = getRecordName(recCode)
-        setRecordCode(recName, recCode, Left(CodeType.LIBRARY))
+        setRecordCode(recName, recCode, Left(CodeType.FRAMEWORK))
     }
     this.preLoaded = true
   }
@@ -126,13 +126,13 @@ object JawaCodeSource {
    * map from record name to pilar code of library. E.g. record name java.lang.Object to its pilar code 
    */
   
-  protected var libRecordsCodes : Map[String, String] = Map()
+  protected var frameworkRecordsCodes : Map[String, String] = Map()
 	
 	/**
    * map from record name to pilar code of library. E.g. record name java.lang.Object to its pilar code 
    */
   
-	protected var appUsingLibRecordsCodes : Map[String, String] = Map()
+	protected var thirdPartyLibRecordsCodes : Map[String, String] = Map()
 	
 	/**
    * map from record name to pilar code of app. E.g. record name java.lang.MyObject to its pilar code 
@@ -156,25 +156,25 @@ object JawaCodeSource {
 	 * get lib records' code
 	 */
 	
-	def getLibraryRecordsCodes = this.libRecordsCodes
+	def getFrameworkRecordsCodes = this.frameworkRecordsCodes
 	
 	/**
 	 * set lib record code
 	 */
 	
-	def setLibraryRecordCode(name : String, code : String) = this.libRecordsCodes += (name -> code)
+	def setFrameworkRecordCode(name : String, code : String) = this.frameworkRecordsCodes += (name -> code)
 	
 	/**
 	 * get app using lib records' code
 	 */
 	
-	def getAppUsingLibraryRecordsCodes = this.appUsingLibRecordsCodes
+	def getThirdPartyLibraryRecordsCodes = this.thirdPartyLibRecordsCodes
 	
 	/**
 	 * set app using lib record code
 	 */
 	
-	def setAppUsingLibraryRecordCode(name : String, code : String) = this.appUsingLibRecordsCodes += (name -> code)
+	def setThirdPartyLibraryRecordCode(name : String, code : String) = this.thirdPartyLibRecordsCodes += (name -> code)
 	
 	/**
 	 * get app records codes
@@ -188,7 +188,7 @@ object JawaCodeSource {
 	
 	def clearAppRecordsCodes = {
     this.appRecordsCodes = Map()
-    this.appUsingLibRecordsCodes = Map()
+    this.thirdPartyLibRecordsCodes = Map()
   }
 	
 	/**
@@ -205,13 +205,13 @@ object JawaCodeSource {
     determiner match{
       case Left(typ) =>
         typ match{
-          case CodeType.LIBRARY => setLibraryRecordCode(name, code)
+          case CodeType.FRAMEWORK => setFrameworkRecordCode(name, code)
           case CodeType.APP => setAppRecordCode(name, code)
-          case CodeType.APP_USING_LIBRARY => setAppUsingLibraryRecordCode(name, code)
+          case CodeType.THIRD_PARTY_LIB => setThirdPartyLibraryRecordCode(name, code)
         }
       case Right(summary) =>
         summary.isLibraryAPI(name) match{
-		      case true => setAppUsingLibraryRecordCode(name, code)
+		      case true => setThirdPartyLibraryRecordCode(name, code)
 		      case false => setAppRecordCode(name, code)
 		    }
     }
@@ -231,10 +231,10 @@ object JawaCodeSource {
     var code = this.appRecordsCodes.get(name) match{
       case Some(code) => code
       case None =>
-        this.appUsingLibRecordsCodes.get(name) match{
+        this.thirdPartyLibRecordsCodes.get(name) match{
           case Some(code) => code
           case None =>
-            this.libRecordsCodes.getOrElse(name, throw new RuntimeException("record " + name + " does not exist in the current code base."))
+            this.frameworkRecordsCodes.getOrElse(name, throw new RuntimeException("record " + name + " does not exist in the current code base."))
         }
     }
     if(level < Center.ResolveLevel.BODY){
@@ -249,8 +249,8 @@ object JawaCodeSource {
 	
 	def getCodeType(name : String) : CodeType.Value = {
 	  if(this.appRecordsCodes.contains(name)) CodeType.APP
-	  else if(this.appUsingLibRecordsCodes.contains(name)) CodeType.APP_USING_LIBRARY
-	  else if(this.libRecordsCodes.contains(name)) CodeType.LIBRARY
+	  else if(this.thirdPartyLibRecordsCodes.contains(name)) CodeType.THIRD_PARTY_LIB
+	  else if(this.frameworkRecordsCodes.contains(name)) CodeType.FRAMEWORK
 	  else throw new RuntimeException("record " + name + " does not exist in the current code base.")
 	}
 	
@@ -258,7 +258,7 @@ object JawaCodeSource {
 	 * contains given record or not?
 	 */
 	
-	def containsRecord(name : String) : Boolean = this.appRecordsCodes.contains(name) || this.appUsingLibRecordsCodes.contains(name) || this.libRecordsCodes.contains(name)
+	def containsRecord(name : String) : Boolean = this.appRecordsCodes.contains(name) || this.thirdPartyLibRecordsCodes.contains(name) || this.frameworkRecordsCodes.contains(name)
 	
 	/**
 	 * contains given procedure's container record or not?
@@ -320,8 +320,8 @@ object JawaCodeSource {
 	 */
 	
 	def printContent = {
-	  println("codes:")
-	  this.libRecordsCodes.foreach{
+	  println("appRecordsCodes:")
+	  this.appRecordsCodes.foreach{
 	    case (k, v)=>
 	      println("recName: " + k)
 	      println(v)

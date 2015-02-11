@@ -192,169 +192,178 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
           false
       }
 
-//      protected def visitBackward(
-//        l : LocationDecl,
-//        pst : ProcedureSymbolTable,
-//        callerContext : Context,
-//        esl : Option[EntrySetListener[LatticeElement]]) : Boolean = {
-//        val pSig = pst.procedure.getValueAnnotation("signature") match {
-//			      case Some(exp : NameExp) =>
-//			        exp.name.name
-//			      case _ => throw new RuntimeException("Doing " + TITLE + ": Can not find signature from: " + l)
-//			    }
-//        val currentContext = callerContext.copy
-//        
-//        if(!l.name.isDefined)
-//        	currentContext.setContext(pSig, l.index.toString)
-//        else
-//          currentContext.setContext(pSig, l.name.get.uri)
-//        val eslb = esl.getOrElse(null)
-//          def jumpF(j : Jump) : DFF =
-//            j match {
-//              case j : IfJump =>
-//                var result = initial
-//                val numOfIfThens = j.ifThens.size
-//                for (i <- 0 until numOfIfThens) {
-//                  val ifThen = j.ifThens(i)
-//                  val ifThenContext = callerContext.copy
-//                  ifThenContext.setContext(pSig, ifThen.target.uri)
-//                  val ifThenLoc = pst.location(ifThen.target.uri)
-//                  val sn = node(ifThenLoc, ifThenContext)
-//                  var r = getEntrySet(sn)
-//                  for (k <- tozero(i)) {
-//                    val it = j.ifThens(k)
-//                    r = fE(it.cond, r, currentContext)
-//                  }
-//                  result = confluence(result, r)
-//                }
-//                {
-//                  val ifElse = j.ifElse
-//                  val ifElseDefined = ifElse.isDefined
-//                  val sn =
-//                    if (ifElseDefined) {
-//                      val ifElseContext = callerContext.copy
-//		                  ifElseContext.setContext(pSig, ifElse.get.target.uri)
-//		                  val ifElseLoc = pst.location(ifElse.get.target.uri)
-//                      node(ifElseLoc, ifElseContext)
-//                    }
-//                    else next(l, pst, pSig, callerContext)
-//                  var r = getEntrySet(sn)
-//                  for (k <- tozero(numOfIfThens - 1)) {
-//                    val it = j.ifThens(k)
-//                    r = fE(it.cond, r, currentContext)
-//                  }
-//                  if (ifElseDefined && esl.isDefined) eslb.ifElse(ifElse.get, r)
-//                  result = confluence(result, r)
-//                }
-//                if (esl.isDefined) eslb.ifJump(j, result)
-//                result
-//              case j : SwitchJump =>
-//                var result = initial
-//                val numOfCases = j.cases.size
-//                for (i <- 0 until numOfCases) {
-//                  val switchCase = j.cases(i)
-//                  val switchCaseContext = callerContext.copy
-//                  switchCaseContext.setContext(pSig, switchCase.target.uri)
-//                  val switchCaseLoc = pst.location(switchCase.target.uri)
-//                  val sn = node(switchCaseLoc, switchCaseContext)
-//                  var r = getEntrySet(sn)
-//                  if (switchAsOrderedMatch)
-//                    for (k <- tozero(i)) {
-//                      val sc = j.cases(k)
-//                      r = fE(sc.cond, r, currentContext)
-//                    }
-//                  else
-//                    r = fE(switchCase.cond, r, currentContext)
-//                  if (esl.isDefined) eslb.switchCase(switchCase, r)
-//                  result = confluence(result, r)
-//                }
-//                {
-//                  val switchDefault = j.defaultCase
-//                  val switchDefaultDefined = switchDefault.isDefined
-//                  val sn =
-//                    if (switchDefaultDefined){
-//                      val switchDefaultContext = callerContext.copy
-//		                  switchDefaultContext.setContext(pSig, switchDefault.get.target.uri)
-//		                  val switchDefaultLoc = pst.location(switchDefault.get.target.uri)
-//                      node(switchDefaultLoc, switchDefaultContext)
-//                    }
-//                    else next(l, pst, pSig, callerContext)
-//                  var r = getEntrySet(sn)
-//                  if (switchAsOrderedMatch)
-//                    for (k <- tozero(numOfCases - 1)) {
-//                      val sc = j.cases(k)
-//                      r = fE(sc.cond, r, currentContext)
-//                    }
-//                  if (esl.isDefined && switchDefaultDefined)
-//                    eslb.switchDefault(switchDefault.get, r)
-//                  result = confluence(result, r)
-//                }
-//                if (esl.isDefined)
-//                  eslb.switchJump(j, result)
-//                result
-//              case j : GotoJump =>
-//                val jContext = callerContext.copy
-//                jContext.setContext(pSig, j.target.uri)
-//                val jLoc = pst.location(j.target.uri)
-//                val sn = node(jLoc, jContext)
-//                val result = getEntrySet(sn)
-//                if (esl.isDefined)
-//                  eslb.gotoJump(j, result)
-//                result
-//              case j : ReturnJump =>
-//                val exitContext = callerContext.copy
-//                exitContext.setContext(pSig, pSig)
-//                val result = fOE(j.exp, s, currentContext)
-//                if (esl.isDefined)
-//                  eslb.returnJump(j, result)
-//                result
-//              case j : CallJump =>
-//                val s =
-//                  if (j.jump.isEmpty)
-//                    getEntrySet(next(l, pst, pSig, callerContext))
-//                  else
-//                    jumpF(j.jump.get)
-//                val result = fA(j, s, currentContext)
-//                if (esl.isDefined)
-//                  eslb.callJump(j, result)
-//                result
-//            }
-//        val ln = node(l, currentContext)
-//        l match {
-//          case l : ComplexLocation =>
-//            val result = bigConfluence(l.transformations.map { t =>
-//              var r =
-//                if (t.jump.isEmpty)
-//                  getEntrySet(next(l))
-//                else
-//                  jumpF(t.jump.get)
-//              val numOfActions = t.actions.size
-//              for (i <- untilzero(numOfActions)) {
-//                val a = t.actions(i)
-//                r = actionF(r, a)
-//                if (esl.isDefined) eslb.action(a, r)
-//              }
-//              if (esl.isDefined) eslb.exitSet(None, r)
-//              r
-//            })
-//            update(result, ln)
-//          case l : ActionLocation =>
-//            val result = actionF(getEntrySet(next(l)), l.action)
-//            if (esl.isDefined) {
-//              eslb.action(l.action, result)
-//              eslb.exitSet(None, result)
-//            }
-//            update(result, ln)
-//          case l : JumpLocation =>
-//            val result = jumpF(l.jump)
-//            if (esl.isDefined) {
-//              eslb.exitSet(None, result)
-//            }
-//            update(result, ln)
-//          case l : EmptyLocation =>
-//            false
-//        }
-//      }
+      protected def visitBackward(
+        currentNode : CGLocNode,
+        esl : Option[EntrySetListener[LatticeElement]]) : IMap[N, DFF] = {
+        val pst = Center.getProcedureWithoutFailing(currentNode.getOwner).getProcedureBody
+        val l = pst.location(currentNode.getLocIndex)
+        val currentContext = currentNode.getContext
+        val callerContext = currentContext.copy.removeTopContext
+        val pSig = pst.procedure.getValueAnnotation("signature") match {
+            case Some(exp : NameExp) =>
+              exp.name.name
+            case _ => throw new RuntimeException("Doing " + TITLE + ": Can not find signature from: " + l)
+          }
+        
+        val latticeMap : MMap[N, DFF] = mmapEmpty 
+        
+        if(!l.name.isDefined)
+        	currentContext.setContext(pSig, l.index.toString)
+        else
+          currentContext.setContext(pSig, l.name.get.uri)
+        val eslb = esl.getOrElse(null)
+          def jumpF(j : Jump) : DFF =
+            j match {
+              case j : IfJump =>
+                var result = initial
+                val numOfIfThens = j.ifThens.size
+                for (i <- 0 until numOfIfThens) {
+                  val ifThen = j.ifThens(i)
+                  val ifThenContext = callerContext.copy
+                  ifThenContext.setContext(pSig, ifThen.target.uri)
+                  val ifThenLoc = pst.location(ifThen.target.uri)
+                  val sn = node(ifThenLoc, ifThenContext)
+                  var r = getEntrySet(sn)
+                  for (k <- tozero(i)) {
+                    val it = j.ifThens(k)
+                    r = fE(it.cond, r, currentNode)
+                  }
+                  result = confluence(result, r)
+                }
+                {
+                  val ifElse = j.ifElse
+                  val ifElseDefined = ifElse.isDefined
+                  val sn =
+                    if (ifElseDefined) {
+                      val ifElseContext = callerContext.copy
+		                  ifElseContext.setContext(pSig, ifElse.get.target.uri)
+		                  val ifElseLoc = pst.location(ifElse.get.target.uri)
+                      node(ifElseLoc, ifElseContext)
+                    }
+                    else next(l, pst, pSig, callerContext)
+                  var r = getEntrySet(sn)
+                  for (k <- tozero(numOfIfThens - 1)) {
+                    val it = j.ifThens(k)
+                    r = fE(it.cond, r, currentNode)
+                  }
+                  if (ifElseDefined && esl.isDefined) eslb.ifElse(ifElse.get, r)
+                  result = confluence(result, r)
+                }
+                if (esl.isDefined) eslb.ifJump(j, result)
+                result
+              case j : SwitchJump =>
+                var result = initial
+                val numOfCases = j.cases.size
+                for (i <- 0 until numOfCases) {
+                  val switchCase = j.cases(i)
+                  val switchCaseContext = callerContext.copy
+                  switchCaseContext.setContext(pSig, switchCase.target.uri)
+                  val switchCaseLoc = pst.location(switchCase.target.uri)
+                  val sn = node(switchCaseLoc, switchCaseContext)
+                  var r = getEntrySet(sn)
+                  if (switchAsOrderedMatch)
+                    for (k <- tozero(i)) {
+                      val sc = j.cases(k)
+                      r = fE(sc.cond, r, currentNode)
+                    }
+                  else
+                    r = fE(switchCase.cond, r, currentNode)
+                  if (esl.isDefined) eslb.switchCase(switchCase, r)
+                  result = confluence(result, r)
+                }
+                {
+                  val switchDefault = j.defaultCase
+                  val switchDefaultDefined = switchDefault.isDefined
+                  val sn =
+                    if (switchDefaultDefined){
+                      val switchDefaultContext = callerContext.copy
+		                  switchDefaultContext.setContext(pSig, switchDefault.get.target.uri)
+		                  val switchDefaultLoc = pst.location(switchDefault.get.target.uri)
+                      node(switchDefaultLoc, switchDefaultContext)
+                    }
+                    else next(l, pst, pSig, callerContext)
+                  var r = getEntrySet(sn)
+                  if (switchAsOrderedMatch)
+                    for (k <- tozero(numOfCases - 1)) {
+                      val sc = j.cases(k)
+                      r = fE(sc.cond, r, currentNode)
+                    }
+                  if (esl.isDefined && switchDefaultDefined)
+                    eslb.switchDefault(switchDefault.get, r)
+                  result = confluence(result, r)
+                }
+                if (esl.isDefined)
+                  eslb.switchJump(j, result)
+                result
+              case j : GotoJump =>
+                val jContext = callerContext.copy
+                jContext.setContext(pSig, j.target.uri)
+                val jLoc = pst.location(j.target.uri)
+                val sn = node(jLoc, jContext)
+                val result = getEntrySet(sn)
+                if (esl.isDefined)
+                  eslb.gotoJump(j, result)
+                result
+              case j : ReturnJump =>
+                val exitContext = callerContext.copy
+                exitContext.setContext(pSig, pSig)
+                val sn = cg.getCGExitNode(exitContext)
+                val result = fOE(j.exp, getEntrySet(sn), currentNode)
+                if (esl.isDefined)
+                  eslb.returnJump(j, result)
+                result
+              case j : CallJump =>
+                val s =
+                  if (j.jump.isEmpty)
+                    getEntrySet(next(l, pst, pSig, callerContext))
+                  else
+                    jumpF(j.jump.get)
+                val result = fA(j, s, currentNode)
+                if (esl.isDefined)
+                  eslb.callJump(j, result)
+                result
+            }
+        val ln = node(l, currentContext)
+        l match {
+          case l : ComplexLocation =>
+            val result = bigConfluence(l.transformations.map { t =>
+              var r =
+                if (t.jump.isEmpty)
+                  getEntrySet(next(l, pst, pSig, callerContext))
+                else
+                  jumpF(t.jump.get)
+              val numOfActions = t.actions.size
+              for (i <- untilzero(numOfActions)) {
+                val a = t.actions(i)
+                r = actionF(r, a, currentNode)
+                if (esl.isDefined) eslb.action(a, r)
+              }
+              if (esl.isDefined) eslb.exitSet(None, r)
+              r
+            })
+            latticeMap += (ln -> result)
+          case l : ActionLocation =>
+            val result = actionF(getEntrySet(next(l, pst, pSig, callerContext)), l.action, currentNode)
+            if (esl.isDefined) {
+              eslb.action(l.action, result)
+              eslb.exitSet(None, result)
+            }
+            latticeMap += (ln -> result)
+          case l : JumpLocation =>
+            val result = jumpF(l.jump)
+            if (esl.isDefined) {
+              eslb.exitSet(None, result)
+            }
+            latticeMap += (ln -> result)
+          case l : EmptyLocation =>
+            val result = getEntrySet(next(l, pst, pSig, callerContext))
+            if (esl.isDefined) {
+              eslb.exitSet(None, result)
+            }
+            latticeMap += (ln -> result)
+        }
+        latticeMap.toMap
+      }
       
 
       protected def visitForward(
@@ -370,7 +379,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
 			      case _ => throw new RuntimeException("Doing " + TITLE + ": Can not find signature from: " + l)
 			    }
 
-        var latticeMap : IMap[N, DFF] = imapEmpty 
+        val latticeMap : MMap[N, DFF] = mmapEmpty 
 
         val eslb = esl.getOrElse(null)
         def jumpF(s : DFF, j : Jump) : Unit =
@@ -455,7 +464,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
               val exitContext = callerContext.copy
               exitContext.setContext(pSig, "Exit")
               val sn = cg.getCGExitNode(exitContext)
-              val r = if (j.exp.isEmpty) s else fE(j.exp.get, s, currentNode)
+              val r = fOE(j.exp, s, currentNode)
               if (esl.isDefined) {
                 eslb.returnJump(j, r)
                 eslb.exitSet(Some(j), r)
@@ -509,14 +518,13 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
             val sn = next(l, pst, pSig, callerContext)
             latticeMap += (sn -> s)
         }
-        latticeMap
+        latticeMap.toMap
       }
       
       def caculateResult(currentNode : CGLocNode,
                 esl : Option[EntrySetListener[LatticeElement]] = None) : IMap[N, DFF] = {
-//        if (forward) visitForward(l, esl)
-//        else visitBackward(l, esl)
-        visitForward(currentNode, esl)
+        if (forward) visitForward(currentNode, esl)
+        else visitBackward(currentNode, esl)
       }
 
       def visit(currentNode : CGLocNode,
