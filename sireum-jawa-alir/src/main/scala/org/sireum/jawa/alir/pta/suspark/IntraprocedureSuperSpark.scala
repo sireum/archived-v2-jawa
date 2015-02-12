@@ -5,7 +5,7 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.pointsToAnalysis
+package org.sireum.jawa.alir.pta.suspark
 
 import org.sireum.util._
 import java.io._
@@ -16,7 +16,7 @@ import org.sireum.jawa.JawaProcedure
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
-class IntraprocedurePointsToAnalysis {
+class IntraprocedureSuperSpark {
 
   def apply(ap : JawaProcedure)
   = build(ap)

@@ -5,12 +5,12 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.model
+package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 
 import org.sireum.jawa.JawaRecord
 import org.sireum.util._
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.alir.reachingFactsAnalysis._
+import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.alir.Instance
 import org.sireum.jawa.JawaProcedure
 import org.sireum.jawa.Center

@@ -5,7 +5,7 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.reachingFactsAnalysis
+package org.sireum.jawa.alir.pta.reachingFactsAnalysis
 
 import org.sireum.util._
 import org.sireum.alir.Slot
@@ -29,6 +29,9 @@ import org.sireum.jawa.alir.LibSideEffectProvider
 import org.sireum.jawa.alir.UnknownInstance
 import org.sireum.jawa.alir.interProcedural.UnknownCallee
 import org.sireum.jawa.PilarAstHelper
+import org.sireum.jawa.alir.pta.PTAConcreteStringInstance
+import org.sireum.jawa.alir.pta.PTAInstance
+import org.sireum.jawa.alir.pta.PTAPointStringInstance
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -155,8 +158,8 @@ object ReachingFactsAnalysisHelper {
 	
 	def getInstanceFromType(typ : Type, currentContext : Context) : Option[Instance] = {
 	  if(Center.isJavaPrimitiveType(typ) || typ.typ == "void") None
-	  else if(typ.typ == "java.lang.String" && !typ.isArray) Some(RFAPointStringInstance(currentContext))
-	  else Some(RFAInstance(typ, currentContext))
+	  else if(typ.typ == "java.lang.String" && !typ.isArray) Some(PTAPointStringInstance(currentContext))
+	  else Some(PTAInstance(typ, currentContext))
 	}
 	  
 	def getReturnFact(rType : Type, retVar : String, currentContext : Context) : Option[RFAFact] = {
@@ -311,7 +314,7 @@ object ReachingFactsAnalysisHelper {
             result(i) = value
           case le : LiteralExp =>
             if(le.typ.name.equals("STRING")){
-              val ins = RFAConcreteStringInstance(le.text, currentContext)
+              val ins = PTAConcreteStringInstance(le.text, currentContext)
               val value : ISet[Instance] = Set(ins)
               result(i) = value
             }
@@ -327,9 +330,9 @@ object ReachingFactsAnalysisHelper {
             
             val ins = 
 	            if(name == "java.lang.String" && dimensions == 0){
-	              RFAConcreteStringInstance("", currentContext.copy)
+	              PTAConcreteStringInstance("", currentContext.copy)
 	            } else {
-	              RFAInstance(new NormalType(name, dimensions), currentContext.copy)
+	              PTAInstance(new NormalType(name, dimensions), currentContext.copy)
 	            }
             var value = isetEmpty[Instance]
             value += ins
@@ -396,9 +399,9 @@ object ReachingFactsAnalysisHelper {
             
             val ins = 
               if(name == "java.lang.String" && dimensions == 0){
-                RFAConcreteStringInstance("", currentContext.copy)
+                PTAConcreteStringInstance("", currentContext.copy)
               } else {
-                RFAInstance(new NormalType(name, dimensions), currentContext.copy)
+                PTAInstance(new NormalType(name, dimensions), currentContext.copy)
               }
             ce.exp match{
               case ice : NameExp =>

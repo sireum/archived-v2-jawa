@@ -8,7 +8,7 @@ http://www.eclipse.org/legal/epl-v10.html
 package org.sireum.jawa.alir.interProcedural
 
 import org.sireum.jawa.alir.controlFlowGraph._
-import org.sireum.jawa.alir.reachingFactsAnalysis.RFAFact
+import org.sireum.jawa.alir.pta.reachingFactsAnalysis.RFAFact
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>

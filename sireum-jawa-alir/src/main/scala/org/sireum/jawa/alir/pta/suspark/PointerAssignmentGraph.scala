@@ -5,7 +5,7 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.pointsToAnalysis
+package org.sireum.jawa.alir.pta.suspark
 
 import org.sireum.util._
 import org.sireum.alir.AlirGraph
@@ -30,6 +30,7 @@ import scala.collection.mutable.SynchronizedMap
 import org.sireum.jawa.alir.util.CallHandler
 import org.sireum.jawa.alir.objectFlowAnalysis.InvokePointNode
 import org.sireum.jawa.alir.interProcedural.Callee
+import org.sireum.jawa.alir.pta.PTAInstance
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -169,8 +170,7 @@ class PointsToMap {
  */
 class PointerAssignmentGraph[Node <: PtaNode]
   extends InterProceduralGraph[Node]
-  with PAGConstraint
-  with JavaObjectModelForPta[Node]{
+  with PAGConstraint{
   self=>
     
   val pointsToMap = new PointsToMap
@@ -314,7 +314,6 @@ class PointerAssignmentGraph[Node <: PtaNode]
     val ipN = InvokePointNode[Node](recvCallNodeOpt, recvReturnNodeOpt, argCallNodes, argReturnNodes, invokeNodeOpt, pi)
     ipN.setCalleeSig(sig)
     ipN.setContext(callerContext)
-	  modelOperationTracker += (ipN)
     ipN
   }
   

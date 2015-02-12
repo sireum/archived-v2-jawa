@@ -11,16 +11,15 @@ import org.sireum.jawa.JawaProcedure
 import org.sireum.pilar.ast.JumpLocation
 import org.sireum.pilar.ast.LocationDecl
 import org.sireum.util.ISet
-import org.sireum.jawa.alir.reachingFactsAnalysis.RFAFact
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-trait SourceAndSinkManager {
-  def isSource(loc : LocationDecl, s : ISet[RFAFact]) : Boolean
+trait SourceAndSinkManager[Fact] {
+  def isSource(loc : LocationDecl, s : ISet[Fact]) : Boolean
   def isSource(calleeProcedure : JawaProcedure, callerProcedure : JawaProcedure, callerLoc : JumpLocation) : Boolean
   def isSourceProcedure(procedure : JawaProcedure) : Boolean
-  def isSink(loc : LocationDecl, s : ISet[RFAFact]) : Boolean
+  def isSink(loc : LocationDecl, s : ISet[Fact]) : Boolean
   def isSinkProcedure(procedure : JawaProcedure) : Boolean
 }

@@ -5,15 +5,16 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.model
+package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 
 import org.sireum.jawa.JawaProcedure
 import org.sireum.util._
-import org.sireum.jawa.alir.reachingFactsAnalysis._
+import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.Center
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.ClassInstance
 import org.sireum.jawa.alir.JawaAlirInfoProvider
+import org.sireum.jawa.alir.pta.PTAConcreteStringInstance
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -40,7 +41,7 @@ object NativeCallModel {
 	          val insRec = Center.getRecord(ins.getType.typ)
 	          val insClasObj = JawaAlirInfoProvider.getClassInstance(insRec)
 	          newFacts += RFAFact(VarSlot(retVars(0)), insClasObj)
-	          val strIns = RFAConcreteStringInstance(insClasObj.getName, insClasObj.getDefSite)
+	          val strIns = PTAConcreteStringInstance(insClasObj.getName, insClasObj.getDefSite)
 	          newFacts += (RFAFact(FieldSlot(insClasObj, "java.lang.Class.name"), strIns))
 	      }
 	      byPassFlag = false
@@ -54,7 +55,7 @@ object NativeCallModel {
 	          println(cIns + " " + cIns.getClass())
 	          require(cIns.isInstanceOf[ClassInstance])
 	          val name = cIns.asInstanceOf[ClassInstance].getName
-	          val strIns = RFAConcreteStringInstance(name, cIns.getDefSite)
+	          val strIns = PTAConcreteStringInstance(name, cIns.getDefSite)
               newFacts += (RFAFact(VarSlot(retVars(0)), strIns))
 	      }
 	      byPassFlag = false

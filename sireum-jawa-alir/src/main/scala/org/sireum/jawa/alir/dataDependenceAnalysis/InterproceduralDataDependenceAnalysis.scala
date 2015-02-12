@@ -9,8 +9,7 @@ package org.sireum.jawa.alir.dataDependenceAnalysis
 
 import org.sireum.pilar.ast._
 import org.sireum.util._
-import org.sireum.jawa.alir.reachingFactsAnalysis.ReachingFactsAnalysisHelper
-import org.sireum.jawa.alir.reachingFactsAnalysis._
+import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.Center
 import org.sireum.jawa.MessageCenter._
 import org.sireum.jawa.alir.NullInstance

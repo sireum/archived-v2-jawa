@@ -5,13 +5,15 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.model
+package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 
 import org.sireum.util._
 import org.sireum.jawa._
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.alir.reachingFactsAnalysis._
+import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.alir.Instance
+import org.sireum.jawa.alir.pta.PTAPointStringInstance
+import org.sireum.jawa.alir.pta.PTAConcreteStringInstance
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -27,7 +29,7 @@ object StringBuilderModel {
 	private def getPointStringForThis(args : List[String], currentContext : Context): ISet[RFAFact] = {
   	require(args.size > 0)
 	  val thisSlot = VarSlot(args(0))
-      val newThisValue = RFAPointStringInstance(currentContext.copy)
+      val newThisValue = PTAPointStringInstance(currentContext.copy)
       Set(RFAFact(thisSlot, newThisValue))	 
 	}
 	
@@ -58,7 +60,7 @@ object StringBuilderModel {
 	  ReachingFactsAnalysisHelper.getReturnFact(new NormalType("java.lang.String"), retVar, currentContext) match{
 		  case Some(fact) =>           
 		      //deleteFacts += fact
-		      val value = RFAPointStringInstance(currentContext.copy)
+		      val value = PTAPointStringInstance(currentContext.copy)
 		      Set(RFAFact(fact.s, value))
 		  case None => isetEmpty
 	  }
@@ -87,7 +89,7 @@ object StringBuilderModel {
 	  var newfacts = isetEmpty[RFAFact]
       val thisSlot = VarSlot(args(0))
 	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
-	  val newStringIns = RFAPointStringInstance(currentContext)
+	  val newStringIns = PTAPointStringInstance(currentContext)
 	  thisValue.foreach{
       ins =>
         newfacts += (RFAFact(FieldSlot(ins, "java.lang.StringBuilder.value"), newStringIns))
@@ -101,7 +103,7 @@ object StringBuilderModel {
 	  var newfacts = isetEmpty[RFAFact]
       val thisSlot = VarSlot(args(0))
 	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
-	  val newStringIns = RFAConcreteStringInstance(str, currentContext)
+	  val newStringIns = PTAConcreteStringInstance(str, currentContext)
 	  thisValue.foreach{
 		      ins =>
 		        newfacts += (RFAFact(FieldSlot(ins, "java.lang.StringBuilder.value"), newStringIns))
@@ -130,7 +132,7 @@ object StringBuilderModel {
       var newfacts = isetEmpty[RFAFact]	 
       val thisSlot = VarSlot(args(0))
       val thisValue = factMap.getOrElse(thisSlot, isetEmpty)	      
-      val newStringIns = RFAPointStringInstance(currentContext)
+      val newStringIns = PTAPointStringInstance(currentContext)
       thisValue.foreach{
 	      ins =>
 	        newfacts += (RFAFact(FieldSlot(ins, "java.lang.StringBuilder.value"), newStringIns))
@@ -162,9 +164,9 @@ object StringBuilderModel {
           var newFieldValue = isetEmpty[Instance]
           fieldValue.foreach{
             fIns => 
-              if(fIns.isInstanceOf[RFAConcreteStringInstance]){
-               val newstr = fIns.asInstanceOf[RFAConcreteStringInstance].string.reverse
-               val newStringIns = RFAConcreteStringInstance(newstr, currentContext)
+              if(fIns.isInstanceOf[PTAConcreteStringInstance]){
+               val newstr = fIns.asInstanceOf[PTAConcreteStringInstance].string.reverse
+               val newStringIns = PTAConcreteStringInstance(newstr, currentContext)
                newFieldValue += newStringIns
                
               }

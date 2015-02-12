@@ -5,16 +5,18 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.model
+package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 
 import org.sireum.jawa._
 import org.sireum.util._
-import org.sireum.jawa.alir.reachingFactsAnalysis._
+import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.util.StringFormConverter
 import org.sireum.jawa.MessageCenter._
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.alir.ClassInstance
+import org.sireum.jawa.alir.pta.PTAConcreteStringInstance
+import org.sireum.jawa.alir.pta.PTAPointStringInstance
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -184,7 +186,7 @@ object ClassModel {
     clazzNameValue.foreach{
       cIns =>
         cIns match{
-          case cstr @ RFAConcreteStringInstance(text, c) =>
+          case cstr @ PTAConcreteStringInstance(text, c) =>
             val recordName = StringFormConverter.formatClassNameToRecordName(text)
             val recordOpt = Center.tryLoadRecord(recordName, Center.ResolveLevel.HIERARCHY)
             recordOpt match{
@@ -193,7 +195,7 @@ object ClassModel {
               case None =>
                 err_msg_normal(TITLE, "Given class name probably come from another app: " + cIns)
             }
-          case pstr @ RFAPointStringInstance(c) => 
+          case pstr @ PTAPointStringInstance(c) => 
             err_msg_normal(TITLE, "Get class use point string: " + pstr)
           case _ =>
             err_msg_normal(TITLE, "Get class use unknown instance: " + cIns)
@@ -217,7 +219,7 @@ object ClassModel {
       cIns =>
         require(cIns.isInstanceOf[ClassInstance])
         val name = cIns.asInstanceOf[ClassInstance].getName
-        val strIns = RFAConcreteStringInstance(name, cIns.getDefSite)
+        val strIns = PTAConcreteStringInstance(name, cIns.getDefSite)
         newfacts += (RFAFact(VarSlot(retVar), strIns))
     }
     (newfacts, delfacts)

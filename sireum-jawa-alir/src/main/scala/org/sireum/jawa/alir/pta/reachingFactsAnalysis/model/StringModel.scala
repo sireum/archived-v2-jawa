@@ -5,13 +5,15 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.model
+package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 
 import org.sireum.util._
 import org.sireum.jawa._
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.alir.reachingFactsAnalysis._
+import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.alir.Instance
+import org.sireum.jawa.alir.pta.PTAPointStringInstance
+import org.sireum.jawa.alir.pta.PTAConcreteStringInstance
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -26,7 +28,7 @@ object StringModel {
 	private def getPointStringForThis(args : List[String], currentContext : Context): ISet[RFAFact] = {
   	  require(args.size > 0)
 	  val thisSlot = VarSlot(args(0))
-      val newThisValue = RFAPointStringInstance(currentContext.copy)
+      val newThisValue = PTAPointStringInstance(currentContext.copy)
       Set(RFAFact(thisSlot, newThisValue))	 
 	}
 	
@@ -57,7 +59,7 @@ object StringModel {
 	  ReachingFactsAnalysisHelper.getReturnFact(new NormalType("java.lang.String"), retVar, currentContext) match{
 		  case Some(fact) =>           
 		      //deleteFacts += fact
-		      val value = RFAPointStringInstance(currentContext.copy)
+		      val value = PTAPointStringInstance(currentContext.copy)
 		      Set(RFAFact(fact.s, value))
 		  case None => isetEmpty
 	  }
@@ -237,8 +239,8 @@ object StringModel {
 	        var values : ISet[Instance] = isetEmpty
 	        factMap(paramSlot).foreach{
 	          ins=>
-	            if(ins.isInstanceOf[RFAConcreteStringInstance]) values += ins
-	            else values += RFAPointStringInstance(currentContext)
+	            if(ins.isInstanceOf[PTAConcreteStringInstance]) values += ins
+	            else values += PTAPointStringInstance(currentContext)
 	        }
 	        require(retVars.size == 1)
 	        newFacts ++= values.map{v=>RFAFact(VarSlot(retVars(0)), v)}

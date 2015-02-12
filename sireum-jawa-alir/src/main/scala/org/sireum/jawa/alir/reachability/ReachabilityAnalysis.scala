@@ -8,12 +8,12 @@ http://www.eclipse.org/legal/epl-v10.html
 package org.sireum.jawa.alir.reachability
 
 import org.sireum.jawa.JawaProcedure
-import org.sireum.jawa.alir.pointsToAnalysis.PointerAssignmentGraph
+import org.sireum.jawa.alir.pta.suspark.PointerAssignmentGraph
 import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
-import org.sireum.jawa.alir.pointsToAnalysis.PtaNode
+import org.sireum.jawa.alir.pta.suspark.PtaNode
 import org.sireum.jawa.alir.controlFlowGraph.CGNode
 import org.sireum.jawa.Center
-import org.sireum.jawa.alir.pointsToAnalysis.InterproceduralPointsToAnalysis
+import org.sireum.jawa.alir.pta.suspark.InterproceduralSuperSpark
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -27,7 +27,7 @@ object ReachabilityAnalysis {
 	 * @return Set of reachable procedure resource uris from initial set
 	 */
 	def getReachableProcedures(procedures : Set[JawaProcedure]) : Set[JawaProcedure] = {
-    val cg = InterproceduralPointsToAnalysis.apply(procedures)
+    val cg = InterproceduralSuperSpark.apply(procedures)
     cg.getReachableProcedures(procedures.map(_.getSignature)).map(Center.getProcedureWithoutFailing(_))
 	}
 	

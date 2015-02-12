@@ -5,7 +5,7 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.pointsToAnalysis
+package org.sireum.jawa.alir.pta.suspark
 
 import org.sireum.util._
 import java.io._
@@ -14,12 +14,14 @@ import org.sireum.jawa.alir._
 import org.sireum.jawa.alir.controlFlowGraph.CGNode
 import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
 import org.sireum.jawa.alir.util.CallHandler
+import org.sireum.jawa.alir.pta.PTAScopeManager
+import org.sireum.jawa.alir.pta.PTAInstance
 
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-object InterproceduralPointsToAnalysis {
+object InterproceduralSuperSpark {
   
   def apply(entryPoints : ISet[JawaProcedure]) : InterproceduralControlFlowGraph[N] = build(entryPoints)
   
@@ -59,7 +61,7 @@ object InterproceduralPointsToAnalysis {
     val staticCallees = pag.processStaticCall
     staticCallees.foreach{
       callee=>
-        if(PTAScopeManager.shouldBypass(callee.callee.getDeclaringRecord))
+        if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringRecord))
         	extendGraphWithConstructGraph(callee.callee, callee.pi, callee.node.getContext.copy, pag, cg)
     }
   }
@@ -191,7 +193,7 @@ object InterproceduralPointsToAnalysis {
         }
         calleeSet.foreach(
           callee => {
-            if(PTAScopeManager.shouldBypass(callee.getDeclaringRecord))
+            if(!PTAScopeManager.shouldBypass(callee.getDeclaringRecord))
             	extendGraphWithConstructGraph(callee, pi, callerContext.copy, pag, cg)
           }  
         )

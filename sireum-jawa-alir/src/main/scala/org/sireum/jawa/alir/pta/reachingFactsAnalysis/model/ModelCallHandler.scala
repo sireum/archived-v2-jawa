@@ -5,7 +5,7 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.model
+package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 
 import org.sireum.jawa.JawaProcedure
 import org.sireum.util._
@@ -16,7 +16,7 @@ import org.sireum.jawa.Center
 import org.sireum.jawa.NormalType
 import org.sireum.alir.Slot
 import org.sireum.jawa.alir.Instance
-import org.sireum.jawa.alir.reachingFactsAnalysis._
+import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>

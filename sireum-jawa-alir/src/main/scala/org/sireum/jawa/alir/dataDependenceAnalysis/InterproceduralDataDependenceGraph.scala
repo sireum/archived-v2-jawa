@@ -10,7 +10,6 @@ package org.sireum.jawa.alir.dataDependenceAnalysis
 import org.sireum.jawa._
 import org.sireum.jawa.alir.controlFlowGraph._
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.alir.reachingFactsAnalysis._
 import org.sireum.pilar.ast._
 import org.sireum.util._
 import org.sireum.jawa.alir.interProcedural.InstanceCallee
@@ -138,31 +137,6 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	  else if(cgN.isInstanceOf[CGEntryNode] && iddgEntryParamNodeExists(cgN.asInstanceOf[CGEntryNode], position)) getIDDGEntryParamNode(cgN.asInstanceOf[CGEntryNode], position)
 	  else if(cgN.isInstanceOf[CGExitNode] && iddgExitParamNodeExists(cgN.asInstanceOf[CGExitNode], position)) getIDDGExitParamNode(cgN.asInstanceOf[CGExitNode], position)
 	  else throw new RuntimeException("Cannot find node: " + defSite + ":" + position)
-	}
-	
-	def extendGraphForSinkApis(callArgNode : IDDGCallArgNode, rfaFacts : ISet[RFAFact]) = {
-	  val calleeSet = callArgNode.getCalleeSet
-    calleeSet.foreach{
-      callee =>
-        val argSlot = VarSlot(callArgNode.argName)
-        val argFacts = rfaFacts.filter(fact=> argSlot == fact.s)
-			  val argRelatedFacts = ReachingFactsAnalysisHelper.getRelatedHeapFactsFrom(argFacts, rfaFacts)
-		    argRelatedFacts.foreach{
-          case RFAFact(slot, ins) =>
-		      	val t = findDefSite(ins.getDefSite)
-		      	addEdge(callArgNode.asInstanceOf[Node], t)
-        }
-        argFacts.foreach{
-          case RFAFact(slot, argIns) => 
-	          argIns.getFieldsUnknownDefSites.foreach{
-	          	case (defsite, udfields) =>
-	          	  if(callArgNode.getContext != defsite){
-		          	  val t = findDefSite(defsite)
-		          	  addEdge(callArgNode.asInstanceOf[Node], t)
-	          	  }
-	        	}
-        }
-	  }
 	}
   
   def iddgEntryParamNodeExists(cgN : CGEntryNode, position : Int) : Boolean = {

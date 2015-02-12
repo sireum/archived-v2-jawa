@@ -8,14 +8,12 @@ http://www.eclipse.org/legal/epl-v10.html
 package org.sireum.jawa.alir.taintAnalysis
 
 import org.sireum.alir.Slot
-import org.sireum.jawa.alir.reachingFactsAnalysis.RFAFact
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
- * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class TaintFact(fact : RFAFact, source : String){
+final case class TaintFact(s : Slot, tag : TaintTag){
   override def toString : String = {
-    "TaintFact" + "(" + fact + "->" + source + ")"
+    "TaintFact" + "(" + s + ":" + tag + ")"
   }
 }

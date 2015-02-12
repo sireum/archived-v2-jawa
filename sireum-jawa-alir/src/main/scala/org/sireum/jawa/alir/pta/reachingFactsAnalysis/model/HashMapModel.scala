@@ -5,13 +5,15 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.model
+package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 
 import org.sireum.jawa._
 import org.sireum.util._
-import org.sireum.jawa.alir.reachingFactsAnalysis._
+import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.Instance
+import org.sireum.jawa.alir.pta.PTAPointStringInstance
+import org.sireum.jawa.alir.pta.PTATupleInstance
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -20,7 +22,7 @@ object HashMapModel {
 	def isHashMap(r : JawaRecord) : Boolean = r.getName == "java.util.HashMap"
 	
 	private def getPointStringToRet(retVar : String, currentContext : Context): RFAFact = {
-    val newThisValue = RFAPointStringInstance(currentContext.copy)
+    val newThisValue = PTAPointStringInstance(currentContext.copy)
     RFAFact(VarSlot(retVar), newThisValue)	 
 	}
 	  
@@ -56,8 +58,8 @@ object HashMapModel {
 	  result += rf
 	  strValue.foreach{
 	    s =>
-	      if(s.isInstanceOf[RFATupleInstance])
-	      	result += RFAFact(FieldSlot(rf.v, "java.util.HashSet.items"), s.asInstanceOf[RFATupleInstance].left)
+	      if(s.isInstanceOf[PTATupleInstance])
+	      	result += RFAFact(FieldSlot(rf.v, "java.util.HashSet.items"), s.asInstanceOf[PTATupleInstance].left)
 	  }
 	  result
   }
@@ -73,8 +75,8 @@ object HashMapModel {
 	  result += rf
 	  result ++= strValue.map{
 	    s => 
-	      require(s.isInstanceOf[RFATupleInstance])
-	      RFAFact(FieldSlot(rf.v, "java.util.HashSet.items"), s.asInstanceOf[RFATupleInstance].right)
+	      require(s.isInstanceOf[PTATupleInstance])
+	      RFAFact(FieldSlot(rf.v, "java.util.HashSet.items"), s.asInstanceOf[PTATupleInstance].right)
 	  }
 	  result
   }
@@ -90,9 +92,9 @@ object HashMapModel {
 	  val entValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
 	  entValue.foreach{
 	    v =>
-	      require(v.isInstanceOf[RFATupleInstance])
-	      if(keyValue.contains(v.asInstanceOf[RFATupleInstance].left)){
-	        result += (RFAFact(VarSlot(retVar), v.asInstanceOf[RFATupleInstance].right))
+	      require(v.isInstanceOf[PTATupleInstance])
+	      if(keyValue.contains(v.asInstanceOf[PTATupleInstance].left)){
+	        result += (RFAFact(VarSlot(retVar), v.asInstanceOf[PTATupleInstance].right))
 	      }
 	  }
 	  result
@@ -113,7 +115,7 @@ object HashMapModel {
 	    kv =>
 	      valueValue.foreach{
 	        vv =>
-	          entrys += RFATupleInstance(kv, vv, currentContext)
+	          entrys += PTATupleInstance(kv, vv, currentContext)
 	      }
 	  }
 	  thisValue.foreach{

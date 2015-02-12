@@ -5,7 +5,7 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.reachingFactsAnalysis
+package org.sireum.jawa.alir.pta
 
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.Instance
@@ -13,14 +13,14 @@ import org.sireum.jawa.Type
 import org.sireum.jawa.TupleType
 import org.sireum.jawa.NormalType
 
-abstract class RFAAbstractInstance extends Instance
+abstract class PTAAbstractInstance extends Instance
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class RFAInstance(typ : Type, defSite : Context) extends RFAAbstractInstance{
-  override def clone(newDefSite : Context) : Instance = RFAInstance(typ, newDefSite)
+final case class PTAInstance(typ : Type, defSite : Context) extends PTAAbstractInstance{
+  override def clone(newDefSite : Context) : Instance = PTAInstance(typ, newDefSite)
   override def toString : String = {
     val sb = new StringBuilder
     sb.append(this.typ + "@")
@@ -33,8 +33,8 @@ final case class RFAInstance(typ : Type, defSite : Context) extends RFAAbstractI
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class RFATupleInstance(left : Instance, right : Instance, defSite : Context) extends RFAAbstractInstance{
-  override def clone(newDefSite : Context) : Instance = RFATupleInstance(left, right, newDefSite)
+final case class PTATupleInstance(left : Instance, right : Instance, defSite : Context) extends PTAAbstractInstance{
+  override def clone(newDefSite : Context) : Instance = PTATupleInstance(left, right, newDefSite)
   def typ : Type = TupleType(left.typ, right.typ)
   override def toString : String = {
     val sb = new StringBuilder
@@ -48,19 +48,19 @@ final case class RFATupleInstance(left : Instance, right : Instance, defSite : C
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-abstract class RFAAbstractStringInstance(defSite : Context) extends RFAAbstractInstance{
+abstract class PTAAbstractStringInstance(defSite : Context) extends PTAAbstractInstance{
   def typ : Type = NormalType("java.lang.String", 0) 
   override def toString : String = this.typ + ":abstract@" + this.defSite.getCurrentLocUri
 }
 
 /**
- * RFAPointStringInstance represents a general String instance whose content can be any string i.e. reg expression "*"
+ * PTAPointStringInstance represents a general String instance whose content can be any string i.e. reg expression "*"
  * 
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class RFAPointStringInstance(defSite : Context) extends RFAAbstractStringInstance(defSite){
-  override def clone(newDefSite : Context) : Instance = RFAPointStringInstance(newDefSite)
+final case class PTAPointStringInstance(defSite : Context) extends PTAAbstractStringInstance(defSite){
+  override def clone(newDefSite : Context) : Instance = PTAPointStringInstance(newDefSite)
   override def toString : String = this.typ + ":point@" + this.defSite.getCurrentLocUri
 }
 
@@ -68,8 +68,8 @@ final case class RFAPointStringInstance(defSite : Context) extends RFAAbstractSt
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class RFAConcreteStringInstance(string : String, defSite : Context) extends RFAAbstractStringInstance(defSite){
-  override def clone(newDefSite : Context) : Instance = RFAConcreteStringInstance(string, newDefSite)
+final case class PTAConcreteStringInstance(string : String, defSite : Context) extends PTAAbstractStringInstance(defSite){
+  override def clone(newDefSite : Context) : Instance = PTAConcreteStringInstance(string, newDefSite)
   override def toString : String = {
     val sb = new StringBuilder
     sb.append(this.typ + ".")
