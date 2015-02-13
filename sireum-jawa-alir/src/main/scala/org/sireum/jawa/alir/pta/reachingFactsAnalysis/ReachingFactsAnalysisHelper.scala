@@ -143,6 +143,7 @@ object ReachingFactsAnalysisHelper {
                       val p = CallHandler.getVirtualCalleeProcedure(ins.typ, subSig)
                       calleeSet += InstanceCallee(p, ins)
                     }
+                    calleeSet.foreach { p => if(p.callee.isAbstract) println("abstract: " + ins, calleeSet) } 
                   }
                   
               }

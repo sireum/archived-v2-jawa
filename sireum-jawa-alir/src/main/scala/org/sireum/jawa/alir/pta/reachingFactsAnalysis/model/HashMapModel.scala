@@ -89,14 +89,16 @@ object HashMapModel {
 	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
 	  val keySlot = VarSlot(args(1))
 	  val keyValue = factMap.getOrElse(keySlot, isetEmpty)
-	  val entValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
-	  entValue.foreach{
-	    v =>
-	      require(v.isInstanceOf[PTATupleInstance])
-	      if(keyValue.contains(v.asInstanceOf[PTATupleInstance].left)){
-	        result += (RFAFact(VarSlot(retVar), v.asInstanceOf[PTATupleInstance].right))
-	      }
-	  }
+    if(!thisValue.isEmpty){
+  	  val entValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
+  	  entValue.foreach{
+  	    v =>
+  	      require(v.isInstanceOf[PTATupleInstance])
+  	      if(keyValue.contains(v.asInstanceOf[PTATupleInstance].left)){
+  	        result += (RFAFact(VarSlot(retVar), v.asInstanceOf[PTATupleInstance].right))
+  	      }
+  	  }
+    }
 	  result
   } 
 	
