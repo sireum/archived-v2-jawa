@@ -16,6 +16,7 @@ import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
 import org.sireum.jawa.alir.util.CallHandler
 import org.sireum.jawa.alir.pta.PTAScopeManager
 import org.sireum.jawa.alir.pta.PTAInstance
+import org.sireum.jawa.util.MyTimer
 
 
 /**
@@ -23,37 +24,39 @@ import org.sireum.jawa.alir.pta.PTAInstance
  */
 object InterproceduralSuperSpark {
   
-  def apply(entryPoints : ISet[JawaProcedure]) : InterproceduralControlFlowGraph[N] = build(entryPoints)
+  def apply(entryPoints : ISet[JawaProcedure], timer : Option[MyTimer]) : InterproceduralControlFlowGraph[N] = build(entryPoints, timer)
   
   type N = CGNode
   
-  def build(entryPoints : ISet[JawaProcedure]) : InterproceduralControlFlowGraph[N] = {
+  def build(entryPoints : ISet[JawaProcedure], timer : Option[MyTimer]) : InterproceduralControlFlowGraph[N] = {
     val pag = new PointerAssignmentGraph[PtaNode]()
     val cg = new InterproceduralControlFlowGraph[N]
-    pta(pag, cg, entryPoints)
+    pta(pag, cg, entryPoints, timer)
     cg
   }
   
   def pta(pag : PointerAssignmentGraph[PtaNode],
           cg : InterproceduralControlFlowGraph[N],
-          entryPoints : Set[JawaProcedure]) = {
+          entryPoints : Set[JawaProcedure],
+          timer : Option[MyTimer]) = {
     entryPoints.foreach{
 		  ep =>
 		    if(ep.isConcrete){
 		      if(!ep.hasProcedureBody)ep.resolveBody
-		    	doPTA(ep, pag, cg)
+		    	doPTA(ep, pag, cg, timer)
 		    }
     }
   }
   
   def doPTA(ep : JawaProcedure,
             pag : PointerAssignmentGraph[PtaNode],
-            cg : InterproceduralControlFlowGraph[N]) : Unit = {
+            cg : InterproceduralControlFlowGraph[N],
+            timer : Option[MyTimer]) : Unit = {
     val points = new PointsCollector().points(ep.getSignature, ep.getProcedureBody)
-    val context : Context = new Context(pag.K_CONTEXT)
+    val context : Context = new Context(GlobalConfig.CG_CONTEXT_K)
     pag.constructGraph(ep, points, context.copy)
     cg.collectCfgToBaseGraph(ep, context.copy)
-    workListPropagation(pag, cg)
+    workListPropagation(pag, cg, timer)
   }
   
   private def processStaticInfo(pag : PointerAssignmentGraph[PtaNode], cg : InterproceduralControlFlowGraph[N]) = {
@@ -67,10 +70,12 @@ object InterproceduralSuperSpark {
   }
   
   def workListPropagation(pag : PointerAssignmentGraph[PtaNode],
-		  					 cg : InterproceduralControlFlowGraph[N]) : Unit = {
+		  					 cg : InterproceduralControlFlowGraph[N],
+                 timer : Option[MyTimer]) : Unit = {
     processStaticInfo(pag, cg)
     while (!pag.worklist.isEmpty) {
       while (!pag.worklist.isEmpty) {
+        if(timer.isDefined) timer.get.ifTimeoutThrow
       	val srcNode = pag.worklist.remove(0)
       	srcNode match{
       	  case ofbnr : PtaFieldBaseNodeR => // e.g. q = ofbnr.f; edge is ofbnr.f -> q

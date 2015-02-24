@@ -19,6 +19,7 @@ import org.sireum.jawa.GlobalConfig
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.SynchronizedMap
 import org.sireum.jawa.alir.Context
+import org.sireum.jawa.util.MyTimer
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -81,6 +82,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
    callr : CallResolver[LatticeElement],
    iota : ISet[LatticeElement],
    initial : ISet[LatticeElement],
+   timer : Option[MyTimer] = None,
    switchAsOrderedMatch : Boolean = false,
    nl : Option[NodeListener] = None) : //
    InterProceduralMonotoneDataFlowAnalysisResult[LatticeElement] = {
@@ -577,12 +579,13 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
 	    }
 	    result
 	  }
-
+    
     entrySetMap.put(flow.entryNode, iota)
     val workList = mlistEmpty[N]
     workList += flow.entryNode
     while(!workList.isEmpty){
 	    while (!workList.isEmpty) {
+        if(timer.isDefined) timer.get.ifTimeoutThrow
 	      if(false){
 	        val newworkList = workList.par.map{
 	          n =>

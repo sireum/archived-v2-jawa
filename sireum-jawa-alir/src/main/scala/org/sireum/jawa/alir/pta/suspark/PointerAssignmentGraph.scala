@@ -240,7 +240,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
   
   final val EDGE_TYPE = "EdgeType"
   final val PARAM_NUM = "ParamNumber"
-  final val K_CONTEXT : Int = 0
+
   /**
    * represents max number of strings in the strings set of a StringInstance
    */

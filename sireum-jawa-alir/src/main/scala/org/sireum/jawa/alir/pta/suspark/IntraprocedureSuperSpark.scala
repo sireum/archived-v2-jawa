@@ -12,6 +12,7 @@ import java.io._
 import org.sireum.jawa.PointsCollector
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.GlobalConfig
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -31,7 +32,7 @@ class IntraprocedureSuperSpark {
   def doPTA(ap : JawaProcedure,
             pag : PointerAssignmentGraph[PtaNode]) : Unit = {
     val points = new PointsCollector().points(ap.getSignature, ap.getProcedureBody)
-    val context : Context = new Context(pag.K_CONTEXT)
+    val context : Context = new Context(GlobalConfig.CG_CONTEXT_K)
     pag.constructGraph(ap, points, context.copy)
     workListPropagation(pag)
   }

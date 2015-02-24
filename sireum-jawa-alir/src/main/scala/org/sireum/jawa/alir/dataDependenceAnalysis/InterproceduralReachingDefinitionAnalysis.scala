@@ -24,6 +24,7 @@ import org.sireum.jawa.alir.interProcedural.NodeListener
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaReachingDefinitionAnalysis
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.Center
+import org.sireum.jawa.util.MyTimer
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -36,13 +37,15 @@ object InterproceduralReachingDefinitionAnalysis {
   
   def apply(cg : InterproceduralControlFlowGraph[Node],
       parallel : Boolean = false,
-	    switchAsOrderedMatch : Boolean = false) = build(cg, parallel, switchAsOrderedMatch)
+      timer : Option[MyTimer] = None,
+	    switchAsOrderedMatch : Boolean = false) = build(cg, parallel, timer, switchAsOrderedMatch)
 	
 	def build(
 	    cg : InterproceduralControlFlowGraph[Node],
 	    parallel : Boolean = false,
+      timer : Option[MyTimer] = None,
 	    switchAsOrderedMatch : Boolean = false) = {
-    new InterproceduralReachingDefinitionAnalysis().build(cg, parallel, switchAsOrderedMatch)
+    new InterproceduralReachingDefinitionAnalysis().build(cg, parallel, timer, switchAsOrderedMatch)
   }
 }
 
@@ -61,6 +64,7 @@ class InterproceduralReachingDefinitionAnalysis {
 	def build(
 	    cg : InterproceduralControlFlowGraph[Node],
 	    parallel : Boolean,
+      timer : Option[MyTimer],
 	    switchAsOrderedMatch : Boolean) = {
 	  val gen = new Gen
     val kill = new Kill
@@ -87,7 +91,7 @@ class InterproceduralReachingDefinitionAnalysis {
     val iota : ISet[IRDFact] = isetEmpty + (((VarSlot("@@IRDA"), InitDefDesc), initialContext))
     val initial : ISet[IRDFact] = isetEmpty
     val result = InterProceduralMonotoneDataFlowAnalysisFramework[IRDFact](cg,
-      true, true, false, parallel, gen, kill, callr, iota, initial, switchAsOrderedMatch, None)
+      true, true, false, parallel, gen, kill, callr, iota, initial, timer, switchAsOrderedMatch, None)
 
 //    print("IRD\n")
 //    print(result)
