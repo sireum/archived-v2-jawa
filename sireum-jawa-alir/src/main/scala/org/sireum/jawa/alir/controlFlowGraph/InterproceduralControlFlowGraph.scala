@@ -29,6 +29,7 @@ import org.sireum.jawa.Center
 import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.JawaProcedure
 import org.sireum.jawa.JawaCodeSource
+import java.util.regex.Pattern
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -259,20 +260,16 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
    * The algorithm is obvious from the following code 
    */
   def compressByDelNode (n : Node) = {
-    val preds = predecessors(n)
-    val succs = successors(n)
-    for(pred <- preds)
-      deleteEdge(pred, n)
-    for(succ <- succs)
-      deleteEdge(n, succ) 
+    val preds = predecessors(n) - n
+    val succs = successors(n) - n
+    deleteNode(n)
     for(pred <- preds){
       for(succ <- succs){           
-        if (!hasEdge(pred,succ))
-           addEdge(pred, succ)
+        if (!hasEdge(pred,succ)){
+          addEdge(pred, succ)
+        }
       }
     }
-//    println("deleteNode = " + n)
-    deleteNode(n)
   }
    
    // read the sCfg and build a corresponding DFA/NFA
@@ -526,6 +523,44 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
         addEdge(callNode, targetNode, typ)
     }
     targetNode
+  }
+  
+  def toApiGraph : String = {
+    val sb = new StringBuilder
+    sb.append("Edges:\n")
+    val ns = nodes filter{
+      n =>
+        n match{
+          case cn : CGCallNode =>
+            cn.getCalleeSet.exists { c => c.callee.getDeclaringRecord.isFrameworkRecord }
+          case _ => true
+        }
+    }
+    ns foreach(compressByDelNode(_))
+    edges.foreach{
+      e =>
+        val src = e.source
+        val tar = e.target
+        val srcsig = getSignatureFromCallNode(src)
+        val tarsig = getSignatureFromCallNode(tar)
+        sb.append(src.getContext.toFullString + ":::" + srcsig)
+        sb.append(" --> ")
+        sb.append(tar.getContext.toFullString + ":::" + tarsig + "\n")
+    }
+    sb.toString().trim()
+  }
+  
+  private def getSignatureFromCallNode(node : Node) : String = {
+    assume(node.isInstanceOf[CGCallNode])
+    val loc = Center.getProcedureWithoutFailing(node.getOwner).getProcedureBody.location(node.asInstanceOf[CGCallNode].getLocIndex)
+    val sig = loc.asInstanceOf[JumpLocation].jump.getValueAnnotation("signature") match {
+      case Some(s) => s match {
+        case ne : NameExp => ne.name.name
+        case _ => ""
+      }
+      case None => throw new RuntimeException("cannot found annotation 'signature' from: " + loc)
+    }
+    sig
   }
   
   def toTextGraph : String  = {

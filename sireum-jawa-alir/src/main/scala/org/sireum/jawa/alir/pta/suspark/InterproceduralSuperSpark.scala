@@ -196,12 +196,19 @@ object InterproceduralSuperSpark {
         } else {
           calleeSet ++= pag.getVirtualCalleeSet(d, pi)
         }
+        var bypassflag = true
         calleeSet.foreach(
           callee => {
             if(!PTAScopeManager.shouldBypass(callee.getDeclaringRecord))
             	extendGraphWithConstructGraph(callee, pi, callerContext.copy, pag, cg)
+            else bypassflag = false
           }  
         )
+        if(!bypassflag){
+          val callNode = cg.getCGCallNode(callerContext)
+          val returnNode = cg.getCGReturnNode(callerContext)
+          cg.addEdge(callNode, returnNode)
+        }
         processStaticInfo(pag, cg)
       case None =>
     }
