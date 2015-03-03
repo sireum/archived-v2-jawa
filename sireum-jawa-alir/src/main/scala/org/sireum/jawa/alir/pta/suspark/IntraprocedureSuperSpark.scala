@@ -115,7 +115,7 @@ class IntraprocedureSuperSpark {
 	          case pag.EdgeType.FIELD_STORE => // q -> r.f
 	            pag.pointsToMap.propagateFieldStorePointsToSet(edge.source, edge.target.asInstanceOf[PtaFieldNode])
 	          case pag.EdgeType.ARRAY_STORE => // e.g. r[i] = q; Edge: q -> r[i]
-    	        if(!pag.pointsToMap.pointsToSetOfArrayBaseNode(edge.target.asInstanceOf[PtaArrayNode]).isEmpty 
+    	        if(!pag.pointsToMap.pointsToSet(edge.target.asInstanceOf[PtaArrayNode]).isEmpty 
     	            && !pag.pointsToMap.contained(edge.source, edge.target)){
     	          pag.worklist += edge.target
     	        	pag.pointsToMap.propagateArrayStorePointsToSet(edge.source, edge.target.asInstanceOf[PtaArrayNode])

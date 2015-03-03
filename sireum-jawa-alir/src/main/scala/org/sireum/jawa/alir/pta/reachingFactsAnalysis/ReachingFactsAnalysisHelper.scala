@@ -9,14 +9,14 @@ package org.sireum.jawa.alir.pta.reachingFactsAnalysis
 
 import org.sireum.util._
 import org.sireum.alir.Slot
-import org.sireum.jawa.alir.Instance
+import org.sireum.jawa.alir.pta.Instance
 import org.sireum.pilar.ast._
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.JawaProcedure
 import org.sireum.jawa.Center
 import org.sireum.jawa.MessageCenter._
-import org.sireum.jawa.alir.NullInstance
-import org.sireum.jawa.alir.UnknownInstance
+import org.sireum.jawa.alir.pta.NullInstance
+import org.sireum.jawa.alir.pta.UnknownInstance
 import org.sireum.jawa.util.StringFormConverter
 import org.sireum.jawa.NormalType
 import org.sireum.jawa.Type
@@ -26,7 +26,7 @@ import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.alir.interProcedural.InstanceCallee
 import org.sireum.jawa.alir.interProcedural.StaticCallee
 import org.sireum.jawa.alir.LibSideEffectProvider
-import org.sireum.jawa.alir.UnknownInstance
+import org.sireum.jawa.alir.pta.UnknownInstance
 import org.sireum.jawa.alir.interProcedural.UnknownCallee
 import org.sireum.jawa.PilarAstHelper
 import org.sireum.jawa.alir.pta.PTAConcreteStringInstance

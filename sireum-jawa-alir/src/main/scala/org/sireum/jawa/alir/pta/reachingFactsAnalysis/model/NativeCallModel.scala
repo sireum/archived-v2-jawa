@@ -12,7 +12,7 @@ import org.sireum.util._
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.Center
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.alir.ClassInstance
+import org.sireum.jawa.alir.pta.ClassInstance
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.alir.pta.PTAConcreteStringInstance
 

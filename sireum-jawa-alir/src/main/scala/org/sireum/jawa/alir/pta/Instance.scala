@@ -8,18 +8,53 @@ http://www.eclipse.org/legal/epl-v10.html
 package org.sireum.jawa.alir.pta
 
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.alir.Instance
 import org.sireum.jawa.Type
 import org.sireum.jawa.TupleType
 import org.sireum.jawa.NormalType
-
-abstract class PTAAbstractInstance extends Instance
+import org.sireum.util._
+import org.sireum.jawa.NullType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class PTAInstance(typ : Type, defSite : Context) extends PTAAbstractInstance{
+abstract class Instance{
+  def typ : Type
+  def getType = typ
+  def defSite : Context
+  def getDefSite = defSite
+  def clone(newDefSite : Context) : Instance
+  var fieldsUnknownDefSites : IMap[Context, Set[String]] = imapEmpty
+  def addFieldsUnknownDefSite(defSite : Context, fields : Set[String]) = this.fieldsUnknownDefSites += (defSite -> fields)
+  def setFieldsUnknownDefSites(defSites : IMap[Context, Set[String]]) = this.fieldsUnknownDefSites = defSites
+  def getFieldsUnknownDefSites = this.fieldsUnknownDefSites
+}
+
+
+final case class ClassInstance(name: String, defSite : Context) extends Instance{
+  override def clone(newDefSite : Context) : Instance = ClassInstance(name, newDefSite)
+  def typ = NormalType("java.lang.Class", 0)
+  def getName = name
+  override def toString : String = this.name + ".class@" + this.defSite.getCurrentLocUri
+}
+
+final case class NullInstance(defSite : Context) extends Instance{
+  override def clone(newDefSite : Context) : Instance = NullInstance(newDefSite)
+  def typ : Type = new NullType
+  override def toString : String = "Null" + "@" + defSite.getCurrentLocUri
+}
+
+final case class UnknownInstance(baseTyp : Type, defSite : Context) extends Instance{
+  override def clone(newDefSite : Context) : Instance = UnknownInstance(baseTyp, newDefSite)
+  def typ : Type = baseTyp
+  override def toString : String = baseTyp + "*" + "@" + defSite.getCurrentLocUri
+}
+
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
+final case class PTAInstance(typ : Type, defSite : Context) extends Instance{
   override def clone(newDefSite : Context) : Instance = PTAInstance(typ, newDefSite)
   override def toString : String = {
     val sb = new StringBuilder
@@ -33,7 +68,7 @@ final case class PTAInstance(typ : Type, defSite : Context) extends PTAAbstractI
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class PTATupleInstance(left : Instance, right : Instance, defSite : Context) extends PTAAbstractInstance{
+final case class PTATupleInstance(left : Instance, right : Instance, defSite : Context) extends Instance{
   override def clone(newDefSite : Context) : Instance = PTATupleInstance(left, right, newDefSite)
   def typ : Type = TupleType(left.typ, right.typ)
   override def toString : String = {
@@ -48,7 +83,7 @@ final case class PTATupleInstance(left : Instance, right : Instance, defSite : C
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-abstract class PTAAbstractStringInstance(defSite : Context) extends PTAAbstractInstance{
+abstract class PTAAbstractStringInstance(defSite : Context) extends Instance{
   def typ : Type = NormalType("java.lang.String", 0) 
   override def toString : String = this.typ + ":abstract@" + this.defSite.getCurrentLocUri
 }

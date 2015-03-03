@@ -12,8 +12,8 @@ import org.sireum.util._
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.Center
 import org.sireum.jawa.MessageCenter._
-import org.sireum.jawa.alir.NullInstance
-import org.sireum.jawa.alir.UnknownInstance
+import org.sireum.jawa.alir.pta.NullInstance
+import org.sireum.jawa.alir.pta.UnknownInstance
 import org.sireum.jawa.JawaProcedure
 import org.sireum.alir.ReachingDefinitionAnalysis
 import org.sireum.alir.ControlFlowGraph
@@ -31,7 +31,7 @@ import org.sireum.jawa.alir.sideEffectAnalysis.InterProceduralSideEffectAnalysis
 import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.alir.interProcedural.InstanceCallee
 import org.sireum.jawa.alir.LibSideEffectProvider
-import org.sireum.jawa.alir.Instance
+import org.sireum.jawa.alir.pta.Instance
 import java.io.PrintWriter
 
 /**

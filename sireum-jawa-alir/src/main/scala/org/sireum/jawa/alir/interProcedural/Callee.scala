@@ -7,7 +7,7 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir.interProcedural
 
-import org.sireum.jawa.alir.Instance
+import org.sireum.jawa.alir.pta.Instance
 import org.sireum.jawa.JawaProcedure
 
 /**

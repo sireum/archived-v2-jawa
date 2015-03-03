@@ -9,7 +9,7 @@ package org.sireum.jawa.alir.objectFlowAnalysis
 
 import org.sireum.jawa.Type
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.alir.Instance
+import org.sireum.jawa.alir.pta.Instance
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>

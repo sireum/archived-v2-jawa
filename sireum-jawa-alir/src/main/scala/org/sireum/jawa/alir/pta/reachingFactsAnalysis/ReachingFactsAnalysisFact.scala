@@ -9,7 +9,7 @@ package org.sireum.jawa.alir.pta.reachingFactsAnalysis
 
 import org.sireum.alir.DefRef
 import org.sireum.alir.Slot
-import org.sireum.jawa.alir.Instance
+import org.sireum.jawa.alir.pta.Instance
 import org.sireum.util._
 
 /**

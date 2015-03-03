@@ -30,6 +30,7 @@ import org.sireum.jawa.Transform
 import org.sireum.pilar.ast.NameExp
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaDefRef
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaVarAccesses
+import org.sireum.jawa.alir.pta.ClassInstance
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>

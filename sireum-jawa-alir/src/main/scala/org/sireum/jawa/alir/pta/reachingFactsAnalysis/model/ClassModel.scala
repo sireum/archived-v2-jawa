@@ -14,7 +14,7 @@ import org.sireum.jawa.alir.Context
 import org.sireum.jawa.util.StringFormConverter
 import org.sireum.jawa.MessageCenter._
 import org.sireum.jawa.alir.JawaAlirInfoProvider
-import org.sireum.jawa.alir.ClassInstance
+import org.sireum.jawa.alir.pta.ClassInstance
 import org.sireum.jawa.alir.pta.PTAConcreteStringInstance
 import org.sireum.jawa.alir.pta.PTAPointStringInstance
 

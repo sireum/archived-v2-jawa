@@ -31,41 +31,28 @@ import org.sireum.jawa.alir.util.CallHandler
 import org.sireum.jawa.alir.objectFlowAnalysis.InvokePointNode
 import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.alir.pta.PTAInstance
+import org.sireum.jawa.alir.pta.PTAResult
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-class PointsToMap {
-  private val ptMap : MMap[String, MSet[PTAInstance]] = mmapEmpty
-  def pointsToMap = ptMap
-  def setInstance(n : PtaNode, i : PTAInstance) = setInstanceInternal(n.toString, i)
-  def setInstanceInternal(key : String, i : PTAInstance) = ptMap(key) = msetEmpty + i
-  def setInstances(n : PtaNode, is : MSet[PTAInstance]) = setInstancesInternal(n.toString, is)
-  def setInstancesInternal(key : String, is : MSet[PTAInstance]) = ptMap(key) = is
-  def addInstance(n : PtaNode, i : PTAInstance) : Boolean = addInstanceInternal(n.toString, i)
-  def addInstanceInternal(key : String, i : PTAInstance) : Boolean = ptMap.getOrElseUpdate(key, msetEmpty).add(i)
-  def addInstances(n : PtaNode, is : MSet[PTAInstance]) = addInstancesInternal(n.toString, is)
-  def addInstancesInternal(key : String, is : MSet[PTAInstance]) = ptMap.getOrElseUpdate(key, msetEmpty) ++= is
-  def removeInstance(n : PtaNode, i : PTAInstance) : Boolean = removeInstanceInternal(n.toString, i)
-  def removeInstanceInternal(key : String, i : PTAInstance) : Boolean = ptMap.getOrElseUpdate(key, msetEmpty).remove(i)
-  def removeInstances(n : PtaNode, is : MSet[PTAInstance]) = removeInstancesInternal(n.toString, is)
-  def removeInstancesInternal(key : String, is : MSet[PTAInstance]) = ptMap.getOrElseUpdate(key, msetEmpty) --= is
+class PointsToMap extends PTAResult {
   /**
    * e.g. L0: p = q; L1:  r = p; transfer means p@L0 -> p@L1
    */
   def transferPointsToSet(n1 : PtaNode, n2 : PtaNode) = {
     n1 match{
       case pan : PtaArrayNode =>
-        addInstances(n2, pointsToSetOfArrayBaseNode(pan))
+        addInstances(n2.toString(), n2.getContext, pointsToSet(pan))
       case _ =>
-        addInstances(n2, pointsToSet(n1))
+        addInstances(n2.toString(), n2.getContext, pointsToSet(n1))
     }
     
   }
   /**
    * n1 -> n2 or n1.f -> n2 or n1[] -> n2
    */
-  def propagatePointsToSet(n1 : PtaNode, n2 : PtaNode) = setInstances(n2, pointsToSet(n1))
+  def propagatePointsToSet(n1 : PtaNode, n2 : PtaNode) = setInstances(n2.toString(), n2.getContext, pointsToSet(n1))
   /**
    * n1 -> n2.f
    */
@@ -73,7 +60,7 @@ class PointsToMap {
     pointsToSet(n2.baseNode) foreach{
       ins =>
         val fieldName = StringFormConverter.getFieldNameFromFieldSignature(n2.fieldName)
-        addInstancesInternal(ins.toString + fieldName, pointsToSet(n1))
+        addInstances(ins.toString + fieldName, n2.baseNode.getContext, pointsToSet(n1))
     }
   }
   
@@ -81,9 +68,9 @@ class PointsToMap {
    * n1 -> n2[]
    */
   def propagateArrayStorePointsToSet(n1 : PtaNode, n2 : PtaArrayNode) = {
-    pointsToSetOfArrayBaseNode(n2) foreach{
+    pointsToSet(n2) foreach{
       ins =>
-        addInstancesInternal(ins.toString, pointsToSet(n1))
+        addInstances(ins.toString, n2.getContext, pointsToSet(n1))
     }
   }
   
@@ -91,15 +78,9 @@ class PointsToMap {
    * n1 -> @@n2
    */
   def propagateGlobalStorePointsToSet(n1 : PtaNode, n2 : PtaGlobalVarNode) = {
-    addInstancesInternal(n2.name, pointsToSet(n1))
+    addInstances(n2.name, n2.getContext, pointsToSet(n1))
   }
   
-  /**
-   * get n[]'s base type pt
-   */
-  def pointsToSetOfArrayBaseNode(n : PtaArrayNode) : MSet[PTAInstance] = {
-    ptMap.getOrElse(n.toString, msetEmpty)
-  }
 	/**
 	 * n or n.f or n[] or @@n
 	 */
@@ -111,26 +92,22 @@ class PointsToMap {
           bInss.map{
 		        ins =>
 		          val fieldName = StringFormConverter.getFieldNameFromFieldSignature(pfn.fieldName)
-		          ptMap.getOrElse(ins.toString + fieldName, msetEmpty)
+		          pointsToSet(ins.toString + fieldName, pfn.getContext)
 		      }.reduce((set1, set2) => set1 ++ set2)
         }
 		    else msetEmpty
       case pan : PtaArrayNode =>
-        if(!pointsToSetOfArrayBaseNode(pan).isEmpty)
-	        pointsToSetOfArrayBaseNode(pan).map{
+        if(!pointsToSet(pan).isEmpty)
+	        pointsToSet(pan).map{
 			      ins =>
-			        ptMap.getOrElse(ins.toString, msetEmpty)
+			        pointsToSet(ins.toString, pan.getContext)
 			    }.reduce((set1, set2) => set1 ++ set2)
 			  else msetEmpty
       case pgn : PtaGlobalVarNode =>
-        ptMap.getOrElse(pgn.name, msetEmpty)
+        pointsToSet(pgn.name, pgn.getContext)
       case _ =>
-        ptMap.getOrElse(n.toString, msetEmpty)
+        pointsToSet(n.toString, n.getContext)
     }
-  }
-  
-  def pointsToSet(key : String) : MSet[PTAInstance] = {
-    ptMap.getOrElse(key, msetEmpty)
   }
 
   def isDiff(n1 : PtaNode, n2 : PtaNode) : Boolean = {
@@ -142,14 +119,14 @@ class PointsToMap {
       case pan1 : PtaArrayNode =>
         n2 match{
           case pan2 : PtaArrayNode =>
-            pointsToSetOfArrayBaseNode(pan1) != pointsToSetOfArrayBaseNode(pan2)
+            pointsToSet(pan1) != pointsToSet(pan2)
           case _ =>
-            pointsToSetOfArrayBaseNode(pan1) != pointsToSet(n2)
+            pointsToSet(pan1) != pointsToSet(n2)
         }
       case _=>
         n2 match{
           case pan2 : PtaArrayNode =>
-            pointsToSet(n1) != pointsToSetOfArrayBaseNode(pan2)
+            pointsToSet(n1) != pointsToSet(pan2)
           case _ =>
             pointsToSet(n1) != pointsToSet(n2)
         }
@@ -161,7 +138,7 @@ class PointsToMap {
   }
   
   def getDiff(n1 : PtaNode, n2 : PtaNode) = {
-    pointsToSet(n1).diff(pointsToSet(n2))
+    pointsToSet(n1) diff pointsToSet(n2)
   }
 }
 
@@ -357,10 +334,10 @@ class PointerAssignmentGraph[Node <: PtaNode]
 //            pointsToMap.addInstance(rhsNode, ins)
           case pao : PointArrayO =>
             val ins = PTAInstance(new NormalType(pao.typ, pao.dimensions), context.copy)
-            pointsToMap.addInstance(rhsNode, ins)
+            pointsToMap.addInstance(rhsNode.toString, context.copy, ins)
           case po : PointO =>
             val ins = PTAInstance(new NormalType(po.typ), context.copy)
-            pointsToMap.addInstance(rhsNode, ins)
+            pointsToMap.addInstance(rhsNode.toString, context.copy, ins)
           case pi : PointI =>
             if(pi.typ.equals("static")){
               worklist += rhsNode
