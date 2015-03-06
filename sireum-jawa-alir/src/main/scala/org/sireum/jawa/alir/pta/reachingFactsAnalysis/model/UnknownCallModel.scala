@@ -14,6 +14,7 @@ import org.sireum.jawa.Center
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.pta.ClassInstance
 import org.sireum.jawa.alir.JawaAlirInfoProvider
+import org.sireum.jawa.alir.pta.PTAResult
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -21,7 +22,7 @@ import org.sireum.jawa.alir.JawaAlirInfoProvider
 object UnknownCallModel {
 	 def isUnknownCall(p : JawaProcedure) : Boolean = p.isUnknown
 	 
-	 def doUnknownCall(s : ISet[RFAFact], p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	 def doUnknownCall(s : PTAResult, p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true

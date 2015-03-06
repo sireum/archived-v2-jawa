@@ -17,6 +17,7 @@ import org.sireum.jawa.NormalType
 import org.sireum.alir.Slot
 import org.sireum.jawa.alir.pta.Instance
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
+import org.sireum.jawa.alir.pta.PTAResult
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -41,17 +42,17 @@ trait ModelCallHandler {
   /**
    * instead of doing operation inside callee procedure's real code, we do it manually and return the result. 
    */
-	def doModelCall(s : ISet[RFAFact], calleeProc : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : ISet[RFAFact] = {
+	def doModelCall(s : PTAResult, calleeProc : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
 	  var (newFacts, delFacts, byPassFlag) = caculateResult(s, calleeProc, args, retVars, currentContext)
 	  if(byPassFlag){
 	  	val (newF, delF) = ReachingFactsAnalysisHelper.getUnknownObject(calleeProc, s, args, retVars, currentContext)
 	  	newFacts ++= newF
 	  	delFacts ++= delF
 	  }
-	  s ++ newFacts -- delFacts
+	  (newFacts, delFacts)
 	}
 	
-	def caculateResult(s : ISet[RFAFact], calleeProc : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def caculateResult(s : PTAResult, calleeProc : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  val r = calleeProc.getDeclaringRecord
 	  if(StringModel.isString(r)) StringModel.doStringCall(s, calleeProc, args, retVars, currentContext)
 	  else if(StringBuilderModel.isStringBuilder(r)) StringBuilderModel.doStringBuilderCall(s, calleeProc, args, retVars, currentContext)

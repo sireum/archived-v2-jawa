@@ -11,9 +11,7 @@ import org.sireum.jawa._
 import org.sireum.util._
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.alir.pta.Instance
-import org.sireum.jawa.alir.pta.PTAPointStringInstance
-import org.sireum.jawa.alir.pta.PTATupleInstance
+import org.sireum.jawa.alir.pta._
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -26,34 +24,31 @@ object HashMapModel {
     RFAFact(VarSlot(retVar), newThisValue)	 
 	}
 	  
-	private def cloneHashMap(s : ISet[RFAFact], args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
+	private def cloneHashMap(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
     require(args.size >0)
     val thisSlot = VarSlot(args(0))
-	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
+	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  thisValue.map{s => RFAFact(VarSlot(retVar), s.clone(currentContext))}
   }
 	
-	private def getHashMapEntrySetFactToRet(s : ISet[RFAFact], args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
+	private def getHashMapEntrySetFactToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
     require(args.size >0)
     val thisSlot = VarSlot(args(0))
-	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
-	  val strValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
+	  val thisValue = s.pointsToSet(thisSlot, currentContext)
+	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "java.util.HashMap.entrys"), currentContext)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("java.util.HashSet", 0), retVar, currentContext).get
 	  result += rf
 	  result ++= strValue.map{s => RFAFact(FieldSlot(rf.v, "java.util.HashSet.items"), s)}
 	  result
   }
 	
-	private def getHashMapKeySetToRet(s : ISet[RFAFact], args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
+	private def getHashMapKeySetToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
     require(args.size >0)
     val thisSlot = VarSlot(args(0))
-	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
-	  val strValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
+	  val thisValue = s.pointsToSet(thisSlot, currentContext)
+	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "java.util.HashMap.entrys"), currentContext)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("java.util.HashSet", 0), retVar, currentContext).get
 	  result += rf
 	  strValue.foreach{
@@ -64,13 +59,12 @@ object HashMapModel {
 	  result
   }
 	
-	private def getHashMapValuesToRet(s : ISet[RFAFact], args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
+	private def getHashMapValuesToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
     require(args.size >0)
     val thisSlot = VarSlot(args(0))
-	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
-	  val strValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
+	  val thisValue = s.pointsToSet(thisSlot, currentContext)
+	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "java.util.HashMap.entrys"), currentContext)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(NormalType("java.util.HashSet", 0), retVar, currentContext).get
 	  result += rf
 	  result ++= strValue.map{
@@ -81,16 +75,15 @@ object HashMapModel {
 	  result
   }
 	
-	private def getHashMapValue(s : ISet[RFAFact], args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
+	private def getHashMapValue(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
     require(args.size >1)
     val thisSlot = VarSlot(args(0))
-	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
+	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val keySlot = VarSlot(args(1))
-	  val keyValue = factMap.getOrElse(keySlot, isetEmpty)
+	  val keyValue = s.pointsToSet(keySlot, currentContext)
     if(!thisValue.isEmpty){
-  	  val entValue = thisValue.map{ins => factMap.getOrElse(FieldSlot(ins, "java.util.HashMap.entrys"), isetEmpty)}.reduce(iunion[Instance])
+  	  val entValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "java.util.HashMap.entrys"), currentContext)}.reduce(iunion[Instance])
   	  entValue.foreach{
   	    v =>
   	      require(v.isInstanceOf[PTATupleInstance])
@@ -102,16 +95,15 @@ object HashMapModel {
 	  result
   } 
 	
-	private def putHashMapValue(s : ISet[RFAFact], args : List[String], currentContext : Context) : ISet[RFAFact] ={
+	private def putHashMapValue(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
     require(args.size >2)
     val thisSlot = VarSlot(args(0))
-	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
+	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val keySlot = VarSlot(args(1))
-	  val keyValue = factMap.getOrElse(keySlot, isetEmpty)
+	  val keyValue = s.pointsToSet(keySlot, currentContext)
 	  val valueSlot = VarSlot(args(2))
-	  val valueValue = factMap.getOrElse(valueSlot, isetEmpty)
+	  val valueValue = s.pointsToSet(valueSlot, currentContext)
 	  var entrys = isetEmpty[Instance]
 	  keyValue.foreach{
 	    kv =>
@@ -127,26 +119,25 @@ object HashMapModel {
 	  result
   }
 	
-	private def putAllHashMapValues(s : ISet[RFAFact], args : List[String], currentContext : Context) : ISet[RFAFact] ={
+	private def putAllHashMapValues(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
     require(args.size >1)
     val thisSlot = VarSlot(args(0))
-	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
+	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val slot2 = VarSlot(args(1))
-	  val value2 = factMap.getOrElse(slot2, isetEmpty)
+	  val value2 = s.pointsToSet(slot2, currentContext)
 	  thisValue.foreach{
 	    ins =>
 	      value2.foreach{
 	        e => 
-	          val ents = factMap.getOrElse(FieldSlot(e, "java.util.HashMap.entrys"), isetEmpty)
+	          val ents = s.pointsToSet(FieldSlot(e, "java.util.HashMap.entrys"), currentContext)
 	          result ++= ents.map(RFAFact(FieldSlot(ins, "java.util.HashMap.entrys"), _))
 	      }
 	  }
 	  result
   }
 	
-	def doHashMapCall(s : ISet[RFAFact], p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def doHashMapCall(s : PTAResult, p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true

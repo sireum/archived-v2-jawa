@@ -11,9 +11,7 @@ import org.sireum.util._
 import org.sireum.jawa._
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
-import org.sireum.jawa.alir.pta.Instance
-import org.sireum.jawa.alir.pta.PTAPointStringInstance
-import org.sireum.jawa.alir.pta.PTAConcreteStringInstance
+import org.sireum.jawa.alir.pta._
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -32,26 +30,18 @@ object StringModel {
       Set(RFAFact(thisSlot, newThisValue))	 
 	}
 	
-	private def getFactFromArgForThis(s : ISet[RFAFact], args : List[String], currentContext : Context): ISet[RFAFact] = {
+	private def getFactFromArgForThis(s : PTAResult, args : List[String], currentContext : Context): ISet[RFAFact] = {
 	  require(args.size > 1)
-	  val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
 	  val thisSlot = VarSlot(args(0))
 	  val paramSlot = VarSlot(args(1))
-	  if(factMap.contains(paramSlot))
-	    factMap(paramSlot).map(v => RFAFact(thisSlot, v))
-	  else
-      isetEmpty	 
+	  s.pointsToSet(paramSlot, currentContext).map(v => RFAFact(thisSlot, v)) 
 	}
 	
 	
-  private def getOldFactForThis(s : ISet[RFAFact], args : List[String], currentContext : Context): ISet[RFAFact] = {
+  private def getOldFactForThis(s : PTAResult, args : List[String], currentContext : Context): ISet[RFAFact] = {
 		require(args.size > 0)
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
     val thisSlot = VarSlot(args(0))
-    if(factMap.contains(thisSlot))
-      factMap(thisSlot).map(v => RFAFact(thisSlot, v))
-    else
-      isetEmpty	  
+    s.pointsToSet(thisSlot, currentContext).map(v => RFAFact(thisSlot, v))  
 	}
 	
   private def getPointStringForRet(retVar : String, currentContext : Context) :ISet[RFAFact] ={
@@ -66,24 +56,18 @@ object StringModel {
    
   }
   
-  private def getFactFromThisForRet(s : ISet[RFAFact], args : List[String], retVar : String, currentContext : Context) :ISet[RFAFact] ={
+  private def getFactFromThisForRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) :ISet[RFAFact] ={
   	require(args.size > 0)
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)      
     ReachingFactsAnalysisHelper.getReturnFact(new NormalType("java.lang.String"), retVar, currentContext) match{
       case Some(fact) => 
         val thisSlot = VarSlot(args(0))
-		    if(factMap.contains(thisSlot)){
-	        factMap(thisSlot).map(v => RFAFact(fact.s, v))
-		    }
-		    else
-		      isetEmpty
+		    s.pointsToSet(thisSlot, currentContext).map(v => RFAFact(fact.s, v))  
       case None =>  isetEmpty
     }
    
   }
 	  
-	def doStringCall(s : ISet[RFAFact], p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
-	  val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
+	def doStringCall(s : PTAResult, p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var deleteFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
@@ -235,9 +219,9 @@ object StringModel {
 	    case "Ljava/lang/String;.valueOf:(Ljava/lang/Object;)Ljava/lang/String;" =>
 	      require(args.size > 0)
 	      val paramSlot = VarSlot(args(0))
-	      if(factMap.contains(paramSlot)){
+	      if(!s.pointsToSet(paramSlot, currentContext).isEmpty){
 	        var values : ISet[Instance] = isetEmpty
-	        factMap(paramSlot).foreach{
+	        s.pointsToSet(paramSlot, currentContext).foreach{
 	          ins=>
 	            if(ins.isInstanceOf[PTAConcreteStringInstance]) values += ins
 	            else values += PTAPointStringInstance(currentContext)

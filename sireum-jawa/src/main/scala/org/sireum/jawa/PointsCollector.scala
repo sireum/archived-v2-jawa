@@ -24,41 +24,27 @@ class PointsCollector {
 	        exp.name.name
 	      case _ => throw new RuntimeException("Can not find signature")
 	    }
-    val pProc : PointProc = new PointProc(procSig)
-    val sig = pst.procedure.getValueAnnotation("signature") match {
-      case Some(s) =>
-        s match {
+    var retP : Boolean = false
+    val parser = new SignatureParser(procSig).getParamSig
+    if(parser.isReturnObject){
+      retP = true
+    } else if(parser.isReturnArray){
+      retP = true
+    }
+    
+    val types = parser.getParameters
+    
+    val access = pst.procedure.getValueAnnotation("Access") match{
+      case Some(acc) =>
+        acc match {
           case ne : NameExp =>
             ne.name.name
           case _ => ""
         }
       case None => ""
     }
-    val retTypSig = new SignatureParser(sig).getParamSig
-    if(retTypSig.isReturnObject){
-      val retP = new PointRNoIndex("ret", procSig)
-      pProc.retVar = Some(retP)
-    } else if(retTypSig.isReturnArray
-//        && retTyp.charAt(retTyp.lastIndexOf('[')+1) == 'L'
-          ){
-      val retP = new PointRNoIndex("ret", procSig)
-      pProc.retVar = Some(retP)
-      val dimensions = retTypSig.getReturnArrayDimension
-//      ofg.arrayRepo(retP.toString) = dimensions
-    }
+
     var i = 0
-    val types = new SignatureParser(sig).getParamSig.getParameters
-    
-    val accessExp = pst.procedure.getValueAnnotation("Access").getOrElse(null)
-    val access = accessExp match {
-      case ne : NameExp =>
-        ne.name.name
-      case _ => null
-    }
-    pProc.accessTyp = access
-//    if(access != null && access.contains("NATIVE") && !access.contains("STATIC")){
-//    	resolveNativeProc(pst, pProc)
-//    }
     pst.procedure.params.foreach(
       param => {
         if(is("this", param.annotations)){
@@ -81,7 +67,7 @@ class PointsCollector {
         i+=1
       }  
     )
-    pProc
+    PointProc()
   }
   
   /**
@@ -403,349 +389,194 @@ class PointsCollector {
   }
 }
 
-abstract class Point(loc : ResourceUri){
-  def getLoc = loc
+/**
+ * Set of program points corresponding to l-value expressions. 
+ * pl represents an element in this set.
+ */
+trait Left
+
+/**
+ * Set of program points corresponding to r-value expressions. 
+ * This also include expressions which evaluate to void. 
+ * pr represents an element in this set. Pr=P\Pl
+ */
+trait Right
+
+/**
+ * global variable
+ */
+trait Global{def globalsig : String}
+
+/**
+ * array
+ */
+trait Array{def dimensions : Int}
+
+/**
+ * object creation
+ */
+trait NewObj{def obj : String}
+
+/**
+ * base variable
+ */
+trait Base{def basename : String}
+
+/**
+ * field variable
+ */
+trait Field{
+  def base : Base
+  def fieldSig : String
 }
 
-abstract class PointWithUri(uri : ResourceUri, loc : ResourceUri) extends Point(loc){
-  val varName = uri
+trait Point{def ownersig : String}
+
+/**
+ * have location and index
+ */
+trait Loc{
+  def loc : ResourceUri
+  def locIndex : Int
 }
 
-abstract class PointWithIndex(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointWithUri(uri, loc){
-  val locationUri = loc
-  val locationIndex = locIndex
-  val owner = o
+/**
+ * entry and exit point which has identifier
+ */
+trait Identifier{def identifier : String}
+
+trait Virtual{def recv : PointRecv}
+
+trait Invoke{def args : ISet[PointArg]}
+
+trait Proc{
+  def procSig : String
+  def accessTyp : String
+  def params : ISet[PointParam]
+  def ret : Boolean
 }
 
 /**
  * Set of program points corresponding to assignment expression. 
  */
-final class PointAsmt(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointWithIndex(uri, loc, locIndex, o) {
-  var lhs : PointL = null
-  var rhs : PointR = null
-  override def toString = uri + "@" + loc
-}
+final case class PointAsmt(lhs : Point with Left, rhs : Point with Right, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc
 
 /**
  * Set of program points corresponding to method recv variable.
  * pi represents an element in this set.
  */
-class PointRecv(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointR(uri, loc, locIndex, o){
-  var container : PointI = null
-  override def toString = "recv:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to method recv variable (Entry).
- * pi represents an element in this set.
- */
-final class PointRecv_Call(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointRecv(uri, loc, locIndex, o){
-  override def toString = "recv_Call:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to method recv variable (Exit).
- * pi represents an element in this set.
- */
-final class PointRecv_Return(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointRecv(uri, loc, locIndex, o){
-  override def toString = "recv_Return:" + uri + "@" + loc
-}
+final case class PointRecv(recvname : ResourceUri, container : PointI, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Right
 
 /**
  * Set of program points corresponding to method arg variable.
  * pi represents an element in this set.
  */
-class PointArg(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointR(uri, loc, locIndex, o){ 
-  var container : PointI = null
-  override def toString = "arg:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to method arg variable (Call).
- * pi represents an element in this set.
- */
-final class PointArg_Call(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointArg(uri, loc, locIndex, o){ 
-  override def toString = "arg_Call:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to method arg variable (Return).
- * pi represents an element in this set.
- */
-class PointArg_Return(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointArg(uri, loc, locIndex, o){ 
-  override def toString = "arg_Return:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to method array arg variable.
- * pi represents an element in this set.
- */
-final class PointArrayArg(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointArg(uri, loc, locIndex, o){ 
-  override def toString = "array_arg:" + uri + "@" + loc
-}
+final case class PointArg(argname : String, index : Int, container : PointI, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Right
 
 /**
  * Set of program points corresponding to method invocation expressions.
  * pi represents an element in this set.
  */
-final class PointI(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointR(uri, loc, locIndex, o){ 
-  var recvOpt_Call : Option[PointRecv_Call] = None
-  var recvOpt_Return : Option[PointRecv_Return] = None
-  val args_Call : MMap[Int, PointArg_Call] = mmapEmpty
-  val args_Return : MMap[Int, PointArg_Return] = mmapEmpty
-  var typ : String = null
-  var retTyp : String = null
-  def setRecv(pt : PointRecv) = {
-    val r_Call = new PointRecv_Call(pt.varName, pt.locationUri, pt.locationIndex, pt.owner)
-    r_Call.container = pt.container
-    val r_Return = new PointRecv_Return(pt.varName, pt.locationUri, pt.locationIndex, pt.owner)
-    r_Return.container = pt.container
-    this.recvOpt_Call = Some(r_Call)
-    this.recvOpt_Return = Some(r_Return)
-  }
-  def setArg(i : Int, p : PointArg) = {
-    val a_Call = new PointArg_Call(p.varName, p.locationUri, p.locationIndex, p.owner)
-    a_Call.container = p.container
-    val a_Return = new PointArg_Return(p.varName, p.locationUri, p.locationIndex, p.owner)
-    a_Return.container = p.container
-    this.args_Call.put(i, a_Call)
-    this.args_Return.put(i, a_Return)
-  }
-  override def toString = typ + ":" + uri + "@" + loc
-}
+final case class PointI(sig : String, retTyp : String, recv : PointRecv, args : ISet[PointArg], loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Right with Invoke with Virtual
+
+/**
+ * Set of program points corresponding to static method invocation expressions.
+ * pi represents an element in this set.
+ */
+final case class PointStaticI(sig : String, retTyp : String, args : ISet[PointArg], loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Right with Invoke
 
 /**
  * Set of program points corresponding to object creating expressions. 
  * An object creating program point abstracts all the objects created
  * at that particular program point.
  */
-class PointO(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointR(uri, loc, locIndex, o){ 
-  def typ = uri
-  override def toString = "new:" + uri + "@" + loc
-}
+final case class PointO(obj : String, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Right with NewObj
 
 /**
  * Set of program points corresponding to array object creating expressions. 
  * An array object creating program point abstracts all the objects created
  * at that particular program point.
  */
-final class PointArrayO(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointO(uri, loc, locIndex, o){ 
-  var dimensions : Int = 0
-  override def toString = "new_array:" + uri + "@" + loc
-}
+final case class PointArrayO(obj : String, dimensions : Int, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Right with NewObj with Array
 
 /**
  * Set of program points corresponding to string object creating expressions. 
  * An string object creating program point abstracts all the objects created
  * at that particular program point.
  */
-final class PointStringO(string : String, uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointO(uri, loc, locIndex, o){ 
-  def str = string
-  override def toString = "new_string:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to expressions involving 
- * reference variables. This does not include array access expressions.
- * Pv = P\Paa.
- */
-final class PointV(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointWithIndex(uri, loc, locIndex, o){ 
-  override def toString = uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to l-value expressions. 
- * pl represents an element in this set.
- */
-class PointL(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointWithIndex(uri, loc, locIndex, o){ 
-  override def toString = uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to r-value expressions. 
- * This also include expressions which evaluate to void. 
- * pr represents an element in this set. Pr=P\Pl
- */
-class PointR(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointWithIndex(uri, loc, locIndex, o){ 
-  override def toString = uri + "@" + loc
-}
+final case class PointStringO(obj : String, text : String, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Right with NewObj
 
 /**
  * Set of program points corresponding to l-value field access expressions. 
  */
-class PointFieldL(base : PointBaseL, uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointL(uri, loc, locIndex, o){ 
-  val basePoint = base
-  def getFieldName = uri
-  override def toString = basePoint.varName + "." + uri + "@" + loc
-}
+final case class PointFieldL(base : Base with Left, fieldSig : String, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Left with Field
 
 /**
  * Set of program points corresponding to R-value field access expressions. 
  */
-class PointFieldR(base : PointBaseR, uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointR(uri, loc, locIndex, o){ 
-  val basePoint = base
-  def getFieldName = uri
-  override def toString = basePoint.varName + "." + uri + "@" + loc
-}
+final case class PointFieldR(base : Base with Right, fieldSig : String, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Right with Field
 
 /**
  * Set of program points corresponding to l-value array variable. 
  */
-final class PointArrayL(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointL(uri, loc, locIndex, o){ 
-  var dimensions : Int = 0
-  override def toString = "array_indexing:" + uri + "@" + loc
-}
+final case class PointArrayL(arrayname : String, dimensions: Int, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Left with Array
 
 /**
  * Set of program points corresponding to R-value array variable. 
  */
-final class PointArrayR(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointR(uri, loc, locIndex, o){ 
-  var dimensions : Int = 0
-  override def toString = "array_indexing:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to l-value global array variable. 
- */
-final class PointGlobalArrayL(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointGlobalL(uri, loc, locIndex, o){ 
-  override def toString = "global_array:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to R-value global array variable. 
- */
-final class PointGlobalArrayR(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointGlobalR(uri, loc, locIndex, o){ 
-  override def toString = "global_array:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to l-value field array variable. 
- */
-final class PointFieldArrayL(base : PointBaseL, uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointFieldL(base, uri, loc, locIndex, o){ 
-  override def toString = "field_array:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to R-value field array variable. 
- */
-final class PointFieldArrayR(base : PointBaseR, uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointFieldR(base, uri, loc, locIndex, o){ 
-  override def toString = "field_array:" + uri + "@" + loc
-}
+final case class PointArrayR(arrayname : String, dimensions: Int, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Right with Array
 
 /**
  * Set of program points corresponding to l-value global variable. 
  */
-class PointGlobalL(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointL(uri, loc, locIndex, o){ 
-  override def toString = "global:" + uri.replaceAll("@@", "") + "@" + loc
-}
+final case class PointGlobalL(globalsig : String, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Left with Global
 
 /**
  * Set of program points corresponding to R-value global variable. 
  */
-class PointGlobalR(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointR(uri, loc, locIndex, o){ 
-  override def toString = "global:" + uri.replaceAll("@@", "") + "@" + loc
-}
+final case class PointGlobalR(globalsig : String, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Right with Global
 
 /**
- * Set of program points corresponding to base part of field access expressions. 
+ * Set of program points corresponding to l-value global array variable. 
  */
-class PointBase(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointR(uri, loc, locIndex, o){ 
-  override def toString = "base:" + uri + "@" + loc
-}
+final case class PointGlobalArrayL(globalsig : String, dimensions: Int, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Left with Global with Array
+
+/**
+ * Set of program points corresponding to R-value global array variable. 
+ */
+final case class PointGlobalArrayR(globalsig : String, dimensions: Int, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Right with Global with Array
 
 /**
  * Set of program points corresponding to base part of field access expressions in the LHS. 
  */
-final class PointBaseL(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointBase(uri, loc, locIndex, o){ 
-  override def toString = "base_lhs:" + uri + "@" + loc
-}
+final case class PointBaseL(basename : String, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Left with Base
 
 /**
  * Set of program points corresponding to base part of field access expressions in the RHS. 
  */
-final class PointBaseR(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointBase(uri, loc, locIndex, o){ 
-  override def toString = "base_rhs:" + uri + "@" + loc
-}
+final case class PointBaseR(basename : String, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc with Right with Base
 
 /**
- * Set of program points corresponding to this variable.
+ * Set of program points corresponding to this variable .
  */
-class PointThis(uri : ResourceUri, loc : ResourceUri) extends PointRNoIndex(uri, loc){ 
-  override def toString = "this:" + uri + "@" + loc
-}
+final case class PointThis(thisname : String, identifier : String, ownersig : String) extends Point with Identifier
 
 /**
- * Set of program points corresponding to this variable (Entry).
+ * Set of program points corresponding to params.
  */
-final class PointThis_Entry(uri : ResourceUri, loc : ResourceUri) extends PointThis(uri, loc){ 
-  override def toString = "this_Entry:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to this variable (Exit).
- */
-final class PointThis_Exit(uri : ResourceUri, loc : ResourceUri) extends PointThis(uri, loc){ 
-  override def toString = "this_Exit:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to this variable.
- */
-class PointParam(uri : ResourceUri, loc : ResourceUri) extends PointRNoIndex(uri, loc){ 
-  override def toString = "param:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to this variable (Entry).
- */
-final class PointParam_Entry(uri : ResourceUri, loc : ResourceUri) extends PointParam(uri, loc){ 
-  override def toString = "param_Entry:" + uri + "@" + loc
-}
-
-/**
- * Set of program points corresponding to this variable (Exit).
- */
-final class PointParam_Exit(uri : ResourceUri, loc : ResourceUri) extends PointParam(uri, loc){ 
-  override def toString = "param_Exit:" + uri + "@" + loc
-}
+final case class PointParam(paramname : String, index : Int, identifier : String, ownersig : String) extends Point with Identifier
 
 /**
  * Set of program points corresponding to return variable.
  */
-final class PointRet(uri : ResourceUri, loc : ResourceUri, locIndex : Int, o : ResourceUri) extends PointR(uri, loc, locIndex, o){ 
-  var procPoint : PointProc = null
-  override def toString = uri + "@" + loc
-}
+final case class PointRet(retname : String, loc : ResourceUri, locIndex : Int, ownersig : String) extends Point with Loc
 
 /**
- * Set of program points corresponding to r-value expressions. 
- * This also include expressions which evaluate to void. 
- * pr represents an element in this set. Pr=P\Pl
+ * Set of program points corresponding to procedures. 
  */
-class PointRNoIndex(uri : ResourceUri, loc : ResourceUri) extends PointWithUri(uri, loc){ 
-  val identifier = loc
-  override def toString = uri + "@" + loc
-}
+final case class PointProc(procSig : String, ret : Boolean, accessTyp : String, thisParam_Entry : PointThis, params : ISet[PointParam], ownersig : String) extends Point with Proc
 
 /**
- * Set of program points corresponding to params. 
+ * Set of program points corresponding to static procedures. 
  */
-class PointProc(loc : ResourceUri) extends Point(loc){
-  val pSig = loc
-  var accessTyp : String = null
-  var thisParamOpt_Entry : Option[PointThis_Entry] = None
-  var thisParamOpt_Exit : Option[PointThis_Exit] = None
-  val params_Entry : MMap[Int, PointParam_Entry] = mmapEmpty
-  val params_Exit : MMap[Int, PointParam_Exit] = mmapEmpty
-  var retVar : Option[PointRNoIndex] = None
-  def setThisParam(pt : PointThis) = {
-    this.thisParamOpt_Entry = Some(new PointThis_Entry(pt.varName, pt.identifier))
-    this.thisParamOpt_Exit = Some(new PointThis_Exit(pt.varName, pt.identifier))
-  }
-  def setParam(i : Int, p : PointParam) = {
-    this.params_Entry.put(i, new PointParam_Entry(p.varName, p.identifier))
-    this.params_Exit.put(i, new PointParam_Exit(p.varName, p.identifier))
-  }
-  override def toString = loc
-}
-
+final case class PointProcStatic(procSig : String, ret : Boolean, accessTyp : String, params : ISet[PointParam], ownersig : String) extends Point with Proc

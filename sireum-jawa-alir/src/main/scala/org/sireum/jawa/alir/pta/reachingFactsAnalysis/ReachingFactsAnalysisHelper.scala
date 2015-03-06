@@ -26,12 +26,9 @@ import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.alir.interProcedural.InstanceCallee
 import org.sireum.jawa.alir.interProcedural.StaticCallee
 import org.sireum.jawa.alir.LibSideEffectProvider
-import org.sireum.jawa.alir.pta.UnknownInstance
 import org.sireum.jawa.alir.interProcedural.UnknownCallee
 import org.sireum.jawa.PilarAstHelper
-import org.sireum.jawa.alir.pta.PTAConcreteStringInstance
-import org.sireum.jawa.alir.pta.PTAInstance
-import org.sireum.jawa.alir.pta.PTAPointStringInstance
+import org.sireum.jawa.alir.pta._
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -89,8 +86,7 @@ object ReachingFactsAnalysisHelper {
     result
   }
 	
-	def getCalleeSet(s : ISet[RFAFact], cj : CallJump, callerContext : Context) : ISet[Callee] = {
-    val factMap = getFactMap(s)
+	def getCalleeSet(cj : CallJump, callerContext : Context, ptaresult : PTAResult) : ISet[Callee] = {
     val sig = cj.getValueAnnotation("signature") match {
         case Some(s) => s match {
           case ne : NameExp => ne.name.name
@@ -114,7 +110,7 @@ object ReachingFactsAnalysisHelper {
             case ne : NameExp => VarSlot(ne.name.name)
             case _ => throw new RuntimeException("wrong exp type: " + te.exps(0))
           }
-          val recvValue : ISet[Instance] = factMap.getOrElse(recvSlot, isetEmpty)
+          val recvValue : ISet[Instance] = ptaresult.pointsToSet(recvSlot, callerContext)
           recvValue.foreach{
 			      ins =>
               ins match{
@@ -170,13 +166,13 @@ object ReachingFactsAnalysisHelper {
 	  } else None
 	}
 	
-	def getUnknownObject(calleeProc : JawaProcedure, s : ISet[RFAFact], args : Seq[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
+	def getUnknownObject(calleeProc : JawaProcedure, s : PTAResult, args : Seq[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
 	  var genFacts : ISet[RFAFact] = isetEmpty
 	  var killFacts : ISet[RFAFact] = isetEmpty
     val argSlots = args.map(arg=>VarSlot(arg))
     for(i <- 0 to argSlots.size - 1){
       val argSlot = argSlots(i)
-      val argValues = s.filter{f=>argSlot == f.s}.map(_.v)
+      val argValues = s.pointsToSet(argSlot, currentContext)
       val influencedFields = if(LibSideEffectProvider.isDefined)
         												LibSideEffectProvider.getInfluencedFields(i, calleeProc.getSignature)
         										 else Set("ALL")
@@ -202,9 +198,148 @@ object ReachingFactsAnalysisHelper {
     }
 	  result
 	}
+  
+  def updatePTAResultLHSs(lhss : List[Exp], currentContext : Context, s : ISet[RFAFact], ptaresult : PTAResult) = {
+    lhss.foreach{
+      key=>
+        key match{
+          case ne : NameExp =>
+          case ae : AccessExp =>
+            val fieldSig = ae.attributeName.name
+            val baseSlot = ae.exp match {
+              case ne : NameExp => VarSlot(ne.name.name)
+              case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
+            }
+            val baseValue = s.filter { fact => fact.s == baseSlot }.map(_.v)
+            baseValue.map{
+              ins =>
+                ptaresult.addInstance(baseSlot, currentContext, ins)
+            }
+          case ie : IndexingExp =>
+            val baseSlot = ie.exp match {
+              case ine : NameExp =>
+                VarSlot(ine.name.name)
+              case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
+            }
+            val baseValue = s.filter { fact => fact.s == baseSlot }.map(_.v)
+            baseValue.map{
+              ins =>
+                ptaresult.addInstance(baseSlot, currentContext, ins)
+            }
+          case _=>
+        }
+    }
+  }
+  
+  private def resolvePTAResultAccessExp(ae : AccessExp, currentContext : Context, s : ISet[RFAFact], ptaresult : PTAResult) = {
+    val fieldSig = ae.attributeName.name
+    val baseSlot = ae.exp match {
+      case ne : NameExp => VarSlot(ne.name.name)
+      case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
+    }
+    val baseValue = s.filter { fact => fact.s == baseSlot }.map{
+      f => 
+        ptaresult.addInstance(baseSlot, currentContext, f.v)
+        f.v
+    }
+    baseValue.map{
+      ins =>
+        if(ins.isInstanceOf[NullInstance]){}
+        else {
+          val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
+          val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
+          val field = rec.getField(fieldSig)
+          val fSig = field.getSignature
+          val fieldSlot = FieldSlot(ins, fSig)
+          s.filter { fact => fact.s == fieldSlot }.map( f => ptaresult.addInstance(fieldSlot, currentContext, f.v))
+          val fieldUnknownValue : MSet[Instance] = msetEmpty
+          ins.getFieldsUnknownDefSites.foreach{
+            case (defsite, fields) =>
+              if(fields.contains("ALL")) fieldUnknownValue += UnknownInstance(field.getType, defsite)
+              else if(fields.contains(fSig)) fieldUnknownValue += UnknownInstance(field.getType, defsite)
+          }
+          fieldUnknownValue.map( v => ptaresult.addInstance(fieldSlot, currentContext, v))
+        }
+    }
+  }
+  
+  private def resolvePTAResultIndexingExp(ie : IndexingExp, currentContext : Context, s : ISet[RFAFact], ptaresult : PTAResult) = {
+    val baseSlot = ie.exp match {
+      case ine : NameExp =>
+        VarSlot(ine.name.name)
+      case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
+    }
+    val baseValue = s.filter { fact => fact.s == baseSlot }.map{
+      f => 
+        ptaresult.addInstance(baseSlot, currentContext, f.v)
+        f.v
+    }
+    baseValue.map{
+      ins =>
+        if(ins.isInstanceOf[NullInstance]){}
+        else if(ins.isInstanceOf[UnknownInstance]){
+          val arraySlot = ArraySlot(ins)
+          val temp = s.filter { fact => fact.s == arraySlot }.map{
+            f => 
+              ptaresult.addInstance(arraySlot, currentContext, f.v)
+              f.v
+          }
+          if(temp.isEmpty) ptaresult.addInstance(arraySlot, currentContext, UnknownInstance(ins.getType, ins.getDefSite))
+        }
+        else{
+          val arraySlot = ArraySlot(ins)
+          s.filter { fact => fact.s == arraySlot }.map( f => ptaresult.addInstance(arraySlot, currentContext, f.v))
+        }
+    }
+  }
+  
+  def updatePTAResultRHSs(rhss : List[Exp], currentContext : Context, s : ISet[RFAFact], ptaresult : PTAResult) = {
+    rhss.foreach{
+      rhs=>
+        updatePTAResultExp(rhs, currentContext, s, ptaresult)
+    }
+  }
+  
+  def updatePTAResultExp(exp : Exp, currentContext : Context, s : ISet[RFAFact], ptaresult : PTAResult) : Unit = {
+    exp match{
+      case be : BinaryExp =>
+        updatePTAResultExp(be.left, currentContext, s, ptaresult)
+        updatePTAResultExp(be.right, currentContext, s, ptaresult)
+      case ne : NameExp =>
+        val slot = VarSlot(ne.name.name)
+        if(slot.isGlobal && StringFormConverter.getFieldNameFromFieldSignature(slot.varName) == "class"){
+          val baseName = StringFormConverter.getRecordNameFromFieldSignature(slot.varName)
+          val rec = Center.resolveRecord(baseName, Center.ResolveLevel.HIERARCHY)
+          val ins = JawaAlirInfoProvider.getClassInstance(rec)
+          ptaresult.addInstance(slot, currentContext, ins)
+        } else if(slot.isGlobal){
+          Center.findStaticField(ne.name.name) match{
+            case Some(af) =>
+              val fslot = VarSlot(af.getSignature)
+              s.filter { fact => fact.s == fslot }.map( f => ptaresult.addInstance(fslot, currentContext, f.v))
+            case None =>
+          }
+        } else {
+          s.filter { fact => fact.s == slot }.map( f => ptaresult.addInstance(slot, currentContext, f.v))
+        }
+      case ae : AccessExp =>
+        resolvePTAResultAccessExp(ae, currentContext, s, ptaresult)
+      case ie : IndexingExp =>
+        resolvePTAResultIndexingExp(ie, currentContext, s, ptaresult)
+      case ce : CastExp =>
+        ce.exp match{
+          case ice : NameExp =>
+            val slot = VarSlot(ice.name.name)
+            s.filter { fact => fact.s == slot }.map( f => ptaresult.addInstance(slot, currentContext, f.v))
+          case nle : NewListExp =>
+            System.err.println(TITLE, "NewListExp: " + nle)
+          case _ => throw new RuntimeException("Wrong exp: " + ce.exp)
+        }
+      case _=>
+    }
+  }
 	
-	def processLHSs(lhss : List[Exp], s : ISet[RFAFact], currentContext : Context) : Map[Int, (Slot, Boolean)] = {
-    val factMap = getFactMap(s)
+	def processLHSs(lhss : List[Exp], currentContext : Context, ptaresult : PTAResult) : Map[Int, (Slot, Boolean)] = {
     val result = mmapEmpty[Int, (Slot, Boolean)]
     var i = -1
     lhss.foreach{
@@ -229,7 +364,7 @@ object ReachingFactsAnalysisHelper {
               case ne : NameExp => VarSlot(ne.name.name)
               case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
             }
-            val baseValue = factMap.getOrElse(baseSlot, isetEmpty)
+            val baseValue = ptaresult.pointsToSet(baseSlot, currentContext)
             baseValue.map{
               ins =>
                 if(ins.isInstanceOf[NullInstance])
@@ -248,7 +383,7 @@ object ReachingFactsAnalysisHelper {
                 VarSlot(ine.name.name)
               case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
             }
-            val baseValue = factMap.getOrElse(baseSlot, isetEmpty[Instance])
+            val baseValue = ptaresult.pointsToSet(baseSlot, currentContext)
             baseValue.map{
               ins =>
                 if(ins.isInstanceOf[NullInstance])
@@ -261,36 +396,34 @@ object ReachingFactsAnalysisHelper {
     result.toMap
   }
   
-  def checkRHSs(rhss : List[Exp], s : ISet[RFAFact]) : Boolean = {
-    val factMap = getFactMap(s)
-    var result = true
-    rhss.foreach{
-      key=>
-        key match{
-          case ae : AccessExp =>
-            val fieldName = ae.attributeName.name
-            val baseSlot = ae.exp match {
-              case ne : NameExp => VarSlot(ne.name.name)
-              case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
-            }
-            val baseValue : ISet[Instance] = factMap.getOrElse(baseSlot, null)
-            if(baseValue != null) result = false
-          case ie : IndexingExp =>
-            val baseSlot = ie.exp match {
-              case ine : NameExp =>
-                VarSlot(ine.name.name)
-              case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
-            }
-            val baseValue : ISet[Instance] = factMap.getOrElse(baseSlot, null)
-            if(baseValue != null) result = false
-          case _ => result = false
-        }
-    }
-    result
-  }
+//  def checkRHSs(rhss : List[Exp], currentContext : Context, ptaresult : PTAResult) : Boolean = {
+//    var result = true
+//    rhss.foreach{
+//      key=>
+//        key match{
+//          case ae : AccessExp =>
+//            val fieldName = ae.attributeName.name
+//            val baseSlot = ae.exp match {
+//              case ne : NameExp => VarSlot(ne.name.name)
+//              case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
+//            }
+//            val baseValue : ISet[Instance] = ptaresult.pointsToSet(baseSlot.toString, currentContext)
+//            if(!baseValue.isEmpty) result = false
+//          case ie : IndexingExp =>
+//            val baseSlot = ie.exp match {
+//              case ine : NameExp =>
+//                VarSlot(ine.name.name)
+//              case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
+//            }
+//            val baseValue : ISet[Instance] = ptaresult.pointsToSet(baseSlot.toString, currentContext)
+//            if(!baseValue.isEmpty) result = false
+//          case _ => result = false
+//        }
+//    }
+//    result
+//  }
   
-  def processRHSs(rhss : List[Exp], s : ISet[RFAFact], currentContext : Context) : Map[Int, Set[Instance]] = {
-    val factMap = getFactMap(s)
+  def processRHSs(rhss : List[Exp], currentContext : Context, ptaresult : PTAResult) : Map[Int, Set[Instance]] = {
     val result = mmapEmpty[Int, Set[Instance]]
     var i = -1
     rhss.foreach{
@@ -307,11 +440,11 @@ object ReachingFactsAnalysisHelper {
             } else if(slot.isGlobal){
               Center.findStaticField(ne.name.name) match{
                 case Some(af) =>
-                  value ++= factMap.getOrElse(VarSlot(af.getSignature), isetEmpty[Instance] + UnknownInstance(af.getType, currentContext))
+                  value ++= ptaresult.pointsToSet(VarSlot(af.getSignature), currentContext)
                 case None =>
                   err_msg_normal(TITLE, "Given field may be in other library: " + ne.name.name)
               }
-            } else value ++= factMap.getOrElse(slot, isetEmpty[Instance])
+            } else value ++= ptaresult.pointsToSet(slot, currentContext)
             result(i) = value
           case le : LiteralExp =>
             if(le.typ.name.equals("STRING")){
@@ -344,7 +477,7 @@ object ReachingFactsAnalysisHelper {
               case ne : NameExp => VarSlot(ne.name.name)
               case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
             }
-            val baseValue : ISet[Instance] = factMap.getOrElse(baseSlot, isetEmpty[Instance])
+            val baseValue : ISet[Instance] = ptaresult.pointsToSet(baseSlot, currentContext)
             baseValue.map{
               ins =>
                 if(ins.isInstanceOf[NullInstance])
@@ -355,14 +488,8 @@ object ReachingFactsAnalysisHelper {
                   val field = rec.getField(fieldSig)
                   val fSig = field.getSignature
                   val fieldSlot = FieldSlot(ins, fSig)
-	                val fieldValue : ISet[Instance] = factMap.getOrElse(fieldSlot, isetEmpty)
-	                val fieldUnknownValue : MSet[Instance] = msetEmpty
-                  ins.getFieldsUnknownDefSites.foreach{
-                  	case (defsite, fields) =>
-                  	  if(fields.contains("ALL")) fieldUnknownValue += UnknownInstance(field.getType, defsite)
-                  	  else if(fields.contains(fSig)) fieldUnknownValue += UnknownInstance(field.getType, defsite)
-                	}
-			            result(i) = fieldValue ++ fieldUnknownValue
+	                val fieldValue : ISet[Instance] = ptaresult.pointsToSet(fieldSlot, currentContext)
+			            result(i) = fieldValue
                 }
             }
           case ie : IndexingExp =>
@@ -371,22 +498,15 @@ object ReachingFactsAnalysisHelper {
                 VarSlot(ine.name.name)
               case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
             }
-            val baseValue : ISet[Instance] = factMap.getOrElse(baseSlot, isetEmpty[Instance])
+            val baseValue : ISet[Instance] = ptaresult.pointsToSet(baseSlot, currentContext)
             baseValue.map{
               ins =>
                 if(ins.isInstanceOf[NullInstance])
                   err_msg_normal(TITLE, "Access array: " + baseSlot + "@" + currentContext + " with Null pointer: " + ins)
-                else if(ins.isInstanceOf[UnknownInstance]){
+                else {
                   val arraySlot = ArraySlot(ins)
-                  val arrayValue : ISet[Instance] = factMap.getOrElse(arraySlot, isetEmpty[Instance]) + UnknownInstance(ins.getType, ins.getDefSite)
-			            if(arrayValue != null)
-			            	result(i) = arrayValue
-                }
-                else{
-                  val arraySlot = ArraySlot(ins)
-                  val arrayValue : ISet[Instance] = factMap.getOrElse(arraySlot, isetEmpty[Instance])
-			            if(arrayValue != null)
-			            	result(i) = arrayValue
+                  val arrayValue : ISet[Instance] = ptaresult.pointsToSet(arraySlot, currentContext)
+			            result(i) = arrayValue
                 }
             }
           case ce : CastExp =>
@@ -407,7 +527,7 @@ object ReachingFactsAnalysisHelper {
             ce.exp match{
               case ice : NameExp =>
                 val slot = VarSlot(ice.name.name)
-                val value : ISet[Instance] = factMap.getOrElse(slot, isetEmpty[Instance])
+                val value : ISet[Instance] = ptaresult.pointsToSet(slot, currentContext)
                 result(i) = value.map{
                   v =>
                     if(v.isInstanceOf[UnknownInstance]){

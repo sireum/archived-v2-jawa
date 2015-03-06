@@ -17,6 +17,7 @@ import org.sireum.jawa.alir.util.CallHandler
 import org.sireum.jawa.alir.pta.PTAScopeManager
 import org.sireum.jawa.alir.pta.PTAInstance
 import org.sireum.jawa.util.MyTimer
+import org.sireum.jawa.alir.pta.Instance
 
 
 /**
@@ -181,7 +182,7 @@ object InterproceduralSuperSpark {
   }
   
   def checkAndDoCall(node : PtaNode,
-      							d : MSet[PTAInstance],
+      							d : ISet[Instance],
       							pag : PointerAssignmentGraph[PtaNode],
       							cg : InterproceduralControlFlowGraph[N]) = {
     val piOpt = pag.recvInverse(node)

@@ -32,6 +32,9 @@ import org.sireum.jawa.alir.objectFlowAnalysis.InvokePointNode
 import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.alir.pta.PTAInstance
 import org.sireum.jawa.alir.pta.PTAResult
+import org.sireum.jawa.alir.pta.Instance
+import org.sireum.jawa.alir.pta.VarSlot
+import org.sireum.jawa.alir.pta.ArraySlot
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -70,7 +73,7 @@ class PointsToMap extends PTAResult {
   def propagateArrayStorePointsToSet(n1 : PtaNode, n2 : PtaArrayNode) = {
     pointsToSet(n2) foreach{
       ins =>
-        addInstances(ins.toString, n2.getContext, pointsToSet(n1))
+        addInstances(ArraySlot(ins), n2.getContext, pointsToSet(n1))
     }
   }
   
@@ -78,13 +81,13 @@ class PointsToMap extends PTAResult {
    * n1 -> @@n2
    */
   def propagateGlobalStorePointsToSet(n1 : PtaNode, n2 : PtaGlobalVarNode) = {
-    addInstances(n2.name, n2.getContext, pointsToSet(n1))
+    addInstances(VarSlot(n2.name), n2.getContext, pointsToSet(n1))
   }
   
 	/**
 	 * n or n.f or n[] or @@n
 	 */
-  def pointsToSet(n : PtaNode) : MSet[PTAInstance] = {
+  def pointsToSet(n : PtaNode) : ISet[Instance] = {
     n match{
       case pfn : PtaFieldNode =>
         val bInss = pointsToSet(pfn.baseNode)
@@ -95,14 +98,14 @@ class PointsToMap extends PTAResult {
 		          pointsToSet(ins.toString + fieldName, pfn.getContext)
 		      }.reduce((set1, set2) => set1 ++ set2)
         }
-		    else msetEmpty
+		    else isetEmpty
       case pan : PtaArrayNode =>
         if(!pointsToSet(pan).isEmpty)
 	        pointsToSet(pan).map{
 			      ins =>
 			        pointsToSet(ins.toString, pan.getContext)
 			    }.reduce((set1, set2) => set1 ++ set2)
-			  else msetEmpty
+			  else isetEmpty
       case pgn : PtaGlobalVarNode =>
         pointsToSet(pgn.name, pgn.getContext)
       case _ =>
@@ -137,7 +140,7 @@ class PointsToMap extends PTAResult {
     (pointsToSet(n1) -- pointsToSet(n2)).isEmpty
   }
   
-  def getDiff(n1 : PtaNode, n2 : PtaNode) = {
+  def getDiff(n1 : PtaNode, n2 : PtaNode) : ISet[Instance] = {
     pointsToSet(n1) diff pointsToSet(n2)
   }
 }
@@ -534,19 +537,19 @@ class PointerAssignmentGraph[Node <: PtaNode]
   
   def getStaticCallee(pi : PointI) : JawaProcedure = CallHandler.getStaticCalleeProcedure(pi.varName)
   
-  def getSuperCalleeSet(diff : MSet[PTAInstance],
-	                 pi : PointI) : MSet[JawaProcedure] = {
+  def getSuperCalleeSet(diff : ISet[Instance],
+	                 pi : PointI) : ISet[JawaProcedure] = {
     val calleeSet : MSet[JawaProcedure] = msetEmpty
     diff.foreach{
       d =>
         val p = CallHandler.getSuperCalleeProcedure(pi.varName)
         calleeSet += p
     }
-    calleeSet
+    calleeSet.toSet
   }
 
-  def getVirtualCalleeSet(diff : MSet[PTAInstance],
-	                 pi : PointI) : MSet[JawaProcedure] = {
+  def getVirtualCalleeSet(diff : ISet[Instance],
+	                 pi : PointI) : ISet[JawaProcedure] = {
     val calleeSet : MSet[JawaProcedure] = msetEmpty
     val subSig = Center.getSubSigFromProcSig(pi.varName)
     diff.foreach{
@@ -554,7 +557,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
         val p = CallHandler.getVirtualCalleeProcedure(d.typ, subSig)
         calleeSet += p
     }
-    calleeSet
+    calleeSet.toSet
   }
   
   def getNodeOrElse(p : Point, context : Context) : Node = {
@@ -1104,9 +1107,9 @@ final case class PtaFieldBaseNodeR(uri : ResourceUri, loc : ResourceUri, context
 /**
  * Node type for field access to store hidden edge for it's baseNode.
  */
-final case class PtaFieldNode(baseName : ResourceUri, fieldName : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
+final case class PtaFieldNode(baseName : ResourceUri, fieldSig : String, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
   var baseNode : PtaFieldBaseNode = null
-  override def toString = "field:" + baseName + "." + fieldName + "@" + context.toString()
+  override def toString = "field:" + baseName + "." + fieldSig + "@" + context.toString()
 }
 
 /**

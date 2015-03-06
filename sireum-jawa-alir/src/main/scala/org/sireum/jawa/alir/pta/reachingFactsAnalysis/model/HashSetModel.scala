@@ -11,7 +11,7 @@ import org.sireum.jawa.JawaRecord
 import org.sireum.util._
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
-import org.sireum.jawa.alir.pta.Instance
+import org.sireum.jawa.alir.pta._
 import org.sireum.jawa.JawaProcedure
 import org.sireum.jawa.Center
 import org.sireum.jawa.Type
@@ -24,14 +24,13 @@ import org.sireum.jawa.alir.Context
 object HashSetModel {
 	def isHashSet(r : JawaRecord) : Boolean = r.getName == "java.util.HashSet"
 	  
-  private def addItemToHashSetField(s : ISet[RFAFact], args : List[String], currentContext : Context) : ISet[RFAFact] ={
-	  val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
+  private def addItemToHashSetField(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  require(args.size > 1)
 	  var newfacts = isetEmpty[RFAFact]
     val thisSlot = VarSlot(args(0))
-	  val thisValues = factMap.getOrElse(thisSlot, isetEmpty)
+	  val thisValues = s.pointsToSet(thisSlot, currentContext)
 	  val paramSlot = VarSlot(args(1))
-	  val paramValues = factMap.getOrElse(paramSlot, isetEmpty)
+	  val paramValues = s.pointsToSet(paramSlot, currentContext)
 	  thisValues.foreach{
       ins =>
         newfacts ++= paramValues.map{p=>RFAFact(FieldSlot(ins, "java.util.HashSet.items"), p)}
@@ -39,15 +38,14 @@ object HashSetModel {
 	  newfacts 
 	}
   
-  private def cloneHashSetToRet(s : ISet[RFAFact], args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
-    val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
+  private def cloneHashSetToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
     require(args.size >0)
     val thisSlot = VarSlot(args(0))
-	  val thisValue = factMap.getOrElse(thisSlot, isetEmpty)
+	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  thisValue.map{s => RFAFact(VarSlot(retVar), s.clone(currentContext))}
   }
   
-  def doHashSetCall(s : ISet[RFAFact], p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+  def doHashSetCall(s : PTAResult, p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true

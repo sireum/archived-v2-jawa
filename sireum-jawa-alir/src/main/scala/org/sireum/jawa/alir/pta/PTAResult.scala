@@ -9,18 +9,54 @@ package org.sireum.jawa.alir.pta
 
 import org.sireum.util._
 import org.sireum.jawa.alir.Context
+import org.sireum.alir.Slot
 
-trait PTAResult {
-  private val ptMap : MMap[(String, Context), MSet[PTAInstance]] = mmapEmpty
-  def pointsToMap : IMap[(String, Context), MSet[PTAInstance]] = ptMap.toMap
-  def setInstance(key : String, context : Context, i : PTAInstance) = ptMap((key, context)) = msetEmpty + i
-  def setInstances(key : String, context : Context, is : MSet[PTAInstance]) = ptMap((key, context)) = is
-  def addInstance(key : String, context : Context, i : PTAInstance) : Boolean = ptMap.getOrElseUpdate((key, context), msetEmpty).add(i)
-  def addInstances(key : String, context : Context, is : MSet[PTAInstance]) = ptMap.getOrElseUpdate((key, context), msetEmpty) ++= is
-  def removeInstance(key : String, context : Context, i : PTAInstance) : Boolean = ptMap.getOrElseUpdate((key, context), msetEmpty).remove(i)
-  def removeInstances(key : String, context : Context, is : MSet[PTAInstance]) = ptMap.getOrElseUpdate((key, context), msetEmpty) --= is
+class PTAResult {
+  private val ptMap : MMap[Context, MMap[Slot, MSet[Instance]]] = mmapEmpty
+  def pointsToMap : IMap[Context, IMap[Slot, ISet[Instance]]] = {
+    ptMap.map{
+      case (c, m) =>
+        (c, m.map{
+          case (str, s) =>
+            (str, s.toSet)
+        }.toMap)
+    }.toMap
+  }
+  def setInstance(s : Slot, context : Context, i : Instance) = ptMap(context)(s) = msetEmpty + i
+  def setInstances(s : Slot, context : Context, is : ISet[Instance]) = ptMap(context)(s) = msetEmpty ++ is
+  def addInstance(s : Slot, context : Context, i : Instance) = ptMap.getOrElseUpdate(context, mmapEmpty).getOrElseUpdate(s, msetEmpty) += i
+  def addInstances(s : Slot, context : Context, is : ISet[Instance]) = ptMap.getOrElseUpdate(context, mmapEmpty).getOrElseUpdate(s, msetEmpty) ++= is
+  def removeInstance(s : Slot, context : Context, i : Instance) = ptMap.getOrElseUpdate(context, mmapEmpty).getOrElseUpdate(s, msetEmpty) -= i
+  def removeInstances(s : Slot, context : Context, is : ISet[Instance]) = ptMap.getOrElseUpdate(context, mmapEmpty).getOrElseUpdate(s, msetEmpty) --= is
   
-  def pointsToSet(key : String, context : Context) : MSet[PTAInstance] = {
-    ptMap.getOrElse((key, context), msetEmpty)
+  def pointsToSet(s : Slot, context : Context) : ISet[Instance] = {
+    ptMap.getOrElse(context, mmapEmpty).getOrElse(s, msetEmpty).toSet
+  }
+  def getPTSMap(context : Context) : IMap[Slot, ISet[Instance]] = {
+    ptMap(context).map{
+      case (str, s) =>
+        (str, s.toSet)
+    }.toMap
+  }
+  
+  def getRelatedInstances(s : Slot, context : Context) : ISet[Instance] = {
+    val bValue = pointsToSet(s, context)
+    val rhValue = getRelatedHeapInstances(bValue, context)
+    bValue ++ rhValue
+  }
+  
+  def getRelatedHeapInstances(insts : ISet[Instance], context : Context) : ISet[Instance] ={
+    val worklist : MList[Instance] = mlistEmpty ++ insts
+    val processed : MSet[Instance] = msetEmpty
+    val result : MSet[Instance] = msetEmpty
+    while(!worklist.isEmpty){
+      val ins = worklist.remove(0)
+      processed += ins
+      val hMap = getPTSMap(context).filter{case (s, _) => s.isInstanceOf[HeapSlot] && s.asInstanceOf[HeapSlot].matchWithInstance(ins)}
+      val hInss = hMap.flatMap(_._2).toSet
+      result ++= hInss
+      worklist ++= hInss.filter{i => !processed.contains(i)}
+    }
+    result.toSet
   }
 }
