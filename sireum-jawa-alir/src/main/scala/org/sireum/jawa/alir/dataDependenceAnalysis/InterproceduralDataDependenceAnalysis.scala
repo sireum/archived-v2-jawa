@@ -24,7 +24,6 @@ import org.sireum.alir.DefDesc
 import org.sireum.jawa.alir.controlFlowGraph._
 import org.sireum.jawa.PilarAstHelper
 import org.sireum.alir.AlirEdge
-import org.sireum.jawa.alir.interProcedural.InterProceduralMonotoneDataFlowAnalysisResult
 import org.sireum.jawa.util.StringFormConverter
 import org.sireum.jawa.alir.sideEffectAnalysis.InterProceduralSideEffectAnalysisResult
 import org.sireum.jawa.alir.interProcedural.Callee

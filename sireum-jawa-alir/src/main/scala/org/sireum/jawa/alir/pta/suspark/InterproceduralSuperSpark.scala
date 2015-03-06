@@ -190,9 +190,9 @@ object InterproceduralSuperSpark {
       case Some(pi) =>
         val callerContext : Context = node.getContext
         val calleeSet : MSet[JawaProcedure] = msetEmpty
-        if(pi.typ.equals("direct")){
+        if(pi.invokeTyp.equals("direct")){
           calleeSet += pag.getDirectCallee(pi)
-        } else if(pi.typ.equals("super")){
+        } else if(pi.invokeTyp.equals("super")){
           calleeSet ++= pag.getSuperCalleeSet(d, pi)
         } else {
           calleeSet ++= pag.getVirtualCalleeSet(d, pi)
@@ -230,7 +230,7 @@ object InterproceduralSuperSpark {
     val procPoint = pag.getPointProc(calleeProc, callerContext)
     require(procPoint != null)
     pag.extendGraph(procPoint, pi, callerContext.copy)
-    val callersig = pi.owner
+    val callersig = pi.ownerSig
     cg.setCallMap(callersig, calleeSig)
   	cg.extendGraph(calleeSig, callerContext.copy)
   }

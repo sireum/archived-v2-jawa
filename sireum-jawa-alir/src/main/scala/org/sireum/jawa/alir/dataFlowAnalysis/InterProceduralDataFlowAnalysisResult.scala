@@ -5,7 +5,7 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.interProcedural
+package org.sireum.jawa.alir.dataFlowAnalysis
 
 import org.sireum.util.ISet
 import org.sireum.jawa.alir.controlFlowGraph.CGNode

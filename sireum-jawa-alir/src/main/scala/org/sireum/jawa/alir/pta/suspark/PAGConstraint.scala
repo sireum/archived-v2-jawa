@@ -108,17 +108,25 @@ trait PAGConstraint{
 		            )
 		        }
         }
-         
+      case psi : PointStaticI =>
+        psi.args_Call.keys.foreach(
+          i => {
+            udChain(psi.args_Call(i), ps, cfg, rda, true).foreach(
+              point => {
+                flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += pi.args_Call(i)
+              }
+            )
+            flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(pi.args_Call(i), msetEmpty) += pi.args_Return(i)
+          }  
+        )
       case pi : PointI =>
-        if(!pi.typ.equals("static")){
-          val recvP_Call = pi.recvOpt_Call.get
-          udChain(recvP_Call, ps, cfg, rda, true).foreach(
-            point => {
-              flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += recvP_Call
-            }
-          )
-          flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(recvP_Call, msetEmpty) += pi.recvOpt_Return.get
-        }
+        val recvP_Call = pi.recvOpt_Call.get
+        udChain(recvP_Call, ps, cfg, rda, true).foreach(
+          point => {
+            flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += recvP_Call
+          }
+        )
+        flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(recvP_Call, msetEmpty) += pi.recvOpt_Return.get
         pi.args_Call.keys.foreach(
           i => {
             udChain(pi.args_Call(i), ps, cfg, rda, true).foreach(

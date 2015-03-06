@@ -182,7 +182,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
       node =>
         if(node.isInstanceOf[PtaInvokeNode]){
           val pi = node.asInstanceOf[PtaInvokeNode].getPI
-          if(pi.typ.equals("static")){
+          if(pi.invokeTyp.equals("static")){
 	          val callee = getStaticCallee(pi)
 	          staticCallees += PTACallee(callee, pi, node)
 	        }
@@ -533,16 +533,16 @@ class PointerAssignmentGraph[Node <: PtaNode]
     }
   }
   
-  def getDirectCallee(pi : PointI) : JawaProcedure = CallHandler.getDirectCalleeProcedure(pi.varName)
+  def getDirectCallee(pi : PointI) : JawaProcedure = CallHandler.getDirectCalleeProcedure(pi.sig)
   
-  def getStaticCallee(pi : PointI) : JawaProcedure = CallHandler.getStaticCalleeProcedure(pi.varName)
+  def getStaticCallee(pi : PointStaticI) : JawaProcedure = CallHandler.getStaticCalleeProcedure(pi.sig)
   
   def getSuperCalleeSet(diff : ISet[Instance],
 	                 pi : PointI) : ISet[JawaProcedure] = {
     val calleeSet : MSet[JawaProcedure] = msetEmpty
     diff.foreach{
       d =>
-        val p = CallHandler.getSuperCalleeProcedure(pi.varName)
+        val p = CallHandler.getSuperCalleeProcedure(pi.sig)
         calleeSet += p
     }
     calleeSet.toSet
@@ -551,7 +551,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
   def getVirtualCalleeSet(diff : ISet[Instance],
 	                 pi : PointI) : ISet[JawaProcedure] = {
     val calleeSet : MSet[JawaProcedure] = msetEmpty
-    val subSig = Center.getSubSigFromProcSig(pi.varName)
+    val subSig = Center.getSubSigFromProcSig(pi.sig)
     diff.foreach{
       d =>
         val p = CallHandler.getVirtualCalleeProcedure(d.typ, subSig)
@@ -1031,15 +1031,11 @@ class PointerAssignmentGraph[Node <: PtaNode]
   }
 }
 
-sealed abstract class PtaNode(loc : ResourceUri, context : Context) extends InterProceduralNode(context)
+sealed abstract class PtaNode(point : Point, context : Context) extends InterProceduralNode(context)
 
-final case class PtaProcNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
-  override def toString = uri + "@" + context.toString()
-}
+final case class PtaProcNode(procPoint : Point with Proc, context : Context) extends PtaNode(procPoint, context)
 
-final case class PtaPointNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
-  override def toString = uri + "@" + context.toString()
-}
+final case class PtaNormalNode(point : Point, context : Context) extends PtaNode(point, context)
 
 /**
  * Node type for invocation point.

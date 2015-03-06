@@ -5,21 +5,20 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.alir.interProcedural
+package org.sireum.jawa.alir.dataFlowAnalysis
 
 import org.sireum.alir._
 import org.sireum.util._
 import org.sireum.jawa.alir.controlFlowGraph._
 import org.sireum.pilar.ast._
-import org.sireum.jawa.JawaProcedure
 import org.sireum.pilar.symbol.ProcedureSymbolTable
 import org.sireum.jawa.Center
 import scala.util.control.Breaks._
-import org.sireum.jawa.GlobalConfig
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.SynchronizedMap
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.util.MyTimer
+import org.sireum.pilar.symbol.Symbol.pp2r
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>

@@ -215,46 +215,45 @@ object SideEffectAnalysis {
           case pa : PointAsmt =>
             pa.lhs match{
               case pfl : PointFieldL =>
-	              val varName = pfl.basePoint.varName
-		            val fieldName = pfl.getFieldName
-		            val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pfl.locationUri), pfl.locationIndex)
+	              val varName = pfl.baseP.baseName
+		            val fieldSig = pfl.fieldSig
+		            val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pfl.loc), pfl.locIndex)
 		            if(position >= 0)
-		            	writeMap += (position -> (writeMap.getOrElse(position, Set()) + fieldName))
+		            	writeMap += (position -> (writeMap.getOrElse(position, Set()) + fieldSig))
               case pgl : PointGlobalL =>
-                val globalName = pgl.varName
-                globalWrite += globalName
+                val globalSig = pgl.globalSig
+                globalWrite += globalSig
               case _ =>
             }
             pa.rhs match{
               case pfr : PointFieldR =>
-		            val varName = pfr.basePoint.varName
-		            val fieldName = pfr.getFieldName
-		            val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pfr.locationUri), pfr.locationIndex)
+		            val varName = pfr.baseP.baseName
+		            val fieldSig = pfr.fieldSig
+		            val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pfr.loc), pfr.locIndex)
 		            if(position >= 0)
-		            	readMap += (position -> (readMap.getOrElse(position, Set()) + fieldName))
+		            	readMap += (position -> (readMap.getOrElse(position, Set()) + fieldSig))
               case pgr : PointGlobalR =>
-                val globalName = pgr.varName
-                globalRead += globalName
+                val globalSig = pgr.globalSig
+                globalRead += globalSig
               case _ =>
             }
-          case pi : PointI =>
+          case pi : Point with Loc with Invoke =>
             var paramMap : Map[Int, Int] = Map()
-            val callSig = pi.varName
-            val callTyp = pi.typ
-            var hasRecv = true
-            pi.recvOpt_Call match{
-              case Some(recv) => 
-                val varName = recv.varName
-                val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pi.locationUri), pi.locationIndex)
+            val callSig = pi.sig
+            val callTyp = pi.invokeTyp
+            pi match{
+              case p : PointI => 
+                val varName = p.recvP.argName
+                val position = findPositionFromRda(procedure, cfg, rda, varName, Some(p.loc), p.locIndex)
                 if(position >= 0)
                 	paramMap += (0 -> position)
-              case None => hasRecv = false
+              case _ => 
             }
-            pi.args_Call.foreach{
-              case (i, arg) =>
-                val varName = arg.varName
-                val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pi.locationUri), pi.locationIndex)
-                val argPosition = if(hasRecv) i + 1 else i
+            pi.argPs.foreach{
+              case arg =>
+                val varName = arg.argName
+                val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pi.loc), pi.locIndex)
+                val argPosition = arg.index
                 if(position >= 0)
                 	paramMap += (argPosition -> position)
             }

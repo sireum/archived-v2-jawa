@@ -8,23 +8,22 @@ http://www.eclipse.org/legal/epl-v10.html
 package org.sireum.jawa.alir.dataDependenceAnalysis
 
 import org.sireum.jawa.alir.controlFlowGraph._
-import org.sireum.jawa.alir.interProcedural.InterProceduralMonotonicFunction
 import org.sireum.util._
 import org.sireum.jawa.alir.Context
 import org.sireum.pilar.ast.CallJump
 import org.sireum.pilar.ast.ProcedureDecl
-import org.sireum.jawa.alir.interProcedural.CallResolver
 import org.sireum.jawa.GlobalConfig
-import org.sireum.jawa.alir.interProcedural.InterProceduralMonotoneDataFlowAnalysisFramework
 import org.sireum.alir.VarSlot
 import org.sireum.alir.InitDefDesc
 import org.sireum.jawa.PilarAstHelper
 import org.sireum.alir._
-import org.sireum.jawa.alir.interProcedural.NodeListener
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaReachingDefinitionAnalysis
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.Center
 import org.sireum.jawa.util.MyTimer
+import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralMonotoneDataFlowAnalysisFramework
+import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralMonotonicFunction
+import org.sireum.jawa.alir.dataFlowAnalysis.CallResolver
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
