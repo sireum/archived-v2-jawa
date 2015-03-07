@@ -60,11 +60,17 @@ class PointsCollector {
         j += 1
       }
     )
+    
+    var retP : Option[PointProcRet] = None
+    if(parser.isReturnObject || parser.isReturnArray){
+      retP = Some(PointProcRet(procSig))
+    }
+    
     if(AccessFlag.isStatic(AccessFlag.getAccessFlags(accessTyp))){
-      PointStaticProc(procSig, accessTyp, paramPsEntry.toSet, paramPsExit.toSet, ownerSig)
+      PointStaticProc(procSig, accessTyp, paramPsEntry.toSet, paramPsExit.toSet, retP, ownerSig)
     } else {
       if(thisPEntry == null) throw new RuntimeException("Virtual method does not have 'this' param.")
-      PointProc(procSig, accessTyp, thisPEntry, thisPExit, paramPsEntry.toSet, paramPsExit.toSet, ownerSig)
+      PointProc(procSig, accessTyp, thisPEntry, thisPExit, paramPsEntry.toSet, paramPsExit.toSet, retP, ownerSig)
     }
   }
   
@@ -486,11 +492,16 @@ final case class PointParamExit(paramName : String, paramTyp : Type, index : Int
 final case class PointRet(retname : String, procPoint : Point with Proc, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc
 
 /**
+ * Set of program points corresponding to return variable (fake one).
+ */
+final case class PointProcRet(ownerSig : String) extends Point
+
+/**
  * Set of program points corresponding to procedures. 
  */
-final case class PointProc(procSig : String, accessTyp : String, thisPEntry : PointThisEntry, thisPExit : PointThisExit, paramPsEntry : ISet[PointParamEntry], paramPsExit : ISet[PointParamExit], ownerSig : String) extends Point with Proc with Virtual
+final case class PointProc(procSig : String, accessTyp : String, thisPEntry : PointThisEntry, thisPExit : PointThisExit, paramPsEntry : ISet[PointParamEntry], paramPsExit : ISet[PointParamExit], retVar : Option[PointProcRet], ownerSig : String) extends Point with Proc with Virtual
 
 /**
  * Set of program points corresponding to static procedures. 
  */
-final case class PointStaticProc(procSig : String, accessTyp : String, paramPsEntry : ISet[PointParamEntry], paramPsExit : ISet[PointParamExit], ownerSig : String) extends Point with Proc 
+final case class PointStaticProc(procSig : String, accessTyp : String, paramPsEntry : ISet[PointParamEntry], paramPsExit : ISet[PointParamExit], retVar : Option[PointProcRet], ownerSig : String) extends Point with Proc 

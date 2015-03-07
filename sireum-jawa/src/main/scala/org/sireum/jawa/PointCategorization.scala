@@ -86,6 +86,7 @@ trait Proc{
   def accessTyp : String
   def paramPsEntry : ISet[PointParamEntry]
   def paramPsExit : ISet[PointParamExit]
+  def retVar : Option[PointProcRet]
 }
 
 trait Param{

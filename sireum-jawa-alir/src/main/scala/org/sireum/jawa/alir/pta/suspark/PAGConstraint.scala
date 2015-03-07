@@ -201,7 +201,7 @@ trait PAGConstraint{
     searchRda(p, points, slots, avoidMode)
   }
   
-  def searchRda(p : Point with Loc, points : Set[Point], slots : ISet[(Slot, DefDesc)], avoidMode : Boolean) : Set[Point] = {
+  def searchRda(p : Point, points : Set[Point], slots : ISet[(Slot, DefDesc)], avoidMode : Boolean) : Set[Point] = {
     var ps : Set[Point] = Set()
     slots.foreach{
       case (slot, defDesc)=> 
