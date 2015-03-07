@@ -217,7 +217,7 @@ object InterproceduralSuperSpark {
   
   
   def extendGraphWithConstructGraph(calleeProc : JawaProcedure, 
-      															pi : PointI, 
+      															pi : Point with Invoke, 
       															callerContext : Context,
       															pag : PointerAssignmentGraph[PtaNode], 
       															cg : InterproceduralControlFlowGraph[N]) = {

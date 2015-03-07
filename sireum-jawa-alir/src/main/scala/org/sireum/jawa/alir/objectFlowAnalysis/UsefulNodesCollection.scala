@@ -32,7 +32,7 @@ case class InvokePointNode[Node](recvCallNodeOpt : Option[Node],
   																argCallNodes : Map[Int, Node], 
   																argReturnNodes : Map[Int, Node], 
   																piNodeOpt : Option[Node], 
-  																invokePoint : PointI) {
+  																invokePoint : Point with Invoke) {
   private var context : Context = null
   def setContext(context : Context) = this.context = context
 	def getContext = context

@@ -70,7 +70,7 @@ class PointsToMap extends PTAResult {
   /**
    * n1 -> n2[]
    */
-  def propagateArrayStorePointsToSet(n1 : PtaNode, n2 : PtaArrayNode) = {
+  def propagateArrayStorePointsToSet(n1 : PtaNode, n2 : PtaNode) = {
     pointsToSet(n2) foreach{
       ins =>
         addInstances(ArraySlot(ins), n2.getContext, pointsToSet(n1))
@@ -80,7 +80,7 @@ class PointsToMap extends PTAResult {
   /**
    * n1 -> @@n2
    */
-  def propagateGlobalStorePointsToSet(n1 : PtaNode, n2 : PtaGlobalVarNode) = {
+  def propagateGlobalStorePointsToSet(n1 : PtaNode, n2 : PtaNode) = {
     addInstances(VarSlot(n2.name), n2.getContext, pointsToSet(n1))
   }
   
@@ -174,14 +174,14 @@ class PointerAssignmentGraph[Node <: PtaNode]
   private var newNodes : Set[Node] = isetEmpty
   private var newEdges : Set[Edge] = isetEmpty
   
-  final case class PTACallee(callee : JawaProcedure, pi : PointI, node : Node) extends Callee
+  final case class PTACallee(callee : JawaProcedure, pi : Point with Invoke, node : Node) extends Callee
   
   def processStaticCall : ISet[PTACallee] = {
     val staticCallees = msetEmpty[PTACallee]
     newNodes.foreach{
       node =>
-        if(node.isInstanceOf[PtaInvokeNode]){
-          val pi = node.asInstanceOf[PtaInvokeNode].getPI
+        if(node.point.isInstanceOf[Point with Invoke]){
+          val pi = node.point.asInstanceOf[Point with Invoke]
           if(pi.invokeTyp.equals("static")){
 	          val callee = getStaticCallee(pi)
 	          staticCallees += PTACallee(callee, pi, node)
@@ -273,24 +273,24 @@ class PointerAssignmentGraph[Node <: PtaNode]
   /**
    * combine proc point and relevant node
    */ 
-  def collectTrackerNodes(sig : String, pi : PointI, callerContext : Context) = {
+  def collectTrackerNodes(sig : String, pi : Point with Invoke, callerContext : Context) = {
     val recvCallNodeOpt =
-      pi.recvOpt_Call match{
-       	case Some(r) =>
-	        Some(getNode(r, callerContext))
-	      case None =>
+      pi match{
+       	case vp : Point with Invoke with Dynamic =>
+	        Some(getNode(vp.recvPCall, callerContext))
+	      case _ =>
 	        None
     	}
     val recvReturnNodeOpt = 
-      pi.recvOpt_Return match{
-       	case Some(r) =>
-	        Some(getNode(r, callerContext))
-	      case None =>
+      pi match{
+        case vp : Point with Invoke with Dynamic =>
+	        Some(getNode(vp.recvPReturn, callerContext))
+	      case _ =>
 	        None
     	}
-    val invokeNodeOpt = if(invokeNodeExists(pi.varName, pi.locationUri, callerContext, pi)) Some(getNode(pi, callerContext)) else None
-    val argCallNodes = pi.args_Call.map{case (l, p) => (l, getNode(p, callerContext))}.toMap
-    val argReturnNodes = pi.args_Return.map{case (l, p) => (l, getNode(p, callerContext))}.toMap
+    val invokeNodeOpt = if(nodeExists(pi, callerContext)) Some(getNode(pi, callerContext)) else None
+    val argCallNodes = pi.argPsCall.map{p => (p.index, getNode(p, callerContext))}.toMap
+    val argReturnNodes = pi.argPsReturn.map{p => (p.index, getNode(p, callerContext))}.toMap
     val ipN = InvokePointNode[Node](recvCallNodeOpt, recvReturnNodeOpt, argCallNodes, argReturnNodes, invokeNodeOpt, pi)
     ipN.setCalleeSig(sig)
     ipN.setContext(callerContext)
@@ -301,7 +301,11 @@ class PointerAssignmentGraph[Node <: PtaNode]
   def collectNodes(pSig : String, p : Point, callerContext : Context) : Set[Node] = {
     var nodes : Set[Node] = Set()
     val context = callerContext.copy
-    context.setContext(pSig, p.getLoc)
+    p match {
+      case lp : Point with Loc => context.setContext(pSig, lp.loc)
+      case _ => context.setContext(pSig, p.ownerSig)
+    }
+    
     p match {
       case asmtP : PointAsmt =>
         val lhs = asmtP.lhs
@@ -314,10 +318,10 @@ class PointerAssignmentGraph[Node <: PtaNode]
           case pfl : PointFieldL =>
             val fieldNode = getNodeOrElse(pfl, context.copy)
             nodes += fieldNode
-            val baseNode = getNodeOrElse(pfl.basePoint, context.copy)
+            val baseNode = getNodeOrElse(pfl.baseP, context.copy)
             nodes += baseNode
-            baseNode.asInstanceOf[PtaFieldBaseNode].fieldNode = fieldNode.asInstanceOf[PtaFieldNode]
-            fieldNode.asInstanceOf[PtaFieldNode].baseNode = baseNode.asInstanceOf[PtaFieldBaseNode]
+//            baseNode.asInstanceOf[PtaFieldBaseNode].fieldNode = fieldNode.asInstanceOf[PtaFieldNode]
+//            fieldNode.asInstanceOf[PtaFieldNode].baseNode = baseNode.asInstanceOf[PtaFieldBaseNode]
           case _ =>
         }
         rhs match {
@@ -327,83 +331,78 @@ class PointerAssignmentGraph[Node <: PtaNode]
           case pfr : PointFieldR =>
             val fieldNode = getNodeOrElse(pfr, context.copy)
             nodes += fieldNode
-            val baseNode = getNodeOrElse(pfr.basePoint, context.copy)
+            val baseNode = getNodeOrElse(pfr.baseP, context.copy)
             nodes += baseNode
-            baseNode.asInstanceOf[PtaFieldBaseNode].fieldNode = fieldNode.asInstanceOf[PtaFieldNode]
-            fieldNode.asInstanceOf[PtaFieldNode].baseNode = baseNode.asInstanceOf[PtaFieldBaseNode]
+//            baseNode.asInstanceOf[PtaFieldBaseNode].fieldNode = fieldNode.asInstanceOf[PtaFieldNode]
+//            fieldNode.asInstanceOf[PtaFieldNode].baseNode = baseNode.asInstanceOf[PtaFieldBaseNode]
 //          case pso : PointStringO =>
 //            val ins = PTAStringInstance(pso.typ, context.copy, K_STRING)
 //            ins.addString(pso.str)
 //            pointsToMap.addInstance(rhsNode, ins)
           case pao : PointArrayO =>
-            val ins = PTAInstance(new NormalType(pao.typ, pao.dimensions), context.copy)
+            val ins = PTAInstance(new NormalType(pao.obj, pao.dimensions), context.copy)
             pointsToMap.addInstance(rhsNode.toString, context.copy, ins)
           case po : PointO =>
-            val ins = PTAInstance(new NormalType(po.typ), context.copy)
+            val ins = PTAInstance(new NormalType(po.obj), context.copy)
             pointsToMap.addInstance(rhsNode.toString, context.copy, ins)
           case pi : PointI =>
-            if(pi.typ.equals("static")){
+            if(pi.invokeTyp.equals("static")){
               worklist += rhsNode
             }
           case pr : PointR =>
         }
-      case pi : PointI =>
-        if(!pi.typ.equals("static")){
-          nodes += getNodeOrElse(pi.recvOpt_Call.get, context.copy)
-          nodes += getNodeOrElse(pi.recvOpt_Return.get, context.copy)
-        } else {
-          val node = getNodeOrElse(pi, context.copy)
-          nodes += node
-          worklist += node
+      case pi : Point with Invoke =>
+        pi match {
+          case vp : Point with Invoke with Dynamic =>
+            nodes += getNodeOrElse(vp.recvPCall, context.copy)
+            nodes += getNodeOrElse(vp.recvPReturn, context.copy)
+          case _ =>
+            val node = getNodeOrElse(pi, context.copy)
+            nodes += node
+            worklist += node
         }
-        val args_Entry = pi.args_Call
-        val args_Exit = pi.args_Return
-        args_Entry.keys.foreach(
-          i => {
-            val pa = args_Entry(i)
+        val args_Entry = pi.argPsCall
+        val args_Exit = pi.argPsReturn
+        args_Entry.foreach(
+          pa => {
             val argNode = getNodeOrElse(pa, context.copy)
             nodes += argNode
-            argNode.setProperty(PARAM_NUM, i)
+            argNode.setProperty(PARAM_NUM, pa.index)
           }  
         )
-        args_Exit.keys.foreach(
-          i => {
-            val pa = args_Exit(i)
+        args_Exit.foreach(
+          pa => {
             val argNode = getNodeOrElse(pa, context.copy)
             nodes += argNode
-            argNode.setProperty(PARAM_NUM, i)
+            argNode.setProperty(PARAM_NUM, pa.index)
           }  
         )
-      case procP : PointProc =>
-        procP.thisParamOpt_Entry match {
-          case Some(thisP) => nodes += getNodeOrElse(thisP, context.copy)
-          case None => null
+      case procP : Point with Proc =>
+        procP match {
+          case vp : Point with Proc with Virtual => 
+            nodes += getNodeOrElse(vp.thisPEntry, context.copy)
+            nodes += getNodeOrElse(vp.thisPExit, context.copy)
+          case _ =>
         }
-        procP.thisParamOpt_Exit match {
-          case Some(thisP) => nodes += getNodeOrElse(thisP, context.copy)
-          case None => null
-        }
-        procP.retVar match {
-          case Some(rev) =>
-            nodes += getNodeOrElse(rev, context.copy)
-          case None =>
-        }
-        val params_Entry = procP.params_Entry
-        val params_Exit = procP.params_Exit
-        params_Entry.keys.foreach(
-          i => {
-            val pa = params_Entry(i)
+//        procP.retVar match {
+//          case Some(rev) =>
+//            nodes += getNodeOrElse(rev, context.copy)
+//          case None =>
+//        }
+        val params_Entry = procP.paramPsEntry
+        val params_Exit = procP.paramPsExit
+        params_Entry.foreach(
+          pa => {
             val paramNode = getNodeOrElse(pa, context.copy)
             nodes += paramNode
-            paramNode.setProperty(PARAM_NUM, i)
+            paramNode.setProperty(PARAM_NUM, pa.index)
           } 
         )
-        params_Exit.keys.foreach(
-          i => {
-            val pa = params_Exit(i)
+        params_Exit.foreach(
+          pa => {
             val paramNode = getNodeOrElse(pa, context.copy)
             nodes += paramNode
-            paramNode.setProperty(PARAM_NUM, i)
+            paramNode.setProperty(PARAM_NUM, pa.index)
           } 
         )
       case retP : PointRet =>
@@ -420,12 +419,18 @@ class PointerAssignmentGraph[Node <: PtaNode]
         edgeMap.foreach{
           case(src, dsts) =>
             val s = context.copy
-		        s.setContext(pSig, src.getLoc)
+            src match {
+              case lp : Point with Loc => s.setContext(pSig, lp.loc)
+              case _ => s.setContext(pSig, src.ownerSig)
+            }
 		        val srcNode = getNode(src, s)
 		        dsts.foreach{
 		          dst => 
 		            val t = context.copy
-		            t.setContext(pSig, dst.getLoc)
+		            dst match {
+                  case lp : Point with Loc => s.setContext(pSig, lp.loc)
+                  case _ => s.setContext(pSig, src.ownerSig)
+                }
 		            val targetNode = getNode(dst, t)
 		            if(!graph.containsEdge(srcNode, targetNode))
 		              edges += addEdge(srcNode, targetNode, typ)
@@ -435,71 +440,83 @@ class PointerAssignmentGraph[Node <: PtaNode]
     edges
   }
   
-  def breakPiEdges(pi : PointI, calleeAccessTyp : String, srcContext : Context) = {
-    if(calleeAccessTyp != null && !calleeAccessTyp.contains("NATIVE")){
-	    pi.recvOpt_Call match{
-	      case Some(p) =>
-	        val srcNode = getNode(p, srcContext.copy)
-	        val targetNode = getNode(pi.recvOpt_Return.get, srcContext.copy)
-//	        if(arrayRepo.contains(p.toString) || fieldVarRepo.contains(p.toString))
-//	          deleteEdge(targetNode, srcNode)
-	        if(hasEdge(srcNode, targetNode))
-	        	deleteEdge(srcNode, targetNode)
-	      case None =>
-	    }
+  def breakPiEdges(pi : Point with Invoke, calleeAccessTyp : String, srcContext : Context) = {
+    pi match {
+      case vp : Point with Invoke with Dynamic =>
+        if(calleeAccessTyp != null && !calleeAccessTyp.contains("NATIVE")){
+          val srcNode = getNode(vp.recvPCall, srcContext.copy)
+          val targetNode = getNode(vp.recvPReturn, srcContext.copy)
+          if(hasEdge(srcNode, targetNode))
+            deleteEdge(srcNode, targetNode)
+        }
+      case _ =>
     }
-    pi.args_Call foreach{
-      case (i, aCall) =>
-        val srcNode = getNode(aCall, srcContext.copy)
-        val targetNode = getNode(pi.args_Return(i), srcContext.copy)
-//        if(arrayRepo.contains(aCall.toString) || fieldVarRepo.contains(aCall.toString))
-//	        deleteEdge(targetNode, srcNode)
-        if(hasEdge(srcNode, targetNode))
-        	deleteEdge(srcNode, targetNode)
+    
+    pi.argPsCall foreach{
+      aCall =>
+        pi.argPsReturn foreach{
+          aReturn =>
+            if(aCall.index == aReturn.index){
+              val srcNode = getNode(aCall, srcContext.copy)
+              val targetNode = getNode(aReturn, srcContext.copy)
+              if(hasEdge(srcNode, targetNode))
+                deleteEdge(srcNode, targetNode)
+            }
+        }
+        
     }
   }
   
-  private def connectCallEdges(met : PointProc, pi : PointI, srcContext : Context) ={
+  private def connectCallEdges(met : Point with Proc, pi : Point with Invoke, srcContext : Context) ={
     val targetContext = srcContext.copy
-    targetContext.setContext(met.pSig, met.getLoc)
-    met.params_Entry.keys.foreach(
-      i => {
-        if(pi.args_Call.contains(i)){
-          val srcNode = getNode(pi.args_Call(i), srcContext.copy)
-	        val targetNode = getNode(met.params_Entry(i), targetContext.copy)
-	        worklist += srcNode
-	        if(!graph.containsEdge(srcNode, targetNode))
-	          addEdge(srcNode, targetNode, EdgeType.TRANSFER)
+    targetContext.setContext(met.procSig, met.ownerSig)
+    met.paramPsEntry.foreach(
+      paramp => {
+        pi.argPsCall.foreach{
+          argp =>
+            if(paramp.index == argp.index){
+              val srcNode = getNode(argp, srcContext.copy)
+              val targetNode = getNode(paramp, targetContext.copy)
+              worklist += srcNode
+              if(!graph.containsEdge(srcNode, targetNode))
+                addEdge(srcNode, targetNode, EdgeType.TRANSFER)
+            }
+          
         }
       } 
     )
-    met.params_Exit.keys.foreach(
-      i => {
-        val srcNode = getNode(met.params_Exit(i), targetContext.copy)
-        val targetNode = getNode(pi.args_Return(i), srcContext.copy)
-        worklist += srcNode
-        if(!graph.containsEdge(srcNode, targetNode))
-          addEdge(srcNode, targetNode, EdgeType.TRANSFER)
+    met.paramPsExit.foreach(
+      paramp => {
+        pi.argPsReturn.foreach{
+          argp =>
+            if(paramp.index == argp.index){
+              val srcNode = getNode(argp, srcContext.copy)
+              val targetNode = getNode(paramp, targetContext.copy)
+              worklist += srcNode
+              if(!graph.containsEdge(srcNode, targetNode))
+                addEdge(srcNode, targetNode, EdgeType.TRANSFER)
+            }
+          
+        }
       }  
     )
-    met.thisParamOpt_Entry match {
-      case Some(thisParam) =>
-        val srcNode = getNode(pi.recvOpt_Call.get, srcContext.copy)
-        val targetNode = getNode(thisParam, targetContext.copy)
-        worklist += srcNode
-        if(!graph.containsEdge(srcNode, targetNode))
-          addEdge(srcNode, targetNode, EdgeType.TRANSFER)
-      case None =>
+    
+    met match {
+      case vp : Point with Proc with Virtual =>
+        assume(pi.isInstanceOf[PointI])
+        val srcNodeCall = getNode(pi.asInstanceOf[PointI].recvPCall, srcContext.copy)
+        val targetNodeEntry = getNode(vp.thisPEntry, targetContext.copy)
+        worklist += srcNodeCall
+        if(!graph.containsEdge(srcNodeCall, targetNodeEntry))
+          addEdge(srcNodeCall, targetNodeEntry, EdgeType.TRANSFER)
+        val srcNodeExit = getNode(vp.thisPExit, targetContext.copy)
+        val targetNodeReturn = getNode(pi.asInstanceOf[PointI].recvPReturn, srcContext.copy)
+        worklist += srcNodeExit
+        if(!graph.containsEdge(srcNodeExit, targetNodeReturn))
+          addEdge(srcNodeExit, targetNodeReturn, EdgeType.TRANSFER)
+      case _ =>
     }
-    met.thisParamOpt_Exit match {
-      case Some(thisParam) =>
-        val srcNode = getNode(thisParam, targetContext.copy)
-        val targetNode = getNode(pi.recvOpt_Return.get, srcContext.copy)
-        worklist += srcNode
-        if(!graph.containsEdge(srcNode, targetNode))
-          addEdge(srcNode, targetNode, EdgeType.TRANSFER)
-      case None =>
-    }
+    
     met.retVar match {
       case Some(retv) =>
         val targetNode = getNode(pi, srcContext.copy)
@@ -511,7 +528,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
     }
   }
   
-  def extendGraph(met : PointProc, pi : PointI, srcContext : Context) = {
+  def extendGraph(met : Point with Proc, pi : Point with Invoke, srcContext : Context) = {
     breakPiEdges(pi, met.accessTyp, srcContext)
     connectCallEdges(met, pi, srcContext)
   }
@@ -526,19 +543,19 @@ class PointerAssignmentGraph[Node <: PtaNode]
   /**
    * This is the recv bar method in original algo
    */
-  def recvInverse(n : Node) : Option[PointI] = {
-    n match{
-      case on : PtaRecvCallNode => Some(on.asInstanceOf[PtaRecvCallNode].getPI)
+  def recvInverse(n : Node) : Option[Point with Invoke] = {
+    n.point match{
+      case on : PointRecvCall => Some(on.getContainer)
       case _ => None
     }
   }
   
-  def getDirectCallee(pi : PointI) : JawaProcedure = CallHandler.getDirectCalleeProcedure(pi.sig)
+  def getDirectCallee(pi : Point with Invoke) : JawaProcedure = CallHandler.getDirectCalleeProcedure(pi.sig)
   
-  def getStaticCallee(pi : PointStaticI) : JawaProcedure = CallHandler.getStaticCalleeProcedure(pi.sig)
+  def getStaticCallee(pi : Point with Invoke) : JawaProcedure = CallHandler.getStaticCalleeProcedure(pi.sig)
   
   def getSuperCalleeSet(diff : ISet[Instance],
-	                 pi : PointI) : ISet[JawaProcedure] = {
+	                 pi : Point with Invoke) : ISet[JawaProcedure] = {
     val calleeSet : MSet[JawaProcedure] = msetEmpty
     diff.foreach{
       d =>
@@ -549,7 +566,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
   }
 
   def getVirtualCalleeSet(diff : ISet[Instance],
-	                 pi : PointI) : ISet[JawaProcedure] = {
+	                 pi : Point with Invoke) : ISet[JawaProcedure] = {
     val calleeSet : MSet[JawaProcedure] = msetEmpty
     val subSig = Center.getSubSigFromProcSig(pi.sig)
     diff.foreach{
@@ -561,166 +578,183 @@ class PointerAssignmentGraph[Node <: PtaNode]
   }
   
   def getNodeOrElse(p : Point, context : Context) : Node = {
-    p match {
-      case pal : PointArrayL =>
-        if(!arrayNodeLExists(pal.varName, pal.locationUri, context, pal.dimensions))
-          addArrayNodeL(pal.varName, pal.locationUri, context, pal.dimensions)
-        else getArrayNodeL(pal.varName, pal.locationUri, context, pal.dimensions)
-      case par : PointArrayR =>
-        if(!arrayNodeRExists(par.varName, par.locationUri, context, par.dimensions))
-          addArrayNodeR(par.varName, par.locationUri, context, par.dimensions)
-        else getArrayNodeR(par.varName, par.locationUri, context, par.dimensions)
-      case pgl : PointGlobalL =>
-        if(!globalVarNodeLExists(pgl.varName, pgl.locationUri, context))
-        	addGlobalVarNodeL(pgl.varName, pgl.locationUri, context)
-        else getGlobalVarNodeL(pgl.varName, pgl.locationUri, context)
-      case pgr : PointGlobalR =>
-        if(!globalVarNodeRExists(pgr.varName, pgr.locationUri, context))
-          addGlobalVarNodeR(pgr.varName, pgr.locationUri, context)
-        else getGlobalVarNodeR(pgr.varName, pgr.locationUri, context)
-      case pbl : PointBaseL =>
-        if(!fieldBaseNodeLExists(pbl.varName, pbl.locationUri, context))
-          addFieldBaseNodeL(pbl.varName, pbl.locationUri, context)
-        else getFieldBaseNodeL(pbl.varName, pbl.locationUri, context)  
-      case pbr : PointBaseR =>
-        if(!fieldBaseNodeRExists(pbr.varName, pbr.locationUri, context))
-          addFieldBaseNodeR(pbr.varName, pbr.locationUri, context)
-        else getFieldBaseNodeR(pbr.varName, pbr.locationUri, context)
-      case pfl : PointFieldL =>
-        if(!fieldNodeExists(pfl.basePoint.varName, pfl.varName, pfl.locationUri, context))
-          addFieldNode(pfl.basePoint.varName, pfl.varName, pfl.locationUri, context)
-        else getFieldNode(pfl.basePoint.varName, pfl.varName, pfl.locationUri, context)
-      case pfr : PointFieldR =>
-        if(!fieldNodeExists(pfr.basePoint.varName, pfr.varName, pfr.locationUri, context))
-          addFieldNode(pfr.basePoint.varName, pfr.varName, pfr.locationUri, context)
-        else getFieldNode(pfr.basePoint.varName, pfr.varName, pfr.locationUri, context)
-      case pr : PointRecv_Call =>
-        if(!recvCallNodeExists(pr.varName, pr.locationUri, context, pr.container))
-          addRecvCallNode(pr.varName, pr.locationUri, context, pr.container)
-        else getRecvCallNode(pr.varName, pr.locationUri, context, pr.container)
-      case pr : PointRecv_Return =>
-        if(!recvReturnNodeExists(pr.varName, pr.locationUri, context))
-          addRecvReturnNode(pr.varName, pr.locationUri, context)
-        else getRecvReturnNode(pr.varName, pr.locationUri, context)
-//      case pr : PointRecv =>
-//        if(!recvNodeExists("recv:" + pr.varName, pr.locationUri, context, pr.container)){
-//          val node = addRecvNode("recv:" + pr.varName, pr.locationUri, context, pr.container)
-//          node.setProperty(VALUE_SET, fac())
-//          node
-//        } else getRecvNode("recv:" + pr.varName, pr.locationUri, context, pr.container)
-      case pa : PointArg_Call =>
-        if(!argCallNodeExists(pa.varName, pa.locationUri, context))
-          addArgCallNode(pa.varName, pa.locationUri, context)
-        else getArgCallNode(pa.varName, pa.locationUri, context)
-      case pa : PointArg_Return =>
-        if(!argReturnNodeExists(pa.varName, pa.locationUri, context))
-          addArgReturnNode(pa.varName, pa.locationUri, context)
-        else getArgReturnNode(pa.varName, pa.locationUri, context)
-      case pso : PointStringO =>
-        if(!pointNodeExists("newString:" + pso.varName, pso.locationUri, context))
-          addPointNode("newString:" + pso.varName, pso.locationUri, context)
-        else getPointNode("newString:" + pso.varName, pso.locationUri, context)
-      case po : PointO =>
-        if(!pointNodeExists("new:" + po.varName, po.locationUri, context))
-          addPointNode("new:" + po.varName, po.locationUri, context)
-        else getPointNode("new:" + po.varName, po.locationUri, context)
-      case pi : PointI =>
-        if(!invokeNodeExists(pi.varName, pi.locationUri, context, pi))
-          addInvokeNode(pi.varName, pi.locationUri, context, pi)
-        else getInvokeNode(pi.varName, pi.locationUri, context, pi)
-      case pwi : PointWithIndex =>
-        if(!pointNodeExists(pwi.varName, pwi.locationUri, context))
-          addPointNode(pwi.varName, pwi.locationUri, context)
-        else getPointNode(pwi.varName, pwi.locationUri, context)
-      case pr : PointThis_Entry =>
-        if(!pointNodeExists("this_Entry:" + pr.varName, pr.identifier, context))
-          addPointNode("this_Entry:" + pr.varName, pr.identifier, context)
-        else getPointNode("this_Entry:" + pr.varName, pr.identifier, context)
-      case pr : PointThis_Exit =>
-        if(!pointNodeExists("this_Exit:" + pr.varName, pr.identifier, context))
-          addPointNode("this_Exit:" + pr.varName, pr.identifier, context)
-        else getPointNode("this_Exit:" + pr.varName, pr.identifier, context)
-      case pr : PointThis =>
-        if(!pointNodeExists("this:" + pr.varName, pr.identifier, context))
-          addPointNode("this:" + pr.varName, pr.identifier, context)
-        else getPointNode("this:" + pr.varName, pr.identifier, context)
-      case pa : PointParam_Entry =>
-        if(!pointNodeExists("param_Entry:" + pa.varName, pa.identifier, context))
-          addPointNode("param_Entry:" + pa.varName, pa.identifier, context)
-        else getPointNode("param_Entry:" + pa.varName, pa.identifier, context)
-      case pa : PointParam_Exit =>
-        if(!pointNodeExists("param_Exit:" + pa.varName, pa.identifier, context))
-          addPointNode("param_Exit:" + pa.varName, pa.identifier, context)
-        else getPointNode("param_Exit:" + pa.varName, pa.identifier, context)
-      case pa : PointParam =>
-        if(!pointNodeExists("param:" + pa.varName, pa.identifier, context))
-          addPointNode("param:" + pa.varName, pa.identifier, context)
-        else getPointNode("param:" + pa.varName, pa.identifier, context)
-      case pr : PointRNoIndex =>
-        if(!pointNodeExists(pr.varName, pr.identifier, context))
-          addPointNode(pr.varName, pr.identifier, context)
-        else getPointNode(pr.varName, pr.identifier, context)
-      case pp : PointProc =>
-        if(!pointNodeExists(pp.pSig, pp.getLoc, context))
-          addPointNode(pp.pSig, pp.getLoc, context)
-        else getPointNode(pp.pSig, pp.getLoc, context)
-    }
+    if(!nodeExists(p, context)) addNode(p, context)
+    else getNode(p, context)
+//    p match {
+//      case pal : PointArrayL =>
+//        if(!arrayNodeLExists(pal.varName, pal.locationUri, context, pal.dimensions))
+//          addArrayNodeL(pal.varName, pal.locationUri, context, pal.dimensions)
+//        else getArrayNodeL(pal.varName, pal.locationUri, context, pal.dimensions)
+//      case par : PointArrayR =>
+//        if(!arrayNodeRExists(par.varName, par.locationUri, context, par.dimensions))
+//          addArrayNodeR(par.varName, par.locationUri, context, par.dimensions)
+//        else getArrayNodeR(par.varName, par.locationUri, context, par.dimensions)
+//      case pgl : PointGlobalL =>
+//        if(!globalVarNodeLExists(pgl.varName, pgl.locationUri, context))
+//        	addGlobalVarNodeL(pgl.varName, pgl.locationUri, context)
+//        else getGlobalVarNodeL(pgl.varName, pgl.locationUri, context)
+//      case pgr : PointGlobalR =>
+//        if(!globalVarNodeRExists(pgr.varName, pgr.locationUri, context))
+//          addGlobalVarNodeR(pgr.varName, pgr.locationUri, context)
+//        else getGlobalVarNodeR(pgr.varName, pgr.locationUri, context)
+//      case pbl : PointBaseL =>
+//        if(!fieldBaseNodeLExists(pbl.varName, pbl.locationUri, context))
+//          addFieldBaseNodeL(pbl.varName, pbl.locationUri, context)
+//        else getFieldBaseNodeL(pbl.varName, pbl.locationUri, context)  
+//      case pbr : PointBaseR =>
+//        if(!fieldBaseNodeRExists(pbr.varName, pbr.locationUri, context))
+//          addFieldBaseNodeR(pbr.varName, pbr.locationUri, context)
+//        else getFieldBaseNodeR(pbr.varName, pbr.locationUri, context)
+//      case pfl : PointFieldL =>
+//        if(!fieldNodeExists(pfl.basePoint.varName, pfl.varName, pfl.locationUri, context))
+//          addFieldNode(pfl.basePoint.varName, pfl.varName, pfl.locationUri, context)
+//        else getFieldNode(pfl.basePoint.varName, pfl.varName, pfl.locationUri, context)
+//      case pfr : PointFieldR =>
+//        if(!fieldNodeExists(pfr.basePoint.varName, pfr.varName, pfr.locationUri, context))
+//          addFieldNode(pfr.basePoint.varName, pfr.varName, pfr.locationUri, context)
+//        else getFieldNode(pfr.basePoint.varName, pfr.varName, pfr.locationUri, context)
+//      case pr : PointRecv_Call =>
+//        if(!recvCallNodeExists(pr.varName, pr.locationUri, context, pr.container))
+//          addRecvCallNode(pr.varName, pr.locationUri, context, pr.container)
+//        else getRecvCallNode(pr.varName, pr.locationUri, context, pr.container)
+//      case pr : PointRecv_Return =>
+//        if(!recvReturnNodeExists(pr.varName, pr.locationUri, context))
+//          addRecvReturnNode(pr.varName, pr.locationUri, context)
+//        else getRecvReturnNode(pr.varName, pr.locationUri, context)
+////      case pr : PointRecv =>
+////        if(!recvNodeExists("recv:" + pr.varName, pr.locationUri, context, pr.container)){
+////          val node = addRecvNode("recv:" + pr.varName, pr.locationUri, context, pr.container)
+////          node.setProperty(VALUE_SET, fac())
+////          node
+////        } else getRecvNode("recv:" + pr.varName, pr.locationUri, context, pr.container)
+//      case pa : PointArg_Call =>
+//        if(!argCallNodeExists(pa.varName, pa.locationUri, context))
+//          addArgCallNode(pa.varName, pa.locationUri, context)
+//        else getArgCallNode(pa.varName, pa.locationUri, context)
+//      case pa : PointArg_Return =>
+//        if(!argReturnNodeExists(pa.varName, pa.locationUri, context))
+//          addArgReturnNode(pa.varName, pa.locationUri, context)
+//        else getArgReturnNode(pa.varName, pa.locationUri, context)
+//      case pso : PointStringO =>
+//        if(!pointNodeExists("newString:" + pso.varName, pso.locationUri, context))
+//          addPointNode("newString:" + pso.varName, pso.locationUri, context)
+//        else getPointNode("newString:" + pso.varName, pso.locationUri, context)
+//      case po : PointO =>
+//        if(!pointNodeExists("new:" + po.varName, po.locationUri, context))
+//          addPointNode("new:" + po.varName, po.locationUri, context)
+//        else getPointNode("new:" + po.varName, po.locationUri, context)
+//      case pi : PointI =>
+//        if(!invokeNodeExists(pi.varName, pi.locationUri, context, pi))
+//          addInvokeNode(pi.varName, pi.locationUri, context, pi)
+//        else getInvokeNode(pi.varName, pi.locationUri, context, pi)
+//      case pwi : PointWithIndex =>
+//        if(!pointNodeExists(pwi.varName, pwi.locationUri, context))
+//          addPointNode(pwi.varName, pwi.locationUri, context)
+//        else getPointNode(pwi.varName, pwi.locationUri, context)
+//      case pr : PointThis_Entry =>
+//        if(!pointNodeExists("this_Entry:" + pr.varName, pr.identifier, context))
+//          addPointNode("this_Entry:" + pr.varName, pr.identifier, context)
+//        else getPointNode("this_Entry:" + pr.varName, pr.identifier, context)
+//      case pr : PointThis_Exit =>
+//        if(!pointNodeExists("this_Exit:" + pr.varName, pr.identifier, context))
+//          addPointNode("this_Exit:" + pr.varName, pr.identifier, context)
+//        else getPointNode("this_Exit:" + pr.varName, pr.identifier, context)
+//      case pr : PointThis =>
+//        if(!pointNodeExists("this:" + pr.varName, pr.identifier, context))
+//          addPointNode("this:" + pr.varName, pr.identifier, context)
+//        else getPointNode("this:" + pr.varName, pr.identifier, context)
+//      case pa : PointParam_Entry =>
+//        if(!pointNodeExists("param_Entry:" + pa.varName, pa.identifier, context))
+//          addPointNode("param_Entry:" + pa.varName, pa.identifier, context)
+//        else getPointNode("param_Entry:" + pa.varName, pa.identifier, context)
+//      case pa : PointParam_Exit =>
+//        if(!pointNodeExists("param_Exit:" + pa.varName, pa.identifier, context))
+//          addPointNode("param_Exit:" + pa.varName, pa.identifier, context)
+//        else getPointNode("param_Exit:" + pa.varName, pa.identifier, context)
+//      case pa : PointParam =>
+//        if(!pointNodeExists("param:" + pa.varName, pa.identifier, context))
+//          addPointNode("param:" + pa.varName, pa.identifier, context)
+//        else getPointNode("param:" + pa.varName, pa.identifier, context)
+//      case pr : PointRNoIndex =>
+//        if(!pointNodeExists(pr.varName, pr.identifier, context))
+//          addPointNode(pr.varName, pr.identifier, context)
+//        else getPointNode(pr.varName, pr.identifier, context)
+//      case pp : PointProc =>
+//        if(!pointNodeExists(pp.pSig, pp.getLoc, context))
+//          addPointNode(pp.pSig, pp.getLoc, context)
+//        else getPointNode(pp.pSig, pp.getLoc, context)
+//    }
   }
   
-  def arrayNodeLExists(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) : Boolean = {
-    graph.containsVertex(newArrayNodeL(uri, loc, context, dimensions).asInstanceOf[Node])
+  def nodeExists(point : Point, context : Context) : Boolean = {
+    graph.containsVertex(newNode(point, context).asInstanceOf[Node])
   }
+//  def entryNodeExists(procPoint : PointProc, context : Context) : Boolean = {
+//    graph.containsVertex(newEntryNode(procPoint, context).asInstanceOf[Node])
+//  }
+//  def exitNodeExists(procPoint : PointProc, context : Context) : Boolean = {
+//    graph.containsVertex(newExitNode(procPoint, context).asInstanceOf[Node])
+//  }
+//  def callNodeExists(pi : Point with Loc with Invoke, context : Context) : Boolean = {
+//    graph.containsVertex(newCallNode(pi, context).asInstanceOf[Node])
+//  }
+//  def returnNodeExists(pi : Point with Loc with Invoke, context : Context) : Boolean = {
+//    graph.containsVertex(newReturnNode(pi, context).asInstanceOf[Node])
+//  }
+//  def arrayNodeLExists(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) : Boolean = {
+//    graph.containsVertex(newArrayNodeL(uri, loc, context, dimensions).asInstanceOf[Node])
+//  }
+//  
+//  def arrayNodeRExists(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) : Boolean = {
+//    graph.containsVertex(newArrayNodeR(uri, loc, context, dimensions).asInstanceOf[Node])
+//  }
+//  
+//  def globalVarNodeLExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
+//    graph.containsVertex(newGlobalVarNodeL(uri, loc, context).asInstanceOf[Node])
+//  }
+//  
+//  def globalVarNodeRExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
+//    graph.containsVertex(newGlobalVarNodeR(uri, loc, context).asInstanceOf[Node])
+//  }
+//  
+//  def fieldBaseNodeLExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
+//    graph.containsVertex(newFieldBaseNodeL(uri, loc, context).asInstanceOf[Node])
+//  }
+//  
+//  def fieldBaseNodeRExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
+//    graph.containsVertex(newFieldBaseNodeR(uri, loc, context).asInstanceOf[Node])
+//  }
+//  
+//  def fieldNodeExists(baseName : ResourceUri, fieldName : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
+//    graph.containsVertex(newFieldNode(baseName, fieldName, loc, context).asInstanceOf[Node])
+//  }
+//  
+//  def invokeNodeExists(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) : Boolean = {
+//    graph.containsVertex(newInvokeNode(uri, loc, context, pi).asInstanceOf[Node])
+//  }
+//  
+//  def recvCallNodeExists(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) : Boolean = {
+//    graph.containsVertex(newRecvCallNode(uri, loc, context, pi).asInstanceOf[Node])
+//  }
+//  
+//  def recvReturnNodeExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
+//    graph.containsVertex(newRecvReturnNode(uri, loc, context).asInstanceOf[Node])
+//  }
+//  
+//  def argCallNodeExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
+//    graph.containsVertex(newArgCallNode(uri, loc, context).asInstanceOf[Node])
+//  }
+//  
+//  def argReturnNodeExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
+//    graph.containsVertex(newArgReturnNode(uri, loc, context).asInstanceOf[Node])
+//  }
+//  
+//  def pointNodeExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
+//    graph.containsVertex(newPointNode(uri, loc, context).asInstanceOf[Node])
+//  }
   
-  def arrayNodeRExists(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) : Boolean = {
-    graph.containsVertex(newArrayNodeR(uri, loc, context, dimensions).asInstanceOf[Node])
-  }
-  
-  def globalVarNodeLExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
-    graph.containsVertex(newGlobalVarNodeL(uri, loc, context).asInstanceOf[Node])
-  }
-  
-  def globalVarNodeRExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
-    graph.containsVertex(newGlobalVarNodeR(uri, loc, context).asInstanceOf[Node])
-  }
-  
-  def fieldBaseNodeLExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
-    graph.containsVertex(newFieldBaseNodeL(uri, loc, context).asInstanceOf[Node])
-  }
-  
-  def fieldBaseNodeRExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
-    graph.containsVertex(newFieldBaseNodeR(uri, loc, context).asInstanceOf[Node])
-  }
-  
-  def fieldNodeExists(baseName : ResourceUri, fieldName : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
-    graph.containsVertex(newFieldNode(baseName, fieldName, loc, context).asInstanceOf[Node])
-  }
-  
-  def invokeNodeExists(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) : Boolean = {
-    graph.containsVertex(newInvokeNode(uri, loc, context, pi).asInstanceOf[Node])
-  }
-  
-  def recvCallNodeExists(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) : Boolean = {
-    graph.containsVertex(newRecvCallNode(uri, loc, context, pi).asInstanceOf[Node])
-  }
-  
-  def recvReturnNodeExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
-    graph.containsVertex(newRecvReturnNode(uri, loc, context).asInstanceOf[Node])
-  }
-  
-  def argCallNodeExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
-    graph.containsVertex(newArgCallNode(uri, loc, context).asInstanceOf[Node])
-  }
-  
-  def argReturnNodeExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
-    graph.containsVertex(newArgReturnNode(uri, loc, context).asInstanceOf[Node])
-  }
-  
-  def pointNodeExists(uri : ResourceUri, loc : ResourceUri, context : Context) : Boolean = {
-    graph.containsVertex(newPointNode(uri, loc, context).asInstanceOf[Node])
-  }
-  
-  def addArrayNodeL(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) : Node = {
-    val node = newArrayNodeL(uri, loc, context, dimensions).asInstanceOf[Node]
+  def addNode(point : Point, context : Context) : Node = {
+    val node = newNode(point, context).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -730,290 +764,310 @@ class PointerAssignmentGraph[Node <: PtaNode]
     graph.addVertex(n)
     n
   }
+//  def addArrayNodeL(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) : Node = {
+//    val node = newArrayNodeL(uri, loc, context, dimensions).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
+//  
+//  def addArrayNodeR(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) : Node = {
+//    val node = newArrayNodeR(uri, loc, context, dimensions).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
+//  
+//  def addGlobalVarNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
+//    val node = newGlobalVarNodeL(uri, loc, context).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
+//  
+//  def addGlobalVarNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
+//    val node = newGlobalVarNodeR(uri, loc, context).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
+//  
+//  def addFieldBaseNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
+//    val node = newFieldBaseNodeL(uri, loc, context).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
+//  
+//  def addFieldBaseNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
+//    val node = newFieldBaseNodeR(uri, loc, context).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
+//  
+//  def addFieldNode(baseName : ResourceUri, fieldName : ResourceUri, loc : ResourceUri, context : Context) : Node = {
+//    val node = newFieldNode(baseName, fieldName, loc, context).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
+//  
+//  def addInvokeNode(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) : Node = {
+//    val node = newInvokeNode(uri, loc, context, pi).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
+//  
+//  def addRecvCallNode(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) : Node = {
+//    val node = newRecvCallNode(uri, loc, context, pi).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
+//  
+//  def addRecvReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
+//    val node = newRecvReturnNode(uri, loc, context).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
+//  
+//  def addArgCallNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
+//    val node = newArgCallNode(uri, loc, context).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
+//  
+//  def addArgReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
+//    val node = newArgReturnNode(uri, loc, context).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
+//
+//  def addPointNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
+//    val node = newPointNode(uri, loc, context).asInstanceOf[Node]
+//    val n =
+//      if (pool.contains(node)) pool(node)
+//      else {
+//        pl += (node -> node)
+//        node
+//      }
+//    graph.addVertex(n)
+//    n
+//  }
   
-  def addArrayNodeR(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) : Node = {
-    val node = newArrayNodeR(uri, loc, context, dimensions).asInstanceOf[Node]
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
+  def getNode(point : Point, context : Context) : Node = pool(newNode(point, context))
+//  def getEntryNode(procPoint : PointProc, context : Context) = pool(newEntryNode(procPoint, context))
+//  def getExitNode(procPoint : PointProc, context : Context) = pool(newExitNode(procPoint, context))
+//  def getCallNode(pi : Point with Loc with Invoke, context : Context) = pool(newCallNode(pi, context))
+//  def getReturnNode(pi : Point with Loc with Invoke, context : Context) = pool(newReturnNode(pi, context))
+//  def getArrayNodeL(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) : Node =
+//    pool(newArrayNodeL(uri, loc, context, dimensions))
+//    
+//  def getArrayNodeR(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) : Node =
+//    pool(newArrayNodeR(uri, loc, context, dimensions))
+//    
+//  def getGlobalVarNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
+//    pool(newGlobalVarNodeL(uri, loc, context))
+//    
+//  def getGlobalVarNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
+//    pool(newGlobalVarNodeR(uri, loc, context))
+//    
+//  def getFieldBaseNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
+//    pool(newFieldBaseNodeL(uri, loc, context))
+//    
+//  def getFieldBaseNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
+//    pool(newFieldBaseNodeR(uri, loc, context))
+//    
+//  def getFieldNode(baseName : ResourceUri, fieldName : ResourceUri, loc : ResourceUri, context : Context) : Node =
+//    pool(newFieldNode(baseName, fieldName, loc, context))
+//    
+//  def getInvokeNode(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) : Node =
+//    pool(newInvokeNode(uri, loc, context, pi))
+//    
+//  def getRecvCallNode(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) : Node =
+//    pool(newRecvCallNode(uri, loc, context, pi))
+//    
+//  def getRecvReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
+//    pool(newRecvReturnNode(uri, loc, context))
+//    
+//  def getArgCallNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
+//    pool(newArgCallNode(uri, loc, context))
+//    
+//  def getArgReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
+//    pool(newArgReturnNode(uri, loc, context))
+//
+//  def getPointNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
+//    pool(newPointNode(uri, loc, context))
+    
+//  def getNode(p : Point, context : Context) : Node = {
+//    p match {
+//      case pal : PointArrayL =>
+//        getArrayNodeL(pal.varName, pal.locationUri, context, pal.dimensions)
+//      case par : PointArrayR =>
+//        getArrayNodeR(par.varName, par.locationUri, context, par.dimensions)
+//      case pgl : PointGlobalL =>
+//        getGlobalVarNodeL(pgl.varName, pgl.locationUri, context)
+//      case pgr : PointGlobalR =>
+//        getGlobalVarNodeR(pgr.varName, pgr.locationUri, context)
+//      case pbl : PointBaseL =>
+//        getFieldBaseNodeL(pbl.varName, pbl.locationUri, context)
+//      case pbr : PointBaseR =>
+//        getFieldBaseNodeR(pbr.varName, pbr.locationUri, context)
+//      case pfl : PointFieldL =>
+//        getFieldNode(pfl.basePoint.varName, pfl.varName, pfl.locationUri, context)
+//      case pfr : PointFieldR =>
+//        getFieldNode(pfr.basePoint.varName, pfr.varName, pfr.locationUri, context)
+//      case pr : PointRecv_Call =>
+//        getRecvCallNode(pr.varName, pr.locationUri, context, pr.container)
+//      case pr : PointRecv_Return =>
+//        getRecvReturnNode(pr.varName, pr.locationUri, context)
+////      case pr : PointRecv =>
+////        getRecvNode("recv:" + pr.varName, pr.locationUri, context, pr.container)
+//      case pa : PointArg_Call =>
+//        getArgCallNode(pa.varName, pa.locationUri, context)
+//      case pa : PointArg_Return =>
+//        getArgReturnNode(pa.varName, pa.locationUri, context)
+//      case po : PointStringO =>
+//        getPointNode("newString:" + po.varName, po.locationUri, context)
+//      case po : PointO =>
+//        getPointNode("new:" + po.varName, po.locationUri, context)
+//      case pi : PointI =>
+//        getInvokeNode(pi.varName, pi.locationUri, context, pi)
+//      case pwi : PointWithIndex =>
+//        getPointNode(pwi.varName, pwi.locationUri, context)
+//      case pr : PointThis_Entry =>
+//        getPointNode("this_Entry:" + pr.varName, pr.identifier, context)
+//      case pr : PointThis_Exit =>
+//        getPointNode("this_Exit:" + pr.varName, pr.identifier, context)
+//      case pr : PointThis =>
+//        getPointNode("this:" + pr.varName, pr.identifier, context)
+//      case pa : PointParam_Entry =>
+//        getPointNode("param_Entry:" + pa.varName, pa.identifier, context)
+//      case pa : PointParam_Exit =>
+//        getPointNode("param_Exit:" + pa.varName, pa.identifier, context)
+//      case pa : PointParam =>
+//        getPointNode("param:" + pa.varName, pa.identifier, context)
+//      case pri : PointRNoIndex =>
+//        getPointNode(pri.varName, pri.identifier, context)
+//      case pp : PointProc =>
+//        getPointNode(pp.pSig, pp.getLoc, context)
+//    }
+//  }
   
-  def addGlobalVarNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
-    val node = newGlobalVarNodeL(uri, loc, context).asInstanceOf[Node]
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-  
-  def addGlobalVarNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
-    val node = newGlobalVarNodeR(uri, loc, context).asInstanceOf[Node]
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-  
-  def addFieldBaseNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
-    val node = newFieldBaseNodeL(uri, loc, context).asInstanceOf[Node]
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-  
-  def addFieldBaseNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
-    val node = newFieldBaseNodeR(uri, loc, context).asInstanceOf[Node]
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-  
-  def addFieldNode(baseName : ResourceUri, fieldName : ResourceUri, loc : ResourceUri, context : Context) : Node = {
-    val node = newFieldNode(baseName, fieldName, loc, context).asInstanceOf[Node]
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-  
-  def addInvokeNode(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) : Node = {
-    val node = newInvokeNode(uri, loc, context, pi).asInstanceOf[Node]
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-  
-  def addRecvCallNode(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) : Node = {
-    val node = newRecvCallNode(uri, loc, context, pi).asInstanceOf[Node]
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-  
-  def addRecvReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
-    val node = newRecvReturnNode(uri, loc, context).asInstanceOf[Node]
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-  
-  def addArgCallNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
-    val node = newArgCallNode(uri, loc, context).asInstanceOf[Node]
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-  
-  def addArgReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
-    val node = newArgReturnNode(uri, loc, context).asInstanceOf[Node]
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-
-  def addPointNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node = {
-    val node = newPointNode(uri, loc, context).asInstanceOf[Node]
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-  
-    
-  def getArrayNodeL(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) : Node =
-    pool(newArrayNodeL(uri, loc, context, dimensions))
-    
-  def getArrayNodeR(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) : Node =
-    pool(newArrayNodeR(uri, loc, context, dimensions))
-    
-  def getGlobalVarNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
-    pool(newGlobalVarNodeL(uri, loc, context))
-    
-  def getGlobalVarNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
-    pool(newGlobalVarNodeR(uri, loc, context))
-    
-  def getFieldBaseNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
-    pool(newFieldBaseNodeL(uri, loc, context))
-    
-  def getFieldBaseNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
-    pool(newFieldBaseNodeR(uri, loc, context))
-    
-  def getFieldNode(baseName : ResourceUri, fieldName : ResourceUri, loc : ResourceUri, context : Context) : Node =
-    pool(newFieldNode(baseName, fieldName, loc, context))
-    
-  def getInvokeNode(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) : Node =
-    pool(newInvokeNode(uri, loc, context, pi))
-    
-  def getRecvCallNode(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) : Node =
-    pool(newRecvCallNode(uri, loc, context, pi))
-    
-  def getRecvReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
-    pool(newRecvReturnNode(uri, loc, context))
-    
-  def getArgCallNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
-    pool(newArgCallNode(uri, loc, context))
-    
-  def getArgReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
-    pool(newArgReturnNode(uri, loc, context))
-
-  def getPointNode(uri : ResourceUri, loc : ResourceUri, context : Context) : Node =
-    pool(newPointNode(uri, loc, context))
-    
-  def getNode(p : Point, context : Context) : Node = {
-    p match {
-      case pal : PointArrayL =>
-        getArrayNodeL(pal.varName, pal.locationUri, context, pal.dimensions)
-      case par : PointArrayR =>
-        getArrayNodeR(par.varName, par.locationUri, context, par.dimensions)
-      case pgl : PointGlobalL =>
-        getGlobalVarNodeL(pgl.varName, pgl.locationUri, context)
-      case pgr : PointGlobalR =>
-        getGlobalVarNodeR(pgr.varName, pgr.locationUri, context)
-      case pbl : PointBaseL =>
-        getFieldBaseNodeL(pbl.varName, pbl.locationUri, context)
-      case pbr : PointBaseR =>
-        getFieldBaseNodeR(pbr.varName, pbr.locationUri, context)
-      case pfl : PointFieldL =>
-        getFieldNode(pfl.basePoint.varName, pfl.varName, pfl.locationUri, context)
-      case pfr : PointFieldR =>
-        getFieldNode(pfr.basePoint.varName, pfr.varName, pfr.locationUri, context)
-      case pr : PointRecv_Call =>
-        getRecvCallNode(pr.varName, pr.locationUri, context, pr.container)
-      case pr : PointRecv_Return =>
-        getRecvReturnNode(pr.varName, pr.locationUri, context)
-//      case pr : PointRecv =>
-//        getRecvNode("recv:" + pr.varName, pr.locationUri, context, pr.container)
-      case pa : PointArg_Call =>
-        getArgCallNode(pa.varName, pa.locationUri, context)
-      case pa : PointArg_Return =>
-        getArgReturnNode(pa.varName, pa.locationUri, context)
-      case po : PointStringO =>
-        getPointNode("newString:" + po.varName, po.locationUri, context)
-      case po : PointO =>
-        getPointNode("new:" + po.varName, po.locationUri, context)
-      case pi : PointI =>
-        getInvokeNode(pi.varName, pi.locationUri, context, pi)
-      case pwi : PointWithIndex =>
-        getPointNode(pwi.varName, pwi.locationUri, context)
-      case pr : PointThis_Entry =>
-        getPointNode("this_Entry:" + pr.varName, pr.identifier, context)
-      case pr : PointThis_Exit =>
-        getPointNode("this_Exit:" + pr.varName, pr.identifier, context)
-      case pr : PointThis =>
-        getPointNode("this:" + pr.varName, pr.identifier, context)
-      case pa : PointParam_Entry =>
-        getPointNode("param_Entry:" + pa.varName, pa.identifier, context)
-      case pa : PointParam_Exit =>
-        getPointNode("param_Exit:" + pa.varName, pa.identifier, context)
-      case pa : PointParam =>
-        getPointNode("param:" + pa.varName, pa.identifier, context)
-      case pri : PointRNoIndex =>
-        getPointNode(pri.varName, pri.identifier, context)
-      case pp : PointProc =>
-        getPointNode(pp.pSig, pp.getLoc, context)
-    }
-  }
-  
-  protected def newFieldNode(baseName : ResourceUri, fieldName : ResourceUri, loc : ResourceUri, context : Context) =
-    PtaFieldNode(baseName, fieldName, loc, context)
-  
-  protected def newFieldBaseNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) =
-    PtaFieldBaseNodeL(uri, loc, context)
-    
-  protected def newFieldBaseNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) =
-    PtaFieldBaseNodeR(uri, loc, context)
-    
-  protected def newArrayNodeL(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) =
-    PtaArrayNodeL(uri, loc, context, dimensions)
-    
-  protected def newArrayNodeR(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) =
-    PtaArrayNodeR(uri, loc, context, dimensions)
-    
-  protected def newGlobalVarNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) =
-    PtaGlobalVarNodeL(uri, loc, context)
-    
-  protected def newGlobalVarNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) =
-    PtaGlobalVarNodeR(uri, loc, context)
-
-  protected def newInvokeNode(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) = {
-    val n = PtaInvokeNode(uri, loc, context, pi.typ)
-    n.setPI(pi)
-    n
-  }
-    
-  protected def newRecvCallNode(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) = {
-    val n = PtaRecvCallNode(uri, loc, context)
-    n.setPI(pi)
-    n
-  }
-  
-  protected def newRecvReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) = 
-    PtaRecvReturnNode(uri, loc, context)
-    
-  protected def newArgCallNode(uri : ResourceUri, loc : ResourceUri, context : Context) = 
-    PtaArgCallNode(uri, loc, context)
-
-  protected def newArgReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) = 
-    PtaArgReturnNode(uri, loc, context)
-    
-  protected def newPointNode(uri : ResourceUri, loc : ResourceUri, context : Context) =
-    PtaPointNode(uri, loc, context)
+  protected def newNode(point : Point, context : Context) = PtaNode(point, context)
+//  protected def newEntryNode(procPoint : PointProc, context : Context) = PtaEntryNode(procPoint, context)
+//  protected def newExitNode(procPoint : PointProc, context : Context) = PtaExitNode(procPoint, context)
+//  protected def newCallNode(pi : Point with Loc with Invoke, context : Context) = PtaCallNode(pi, context)
+//  protected def newReturnNode(pi : Point with Loc with Invoke, context : Context) = PtaReturnNode(pi, context)
+//  protected def newFieldNode(baseName : ResourceUri, fieldName : ResourceUri, loc : ResourceUri, context : Context) =
+//    PtaFieldNode(baseName, fieldName, loc, context)
+//  
+//  protected def newFieldBaseNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) =
+//    PtaFieldBaseNodeL(uri, loc, context)
+//    
+//  protected def newFieldBaseNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) =
+//    PtaFieldBaseNodeR(uri, loc, context)
+//    
+//  protected def newArrayNodeL(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) =
+//    PtaArrayNodeL(uri, loc, context, dimensions)
+//    
+//  protected def newArrayNodeR(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) =
+//    PtaArrayNodeR(uri, loc, context, dimensions)
+//    
+//  protected def newGlobalVarNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) =
+//    PtaGlobalVarNodeL(uri, loc, context)
+//    
+//  protected def newGlobalVarNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) =
+//    PtaGlobalVarNodeR(uri, loc, context)
+//
+//  protected def newInvokeNode(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) = {
+//    val n = PtaInvokeNode(uri, loc, context, pi.typ)
+//    n.setPI(pi)
+//    n
+//  }
+//    
+//  protected def newRecvCallNode(uri : ResourceUri, loc : ResourceUri, context : Context, pi : PointI) = {
+//    val n = PtaRecvCallNode(uri, loc, context)
+//    n.setPI(pi)
+//    n
+//  }
+//  
+//  protected def newRecvReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) = 
+//    PtaRecvReturnNode(uri, loc, context)
+//    
+//  protected def newArgCallNode(uri : ResourceUri, loc : ResourceUri, context : Context) = 
+//    PtaArgCallNode(uri, loc, context)
+//
+//  protected def newArgReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) = 
+//    PtaArgReturnNode(uri, loc, context)
+//    
+//  protected def newPointNode(uri : ResourceUri, loc : ResourceUri, context : Context) =
+//    PtaPointNode(uri, loc, context)
     
   override def toString = {
       val sb = new StringBuilder("PAG\n")
@@ -1031,122 +1085,132 @@ class PointerAssignmentGraph[Node <: PtaNode]
   }
 }
 
-sealed abstract class PtaNode(point : Point, context : Context) extends InterProceduralNode(context)
+final case class PtaNode(point : Point, context : Context) extends InterProceduralNode(context)
 
-final case class PtaProcNode(procPoint : Point with Proc, context : Context) extends PtaNode(procPoint, context)
+//final case class PtaLocNode(point : Point, context : Context) extends PtaNode(point, context)
+//
+//final case class PtaEntryNode(procPoint : Point with Proc, context : Context) extends PtaNode(procPoint, context)
+//
+//final case class PtaExitNode(procPoint : Point with Proc, context : Context) extends PtaNode(procPoint, context)
+//
+//final case class PtaCallNode(pi : Point with Loc with Invoke, context : Context) extends PtaNode(pi, context)
+//
+//final case class PtaReturnNode(pi : Point with Loc with Invoke, context : Context) extends PtaNode(pi, context)
 
-final case class PtaNormalNode(point : Point, context : Context) extends PtaNode(point, context)
-
-/**
- * Node type for invocation point.
- */
-final case class PtaInvokeNode(uri : ResourceUri, loc : ResourceUri, context : Context, typ : String) extends PtaNode(loc, context) {
-  private var pi : PointI = null
-  def setPI(pi : PointI) = this.pi = pi
-  def getPI = this.pi
-  override def toString = typ + "_invoke:" + uri + "@" + context.toString()
-}
-
-/**
- * Node type for receive call point.
- */
-final case class PtaRecvCallNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
-  private var pi : PointI = null
-  def setPI(pi : PointI) = this.pi = pi
-  def getPI = this.pi
-  override def toString = "recv_Call:" + uri + "@" + context.toString()
-}
-
-/**
- * Node type for receive return point.
- */
-final case class PtaRecvReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
-  override def toString = "recv_Return:" + uri + "@" + context.toString()
-}
-
-/**
- * Node type for receive call point.
- */
-final case class PtaArgCallNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
-  override def toString = "arg_Call:" + uri + "@" + context.toString()
-}
-
-/**
- * Node type for receive return point.
- */
-final case class PtaArgReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
-  override def toString = "arg_Return:" + uri + "@" + context.toString()
-}
-
-/**
- * Node type for base part of field access to store hidden edge for it's fieldNode.
- */
-abstract class PtaFieldBaseNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
-  var fieldNode : PtaFieldNode = null
-  override def toString = "base:" + uri + "@" + context.toString()
-}
-
-/**
- * Node type for base part of field access to store hidden edge for it's fieldNode.
- */
-final case class PtaFieldBaseNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaFieldBaseNode(uri, loc, context) {
-  override def toString = "base_lhs:" + uri + "@" + context.toString()
-}
-
-/**
- * Node type for base part of field access to store hidden edge for it's fieldNode.
- */
-final case class PtaFieldBaseNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaFieldBaseNode(uri, loc, context) {
-  override def toString = "base_rhs:" + uri + "@" + context.toString()
-}
-
-/**
- * Node type for field access to store hidden edge for it's baseNode.
- */
-final case class PtaFieldNode(baseName : ResourceUri, fieldSig : String, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
-  var baseNode : PtaFieldBaseNode = null
-  override def toString = "field:" + baseName + "." + fieldSig + "@" + context.toString()
-}
-
-/**
- * Node type for array variable.
- */
-abstract class PtaArrayNode(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) extends PtaNode(loc, context){
-  def dimen = dimensions
-}
-
-/**
- * Node type for array variable in lhs.
- */
-final case class PtaArrayNodeL(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) extends PtaArrayNode(uri, loc, context, dimensions) {
-  override def toString = "array_lhs:" + uri + "@" + context.toString()
-}
-
-/**
- * Node type for array variable in rhs.
- */
-final case class PtaArrayNodeR(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) extends PtaArrayNode(uri,loc, context, dimensions) {
-  override def toString = "array_rhs:" + uri + "@" + context.toString()
-}
-
-
-/**
- * Node type for global variable.
- */
-abstract class PtaGlobalVarNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context){
-  def name = uri
-}
-
-/**
- * Node type for global variable in lhs.
- */
-final case class PtaGlobalVarNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaGlobalVarNode(uri, loc, context) {
-  override def toString = "global_lhs:" + uri.replaceAll("@@", "") + "@" + context.toString()
-}
-
-/**
- * Node type for global variable in rhs.
- */
-final case class PtaGlobalVarNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaGlobalVarNode(uri,loc, context) {
-  override def toString = "global_rhs:" + uri.replaceAll("@@", "") + "@" + context.toString()
-}
+//final case class PtaProcNode(procPoint : Point with Proc, context : Context) extends PtaNode(procPoint, context)
+//
+//final case class PtaNormalNode(point : Point, context : Context) extends PtaNode(point, context)
+//
+///**
+// * Node type for invocation point.
+// */
+//final case class PtaInvokeNode(uri : ResourceUri, loc : ResourceUri, context : Context, typ : String) extends PtaNode(loc, context) {
+//  private var pi : PointI = null
+//  def setPI(pi : PointI) = this.pi = pi
+//  def getPI = this.pi
+//  override def toString = typ + "_invoke:" + uri + "@" + context.toString()
+//}
+//
+///**
+// * Node type for receive call point.
+// */
+//final case class PtaRecvCallNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
+//  private var pi : PointI = null
+//  def setPI(pi : PointI) = this.pi = pi
+//  def getPI = this.pi
+//  override def toString = "recv_Call:" + uri + "@" + context.toString()
+//}
+//
+///**
+// * Node type for receive return point.
+// */
+//final case class PtaRecvReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
+//  override def toString = "recv_Return:" + uri + "@" + context.toString()
+//}
+//
+///**
+// * Node type for receive call point.
+// */
+//final case class PtaArgCallNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
+//  override def toString = "arg_Call:" + uri + "@" + context.toString()
+//}
+//
+///**
+// * Node type for receive return point.
+// */
+//final case class PtaArgReturnNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
+//  override def toString = "arg_Return:" + uri + "@" + context.toString()
+//}
+//
+///**
+// * Node type for base part of field access to store hidden edge for it's fieldNode.
+// */
+//abstract class PtaFieldBaseNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
+//  var fieldNode : PtaFieldNode = null
+//  override def toString = "base:" + uri + "@" + context.toString()
+//}
+//
+///**
+// * Node type for base part of field access to store hidden edge for it's fieldNode.
+// */
+//final case class PtaFieldBaseNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaFieldBaseNode(uri, loc, context) {
+//  override def toString = "base_lhs:" + uri + "@" + context.toString()
+//}
+//
+///**
+// * Node type for base part of field access to store hidden edge for it's fieldNode.
+// */
+//final case class PtaFieldBaseNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaFieldBaseNode(uri, loc, context) {
+//  override def toString = "base_rhs:" + uri + "@" + context.toString()
+//}
+//
+///**
+// * Node type for field access to store hidden edge for it's baseNode.
+// */
+//final case class PtaFieldNode(baseName : ResourceUri, fieldSig : String, loc : ResourceUri, context : Context) extends PtaNode(loc, context) {
+//  var baseNode : PtaFieldBaseNode = null
+//  override def toString = "field:" + baseName + "." + fieldSig + "@" + context.toString()
+//}
+//
+///**
+// * Node type for array variable.
+// */
+//abstract class PtaArrayNode(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) extends PtaNode(loc, context){
+//  def dimen = dimensions
+//}
+//
+///**
+// * Node type for array variable in lhs.
+// */
+//final case class PtaArrayNodeL(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) extends PtaArrayNode(uri, loc, context, dimensions) {
+//  override def toString = "array_lhs:" + uri + "@" + context.toString()
+//}
+//
+///**
+// * Node type for array variable in rhs.
+// */
+//final case class PtaArrayNodeR(uri : ResourceUri, loc : ResourceUri, context : Context, dimensions : Int) extends PtaArrayNode(uri,loc, context, dimensions) {
+//  override def toString = "array_rhs:" + uri + "@" + context.toString()
+//}
+//
+//
+///**
+// * Node type for global variable.
+// */
+//abstract class PtaGlobalVarNode(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaNode(loc, context){
+//  def name = uri
+//}
+//
+///**
+// * Node type for global variable in lhs.
+// */
+//final case class PtaGlobalVarNodeL(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaGlobalVarNode(uri, loc, context) {
+//  override def toString = "global_lhs:" + uri.replaceAll("@@", "") + "@" + context.toString()
+//}
+//
+///**
+// * Node type for global variable in rhs.
+// */
+//final case class PtaGlobalVarNodeR(uri : ResourceUri, loc : ResourceUri, context : Context) extends PtaGlobalVarNode(uri,loc, context) {
+//  override def toString = "global_rhs:" + uri.replaceAll("@@", "") + "@" + context.toString()
+//}

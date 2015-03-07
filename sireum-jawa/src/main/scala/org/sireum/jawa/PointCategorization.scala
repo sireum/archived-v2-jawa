@@ -63,29 +63,35 @@ trait Loc{
   def locIndex : Int
 }
 
-/**
- * entry and exit point which has identifier
- */
-trait Identifier{def identifier : String}
+trait Dynamic{
+  def recvPCall : PointRecvCall
+  def recvPReturn : PointRecvReturn
+}
 
-trait Virtual{def recvP : PointRecv}
+trait Virtual{
+  def thisPEntry : PointThisEntry
+  def thisPExit : PointThisExit
+}
 
 trait Invoke{
   def sig : String
   def invokeTyp : String
-  def argPs : ISet[Point with Arg]
+  def argPsCall : ISet[PointArgCall]
+  def argPsReturn : ISet[PointArgReturn]
   def retTyp : Type
 }
 
 trait Proc{
   def procSig : String
   def accessTyp : String
-  def paramPs : ISet[Point with Param]
+  def paramPsEntry : ISet[PointParamEntry]
+  def paramPsExit : ISet[PointParamExit]
 }
 
 trait Param{
   def paramName : String
   def index : Int
+  def paramTyp : Type
 }
 
 trait Arg{
@@ -97,6 +103,14 @@ trait Entry
 
 trait Exit
 
-trait Call
+trait Call {
+  private var container : Point with Invoke = null
+  def setContainer(c : Point with Invoke) = container = c
+  def getContainer : Point with Invoke = container
+}
 
-trait Return
+trait Return {
+  private var container : Point with Invoke = null
+  def setContainer(c : Point with Invoke) = container = c
+  def getContainer : Point with Invoke = container
+}
