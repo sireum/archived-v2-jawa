@@ -525,29 +525,30 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     targetNode
   }
   
-  def toApiGraph : String = {
-    val sb = new StringBuilder
-    sb.append("Edges:\n")
+  def toCallGraph : InterproceduralControlFlowGraph[Node] = {
     val ns = nodes filter{
       n =>
         n match{
           case cn : CGCallNode =>
-            cn.getCalleeSet.exists { c => c.callee.getDeclaringRecord.isFrameworkRecord }
+            false
           case _ => true
         }
     }
     ns foreach(compressByDelNode(_))
-    edges.foreach{
-      e =>
-        val src = e.source
-        val tar = e.target
-        val srcsig = getSignatureFromCallNode(src)
-        val tarsig = getSignatureFromCallNode(tar)
-        sb.append(src.getContext.toFullString + ":::" + srcsig)
-        sb.append(" --> ")
-        sb.append(tar.getContext.toFullString + ":::" + tarsig + "\n")
+    this
+  }
+  
+  def toApiGraph : InterproceduralControlFlowGraph[Node] = {
+    val ns = nodes filter{
+      n =>
+        n match{
+          case cn : CGCallNode =>
+            cn.getCalleeSet.exists { c => !c.callee.getDeclaringRecord.isFrameworkRecord }
+          case _ => true
+        }
     }
-    sb.toString().trim()
+    ns foreach(compressByDelNode(_))
+    this
   }
   
   private def getSignatureFromCallNode(node : Node) : String = {
@@ -563,7 +564,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     sig
   }
   
-  def toTextGraph : String  = {
+  def toTextGraph(w : Writer)  = {
     var res : String = ""
     res += "Nodes:\n"
     nodes.foreach{
@@ -577,7 +578,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
         val eStr = edge.source.getContext.toFullString + " --> " + edge.target.getContext.toFullString
         res += eStr + "\n"
     }
-    res
+    w.write(res)
   }
   
   def addCGNormalNode(context : Context) : Node = {

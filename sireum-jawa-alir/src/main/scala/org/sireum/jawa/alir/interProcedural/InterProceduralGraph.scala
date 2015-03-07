@@ -18,6 +18,9 @@ import scala.collection.mutable.HashMap
 import org.sireum.jawa.alir.Context
 import org.jgrapht.alg.DijkstraShortestPath
 import org.jgrapht.graph.DirectedPseudograph
+import org.jgrapht.ext.GraphMLExporter
+import org.jgrapht.ext.EdgeNameProvider
+import org.jgrapht.ext.GmlExporter
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -59,8 +62,7 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
   def pool : MMap[InterProceduralNode, Node] = pl
   
   protected val vlabelProvider = new VertexNameProvider[Node]() {
-    
-		def filterLabel(uri : String) = {
+    def filterLabel(uri : String) = {
 		  uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
 		}
 	    
@@ -68,10 +70,30 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
 		  filterLabel(v.toString())
 		}
   }
+  
+  protected val elabelProvider = new EdgeNameProvider[Edge]() {
+    def filterLabel(uri : String) = {
+      uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
+    }
+    
+    def getEdgeName(e : Edge) : String = {
+      filterLabel(e.toString)
+    }
+  }
     
   def toDot(w : Writer) = {
     val de = new DOTExporter[Node, Edge](vlabelProvider, vlabelProvider, null)
     de.export(w, graph)
+  }
+  
+  def toGraphML(w : Writer) = {
+    val graphml = new GraphMLExporter[Node, Edge](vlabelProvider, null, elabelProvider, null)
+    graphml.export(w, graph)
+  }
+  
+  def toGML(w : Writer) = {
+    val gml = new GmlExporter[Node, Edge](vlabelProvider, null, elabelProvider, null)
+    gml.export(w, graph)
   }
   
   def findPath(srcNode : Node, tarNode : Node) : IList[Edge] = {
