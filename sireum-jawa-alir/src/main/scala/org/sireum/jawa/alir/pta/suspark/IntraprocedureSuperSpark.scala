@@ -13,6 +13,7 @@ import org.sireum.jawa.PointsCollector
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.JawaProcedure
 import org.sireum.jawa.GlobalConfig
+import org.sireum.jawa.PointBaseR
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -51,14 +52,15 @@ class IntraprocedureSuperSpark {
       while (!pag.worklist.isEmpty) {
       	val srcNode = pag.worklist.remove(0)
       	
-      	srcNode match{
-      	  case ofbnr : PtaFieldBaseNodeR => // e.g. q = ofnl.f; edge is ofbnl.f -> q
-      	    val f = ofbnr.fieldNode
-      	    pag.successorEdges(f).foreach{
+      	srcNode.point match{
+      	  case pbr : PointBaseR => // e.g. q = ofnl.f; edge is ofbnl.f -> q
+      	    val fp = pbr.getFieldPoint
+            val fNode = pag.getNode(fp, srcNode.context)
+      	    pag.successorEdges(fNode).foreach{
       	    	edge => //edge is FIELD_LOAD type
 		      	    val dstNode = pag.successor(edge)
-		  	        if(pag.pointsToMap.isDiff(f, dstNode)) pag.worklist += dstNode
-		  	        pag.pointsToMap.propagatePointsToSet(f, dstNode)
+		  	        if(pag.pointsToMap.isDiff(fNode, dstNode)) pag.worklist += dstNode
+		  	        pag.pointsToMap.propagatePointsToSet(fNode, dstNode)
       	    }
       	  case _ =>
       	}
@@ -67,7 +69,7 @@ class IntraprocedureSuperSpark {
       	    pag.getEdgeType(edge) match{
       	      case pag.EdgeType.TRANSFER => // e.g. L0: p = q; L1:  r = p; edge is p@L0 -> p@L1
       	        val dstNode = pag.successor(edge)
-      	        if(pag.pointsToMap.isDiffForTransfer(srcNode, dstNode)){
+      	        if(pag.pointsToMap.isDiff(srcNode, dstNode)){
       	          pag.worklist += dstNode
       	          val d = pag.pointsToMap.getDiff(srcNode, dstNode)
       	          pag.pointsToMap.transferPointsToSet(srcNode, dstNode)
@@ -79,8 +81,8 @@ class IntraprocedureSuperSpark {
       	          pag.pointsToMap.propagatePointsToSet(srcNode, dstNode)
       	        }
       	      case pag.EdgeType.FIELD_STORE => // e.g. r.f = q; Edge: q -> r.f
-      	        val dstNode = pag.successor(edge).asInstanceOf[PtaFieldNode]
-      	        pag.pointsToMap.propagateFieldStorePointsToSet(srcNode, dstNode)
+      	        val dstNode = pag.successor(edge)
+      	        pag.pointsToMap.propagatePointsToSet(srcNode, dstNode)
       	      case pag.EdgeType.ARRAY_LOAD => // e.g. q = p[i]; Edge: p[i] -> q
       	        val dstNode = pag.successor(edge)
       	        if(pag.pointsToMap.isDiff(srcNode, dstNode)){
@@ -88,10 +90,10 @@ class IntraprocedureSuperSpark {
       	        	pag.pointsToMap.propagatePointsToSet(srcNode, dstNode)
       	        }
       	      case pag.EdgeType.ARRAY_STORE => // e.g. r[i] = q; Edge: q -> r[i]
-      	        val dstNode = pag.successor(edge).asInstanceOf[PtaArrayNode]
+      	        val dstNode = pag.successor(edge)
       	        if(!pag.pointsToMap.contained(srcNode, dstNode)){
       	          pag.worklist += dstNode
-      	        	pag.pointsToMap.propagateArrayStorePointsToSet(srcNode, dstNode)
+      	        	pag.pointsToMap.propagatePointsToSet(srcNode, dstNode)
       	        }
       	      case pag.EdgeType.GLOBAL_LOAD => // e.g. q = @@p; Edge: @@p -> q
       	        val dstNode = pag.successor(edge)
@@ -100,10 +102,10 @@ class IntraprocedureSuperSpark {
       	        	pag.pointsToMap.propagatePointsToSet(srcNode, dstNode)
       	        }
       	      case pag.EdgeType.GLOBAL_STORE => // e.g. @@r = q; Edge: q -> @@r
-      	        val dstNode = pag.successor(edge).asInstanceOf[PtaGlobalVarNode]
+      	        val dstNode = pag.successor(edge)
       	        if(!pag.pointsToMap.contained(srcNode, dstNode)){
       	          pag.worklist += dstNode
-      	        	pag.pointsToMap.propagateGlobalStorePointsToSet(srcNode, dstNode)
+      	        	pag.pointsToMap.propagatePointsToSet(srcNode, dstNode)
       	        }
       	      case _ =>
       	    }
@@ -113,17 +115,17 @@ class IntraprocedureSuperSpark {
 	      edge =>
 	        pag.getEdgeType(edge) match{
 	          case pag.EdgeType.FIELD_STORE => // q -> r.f
-	            pag.pointsToMap.propagateFieldStorePointsToSet(edge.source, edge.target.asInstanceOf[PtaFieldNode])
+	            pag.pointsToMap.propagatePointsToSet(edge.source, edge.target)
 	          case pag.EdgeType.ARRAY_STORE => // e.g. r[i] = q; Edge: q -> r[i]
-    	        if(!pag.pointsToMap.pointsToSet(edge.target.asInstanceOf[PtaArrayNode]).isEmpty 
+    	        if(!pag.pointsToMap.pointsToSet(edge.target).isEmpty 
     	            && !pag.pointsToMap.contained(edge.source, edge.target)){
     	          pag.worklist += edge.target
-    	        	pag.pointsToMap.propagateArrayStorePointsToSet(edge.source, edge.target.asInstanceOf[PtaArrayNode])
+    	        	pag.pointsToMap.propagatePointsToSet(edge.source, edge.target)
     	        }
     	      case pag.EdgeType.GLOBAL_STORE => // e.g. @@r = q; Edge: q -> @@r
     	        if(!pag.pointsToMap.contained(edge.source, edge.target)){
     	          pag.worklist += edge.target
-    	        	pag.pointsToMap.propagateGlobalStorePointsToSet(edge.source, edge.target.asInstanceOf[PtaGlobalVarNode])
+    	        	pag.pointsToMap.propagatePointsToSet(edge.source, edge.target)
     	        }
 	          case _ =>
 	        }

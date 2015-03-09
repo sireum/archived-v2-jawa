@@ -249,14 +249,14 @@ object ReachingFactsAnalysisHelper {
           val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
           val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
           val field = rec.getField(fieldSig)
-          val fSig = field.getSignature
-          val fieldSlot = FieldSlot(ins, fSig)
+          val fName = field.getName
+          val fieldSlot = FieldSlot(ins, fName)
           s.filter { fact => fact.s == fieldSlot }.map( f => ptaresult.addInstance(fieldSlot, currentContext, f.v))
           val fieldUnknownValue : MSet[Instance] = msetEmpty
           ins.getFieldsUnknownDefSites.foreach{
             case (defsite, fields) =>
               if(fields.contains("ALL")) fieldUnknownValue += UnknownInstance(field.getType, defsite)
-              else if(fields.contains(fSig)) fieldUnknownValue += UnknownInstance(field.getType, defsite)
+              else if(fields.contains(fName)) fieldUnknownValue += UnknownInstance(field.getType, defsite)
           }
           fieldUnknownValue.map( v => ptaresult.addInstance(fieldSlot, currentContext, v))
         }
@@ -372,9 +372,9 @@ object ReachingFactsAnalysisHelper {
                 else{
                   val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
                   val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
-                  val fSig = rec.getField(fieldSig).getSignature
-	                if(baseValue.size>1) result(i) = (FieldSlot(ins, fSig), false)
-	                else result(i) = (FieldSlot(ins, fSig), true)
+                  val fName = rec.getField(fieldSig).getName
+	                if(baseValue.size>1) result(i) = (FieldSlot(ins, fName), false)
+	                else result(i) = (FieldSlot(ins, fName), true)
                 }
             }
           case ie : IndexingExp =>
@@ -486,8 +486,8 @@ object ReachingFactsAnalysisHelper {
                   val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
                   val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
                   val field = rec.getField(fieldSig)
-                  val fSig = field.getSignature
-                  val fieldSlot = FieldSlot(ins, fSig)
+                  val fName = field.getName
+                  val fieldSlot = FieldSlot(ins, fName)
 	                val fieldValue : ISet[Instance] = ptaresult.pointsToSet(fieldSlot, currentContext)
 			            result(i) = fieldValue
                 }

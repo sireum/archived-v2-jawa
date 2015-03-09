@@ -7,12 +7,12 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir.pta
 
-import org.sireum.jawa.alir.Context
 import org.sireum.jawa.Type
 import org.sireum.jawa.TupleType
 import org.sireum.jawa.NormalType
 import org.sireum.util._
 import org.sireum.jawa.NullType
+import org.sireum.jawa.alir.Context
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>

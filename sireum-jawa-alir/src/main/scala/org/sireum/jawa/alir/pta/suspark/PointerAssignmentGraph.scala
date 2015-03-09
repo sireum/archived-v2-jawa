@@ -28,13 +28,17 @@ import org.sireum.jawa.alir.JawaAlirInfoProvider
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.SynchronizedMap
 import org.sireum.jawa.alir.util.CallHandler
-import org.sireum.jawa.alir.objectFlowAnalysis.InvokePointNode
 import org.sireum.jawa.alir.interProcedural.Callee
-import org.sireum.jawa.alir.pta.PTAInstance
 import org.sireum.jawa.alir.pta.PTAResult
-import org.sireum.jawa.alir.pta.Instance
 import org.sireum.jawa.alir.pta.VarSlot
 import org.sireum.jawa.alir.pta.ArraySlot
+import org.sireum.jawa.alir.pta.InstanceSlot
+import org.sireum.alir.Slot
+import org.sireum.jawa.alir.pta.PTAInstance
+import org.sireum.jawa.alir.pta.Instance
+import org.sireum.jawa.alir.pta.PTAConcreteStringInstance
+import org.sireum.jawa.alir.pta.ArraySlot
+import org.sireum.jawa.alir.pta.FieldSlot
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -44,97 +48,89 @@ class PointsToMap extends PTAResult {
    * e.g. L0: p = q; L1:  r = p; transfer means p@L0 -> p@L1
    */
   def transferPointsToSet(n1 : PtaNode, n2 : PtaNode) = {
-    n1 match{
-      case pan : PtaArrayNode =>
-        addInstances(n2.toString(), n2.getContext, pointsToSet(pan))
-      case _ =>
-        addInstances(n2.toString(), n2.getContext, pointsToSet(n1))
-    }
-    
-  }
-  /**
-   * n1 -> n2 or n1.f -> n2 or n1[] -> n2
-   */
-  def propagatePointsToSet(n1 : PtaNode, n2 : PtaNode) = setInstances(n2.toString(), n2.getContext, pointsToSet(n1))
-  /**
-   * n1 -> n2.f
-   */
-  def propagateFieldStorePointsToSet(n1 : PtaNode, n2 : PtaFieldNode) = {
-    pointsToSet(n2.baseNode) foreach{
-      ins =>
-        val fieldName = StringFormConverter.getFieldNameFromFieldSignature(n2.fieldName)
-        addInstances(ins.toString + fieldName, n2.baseNode.getContext, pointsToSet(n1))
+    n2.getSlots(this) foreach{
+      addInstances(_, n2.getContext.copy, pointsToSet(n1))
     }
   }
-  
   /**
-   * n1 -> n2[]
+   * n1 -> n2 or n1.f -> n2 or n1[] -> n2, n1 -> n2.f, n1 -> n2[]
    */
-  def propagateArrayStorePointsToSet(n1 : PtaNode, n2 : PtaNode) = {
-    pointsToSet(n2) foreach{
-      ins =>
-        addInstances(ArraySlot(ins), n2.getContext, pointsToSet(n1))
+  def propagatePointsToSet(n1 : PtaNode, n2 : PtaNode) = {
+    n2.getSlots(this) foreach {
+      slot =>
+        slot match {
+          case arr : ArraySlot =>
+            addInstances(arr, n2.getContext, pointsToSet(n1))
+          case fie : FieldSlot =>
+            addInstances(fie, n2.getContext, pointsToSet(n1))
+          case _ =>
+            setInstances(slot, n2.getContext, pointsToSet(n1))
+        }
     }
   }
-  
-  /**
-   * n1 -> @@n2
-   */
-  def propagateGlobalStorePointsToSet(n1 : PtaNode, n2 : PtaNode) = {
-    addInstances(VarSlot(n2.name), n2.getContext, pointsToSet(n1))
-  }
+//  /**
+//   * 
+//   */
+//  def propagateFieldStorePointsToSet(n1 : PtaNode, n2 : PtaFieldNode) = {
+//    pointsToSet(n2.baseNode) foreach{
+//      ins =>
+//        val fieldName = StringFormConverter.getFieldNameFromFieldSignature(n2.fieldName)
+//        addInstances(ins.toString + fieldName, n2.baseNode.getContext, pointsToSet(n1))
+//    }
+//  }
+//  
+//  /**
+//   * n1 -> n2[]
+//   */
+//  def propagateArrayStorePointsToSet(n1 : PtaNode, n2 : PtaNode) = {
+//    pointsToSet(n2) foreach{
+//      ins =>
+//        addInstances(ArraySlot(ins), n2.getContext, pointsToSet(n1))
+//    }
+//  }
+//  
+//  /**
+//   * n1 -> @@n2
+//   */
+//  def propagateGlobalStorePointsToSet(n1 : PtaNode, n2 : PtaNode) = {
+//    addInstances(VarSlot(n2.name), n2.getContext, pointsToSet(n1))
+//  }
   
 	/**
 	 * n or n.f or n[] or @@n
 	 */
   def pointsToSet(n : PtaNode) : ISet[Instance] = {
-    n match{
-      case pfn : PtaFieldNode =>
-        val bInss = pointsToSet(pfn.baseNode)
-        if(!bInss.isEmpty){
-          bInss.map{
-		        ins =>
-		          val fieldName = StringFormConverter.getFieldNameFromFieldSignature(pfn.fieldName)
-		          pointsToSet(ins.toString + fieldName, pfn.getContext)
-		      }.reduce((set1, set2) => set1 ++ set2)
-        }
-		    else isetEmpty
-      case pan : PtaArrayNode =>
-        if(!pointsToSet(pan).isEmpty)
-	        pointsToSet(pan).map{
-			      ins =>
-			        pointsToSet(ins.toString, pan.getContext)
-			    }.reduce((set1, set2) => set1 ++ set2)
-			  else isetEmpty
-      case pgn : PtaGlobalVarNode =>
-        pointsToSet(pgn.name, pgn.getContext)
-      case _ =>
-        pointsToSet(n.toString, n.getContext)
-    }
+    val slots = n.getSlots(this)
+    if(!slots.isEmpty){
+      slots.map {
+        s =>
+          pointsToSet(s, n.getContext)
+      }.reduce(iunion[Instance])
+    } else isetEmpty
   }
 
   def isDiff(n1 : PtaNode, n2 : PtaNode) : Boolean = {
     pointsToSet(n1) != pointsToSet(n2)
   }
   
-  def isDiffForTransfer(n1 : PtaNode, n2 : PtaNode) : Boolean = {
-    n1 match{
-      case pan1 : PtaArrayNode =>
-        n2 match{
-          case pan2 : PtaArrayNode =>
-            pointsToSet(pan1) != pointsToSet(pan2)
-          case _ =>
-            pointsToSet(pan1) != pointsToSet(n2)
-        }
-      case _=>
-        n2 match{
-          case pan2 : PtaArrayNode =>
-            pointsToSet(n1) != pointsToSet(pan2)
-          case _ =>
-            pointsToSet(n1) != pointsToSet(n2)
-        }
-    }
-  }
+//  def isDiffForTransfer(n1 : PtaNode, n2 : PtaNode) : Boolean = {
+//    n1 match{
+//      case pan1 : PtaArrayNode =>
+//        n2 match{
+//          case pan2 : PtaArrayNode =>
+//            pointsToSet(pan1) != pointsToSet(pan2)
+//          case _ =>
+//            pointsToSet(pan1) != pointsToSet(n2)
+//        }
+//      case _=>
+//        n2 match{
+//          case pan2 : PtaArrayNode =>
+//            pointsToSet(n1) != pointsToSet(pan2)
+//          case _ =>
+//            pointsToSet(n1) != pointsToSet(n2)
+//        }
+//    }
+//  }
   
   def contained(n1 : PtaNode, n2 : PtaNode) : Boolean = {
     (pointsToSet(n1) -- pointsToSet(n2)).isEmpty
@@ -273,29 +269,29 @@ class PointerAssignmentGraph[Node <: PtaNode]
   /**
    * combine proc point and relevant node
    */ 
-  def collectTrackerNodes(sig : String, pi : Point with Invoke, callerContext : Context) = {
-    val recvCallNodeOpt =
-      pi match{
-       	case vp : Point with Invoke with Dynamic =>
-	        Some(getNode(vp.recvPCall, callerContext))
-	      case _ =>
-	        None
-    	}
-    val recvReturnNodeOpt = 
-      pi match{
-        case vp : Point with Invoke with Dynamic =>
-	        Some(getNode(vp.recvPReturn, callerContext))
-	      case _ =>
-	        None
-    	}
-    val invokeNodeOpt = if(nodeExists(pi, callerContext)) Some(getNode(pi, callerContext)) else None
-    val argCallNodes = pi.argPsCall.map{p => (p.index, getNode(p, callerContext))}.toMap
-    val argReturnNodes = pi.argPsReturn.map{p => (p.index, getNode(p, callerContext))}.toMap
-    val ipN = InvokePointNode[Node](recvCallNodeOpt, recvReturnNodeOpt, argCallNodes, argReturnNodes, invokeNodeOpt, pi)
-    ipN.setCalleeSig(sig)
-    ipN.setContext(callerContext)
-    ipN
-  }
+//  def collectTrackerNodes(sig : String, pi : Point with Invoke, callerContext : Context) = {
+//    val recvCallNodeOpt =
+//      pi match{
+//       	case vp : Point with Invoke with Dynamic =>
+//	        Some(getNode(vp.recvPCall, callerContext))
+//	      case _ =>
+//	        None
+//    	}
+//    val recvReturnNodeOpt = 
+//      pi match{
+//        case vp : Point with Invoke with Dynamic =>
+//	        Some(getNode(vp.recvPReturn, callerContext))
+//	      case _ =>
+//	        None
+//    	}
+//    val invokeNodeOpt = if(nodeExists(pi, callerContext)) Some(getNode(pi, callerContext)) else None
+//    val argCallNodes = pi.argPsCall.map{case (i, p) => (i, getNode(p, callerContext))}.toMap
+//    val argReturnNodes = pi.argPsReturn.map{case (i, p) => (i, getNode(p, callerContext))}.toMap
+//    val ipN = InvokePointNode[Node](recvCallNodeOpt, recvReturnNodeOpt, argCallNodes, argReturnNodes, invokeNodeOpt, pi)
+//    ipN.setCalleeSig(sig)
+//    ipN.setContext(callerContext)
+//    ipN
+//  }
   
 
   def collectNodes(pSig : String, p : Point, callerContext : Context) : Set[Node] = {
@@ -335,16 +331,15 @@ class PointerAssignmentGraph[Node <: PtaNode]
             nodes += baseNode
 //            baseNode.asInstanceOf[PtaFieldBaseNode].fieldNode = fieldNode.asInstanceOf[PtaFieldNode]
 //            fieldNode.asInstanceOf[PtaFieldNode].baseNode = baseNode.asInstanceOf[PtaFieldBaseNode]
-//          case pso : PointStringO =>
-//            val ins = PTAStringInstance(pso.typ, context.copy, K_STRING)
-//            ins.addString(pso.str)
-//            pointsToMap.addInstance(rhsNode, ins)
+          case pso : PointStringO =>
+            val ins = PTAConcreteStringInstance(pso.text, context.copy)
+            pointsToMap.addInstance(InstanceSlot(ins), context.copy, ins)
           case pao : PointArrayO =>
             val ins = PTAInstance(new NormalType(pao.obj, pao.dimensions), context.copy)
-            pointsToMap.addInstance(rhsNode.toString, context.copy, ins)
+            pointsToMap.addInstance(InstanceSlot(ins), context.copy, ins)
           case po : PointO =>
             val ins = PTAInstance(new NormalType(po.obj), context.copy)
-            pointsToMap.addInstance(rhsNode.toString, context.copy, ins)
+            pointsToMap.addInstance(InstanceSlot(ins), context.copy, ins)
           case pi : PointI =>
             if(pi.invokeTyp.equals("static")){
               worklist += rhsNode
@@ -363,20 +358,18 @@ class PointerAssignmentGraph[Node <: PtaNode]
         }
         val args_Entry = pi.argPsCall
         val args_Exit = pi.argPsReturn
-        args_Entry.foreach(
-          pa => {
+        args_Entry.foreach{
+          case (_, pa) =>
             val argNode = getNodeOrElse(pa, context.copy)
             nodes += argNode
             argNode.setProperty(PARAM_NUM, pa.index)
-          }  
-        )
-        args_Exit.foreach(
-          pa => {
+        }
+        args_Exit.foreach{
+          case (_, pa) =>
             val argNode = getNodeOrElse(pa, context.copy)
             nodes += argNode
             argNode.setProperty(PARAM_NUM, pa.index)
-          }  
-        )
+        }
       case procP : Point with Proc =>
         procP match {
           case vp : Point with Proc with Virtual => 
@@ -391,20 +384,18 @@ class PointerAssignmentGraph[Node <: PtaNode]
 //        }
         val params_Entry = procP.paramPsEntry
         val params_Exit = procP.paramPsExit
-        params_Entry.foreach(
-          pa => {
+        params_Entry.foreach{
+          case (_, pa) => 
             val paramNode = getNodeOrElse(pa, context.copy)
             nodes += paramNode
             paramNode.setProperty(PARAM_NUM, pa.index)
-          } 
-        )
-        params_Exit.foreach(
-          pa => {
+        }
+        params_Exit.foreach{
+          case (_, pa) =>
             val paramNode = getNodeOrElse(pa, context.copy)
             nodes += paramNode
             paramNode.setProperty(PARAM_NUM, pa.index)
-          } 
-        )
+        }
       case retP : PointRet =>
         nodes += getNodeOrElse(retP, context.copy)
       case _ =>
@@ -453,9 +444,9 @@ class PointerAssignmentGraph[Node <: PtaNode]
     }
     
     pi.argPsCall foreach{
-      aCall =>
+      case (_, aCall) =>
         pi.argPsReturn foreach{
-          aReturn =>
+          case (_, aReturn) =>
             if(aCall.index == aReturn.index){
               val srcNode = getNode(aCall, srcContext.copy)
               val targetNode = getNode(aReturn, srcContext.copy)
@@ -470,10 +461,10 @@ class PointerAssignmentGraph[Node <: PtaNode]
   private def connectCallEdges(met : Point with Proc, pi : Point with Invoke, srcContext : Context) ={
     val targetContext = srcContext.copy
     targetContext.setContext(met.procSig, met.ownerSig)
-    met.paramPsEntry.foreach(
-      paramp => {
+    met.paramPsEntry.foreach{
+      case (_, paramp) => 
         pi.argPsCall.foreach{
-          argp =>
+          case (_, argp) =>
             if(paramp.index == argp.index){
               val srcNode = getNode(argp, srcContext.copy)
               val targetNode = getNode(paramp, targetContext.copy)
@@ -483,12 +474,11 @@ class PointerAssignmentGraph[Node <: PtaNode]
             }
           
         }
-      } 
-    )
-    met.paramPsExit.foreach(
-      paramp => {
+    }
+    met.paramPsExit.foreach{
+      case (_, paramp) =>
         pi.argPsReturn.foreach{
-          argp =>
+          case (_, argp) =>
             if(paramp.index == argp.index){
               val srcNode = getNode(argp, srcContext.copy)
               val targetNode = getNode(paramp, targetContext.copy)
@@ -498,8 +488,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
             }
           
         }
-      }  
-    )
+    }
     
     met match {
       case vp : Point with Proc with Virtual =>
@@ -1085,7 +1074,55 @@ class PointerAssignmentGraph[Node <: PtaNode]
   }
 }
 
-final case class PtaNode(point : Point, context : Context) extends InterProceduralNode(context)
+final case class PtaNode(point : Point, context : Context) extends InterProceduralNode(context) {
+  def getSlots(ptaresult : PTAResult) : ISet[Slot] = {
+    point match {
+      case pao : PointArrayO =>
+        Set(InstanceSlot(PTAInstance(new NormalType(pao.obj, pao.dimensions), context.copy)))
+      case po : PointO =>
+        Set(InstanceSlot(PTAInstance(new NormalType(po.obj), context.copy)))
+      case pso : PointStringO =>
+        Set(InstanceSlot(PTAConcreteStringInstance(pso.text, context.copy)))
+      case gla : Point with Loc with Global with Array =>
+        val pts = ptaresult.pointsToSet(VarSlot(gla.globalSig), context)
+        pts.map{
+          ins =>
+            ArraySlot(ins)
+        }
+      case glo : Point with Loc with Global =>
+        Set(VarSlot(glo.globalSig))
+      case arr : PointArrayL =>
+        val pts = ptaresult.pointsToSet(VarSlot(arr.arrayname), context)
+        pts.map{
+          ins =>
+            ArraySlot(ins)
+        }
+      case arr : PointArrayR =>
+        val pts = ptaresult.pointsToSet(VarSlot(arr.arrayname), context)
+        pts.map{
+          ins =>
+            ArraySlot(ins)
+        }
+      case fie : Point with Loc with Field =>
+        val pts = ptaresult.pointsToSet(VarSlot(fie.baseP.baseName), context)
+        pts.map{
+          ins =>
+            FieldSlot(ins, fie.fieldName)
+        }
+      case bas : Point with Loc with Base =>
+        Set(VarSlot(bas.baseName))
+      case pl : PointL =>
+        Set(VarSlot(pl.varname))
+      case pr : PointR =>
+        Set(VarSlot(pr.varname))
+      case pla : Point with Loc with Arg =>
+        Set(VarSlot(pla.argName))
+      case pop : Point with Param =>
+        Set(VarSlot(pop.paramName))
+      case _ => throw new RuntimeException("No slot for such pta node: " + point + "@" + context)
+    }
+  }
+}
 
 //final case class PtaLocNode(point : Point, context : Context) extends PtaNode(point, context)
 //

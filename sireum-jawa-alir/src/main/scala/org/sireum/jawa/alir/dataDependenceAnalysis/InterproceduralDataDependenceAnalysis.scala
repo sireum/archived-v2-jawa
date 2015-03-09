@@ -328,14 +328,14 @@ object InterproceduralDataDependenceAnalysis {
               val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
               val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
               if(!rec.isArray){ // if(!rec.isUnknown && !rec.isArray){
-	              val fSig = rec.getField(fieldSig).getSignature
-		            val fieldSlot = FieldSlot(ins, fSig)
+	              val fName = rec.getField(fieldSig).getName
+		            val fieldSlot = FieldSlot(ins, fName)
 	              val fieldValue = ptaresult.pointsToSet(fieldSlot, node.getContext)
                 fieldValue.foreach(fIns => result += iddg.findDefSite(fIns.getDefSite))
                 ins.getFieldsUnknownDefSites.foreach{
                 	case (defsite, fields) =>
                 	  if(fields.contains("ALL")) result += iddg.findDefSite(defsite)
-                	  else if(fields.contains(fSig)) result += iddg.findDefSite(defsite)
+                	  else if(fields.contains(fName)) result += iddg.findDefSite(defsite)
               	}
               }
             }

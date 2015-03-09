@@ -216,7 +216,7 @@ object SideEffectAnalysis {
             pa.lhs match{
               case pfl : PointFieldL =>
 	              val varName = pfl.baseP.baseName
-		            val fieldSig = pfl.fieldSig
+		            val fieldSig = pfl.fieldName
 		            val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pfl.loc), pfl.locIndex)
 		            if(position >= 0)
 		            	writeMap += (position -> (writeMap.getOrElse(position, Set()) + fieldSig))
@@ -228,7 +228,7 @@ object SideEffectAnalysis {
             pa.rhs match{
               case pfr : PointFieldR =>
 		            val varName = pfr.baseP.baseName
-		            val fieldSig = pfr.fieldSig
+		            val fieldSig = pfr.fieldName
 		            val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pfr.loc), pfr.locIndex)
 		            if(position >= 0)
 		            	readMap += (position -> (readMap.getOrElse(position, Set()) + fieldSig))
@@ -243,14 +243,14 @@ object SideEffectAnalysis {
             val callTyp = pi.invokeTyp
             pi match{
               case p : PointI => 
-                val varName = p.recvP.argName
+                val varName = p.recvPCall.argName
                 val position = findPositionFromRda(procedure, cfg, rda, varName, Some(p.loc), p.locIndex)
                 if(position >= 0)
                 	paramMap += (0 -> position)
               case _ => 
             }
-            pi.argPs.foreach{
-              case arg =>
+            pi.argPsCall.foreach{
+              case (i, arg) =>
                 val varName = arg.argName
                 val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pi.loc), pi.locIndex)
                 val argPosition = arg.index

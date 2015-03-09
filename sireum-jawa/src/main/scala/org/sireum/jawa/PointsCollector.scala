@@ -42,8 +42,8 @@ class PointsCollector {
 
     var thisPEntry : PointThisEntry = null
     var thisPExit : PointThisExit = null
-    val paramPsEntry : MSet[PointParamEntry] = msetEmpty
-    val paramPsExit : MSet[PointParamExit] = msetEmpty
+    val paramPsEntry : MMap[Int, PointParamEntry] = mmapEmpty
+    val paramPsExit : MMap[Int, PointParamExit] = mmapEmpty
     var i = 0 // control param index to be the exact position (including this) 
     var j = 0 // control type traversal
     pst.procedure.params.foreach(
@@ -53,8 +53,8 @@ class PointsCollector {
           thisPExit = PointThisExit(param.name.name, thisTyp, i, ownerSig)
           j -= 1
         } else if(is("object", param.annotations)){
-          paramPsEntry += PointParamEntry(param.name.name, types(j), i, ownerSig)
-          paramPsExit += PointParamExit(param.name.name, types(j), i, ownerSig)
+          paramPsEntry += (i -> PointParamEntry(param.name.name, types(j), i, ownerSig))
+          paramPsExit += (i -> PointParamExit(param.name.name, types(j), i, ownerSig))
         }
         i += 1
         j += 1
@@ -67,10 +67,10 @@ class PointsCollector {
     }
     
     if(AccessFlag.isStatic(AccessFlag.getAccessFlags(accessTyp))){
-      PointStaticProc(procSig, accessTyp, paramPsEntry.toSet, paramPsExit.toSet, retP, ownerSig)
+      PointStaticProc(procSig, accessTyp, paramPsEntry.toMap, paramPsExit.toMap, retP, ownerSig)
     } else {
       if(thisPEntry == null) throw new RuntimeException("Virtual method does not have 'this' param.")
-      PointProc(procSig, accessTyp, thisPEntry, thisPExit, paramPsEntry.toSet, paramPsExit.toSet, retP, ownerSig)
+      PointProc(procSig, accessTyp, thisPEntry, thisPExit, paramPsEntry.toMap, paramPsExit.toMap, retP, ownerSig)
     }
   }
   
@@ -187,7 +187,11 @@ class PointsCollector {
             case _ => ""
           }
           val pBase = PointBaseL(baseName, loc, locIndex, ownerSig)
-          PointFieldL(pBase, a.attributeName.name, loc, locIndex, ownerSig)
+          val fSig = a.attributeName.name
+          val fName = StringFormConverter.getFieldNameFromFieldSignature(fSig)
+          val pfl = PointFieldL(pBase, fName, loc, locIndex, ownerSig)
+          pBase.setFieldPoint(pfl)
+          pfl
         case _ => null
       }
     }
@@ -236,7 +240,11 @@ class PointsCollector {
                 case _ => ""
               }
               val pBase = PointBaseR(baseName, loc, locIndex, ownerSig)
-              pr = PointFieldR(pBase, ae.attributeName.name, loc, locIndex, ownerSig)
+              val fSig = ae.attributeName.name
+              val fName = StringFormConverter.getFieldNameFromFieldSignature(fSig)
+              val pfr = PointFieldR(pBase, fName, loc, locIndex, ownerSig)
+              pBase.setFieldPoint(pfr)
+              pr = pfr
             }
           case ie : IndexingExp =>
             pl = processLHS(as.lhs)
@@ -271,8 +279,8 @@ class PointsCollector {
         
         var recvPCall : PointRecvCall = null
         var recvPReturn : PointRecvReturn = null
-        val argPsCall : MSet[PointArgCall] = msetEmpty
-        val argPsReturn : MSet[PointArgReturn] = msetEmpty
+        val argPsCall : MMap[Int, PointArgCall] = mmapEmpty
+        val argPsReturn : MMap[Int, PointArgReturn] = mmapEmpty
         var i = 0
         var j = 0
         t.callExp.arg match {
@@ -286,8 +294,8 @@ class PointsCollector {
                   recvPCall = PointRecvCall(ne.name.name, i, loc, locIndex, ownerSig)
                   recvPReturn = PointRecvReturn(ne.name.name, i, loc, locIndex, ownerSig)
                 } else {
-                  argPsCall += PointArgCall(ne.name.name, i, loc, locIndex, ownerSig)
-                  argPsReturn += PointArgReturn(ne.name.name, i, loc, locIndex, ownerSig)
+                  argPsCall += (i -> PointArgCall(ne.name.name, i, loc, locIndex, ownerSig))
+                  argPsReturn += (i -> PointArgReturn(ne.name.name, i, loc, locIndex, ownerSig))
                   if((paramTyps(i).name == "long" || paramTyps(i).name == "double") && j != i){
                     j = i
                     i -= 1
@@ -300,16 +308,16 @@ class PointsCollector {
         }
         val pi : Point with Right with Invoke = 
           if(invokeTyp.contains("static")){
-            PointStaticI(sig, invokeTyp, retTyp, argPsCall.toSet, argPsReturn.toSet, loc, locIndex, ownerSig)
+            PointStaticI(sig, invokeTyp, retTyp, argPsCall.toMap, argPsReturn.toMap, loc, locIndex, ownerSig)
           } else {
             if(recvPCall == null) throw new RuntimeException("Dynamic method invokation does not have 'recv' param.")
-            val p = PointI(sig, invokeTyp, retTyp, recvPCall, recvPReturn, argPsCall.toSet, argPsReturn.toSet, loc, locIndex, ownerSig)
+            val p = PointI(sig, invokeTyp, retTyp, recvPCall, recvPReturn, argPsCall.toMap, argPsReturn.toMap, loc, locIndex, ownerSig)
             recvPCall.setContainer(p)
             recvPReturn.setContainer(p)
             p
           }
-        argPsCall foreach {p => p.setContainer(pi)}
-        argPsReturn foreach {p => p.setContainer(pi)}
+        argPsCall foreach {case (_, p) => p.setContainer(pi)}
+        argPsReturn foreach {case (_, p) => p.setContainer(pi)}
         points += pi
         require(t.lhss.size<=1)
         if(t.lhss.size == 1){
@@ -383,12 +391,12 @@ final case class PointR(varname : String, loc : ResourceUri, locIndex : Int, own
 /**
  * Set of program points corresponding to l-value field access expressions. 
  */
-final case class PointFieldL(baseP : PointBaseL, fieldSig : String, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Left with Field
+final case class PointFieldL(baseP : PointBaseL, fieldName : String, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Left with Field
 
 /**
  * Set of program points corresponding to R-value field access expressions. 
  */
-final case class PointFieldR(baseP : PointBaseR, fieldSig : String, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Right with Field
+final case class PointFieldR(baseP : PointBaseR, fieldName : String, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Right with Field
 
 /**
  * Set of program points corresponding to l-value array variable. 
@@ -458,13 +466,13 @@ final case class PointArgReturn(argName : String, index : Int, loc : ResourceUri
  * Set of program points corresponding to method invocation expressions.
  * pi represents an element in this set.
  */
-final case class PointI(sig : String, invokeTyp : String, retTyp : Type, recvPCall : PointRecvCall, recvPReturn : PointRecvReturn, argPsCall : ISet[PointArgCall], argPsReturn : ISet[PointArgReturn], loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Right with Invoke with Dynamic
+final case class PointI(sig : String, invokeTyp : String, retTyp : Type, recvPCall : PointRecvCall, recvPReturn : PointRecvReturn, argPsCall : IMap[Int, PointArgCall], argPsReturn : IMap[Int, PointArgReturn], loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Right with Invoke with Dynamic
 
 /**
  * Set of program points corresponding to static method invocation expressions.
  * pi represents an element in this set.
  */
-final case class PointStaticI(sig : String, invokeTyp : String, retTyp : Type, argPsCall : ISet[PointArgCall], argPsReturn : ISet[PointArgReturn], loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Right with Invoke
+final case class PointStaticI(sig : String, invokeTyp : String, retTyp : Type, argPsCall : IMap[Int, PointArgCall], argPsReturn : IMap[Int, PointArgReturn], loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Right with Invoke
 
 /**
  * Set of program points corresponding to this variable .
@@ -499,9 +507,9 @@ final case class PointProcRet(ownerSig : String) extends Point
 /**
  * Set of program points corresponding to procedures. 
  */
-final case class PointProc(procSig : String, accessTyp : String, thisPEntry : PointThisEntry, thisPExit : PointThisExit, paramPsEntry : ISet[PointParamEntry], paramPsExit : ISet[PointParamExit], retVar : Option[PointProcRet], ownerSig : String) extends Point with Proc with Virtual
+final case class PointProc(procSig : String, accessTyp : String, thisPEntry : PointThisEntry, thisPExit : PointThisExit, paramPsEntry : IMap[Int, PointParamEntry], paramPsExit : IMap[Int, PointParamExit], retVar : Option[PointProcRet], ownerSig : String) extends Point with Proc with Virtual
 
 /**
  * Set of program points corresponding to static procedures. 
  */
-final case class PointStaticProc(procSig : String, accessTyp : String, paramPsEntry : ISet[PointParamEntry], paramPsExit : ISet[PointParamExit], retVar : Option[PointProcRet], ownerSig : String) extends Point with Proc 
+final case class PointStaticProc(procSig : String, accessTyp : String, paramPsEntry : IMap[Int, PointParamEntry], paramPsExit : IMap[Int, PointParamExit], retVar : Option[PointProcRet], ownerSig : String) extends Point with Proc 

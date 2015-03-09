@@ -109,45 +109,38 @@ trait PAGConstraint{
 		        }
         }
       case psi : PointStaticI =>
-        psi.args_Call.keys.foreach(
-          i => {
-            udChain(psi.args_Call(i), ps, cfg, rda, true).foreach(
+        psi.argPsCall.foreach{
+          case (i, cp) =>
+            udChain(cp, ps, cfg, rda, true).foreach(
               point => {
-                flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += pi.args_Call(i)
+                flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += cp
               }
             )
-            flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(pi.args_Call(i), msetEmpty) += pi.args_Return(i)
-          }  
-        )
+            flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(cp, msetEmpty) += psi.argPsReturn(i)
+        }
       case pi : PointI =>
-        val recvP_Call = pi.recvCall.get
-        udChain(recvP_Call, ps, cfg, rda, true).foreach(
+        udChain(pi.recvPCall, ps, cfg, rda, true).foreach(
           point => {
-            flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += recvP_Call
+            flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += pi.recvPCall
           }
         )
-        flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(recvP_Call, msetEmpty) += pi.recvOpt_Return.get
-        pi.args_Call.keys.foreach(
-          i => {
-            udChain(pi.args_Call(i), ps, cfg, rda, true).foreach(
+        flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(pi.recvPCall, msetEmpty) += pi.recvPReturn
+        pi.argPsCall.foreach{
+          case (i, cp) => 
+            udChain(cp, ps, cfg, rda, true).foreach(
               point => {
-                flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += pi.args_Call(i)
+                flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += cp
               }
             )
-            flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(pi.args_Call(i), msetEmpty) += pi.args_Return(i)
-          }  
-        )
+            flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(cp, msetEmpty) += pi.argPsReturn(i)
+        }
       case procP : PointProc =>
-        val t_exit_opt = procP.thisParamOpt_Exit
-        val ps_exit = procP.params_Exit
-        t_exit_opt match{
-          case Some(t_exit) =>
-            udChainForProcExit(t_exit, ps, cfg, rda, true).foreach{
-              point =>{
-                flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += t_exit
-              }
-            }
-          case None =>
+        val t_exit = procP.thisPExit
+        val ps_exit = procP.paramPsExit
+        udChainForProcExit(t_exit, ps, cfg, rda, true).foreach{
+          point =>{
+            flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += t_exit
+          }
         }
         ps_exit.foreach{
           case (i, p_exit) =>
@@ -174,7 +167,7 @@ trait PAGConstraint{
     flowMap
   }
   
-  def udChainForProcExit(p : Point with Proc with Exit,
+  def udChainForProcExit(p : Point with Param with Exit,
                          points : Set[Point],
 					               cfg : ControlFlowGraph[String],
 					               rda : JawaReachingDefinitionAnalysis.Result,
@@ -204,11 +197,23 @@ trait PAGConstraint{
   def searchRda(p : Point, points : Set[Point], slots : ISet[(Slot, DefDesc)], avoidMode : Boolean) : Set[Point] = {
     var ps : Set[Point] = Set()
     slots.foreach{
-      case (slot, defDesc)=> 
-        if(p.varName.equals(slot.toString())){
-          if(defDesc.toString().equals("*")){
-            if(!p.varName.startsWith("@@")){
-              val tp = getPointFromEntry(p.varName, points, avoidMode)
+      case (slot, defDesc) => 
+        val varName =
+          p match {
+            case pl : PointL => pl.varname
+            case pr : PointR => pr.varname
+            case gl : Point with Global => gl.globalSig
+            case ba : Point with Base => ba.baseName
+            case al : PointArrayL => al.arrayname
+            case ar : PointArrayR => ar.arrayname
+            case pa : Point with Arg => pa.argName
+            case pp : Point with Param => pp.paramName
+            case _ => ""
+          }
+        if(varName.equals(slot.toString)){
+          if(defDesc.toString.equals("*")){
+            if(!varName.startsWith("@@")){
+              val tp = getPointFromEntry(varName, points, avoidMode)
               if(tp!=null)
                 ps += tp
             }
@@ -217,7 +222,7 @@ trait PAGConstraint{
               case pdd : ParamDefDesc =>
                 pdd.locUri match{
                   case Some(locU) =>
-                    val tp = getParamPoint_Return(p.varName, pdd.paramIndex, locU, pdd.locIndex, points, avoidMode)
+                    val tp = getParamPoint_Return(varName, pdd.paramIndex, locU, pdd.locIndex, points, avoidMode)
                     if(tp!=null)
                       ps += tp
                   case None =>
@@ -225,7 +230,7 @@ trait PAGConstraint{
               case ldd : LocDefDesc => 
                 ldd.locUri match {
                   case Some(locU) =>
-                    val tp = getPoint(p.varName, locU, ldd.locIndex, points, avoidMode)
+                    val tp = getPoint(varName, locU, ldd.locIndex, points, avoidMode)
                     if(tp!=null)
                       ps += tp
                   case None =>
@@ -240,8 +245,8 @@ trait PAGConstraint{
   
   def getPoint(uri : ResourceUri, locUri : ResourceUri, locIndex : Int, ps : Set[Point], avoidMode : Boolean) : Point = {
     var point : Point = null
-    ps.foreach(
-      p => {
+    ps.foreach{
+      p =>
         p match {
           case asmtP : PointAsmt =>
             val lhs = asmtP.lhs
@@ -252,18 +257,22 @@ trait PAGConstraint{
                 val locationIndex = baseP.locIndex
                 if(baseP.baseName.equals(uri) && locUri.equals(locationUri) && locIndex == locationIndex)
                 	point = baseP
-              case iP : Point with Loc =>
+              case gl : Point with Loc with Global with Left =>
+                if(gl.globalSig.equals(uri) && locUri.equals(gl.loc) && locIndex == gl.locIndex)
+                  point = lhs
+              case ar : PointArrayL =>
+                if(ar.arrayname.equals(uri) && locUri.equals(ar.loc) && locIndex == ar.locIndex)
+                  point = lhs
+              case iP : PointL =>
                 val locationUri = iP.loc
 	              val locationIndex = iP.locIndex
-	              if(iP.varName.equals(uri) && locUri.equals(locationUri) && locIndex == locationIndex)
+	              if(iP.varname.equals(uri) && locUri.equals(locationUri) && locIndex == locationIndex)
 	                point = lhs
+              case _ =>
             }
           case _ =>
         }
-        
-      }
-      
-    )
+    }
     if(!avoidMode)
       require(point != null)
     point
@@ -271,28 +280,20 @@ trait PAGConstraint{
   
   def getParamPoint_Return(uri : ResourceUri, paramIndex : Int, locUri : ResourceUri, locIndex : Int, ps : Set[Point], avoidMode : Boolean) : Point = {
     var point : Point = null
-    ps.foreach(
-      p => {
+    ps.foreach{
+      p => 
         p match {
+          case psi : PointStaticI =>
+            val candidateP = psi.argPsReturn.getOrElse(paramIndex, throw new RuntimeException("Wrong index: " + paramIndex))
+            if(candidateP.argName == uri && candidateP.loc == locUri && candidateP.locIndex == locIndex) point = candidateP
           case pi : PointI =>
-            var tmpPointOpt : Option[PointR] = None
-            if(pi.invokeTyp.equals("static") && pi.argPsReturn.contains(paramIndex)) tmpPointOpt = Some(pi.args_Return(paramIndex))
-            else if(!pi.invokeTyp.equals("static") && paramIndex > 0 && pi.argPsReturn.contains(paramIndex - 1)) tmpPointOpt = Some(pi.args_Return(paramIndex - 1))
-            else tmpPointOpt = pi.recvOpt_Return
-            tmpPointOpt match{
-              case Some(tmpPoint) =>
-	              val locationUri = tmpPoint.asInstanceOf[PointWithIndex].locationUri
-	              val locationIndex = tmpPoint.asInstanceOf[PointWithIndex].locationIndex
-	              if(tmpPoint.varName.equals(uri) && locUri.equals(locationUri) && locIndex == locationIndex)
-	                point = tmpPoint
-              case None =>
-            }
+            val candidateP = 
+              if(paramIndex == 0) pi.recvPReturn
+              else pi.argPsReturn.getOrElse(paramIndex, throw new RuntimeException("Wrong index: " + paramIndex))
+            if(candidateP.argName == uri && candidateP.loc == locUri && candidateP.locIndex == locIndex) point = candidateP
           case _ =>
-        }
-        
-      }
-      
-    )
+       }
+    }
     if(!avoidMode)
       require(point != null)
     point
@@ -303,21 +304,23 @@ trait PAGConstraint{
     ps.foreach(
       p => {
         p match {
-          case pp : PointProc =>
-            pp.thisParamOpt_Entry match {
-              case Some(thisP) =>
-                if(thisP.varName.equals(uri)){
-                  point = thisP
+          case psp : PointStaticProc =>
+            psp.paramPsEntry.foreach{
+              case (_, pa) =>
+                if(pa.paramName.equals(uri)){
+                  point = pa
                 }
-              case None =>
             }
-            pp.params_Entry.foreach(
-              pa => {
-                if(pa._2.varName.equals(uri)){
-                  point = pa._2
+          case pp : PointProc =>
+            if(pp.thisPEntry.paramName.equals(uri)){
+              point = pp.thisPEntry
+            }
+            pp.paramPsEntry.foreach{
+              case (_, pa) =>
+                if(pa.paramName.equals(uri)){
+                  point = pa
                 }
-              } 
-            )
+            }
           case _ =>
         }
       }  
@@ -332,21 +335,23 @@ trait PAGConstraint{
     ps.foreach(
       p => {
         p match {
-          case pp : PointProc =>
-            pp.thisParamOpt_Exit match {
-              case Some(thisP) =>
-                if(thisP.varName.equals(uri)){
-                  point = thisP
+          case psp : PointStaticProc =>
+            psp.paramPsExit.foreach{
+              case (_, pa) =>
+                if(pa.paramName.equals(uri)){
+                  point = pa
                 }
-              case None =>
             }
-            pp.params_Exit.foreach(
-              pa => {
-                if(pa._2.varName.equals(uri)){
-                  point = pa._2
+          case pp : PointProc =>
+            if(pp.thisPExit.paramName.equals(uri)){
+              point = pp.thisPExit
+            }
+            pp.paramPsExit.foreach{
+              case (_, pa) =>
+                if(pa.paramName.equals(uri)){
+                  point = pa
                 }
-              } 
-            )
+            }
           case _ =>
         }
       }  

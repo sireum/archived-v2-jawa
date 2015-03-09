@@ -9,6 +9,7 @@ package org.sireum.jawa
 
 import org.sireum.util.ISet
 import org.sireum.util.ResourceUri
+import org.sireum.util.IMap
 
 abstract class Point{
   def ownerSig : String
@@ -45,14 +46,19 @@ trait NewObj{def obj : String}
 /**
  * base variable
  */
-trait Base{def baseName : String}
+trait Base{
+  def baseName : String
+  private var fieldP : Point with Field = null
+  def setFieldPoint(f : Point with Field) = fieldP = f
+  def getFieldPoint : Point with Field = fieldP
+}
 
 /**
  * field variable
  */
 trait Field{
   def baseP : Point with Base
-  def fieldSig : String
+  def fieldName : String
 }
 
 /**
@@ -76,16 +82,16 @@ trait Virtual{
 trait Invoke{
   def sig : String
   def invokeTyp : String
-  def argPsCall : ISet[PointArgCall]
-  def argPsReturn : ISet[PointArgReturn]
+  def argPsCall : IMap[Int, PointArgCall]
+  def argPsReturn : IMap[Int, PointArgReturn]
   def retTyp : Type
 }
 
 trait Proc{
   def procSig : String
   def accessTyp : String
-  def paramPsEntry : ISet[PointParamEntry]
-  def paramPsExit : ISet[PointParamExit]
+  def paramPsEntry : IMap[Int, PointParamEntry]
+  def paramPsExit : IMap[Int, PointParamExit]
   def retVar : Option[PointProcRet]
 }
 
