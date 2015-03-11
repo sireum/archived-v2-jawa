@@ -17,6 +17,7 @@ import org.sireum.jawa.alir.util.CallHandler
 import org.sireum.util._
 import scala.collection.parallel.immutable.ParMap
 import scala.collection.parallel.immutable.ParSet
+import scala.collection.GenMap
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -117,7 +118,7 @@ case class CallInfo(callees : Set[JawaProcedure], paramMap : Map[Int, Int]){
  */ 
 object SideEffectAnalysis {	
   
-  def interProceduralSideEffect(intraSEResults : ParMap[String, IntraProceduralSideEffectResult]) : InterProceduralSideEffectAnalysisResult = {
+  def interProceduralSideEffect(intraSEResults : GenMap[String, IntraProceduralSideEffectResult]) : InterProceduralSideEffectAnalysisResult = {
     val results : MMap[String, InterProceduralSideEffectResult] = mmapEmpty
     def getResult(sig : String) : Option[InterProceduralSideEffectResult] = results.get(sig)
     class Ipsea(val result : String => Option[InterProceduralSideEffectResult]) extends InterProceduralSideEffectAnalysisResult {
@@ -161,7 +162,7 @@ object SideEffectAnalysis {
     ipsea
   }
   
-  private def resolveInterProceduralSideEffect(intraPSE : IntraProceduralSideEffectResult, intraSEResults : ParMap[String, IntraProceduralSideEffectResult]) : InterProceduralSideEffectResult = {
+  private def resolveInterProceduralSideEffect(intraPSE : IntraProceduralSideEffectResult, intraSEResults : GenMap[String, IntraProceduralSideEffectResult]) : InterProceduralSideEffectResult = {
     var worklist : Set[CallInfo] = Set()
     val processed : MSet[CallInfo] = msetEmpty
     worklist ++= intraPSE.callInfos
@@ -216,10 +217,10 @@ object SideEffectAnalysis {
             pa.lhs match{
               case pfl : PointFieldL =>
 	              val varName = pfl.baseP.baseName
-		            val fieldSig = pfl.fieldName
+		            val fieldName = pfl.fieldName
 		            val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pfl.loc), pfl.locIndex)
 		            if(position >= 0)
-		            	writeMap += (position -> (writeMap.getOrElse(position, Set()) + fieldSig))
+		            	writeMap += (position -> (writeMap.getOrElse(position, Set()) + fieldName))
               case pgl : PointGlobalL =>
                 val globalSig = pgl.globalSig
                 globalWrite += globalSig
@@ -228,10 +229,10 @@ object SideEffectAnalysis {
             pa.rhs match{
               case pfr : PointFieldR =>
 		            val varName = pfr.baseP.baseName
-		            val fieldSig = pfr.fieldName
+		            val fieldName = pfr.fieldName
 		            val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pfr.loc), pfr.locIndex)
 		            if(position >= 0)
-		            	readMap += (position -> (readMap.getOrElse(position, Set()) + fieldSig))
+		            	readMap += (position -> (readMap.getOrElse(position, Set()) + fieldName))
               case pgr : PointGlobalR =>
                 val globalSig = pgr.globalSig
                 globalRead += globalSig

@@ -283,25 +283,29 @@ class PointsCollector {
         val argPsReturn : MMap[Int, PointArgReturn] = mmapEmpty
         var i = 0
         var j = 0
+        var ignore = false
         t.callExp.arg match {
           case te : TupleExp =>{
             val exps = te.exps
             exps foreach {
               exp =>
-                require(exp.isInstanceOf[NameExp])
-                val ne = exp.asInstanceOf[NameExp]
-                if(i == 0 && !invokeTyp.contains("static")){
-                  recvPCall = PointRecvCall(ne.name.name, i, loc, locIndex, ownerSig)
-                  recvPReturn = PointRecvReturn(ne.name.name, i, loc, locIndex, ownerSig)
-                } else {
-                  argPsCall += (i -> PointArgCall(ne.name.name, i, loc, locIndex, ownerSig))
-                  argPsReturn += (i -> PointArgReturn(ne.name.name, i, loc, locIndex, ownerSig))
-                  if((paramTyps(i).name == "long" || paramTyps(i).name == "double") && j != i){
-                    j = i
-                    i -= 1
+                if(!ignore){
+                  require(exp.isInstanceOf[NameExp])
+                  val ne = exp.asInstanceOf[NameExp]
+                  if(i == 0 && !invokeTyp.contains("static")){
+                    recvPCall = PointRecvCall(ne.name.name, i, loc, locIndex, ownerSig)
+                    recvPReturn = PointRecvReturn(ne.name.name, i, loc, locIndex, ownerSig)
+                    j -= 1
+                  } else {
+                    argPsCall += (i -> PointArgCall(ne.name.name, i, loc, locIndex, ownerSig))
+                    argPsReturn += (i -> PointArgReturn(ne.name.name, i, loc, locIndex, ownerSig))
+                    if(paramTyps(j).name == "long" || paramTyps(j).name == "double"){
+                      ignore = true
+                    }
                   }
-                }
-                i += 1
+                  i += 1
+                  j += 1
+                } else ignore = false
             }
           }
           case _ =>

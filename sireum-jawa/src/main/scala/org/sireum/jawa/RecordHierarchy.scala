@@ -330,7 +330,8 @@ class RecordHierarchy {
    */
   
   def isProcedureVisible(from : JawaRecord, p : JawaProcedure) : Boolean = {
-    if(p.isPublic) true
+    if(p.isUnknown) true
+    else if(p.isPublic) true
     else if(p.isPrivate) p.getDeclaringRecord == from
     else if(p.isProtected) isRecordRecursivelySubClassOfIncluding(from, p.getDeclaringRecord)
     /* If none of these access control accesflag been set, means the method has default or package level access
@@ -358,7 +359,7 @@ class RecordHierarchy {
     findProcedureThroughHierarchy(concreteType, pSubSig) match {
       case Some(ap) => 
         if(ap.isAbstract) throw new RuntimeException("Target procedure needs to be non-abstract method type: " + ap)
-        else if(!isProcedureVisible(concreteType, ap)) throw new RuntimeException("Target procedure " + ap + " needs to be visible from: " + concreteType)
+        else if(!isProcedureVisible(concreteType, ap)) throw ProcedureInvisibleException("Target procedure " + ap + " needs to be visible from: " + concreteType)
         else ap
       case None => throw new RuntimeException("Cannot resolve concrete dispatch!\n" + "Type:" + concreteType + "\nProcedure:" + pSubSig)
     }
@@ -470,3 +471,5 @@ class RecordHierarchy {
     sb.toString().intern()
   }
 }
+
+case class ProcedureInvisibleException(detailMessage : String) extends RuntimeException

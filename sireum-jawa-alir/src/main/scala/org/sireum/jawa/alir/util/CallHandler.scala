@@ -12,6 +12,8 @@ import org.sireum.jawa.JawaProcedure
 import org.sireum.jawa.Center
 import org.sireum.jawa.Type
 import org.sireum.jawa.util.StringFormConverter
+import org.sireum.util._
+import org.sireum.jawa.ProcedureInvisibleException
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -94,8 +96,8 @@ object CallHandler {
 	  }
 	}
 	
-	def resolveSignatureBasedCall(callSig : String, typ : String) : Set[JawaProcedure] = {
-	  var result : Set[JawaProcedure] = Set()
+	def resolveSignatureBasedCall(callSig : String, typ : String) : ISet[JawaProcedure] = {
+	  val result : MSet[JawaProcedure] = msetEmpty
 	  val recName = Center.getRecordNameFromProcedureSignature(callSig)
     val subSig = Center.getSubSigFromProcSig(callSig)
     val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
@@ -107,7 +109,17 @@ object CallHandler {
 	          record =>
 	            if(record.isConcrete){
 		            val fromType = StringFormConverter.getTypeFromName(record.getName)
-		            result += getVirtualCalleeProcedure(fromType, subSig)
+		            var callee  : JawaProcedure = null 
+                try{
+                  callee = getVirtualCalleeProcedure(fromType, subSig)
+                } catch {
+                  case pe : ProcedureInvisibleException =>
+                    println(pe.getMessage)
+                  case a : Throwable =>
+                    throw a
+                }
+                if(callee != null)
+                  result += callee
 	            }
 	        }
 	      case "virtual" =>
@@ -116,7 +128,17 @@ object CallHandler {
 	          record =>
 	            if(record.isConcrete){
 	            	val fromType = StringFormConverter.getTypeFromName(record.getName)
-		            result += getVirtualCalleeProcedure(fromType, subSig)
+		            var callee  : JawaProcedure = null 
+                try{
+                  callee = getVirtualCalleeProcedure(fromType, subSig)
+                } catch {
+                  case pe : ProcedureInvisibleException =>
+                    println(pe.getMessage)
+                  case a : Throwable =>
+                    throw a
+                }
+                if(callee != null)
+                  result += callee
 	            }
 	        }
 	      case "super" =>
@@ -127,6 +149,6 @@ object CallHandler {
 	      	result += getStaticCalleeProcedure(callSig)
 	    }
     }
-	  result
+	  result.toSet
 	}
 }
