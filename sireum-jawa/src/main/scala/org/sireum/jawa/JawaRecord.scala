@@ -394,7 +394,12 @@ class JawaRecord extends ResolveLevel{
 	  val fopt = getFields.find(_.getName == name)
 	  fopt match{
 	    case Some(f) => f
-	    case None => throw new RuntimeException("No field " + name + " in record " + getName)
+	    case None => 
+        if(isUnknown){
+          val f = new JawaField().init(name, StringFormConverter.getTypeFromName(Center.DEFAULT_TOPLEVEL_OBJECT), AccessFlag.getAccessFlags("PUBLIC"))
+          addField(f)
+          f
+        } else throw new RuntimeException("No field " + name + " in record " + getName)
 	  }
 	}
 	
@@ -404,11 +409,7 @@ class JawaRecord extends ResolveLevel{
 	
 	def getField(sig : String) : JawaField = {
 	  val fieldName = StringFormConverter.getFieldNameFromFieldSignature(sig)
-	  val fopt = getFields.find(_.getName == fieldName)
-	  fopt match{
-	    case Some(f) => f
-	    case None => throw new RuntimeException("No field signature " + sig + " in record " + getName)
-	  }
+	  getFieldByName(fieldName)
 	}
 	
 	/**
@@ -416,8 +417,16 @@ class JawaRecord extends ResolveLevel{
 	 */
 	
 	def getProcedure(subSig : String) : JawaProcedure = {
-	  if(!declaresProcedure(subSig)) throw new RuntimeException("No procedure " + subSig + " in record " + getName)
-	  else this.subSigToProcedures(subSig)
+	  tryGetProcedure(subSig) match{
+      case Some(p) => p
+      case None => 
+        if(isUnknown){
+          val sig = StringFormConverter.getSigFromOwnerAndProcSubSig(getName, subSig)
+          val proc = new JawaProcedure().init(sig)
+          addProcedure(proc)
+          proc
+        } else throw new RuntimeException("No procedure " + subSig + " in record " + getName)
+    }
 	}
 	
 	/**

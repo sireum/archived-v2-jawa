@@ -197,6 +197,11 @@ object JawaResolver {
     rec.setResolvingLevel(Center.ResolveLevel.BODY)
     Center.addRecord(rec)
     rec.addField(createClassField(rec))
+    val field : JawaField = new JawaField
+    val fSig = StringFormConverter.generateFieldSignature(rec.getName, "length", false)
+    field.init(fSig, NormalType("int", 0))
+    field.setAccessFlags("FINAL")
+    rec.addField(field)
 	  Center.resolveRecordsRelationWholeProgram
   }
     

@@ -22,12 +22,12 @@ class PTAResult {
         }.toMap)
     }.toMap
   }
-  def setInstance(s : Slot, context : Context, i : Instance) = ptMap(context)(s) = msetEmpty + i
-  def setInstances(s : Slot, context : Context, is : ISet[Instance]) = ptMap(context)(s) = msetEmpty ++ is
-  def addInstance(s : Slot, context : Context, i : Instance) = ptMap.getOrElseUpdate(context, mmapEmpty).getOrElseUpdate(s, msetEmpty) += i
-  def addInstances(s : Slot, context : Context, is : ISet[Instance]) = ptMap.getOrElseUpdate(context, mmapEmpty).getOrElseUpdate(s, msetEmpty) ++= is
-  def removeInstance(s : Slot, context : Context, i : Instance) = ptMap.getOrElseUpdate(context, mmapEmpty).getOrElseUpdate(s, msetEmpty) -= i
-  def removeInstances(s : Slot, context : Context, is : ISet[Instance]) = ptMap.getOrElseUpdate(context, mmapEmpty).getOrElseUpdate(s, msetEmpty) --= is
+  def setInstance(s : Slot, context : Context, i : Instance) = ptMap(context.copy)(s) = msetEmpty + i
+  def setInstances(s : Slot, context : Context, is : ISet[Instance]) = ptMap(context.copy)(s) = msetEmpty ++ is
+  def addInstance(s : Slot, context : Context, i : Instance) = ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty) += i
+  def addInstances(s : Slot, context : Context, is : ISet[Instance]) = ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty) ++= is
+  def removeInstance(s : Slot, context : Context, i : Instance) = ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty) -= i
+  def removeInstances(s : Slot, context : Context, is : ISet[Instance]) = ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty) --= is
   
   def pointsToSet(s : Slot, context : Context) : ISet[Instance] = {
     ptMap.getOrElse(context, mmapEmpty).getOrElse(s, msetEmpty).toSet

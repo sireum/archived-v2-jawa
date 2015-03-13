@@ -35,6 +35,7 @@ import org.sireum.jawa.alir.pta.PTAResult
 import org.sireum.jawa.alir.pta.VarSlot
 import org.sireum.jawa.alir.pta.FieldSlot
 import org.sireum.jawa.alir.pta.ArraySlot
+import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralDataFlowGraph
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -55,11 +56,9 @@ object InterproceduralDataDependenceAnalysis {
   type Node = IDDGNode
   type Edge = AlirEdge[Node]
   
-	def apply(cg : InterproceduralControlFlowGraph[CGNode], 
-	    			ptaresult : PTAResult) : InterproceduralDataDependenceInfo = build(cg, ptaresult)
+	def apply(idfg : InterProceduralDataFlowGraph) : InterproceduralDataDependenceInfo = build(idfg)
 	
-	def build(cg : InterproceduralControlFlowGraph[CGNode], 
-	    			ptaresult : PTAResult) : InterproceduralDataDependenceInfo = {
+	def build(idfg : InterProceduralDataFlowGraph) : InterproceduralDataDependenceInfo = {
     
     class Iddi(iddg : InterProceduralDataDependenceGraph[Node]) extends InterproceduralDataDependenceInfo{
       def getIddg : InterProceduralDataDependenceGraph[InterproceduralDataDependenceAnalysis.Node] = iddg
@@ -70,31 +69,33 @@ object InterproceduralDataDependenceAnalysis {
 		    getDependentPath(src, dst) != null
 		  }
     }
-    val irdaResult = InterproceduralReachingDefinitionAnalysis(cg)
+    val icfg = idfg.icfg
+    val ptaresult = idfg.ptaresult
+    val irdaResult = InterproceduralReachingDefinitionAnalysis(icfg)
 	  val iddg = new InterProceduralDataDependenceGraph[Node]
-	  iddg.initGraph(cg)
+	  iddg.initGraph(icfg)
 	  iddg.nodes.foreach{
 	    node =>
 	      var targetNodes : ISet[Node] = isetEmpty
 	      if(node != iddg.entryNode){
 	        node match{
 	          case en : IDDGEntryParamNode =>
-	            val cgN = cg.getCGEntryNode(en.getContext)
-	            val cgTarN = cg.predecessors(cgN)
+	            val cgN = icfg.getCGEntryNode(en.getContext)
+	            val cgTarN = icfg.predecessors(cgN)
 	            targetNodes ++= cgTarN.map(n => iddg.findDefSite(n.getContext, en.position))
 	          case en : IDDGExitParamNode =>
-	            val cgN = cg.getCGExitNode(en.getContext)
+	            val cgN = icfg.getCGExitNode(en.getContext)
 	            val proc =  Center.getProcedureWithoutFailing(cgN.getOwner)
 	            val procName = en.paramName
 	            val irdaFacts = irdaResult(cgN)
 	            targetNodes ++= searchRda(procName, en, irdaFacts, iddg)
 	          case cn : IDDGCallArgNode =>
-	            val cgN = cg.getCGCallNode(cn.getContext)
+	            val cgN = icfg.getCGCallNode(cn.getContext)
 				      val irdaFacts = irdaResult(cgN)
 				      targetNodes ++= processCallArg(cn, ptaresult, irdaFacts, iddg)
 	          case rn : IDDGReturnArgNode =>
-	            val cgN = cg.getCGReturnNode(rn.getContext)
-	            val cgTarN = cg.predecessors(cgN)
+	            val cgN = icfg.getCGReturnNode(rn.getContext)
+	            val cgTarN = icfg.predecessors(cgN)
 	            cgTarN.foreach{
 	              N =>
 	                N match{
@@ -113,7 +114,7 @@ object InterproceduralDataDependenceAnalysis {
 				      val irdaFacts = irdaResult(cgN)
 	            targetNodes ++= processVirtualBody(vn, ptaresult, irdaFacts, iddg)
 	          case ln : IDDGNormalNode =>
-	            val cgN = cg.getCGNormalNode(ln.getContext)
+	            val cgN = icfg.getCGNormalNode(ln.getContext)
 	            val ownerProc = Center.getProcedureWithoutFailing(ln.getOwner)
 				      val loc = ownerProc.getProcedureBody.location(ln.getLocIndex)
 				      val irdaFacts = irdaResult(cgN)

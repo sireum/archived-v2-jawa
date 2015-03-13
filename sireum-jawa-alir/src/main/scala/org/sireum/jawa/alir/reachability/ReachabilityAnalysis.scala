@@ -28,8 +28,8 @@ object ReachabilityAnalysis {
 	 * @return Set of reachable procedure resource uris from initial set
 	 */
 	def getReachableProcedures(procedures : Set[JawaProcedure], timer : Option[MyTimer] = None) : Set[JawaProcedure] = {
-    val cg = InterproceduralSuperSpark(procedures, timer)
-    cg.getReachableProcedures(procedures.map(_.getSignature)).map(Center.getProcedureWithoutFailing(_))
+    val idfg = InterproceduralSuperSpark(procedures, timer)
+    idfg.icfg.getReachableProcedures(procedures.map(_.getSignature)).map(Center.getProcedureWithoutFailing(_))
 	}
 	
 	def getReachableProceduresBySBCG(procedures : Set[JawaProcedure], wholeProcs : Set[JawaProcedure], par : Boolean) : Set[JawaProcedure] = {

@@ -39,6 +39,7 @@ import org.sireum.jawa.alir.pta.Instance
 import org.sireum.jawa.alir.pta.PTAConcreteStringInstance
 import org.sireum.jawa.alir.pta.ArraySlot
 import org.sireum.jawa.alir.pta.FieldSlot
+import org.sireum.jawa.alir.pta.InvokeSlot
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -253,17 +254,16 @@ class PointerAssignmentGraph[Node <: PtaNode]
   def constructGraph(ap : JawaProcedure, ps : Set[Point], callerContext : Context) = {
     addProcessed(ap, callerContext.copy, ps)
     ps.foreach{
-      p=>
+      p =>
         newNodes ++= collectNodes(ap.getSignature, p, callerContext.copy)
     }
-    ps.foreach(
-      p=>{
+    ps.foreach{
+      p =>
         val cfg = JawaAlirInfoProvider.getCfg(ap)
         val rda = JawaAlirInfoProvider.getRda(ap, cfg)
         val constraintMap = applyConstraint(p, ps, cfg, rda)
         newEdges ++= buildingEdges(constraintMap, ap.getSignature, callerContext.copy)
-      }  
-    )
+    }
   }
   
   /**
@@ -344,7 +344,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
             if(pi.invokeTyp.equals("static")){
               worklist += rhsNode
             }
-          case pr : PointR =>
+          case _ =>
         }
       case pi : Point with Invoke =>
         pi match {
@@ -419,8 +419,8 @@ class PointerAssignmentGraph[Node <: PtaNode]
 		          dst => 
 		            val t = context.copy
 		            dst match {
-                  case lp : Point with Loc => s.setContext(pSig, lp.loc)
-                  case _ => s.setContext(pSig, src.ownerSig)
+                  case lp : Point with Loc => t.setContext(pSig, lp.loc)
+                  case _ => t.setContext(pSig, dst.ownerSig)
                 }
 		            val targetNode = getNode(dst, t)
 		            if(!graph.containsEdge(srcNode, targetNode))
@@ -1119,6 +1119,8 @@ final case class PtaNode(point : Point, context : Context) extends InterProcedur
         Set(VarSlot(pla.argName))
       case pop : Point with Param =>
         Set(VarSlot(pop.paramName))
+      case inp : Point with Invoke =>
+        Set(InvokeSlot(inp.sig, inp.invokeTyp))
       case _ => throw new RuntimeException("No slot for such pta node: " + point + "@" + context)
     }
   }

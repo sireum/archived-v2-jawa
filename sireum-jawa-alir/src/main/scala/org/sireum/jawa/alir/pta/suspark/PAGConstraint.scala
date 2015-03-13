@@ -95,11 +95,11 @@ trait PAGConstraint{
 		            )
 		          case pgr : PointGlobalR =>
 		            flowMap.getOrElseUpdate(EdgeType.GLOBAL_LOAD, mmapEmpty).getOrElseUpdate(pgr, msetEmpty) += lhs
-		          case po : PointO =>
+		          case po : Point with Right with NewObj =>
 		            flowMap.getOrElseUpdate(EdgeType.ALLOCATION, mmapEmpty).getOrElseUpdate(rhs, msetEmpty) += lhs
-		          case pi : PointI =>
+		          case pi : Point with Right with Invoke =>
 		            flowMap.getOrElseUpdate(EdgeType.ASSIGNMENT, mmapEmpty).getOrElseUpdate(rhs, msetEmpty) += lhs
-		          case pr : PointR =>
+		          case pr : Point with Loc with Right =>
 		            flowMap.getOrElseUpdate(EdgeType.ASSIGNMENT, mmapEmpty).getOrElseUpdate(pr, msetEmpty) += lhs
 		            udChain(pr, ps, cfg, rda, true).foreach(
 		              point => {

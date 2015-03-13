@@ -18,6 +18,7 @@ import org.sireum.jawa.alir.pta.PTAScopeManager
 import org.sireum.jawa.alir.pta.PTAInstance
 import org.sireum.jawa.util.MyTimer
 import org.sireum.jawa.alir.pta.Instance
+import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralDataFlowGraph
 
 
 /**
@@ -25,15 +26,15 @@ import org.sireum.jawa.alir.pta.Instance
  */
 object InterproceduralSuperSpark {
   
-  def apply(entryPoints : ISet[JawaProcedure], timer : Option[MyTimer]) : InterproceduralControlFlowGraph[N] = build(entryPoints, timer)
+  def apply(entryPoints : ISet[JawaProcedure], timer : Option[MyTimer]) : InterProceduralDataFlowGraph = build(entryPoints, timer)
   
   type N = CGNode
   
-  def build(entryPoints : ISet[JawaProcedure], timer : Option[MyTimer]) : InterproceduralControlFlowGraph[N] = {
+  def build(entryPoints : ISet[JawaProcedure], timer : Option[MyTimer]) : InterProceduralDataFlowGraph = {
     val pag = new PointerAssignmentGraph[PtaNode]()
     val cg = new InterproceduralControlFlowGraph[N]
     pta(pag, cg, entryPoints, timer)
-    cg
+    InterProceduralDataFlowGraph(cg, pag.pointsToMap)
   }
   
   def pta(pag : PointerAssignmentGraph[PtaNode],
