@@ -25,9 +25,9 @@ import org.sireum.pilar.symbol.Symbol.pp2r
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 trait InterProceduralMonotoneDataFlowAnalysisResult[LatticeElement] extends InterProceduralDataFlowAnalysisResult[LatticeElement] {
-  def entrySet : CGNode => ISet[LatticeElement]
-  def exitSet : CGNode => ISet[LatticeElement]
-  def entries(n : CGNode, callerContext : Context, esl : EntrySetListener[LatticeElement])
+  def entrySet : ICFGNode => ISet[LatticeElement]
+  def exitSet : ICFGNode => ISet[LatticeElement]
+  def entries(n : ICFGNode, callerContext : Context, esl : EntrySetListener[LatticeElement])
 }
 
 /**
@@ -37,9 +37,9 @@ trait InterProceduralMonotoneDataFlowAnalysisResult[LatticeElement] extends Inte
 trait InterProceduralMonotonicFunction[LatticeElement] {
 	import org.sireum.pilar.ast._
 
-  def apply(s : ISet[LatticeElement], a : Assignment, currentNode : CGLocNode) : ISet[LatticeElement]
-  def apply(s : ISet[LatticeElement], e : Exp, currentNode : CGLocNode) : ISet[LatticeElement]
-	def apply(s : ISet[LatticeElement], a : Action, currentNode : CGLocNode) : ISet[LatticeElement]
+  def apply(s : ISet[LatticeElement], a : Assignment, currentNode : ICFGLocNode) : ISet[LatticeElement]
+  def apply(s : ISet[LatticeElement], e : Exp, currentNode : ICFGLocNode) : ISet[LatticeElement]
+	def apply(s : ISet[LatticeElement], a : Action, currentNode : ICFGLocNode) : ISet[LatticeElement]
 }
 
 /**
@@ -59,8 +59,8 @@ trait CallResolver[LatticeElement] {
   /**
 	 * It returns the facts for each callee entry node and caller return node
 	 */
-  def resolveCall(s : ISet[LatticeElement], cj : CallJump, callerContext : Context, cg : InterproceduralControlFlowGraph[CGNode]) : (IMap[CGNode, ISet[LatticeElement]], ISet[LatticeElement])
-  def getAndMapFactsForCaller(calleeS : ISet[LatticeElement], callerNode : CGNode, calleeExitNode : CGVirtualNode) : ISet[LatticeElement]
+  def resolveCall(s : ISet[LatticeElement], cj : CallJump, callerContext : Context, icfg : InterproceduralControlFlowGraph[ICFGNode]) : (IMap[ICFGNode, ISet[LatticeElement]], ISet[LatticeElement])
+  def getAndMapFactsForCaller(calleeS : ISet[LatticeElement], callerNode : ICFGNode, calleeExitNode : ICFGVirtualNode) : ISet[LatticeElement]
 }
 
 /**
@@ -70,11 +70,11 @@ trait CallResolver[LatticeElement] {
 object InterProceduralMonotoneDataFlowAnalysisFramework {
   
   final val TITLE = "InterProceduralMonotoneDataFlowAnalysisFramework"
-  type N = CGNode
+  type N = ICFGNode
 	def apply[LatticeElement] = build[LatticeElement] _
 
   def build[LatticeElement] //
-  (cg : InterproceduralControlFlowGraph[N], 
+  (icfg : InterproceduralControlFlowGraph[N], 
    forward : Boolean, lub : Boolean, rapid : Boolean, par : Boolean,
    gen : InterProceduralMonotonicFunction[LatticeElement],
    kill : InterProceduralMonotonicFunction[LatticeElement],
@@ -90,7 +90,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
     val bigConfluence : Iterable[ISet[LatticeElement]] => ISet[LatticeElement] =
       if (lub) bigIUnion else bigIIntersect
 
-    val flow = if (forward) cg else cg.reverse
+    val flow = if (forward) icfg else icfg.reverse
     val entrySetMap = if(par) new HashMap[N, ISet[LatticeElement]] with SynchronizedMap[N, ISet[LatticeElement]]
     									else new HashMap[N, ISet[LatticeElement]]
     
@@ -105,7 +105,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
         val sb = new StringBuilder
         var i = 1
         breakable{
-	        for (n <- cg.nodes) {
+	        for (n <- icfg.nodes) {
 	          i += 1
 	          if(i < 1000){
 	          	sb.append("%s = %s\n".format(n, entrySet(n).toString))
@@ -119,16 +119,16 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
       
       def exitSet : N => DFF = {
 	      _ match{
-	        case en : CGEntryNode =>
+	        case en : ICFGEntryNode =>
 	          getEntrySet(en)
-	        case xn : CGExitNode =>
+	        case xn : ICFGExitNode =>
 	          getEntrySet(xn)
-	        case cn : CGCallNode =>
+	        case cn : ICFGCallNode =>
 	          val r = caculateResult(cn)
 	          r.map(_._2).reduce(iunion[LatticeElement])
-	        case rn : CGReturnNode =>
+	        case rn : ICFGReturnNode =>
 	          getEntrySet(rn)
-	        case nn : CGNormalNode =>
+	        case nn : ICFGNormalNode =>
 	          val r = caculateResult(nn)
 	          r.map(_._2).reduce(iunion[LatticeElement])
 	        case a => throw new RuntimeException("unexpected node type: " + a)
@@ -143,32 +143,32 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
         	newContext.setContext(pSig, newLoc.index.toString)
         else 
           newContext.setContext(pSig, newLoc.name.get.uri)
-        if(cg.isCall(newLoc))
-          cg.getCGCallNode(newContext)
+        if(icfg.isCall(newLoc))
+          icfg.getICFGCallNode(newContext)
         else
-        	cg.getCGNormalNode(newContext)
+        	icfg.getICFGNormalNode(newContext)
       }
 
       protected def node(l : LocationDecl, context : Context) = {
-        if(cg.isCall(l))
-          cg.getCGCallNode(context)
+        if(icfg.isCall(l))
+          icfg.getICFGCallNode(context)
         else
-        	cg.getCGNormalNode(context)
+        	icfg.getICFGNormalNode(context)
       }
 
-      protected def fA(a : Assignment, in : DFF, currentNode : CGLocNode) : DFF =
+      protected def fA(a : Assignment, in : DFF, currentNode : ICFGLocNode) : DFF =
         kill(in, a, currentNode).union(gen(in, a, currentNode))
         
-      protected def fC(a : Action, in : DFF, currentNode : CGLocNode) : DFF =
+      protected def fC(a : Action, in : DFF, currentNode : ICFGLocNode) : DFF =
         kill(in, a, currentNode).union(gen(in, a, currentNode))
 
-      protected def fE(e : Exp, in : DFF, currentNode : CGLocNode) : DFF =
+      protected def fE(e : Exp, in : DFF, currentNode : ICFGLocNode) : DFF =
         kill(in, e, currentNode).union(gen(in, e, currentNode))
 
-      protected def fOE(eOpt : Option[Exp], in : DFF, currentNode : CGLocNode) : DFF =
+      protected def fOE(eOpt : Option[Exp], in : DFF, currentNode : ICFGLocNode) : DFF =
         if (eOpt.isDefined) fE(eOpt.get, in, currentNode) else in
 
-      protected def actionF(in : DFF, a : Action, currentNode : CGLocNode) =
+      protected def actionF(in : DFF, a : Action, currentNode : ICFGLocNode) =
         a match {
           case a : AssignAction => fA(a, in, currentNode)
           case a : AssertAction => fC(a, in, currentNode)
@@ -193,7 +193,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
       }
 
       protected def visitBackward(
-        currentNode : CGLocNode,
+        currentNode : ICFGLocNode,
         esl : Option[EntrySetListener[LatticeElement]]) : IMap[N, DFF] = {
         val pst = Center.getProcedureWithoutFailing(currentNode.getOwner).getProcedureBody
         val l = pst.location(currentNode.getLocIndex)
@@ -307,7 +307,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
               case j : ReturnJump =>
                 val exitContext = callerContext.copy
                 exitContext.setContext(pSig, pSig)
-                val sn = cg.getCGExitNode(exitContext)
+                val sn = icfg.getICFGExitNode(exitContext)
                 val result = fOE(j.exp, getEntrySet(sn), currentNode)
                 if (esl.isDefined)
                   eslb.returnJump(j, result)
@@ -367,7 +367,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
       
 
       protected def visitForward(
-        currentNode : CGLocNode,
+        currentNode : ICFGLocNode,
         esl : Option[EntrySetListener[LatticeElement]]) : IMap[N, DFF] = {
         val pst = Center.getProcedureWithoutFailing(currentNode.getOwner).getProcedureBody
         val l = pst.location(currentNode.getLocIndex)
@@ -463,7 +463,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
             case j : ReturnJump =>
               val exitContext = callerContext.copy
               exitContext.setContext(pSig, "Exit")
-              val sn = cg.getCGExitNode(exitContext)
+              val sn = icfg.getICFGExitNode(exitContext)
               val r = fOE(j.exp, s, currentNode)
               if (esl.isDefined) {
                 eslb.returnJump(j, r)
@@ -474,12 +474,12 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
               if (esl.isDefined) eslb.callJump(j, s)
               val r = fA(j, s, currentNode)
               if (j.jump.isEmpty) {
-                val (calleeFactsMap, retFacts) = callr.resolveCall(r, j, currentContext, cg)
+                val (calleeFactsMap, retFacts) = callr.resolveCall(r, j, currentContext, icfg)
                 calleeFactsMap.foreach{
                   case (calleeNode, calleeFacts) =>
 		                latticeMap += (calleeNode -> calleeFacts)
                 }
-                val rn = cg.getCGReturnNode(currentContext)
+                val rn = icfg.getICFGReturnNode(currentContext)
                 latticeMap += (rn -> retFacts)
                 if (esl.isDefined) eslb.exitSet(None, getEntrySet(rn))
               } else
@@ -507,8 +507,8 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
              if(esl.isDefined) eslb.action(l.action, s)
              val r = actionF(s, l.action, currentNode)
              if(esl.isDefined) eslb.exitSet(None, r)
-             val node = cg.getCGNormalNode(currentContext)
-             val succs = cg.successors(node)
+             val node = icfg.getICFGNormalNode(currentContext)
+             val succs = icfg.successors(node)
              succs.foreach(succ=>latticeMap += (succ -> r))
           case l : JumpLocation =>
             jumpF(s, l.jump)
@@ -521,13 +521,13 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
         latticeMap.toMap
       }
       
-      def caculateResult(currentNode : CGLocNode,
+      def caculateResult(currentNode : ICFGLocNode,
                 esl : Option[EntrySetListener[LatticeElement]] = None) : IMap[N, DFF] = {
         if (forward) visitForward(currentNode, esl)
         else visitBackward(currentNode, esl)
       }
 
-      def visit(currentNode : CGLocNode,
+      def visit(currentNode : ICFGLocNode,
                 esl : Option[EntrySetListener[LatticeElement]] = None) : Boolean = {
         caculateResult(currentNode, esl).map{case (n, facts) => update(confluence(facts, getEntrySet(n)), n)}.exists(_ == true)
       }
@@ -535,7 +535,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
       
       def entries(n : N, callerContext : Context, esl : EntrySetListener[LatticeElement]) = {
         n match {
-          case cn : CGLocNode  =>
+          case cn : ICFGLocNode  =>
             visit(cn, Some(esl))
           case _ =>
         }
@@ -548,31 +548,31 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
     def process(n : N) : ISet[N] = {
 	    var result = isetEmpty[N]
 	    n match {
-	      case en : CGEntryNode =>
-	        for (succ <- cg.successors(n)) {
+	      case en : ICFGEntryNode =>
+	        for (succ <- icfg.successors(n)) {
 	          if(imdaf.update(getEntrySet(en), succ)){
 	            result += succ
 	          }
 	        }
-	      case xn : CGExitNode =>
-	        for (succ <- cg.successors(n)){
+	      case xn : ICFGExitNode =>
+	        for (succ <- icfg.successors(n)){
 	          val factsForCaller = callr.getAndMapFactsForCaller(getEntrySet(xn), succ, xn)
 	          imdaf.update(confluence(getEntrySet(succ), factsForCaller), succ)
 	          result += succ
 	        }
-	      case cn : CGCallNode =>
+	      case cn : ICFGCallNode =>
 	        if (imdaf.visit(cn)){
-	          result ++= cg.successors(n)
+	          result ++= icfg.successors(n)
 	        }
-	      case rn : CGReturnNode =>
-	        for (succ <- cg.successors(n)) {
+	      case rn : ICFGReturnNode =>
+	        for (succ <- icfg.successors(n)) {
 	          if(imdaf.update(getEntrySet(n), succ)){
 	            result += succ
 	          }
 	        }
-	      case nn : CGNormalNode =>
+	      case nn : ICFGNormalNode =>
 	        if (imdaf.visit(nn)){
-	          result ++= cg.successors(n)
+	          result ++= icfg.successors(n)
 	        }
 	      case a => throw new RuntimeException("unexpected node type: " + a)
 	    }
@@ -588,28 +588,28 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
 	      if(false){
 	        val newworkList = workList.par.map{
 	          n =>
-	            if(nl.isDefined) nl.get.onPreVisitNode(n, cg.predecessors(n))
+	            if(nl.isDefined) nl.get.onPreVisitNode(n, icfg.predecessors(n))
 				      val newnodes = process(n)
-				      if(nl.isDefined) nl.get.onPostVisitNode(n, cg.successors(n))
+				      if(nl.isDefined) nl.get.onPostVisitNode(n, icfg.successors(n))
 				      newnodes
 	        }.reduce(iunion[N])
 	        workList.clear
 	        workList ++= newworkList
 	      } else {
 		      val n = workList.remove(0)
-		      if(nl.isDefined) nl.get.onPreVisitNode(n, cg.predecessors(n))
+		      if(nl.isDefined) nl.get.onPreVisitNode(n, icfg.predecessors(n))
 		      workList ++= process(n)
-		      if(nl.isDefined) nl.get.onPostVisitNode(n, cg.successors(n))
+		      if(nl.isDefined) nl.get.onPostVisitNode(n, icfg.successors(n))
 	      }
 	    }
-	    val nodes = if(false) cg.nodes.par else cg.nodes
+	    val nodes = if(false) icfg.nodes.par else icfg.nodes
 	    workList ++= nodes.map{
 	      node =>
 	        var newnodes = isetEmpty[N]
 	        node match{
-	          case xn : CGExitNode =>
-	            if(nl.isDefined) nl.get.onPreVisitNode(xn, cg.predecessors(xn))
-	            val succs = cg.successors(xn)
+	          case xn : ICFGExitNode =>
+	            if(nl.isDefined) nl.get.onPreVisitNode(xn, icfg.predecessors(xn))
+	            val succs = icfg.successors(xn)
 		          for (succ <- succs){
 		            val factsForCaller = callr.getAndMapFactsForCaller(getEntrySet(xn), succ, xn)
 		            if (imdaf.update(confluence(getEntrySet(succ), factsForCaller), succ))

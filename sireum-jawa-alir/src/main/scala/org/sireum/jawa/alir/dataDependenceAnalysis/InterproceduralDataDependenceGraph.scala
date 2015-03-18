@@ -29,14 +29,14 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
   protected var entryN : IDDGEntryNode = null
   def entryNode : Node = this.entryN.asInstanceOf[Node]
   
-  protected var cg : InterproceduralControlFlowGraph[CGNode] = null
+  protected var icfg : InterproceduralControlFlowGraph[ICFGNode] = null
   
-	def initGraph(cg : InterproceduralControlFlowGraph[CGNode]) = {
-    this.cg = cg
-	  cg.nodes.foreach{
+	def initGraph(icfg : InterproceduralControlFlowGraph[ICFGNode]) = {
+    this.icfg = icfg
+	  icfg.nodes.foreach{
 	    node =>
 	      node match{
-	        case en : CGEntryNode =>
+	        case en : ICFGEntryNode =>
 	          val owner = Center.getProcedureWithoutFailing(en.getOwner)
 	          val pnames = owner.getParamNames
 	          val ptyps = owner.getParamTypes
@@ -52,7 +52,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	            }
 	            position += 1
 	          }
-	        case en : CGExitNode =>
+	        case en : ICFGExitNode =>
 	          val owner = Center.getProcedureWithoutFailing(en.getOwner)
 	          val pnames = owner.getParamNames
             val ptyps = owner.getParamTypes
@@ -68,8 +68,8 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
               }
               position += 1
             }
-	        case en : CGCenterNode =>
-	        case cn : CGCallNode =>
+	        case en : ICFGCenterNode =>
+	        case cn : ICFGCallNode =>
 	          val loc = Center.getProcedureWithoutFailing(cn.getOwner).getProcedureBody.location(cn.getLocIndex)
 	          val argNames : MList[String] = mlistEmpty
 	          loc match{
@@ -87,7 +87,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	            val vn = addIDDGVirtualBodyNode(cn)
 	            vn.asInstanceOf[IDDGVirtualBodyNode].argNames = argNames.toList
 	          }
-	        case rn : CGReturnNode =>
+	        case rn : ICFGReturnNode =>
 	          val loc =  Center.getProcedureWithoutFailing(rn.getOwner).getProcedureBody.location(rn.getLocIndex)
 	          val argNames : MList[String] = mlistEmpty
 	          loc match{
@@ -100,51 +100,51 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	            val n = addIDDGReturnArgNode(rn, i)
 	            n.asInstanceOf[IDDGReturnArgNode].argName = argName
 	          }
-	        case nn : CGNormalNode => addIDDGNormalNode(nn)
+	        case nn : ICFGNormalNode => addIDDGNormalNode(nn)
 	        case _ =>
 	      }
 	  }
-    this.centerN = addIDDGCenterNode(cg.centerNode.asInstanceOf[CGCenterNode]).asInstanceOf[IDDGCenterNode]
-    this.entryN = addIDDGEntryNode(cg.entryNode.asInstanceOf[CGEntryNode]).asInstanceOf[IDDGEntryNode]
+    this.centerN = addIDDGCenterNode(icfg.centerNode.asInstanceOf[ICFGCenterNode]).asInstanceOf[IDDGCenterNode]
+    this.entryN = addIDDGEntryNode(icfg.entryNode.asInstanceOf[ICFGEntryNode]).asInstanceOf[IDDGEntryNode]
 	}
 	
 	def findDefSite(defSite : Context) : Node = {
-	  val cgN = {
-	    if(this.cg.cgNormalNodeExists(defSite)) this.cg.getCGNormalNode(defSite)
-		  else if(this.cg.cgCallNodeExists(defSite)) this.cg.getCGCallNode(defSite)
-		  else if(defSite.toString == "(EntryPoint,L0000)") this.cg.entryNode
-		  else if(defSite.toString == "(Center,L0000)") this.cg.centerNode
+	  val icfgN = {
+	    if(this.icfg.icfgNormalNodeExists(defSite)) this.icfg.getICFGNormalNode(defSite)
+		  else if(this.icfg.icfgCallNodeExists(defSite)) this.icfg.getICFGCallNode(defSite)
+		  else if(defSite.toString == "(EntryPoint,L0000)") this.icfg.entryNode
+		  else if(defSite.toString == "(Center,L0000)") this.icfg.centerNode
 		  else throw new RuntimeException("Cannot find node: " + defSite)
 	  }
-	  if(cgN.isInstanceOf[CGNormalNode] && iddgNormalNodeExists(cgN.asInstanceOf[CGNormalNode])) getIDDGNormalNode(cgN.asInstanceOf[CGNormalNode])
-	  else if(cgN.isInstanceOf[CGCallNode] && iddgVirtualBodyNodeExists(cgN.asInstanceOf[CGCallNode])) getIDDGVirtualBodyNode(cgN.asInstanceOf[CGCallNode])
-	  else if(cgN.isInstanceOf[CGCallNode] && iddgReturnVarNodeExists(cgN.asInstanceOf[CGCallNode])) getIDDGReturnVarNode(cgN.asInstanceOf[CGCallNode])
-	  else if(cgN == this.cg.entryNode) this.entryNode
-	  else if(cgN == this.cg.centerNode) this.centerNode
+	  if(icfgN.isInstanceOf[ICFGNormalNode] && iddgNormalNodeExists(icfgN.asInstanceOf[ICFGNormalNode])) getIDDGNormalNode(icfgN.asInstanceOf[ICFGNormalNode])
+	  else if(icfgN.isInstanceOf[ICFGCallNode] && iddgVirtualBodyNodeExists(icfgN.asInstanceOf[ICFGCallNode])) getIDDGVirtualBodyNode(icfgN.asInstanceOf[ICFGCallNode])
+	  else if(icfgN.isInstanceOf[ICFGCallNode] && iddgReturnVarNodeExists(icfgN.asInstanceOf[ICFGCallNode])) getIDDGReturnVarNode(icfgN.asInstanceOf[ICFGCallNode])
+	  else if(icfgN == this.icfg.entryNode) this.entryNode
+	  else if(icfgN == this.icfg.centerNode) this.centerNode
 	  else throw new RuntimeException("Cannot find node: " + defSite)
 	}
 	
 	def findDefSite(defSite : Context, position : Int) : Node = {
-	  val cgN = {
-	    if(this.cg.cgCallNodeExists(defSite)) this.cg.getCGCallNode(defSite)
-	    else if(this.cg.cgReturnNodeExists(defSite)) this.cg.getCGReturnNode(defSite)
-	    else if(this.cg.cgEntryNodeExists(defSite)) this.cg.getCGEntryNode(defSite)
-	    else if(this.cg.cgExitNodeExists(defSite)) this.cg.getCGExitNode(defSite)
+	  val icfgN = {
+	    if(this.icfg.icfgCallNodeExists(defSite)) this.icfg.getICFGCallNode(defSite)
+	    else if(this.icfg.icfgReturnNodeExists(defSite)) this.icfg.getICFGReturnNode(defSite)
+	    else if(this.icfg.icfgEntryNodeExists(defSite)) this.icfg.getICFGEntryNode(defSite)
+	    else if(this.icfg.icfgExitNodeExists(defSite)) this.icfg.getICFGExitNode(defSite)
 		  else throw new RuntimeException("Cannot find node: " + defSite)
 	  }
-	  if(cgN.isInstanceOf[CGCallNode] && iddgCallArgNodeExists(cgN.asInstanceOf[CGCallNode], position)) getIDDGCallArgNode(cgN.asInstanceOf[CGCallNode], position)
-	  else if(cgN.isInstanceOf[CGReturnNode] && iddgReturnArgNodeExists(cgN.asInstanceOf[CGReturnNode], position)) getIDDGReturnArgNode(cgN.asInstanceOf[CGReturnNode], position)
-	  else if(cgN.isInstanceOf[CGEntryNode] && iddgEntryParamNodeExists(cgN.asInstanceOf[CGEntryNode], position)) getIDDGEntryParamNode(cgN.asInstanceOf[CGEntryNode], position)
-	  else if(cgN.isInstanceOf[CGExitNode] && iddgExitParamNodeExists(cgN.asInstanceOf[CGExitNode], position)) getIDDGExitParamNode(cgN.asInstanceOf[CGExitNode], position)
+	  if(icfgN.isInstanceOf[ICFGCallNode] && iddgCallArgNodeExists(icfgN.asInstanceOf[ICFGCallNode], position)) getIDDGCallArgNode(icfgN.asInstanceOf[ICFGCallNode], position)
+	  else if(icfgN.isInstanceOf[ICFGReturnNode] && iddgReturnArgNodeExists(icfgN.asInstanceOf[ICFGReturnNode], position)) getIDDGReturnArgNode(icfgN.asInstanceOf[ICFGReturnNode], position)
+	  else if(icfgN.isInstanceOf[ICFGEntryNode] && iddgEntryParamNodeExists(icfgN.asInstanceOf[ICFGEntryNode], position)) getIDDGEntryParamNode(icfgN.asInstanceOf[ICFGEntryNode], position)
+	  else if(icfgN.isInstanceOf[ICFGExitNode] && iddgExitParamNodeExists(icfgN.asInstanceOf[ICFGExitNode], position)) getIDDGExitParamNode(icfgN.asInstanceOf[ICFGExitNode], position)
 	  else throw new RuntimeException("Cannot find node: " + defSite + ":" + position)
 	}
   
-  def iddgEntryParamNodeExists(cgN : CGEntryNode, position : Int) : Boolean = {
-    graph.containsVertex(newIDDGEntryParamNode(cgN, position).asInstanceOf[Node])
+  def iddgEntryParamNodeExists(icfgN : ICFGEntryNode, position : Int) : Boolean = {
+    graph.containsVertex(newIDDGEntryParamNode(icfgN, position).asInstanceOf[Node])
   }
 
-  def addIDDGEntryParamNode(cgN : CGEntryNode, position : Int) : Node = {
-    val node = newIDDGEntryParamNode(cgN, position).asInstanceOf[Node]
+  def addIDDGEntryParamNode(icfgN : ICFGEntryNode, position : Int) : Node = {
+    val node = newIDDGEntryParamNode(icfgN, position).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -155,18 +155,18 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
     n
   }
 
-  def getIDDGEntryParamNode(cgN : CGEntryNode, position : Int) : Node =
-    pool(newIDDGEntryParamNode(cgN, position))
+  def getIDDGEntryParamNode(icfgN : ICFGEntryNode, position : Int) : Node =
+    pool(newIDDGEntryParamNode(icfgN, position))
     
-  protected def newIDDGEntryParamNode(cgN : CGEntryNode, position : Int) =
-    IDDGEntryParamNode(cgN, position)
+  protected def newIDDGEntryParamNode(icfgN : ICFGEntryNode, position : Int) =
+    IDDGEntryParamNode(icfgN, position)
 	
-  def iddgExitParamNodeExists(cgN : CGExitNode, position : Int) : Boolean = {
-    graph.containsVertex(newIDDGExitParamNode(cgN, position).asInstanceOf[Node])
+  def iddgExitParamNodeExists(icfgN : ICFGExitNode, position : Int) : Boolean = {
+    graph.containsVertex(newIDDGExitParamNode(icfgN, position).asInstanceOf[Node])
   }
 
-  def addIDDGExitParamNode(cgN : CGExitNode, position : Int) : Node = {
-    val node = newIDDGExitParamNode(cgN, position).asInstanceOf[Node]
+  def addIDDGExitParamNode(icfgN : ICFGExitNode, position : Int) : Node = {
+    val node = newIDDGExitParamNode(icfgN, position).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -177,18 +177,18 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
     n
   }
 
-  def getIDDGExitParamNode(cgN : CGExitNode, position : Int) : Node =
-    pool(newIDDGExitParamNode(cgN, position))
+  def getIDDGExitParamNode(icfgN : ICFGExitNode, position : Int) : Node =
+    pool(newIDDGExitParamNode(icfgN, position))
     
-  protected def newIDDGExitParamNode(cgN : CGExitNode, position : Int) =
-    IDDGExitParamNode(cgN, position)
+  protected def newIDDGExitParamNode(icfgN : ICFGExitNode, position : Int) =
+    IDDGExitParamNode(icfgN, position)
     
-  def iddgCallArgNodeExists(cgN : CGCallNode, position : Int) : Boolean = {
-    graph.containsVertex(newIDDGCallArgNode(cgN, position).asInstanceOf[Node])
+  def iddgCallArgNodeExists(icfgN : ICFGCallNode, position : Int) : Boolean = {
+    graph.containsVertex(newIDDGCallArgNode(icfgN, position).asInstanceOf[Node])
   }
 
-  def addIDDGCallArgNode(cgN : CGCallNode, position : Int) : Node = {
-    val node = newIDDGCallArgNode(cgN, position).asInstanceOf[Node]
+  def addIDDGCallArgNode(icfgN : ICFGCallNode, position : Int) : Node = {
+    val node = newIDDGCallArgNode(icfgN, position).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -199,27 +199,27 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
     n
   }
 
-  def getIDDGCallArgNode(cgN : CGCallNode, position : Int) : Node =
-    pool(newIDDGCallArgNode(cgN, position))
+  def getIDDGCallArgNode(icfgN : ICFGCallNode, position : Int) : Node =
+    pool(newIDDGCallArgNode(icfgN, position))
     
-  def getIDDGCallArgNodes(cgN : CGCallNode) : Set[Node] = {
+  def getIDDGCallArgNodes(icfgN : ICFGCallNode) : Set[Node] = {
     val result : MSet[Node] = msetEmpty
     var position = 0
-    while(iddgCallArgNodeExists(cgN, position)){
-    	result += pool(newIDDGCallArgNode(cgN, position))
+    while(iddgCallArgNodeExists(icfgN, position)){
+    	result += pool(newIDDGCallArgNode(icfgN, position))
     	position += 1
     }
     result.toSet
   }
     
-  protected def newIDDGCallArgNode(cgN : CGCallNode, position : Int) = IDDGCallArgNode(cgN, position)
+  protected def newIDDGCallArgNode(icfgN : ICFGCallNode, position : Int) = IDDGCallArgNode(icfgN, position)
     
-  def iddgReturnArgNodeExists(cgN : CGReturnNode, position : Int) : Boolean = {
-    graph.containsVertex(newIDDGReturnArgNode(cgN, position).asInstanceOf[Node])
+  def iddgReturnArgNodeExists(icfgN : ICFGReturnNode, position : Int) : Boolean = {
+    graph.containsVertex(newIDDGReturnArgNode(icfgN, position).asInstanceOf[Node])
   }
 
-  def addIDDGReturnArgNode(cgN : CGReturnNode, position : Int) : Node = {
-    val node = newIDDGReturnArgNode(cgN, position).asInstanceOf[Node]
+  def addIDDGReturnArgNode(icfgN : ICFGReturnNode, position : Int) : Node = {
+    val node = newIDDGReturnArgNode(icfgN, position).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -230,17 +230,17 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
     n
   }
 
-  def getIDDGReturnArgNode(cgN : CGReturnNode, position : Int) : Node =
-    pool(newIDDGReturnArgNode(cgN, position))
+  def getIDDGReturnArgNode(icfgN : ICFGReturnNode, position : Int) : Node =
+    pool(newIDDGReturnArgNode(icfgN, position))
     
-  protected def newIDDGReturnArgNode(cgN : CGReturnNode, position : Int) = IDDGReturnArgNode(cgN, position)
+  protected def newIDDGReturnArgNode(icfgN : ICFGReturnNode, position : Int) = IDDGReturnArgNode(icfgN, position)
     
-  def iddgReturnVarNodeExists(cgN : CGCallNode) : Boolean = {
-    graph.containsVertex(newIDDGReturnVarNode(cgN).asInstanceOf[Node])
+  def iddgReturnVarNodeExists(icfgN : ICFGCallNode) : Boolean = {
+    graph.containsVertex(newIDDGReturnVarNode(icfgN).asInstanceOf[Node])
   }
 
-  def addIDDGReturnVarNode(cgN : CGCallNode) : Node = {
-    val node = newIDDGReturnVarNode(cgN).asInstanceOf[Node]
+  def addIDDGReturnVarNode(icfgN : ICFGCallNode) : Node = {
+    val node = newIDDGReturnVarNode(icfgN).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -251,18 +251,18 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
     n
   }
 
-  def getIDDGReturnVarNode(cgN : CGCallNode) : Node =
-    pool(newIDDGReturnVarNode(cgN))
+  def getIDDGReturnVarNode(icfgN : ICFGCallNode) : Node =
+    pool(newIDDGReturnVarNode(icfgN))
     
-  protected def newIDDGReturnVarNode(cgN : CGCallNode) =
-    IDDGReturnVarNode(cgN)
+  protected def newIDDGReturnVarNode(icfgN : ICFGCallNode) =
+    IDDGReturnVarNode(icfgN)
     
-  def iddgVirtualBodyNodeExists(cgN : CGCallNode) : Boolean = {
-    graph.containsVertex(newIDDGVirtualBodyNode(cgN).asInstanceOf[Node])
+  def iddgVirtualBodyNodeExists(icfgN : ICFGCallNode) : Boolean = {
+    graph.containsVertex(newIDDGVirtualBodyNode(icfgN).asInstanceOf[Node])
   }
   
-  def addIDDGVirtualBodyNode(cgN : CGCallNode) : Node = {
-    val node = newIDDGVirtualBodyNode(cgN).asInstanceOf[Node]
+  def addIDDGVirtualBodyNode(icfgN : ICFGCallNode) : Node = {
+    val node = newIDDGVirtualBodyNode(icfgN).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -273,18 +273,18 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
     n
   }
 
-  def getIDDGVirtualBodyNode(cgN : CGCallNode) : Node =
-    pool(newIDDGVirtualBodyNode(cgN))
+  def getIDDGVirtualBodyNode(icfgN : ICFGCallNode) : Node =
+    pool(newIDDGVirtualBodyNode(icfgN))
     
-  protected def newIDDGVirtualBodyNode(cgN : CGCallNode) =
-    IDDGVirtualBodyNode(cgN)
+  protected def newIDDGVirtualBodyNode(icfgN : ICFGCallNode) =
+    IDDGVirtualBodyNode(icfgN)
     
-  def iddgNormalNodeExists(cgN : CGNormalNode) : Boolean = {
-    graph.containsVertex(newIDDGNormalNode(cgN).asInstanceOf[Node])
+  def iddgNormalNodeExists(icfgN : ICFGNormalNode) : Boolean = {
+    graph.containsVertex(newIDDGNormalNode(icfgN).asInstanceOf[Node])
   }
   
-  def addIDDGNormalNode(cgN : CGNormalNode) : Node = {
-    val node = newIDDGNormalNode(cgN).asInstanceOf[Node]
+  def addIDDGNormalNode(icfgN : ICFGNormalNode) : Node = {
+    val node = newIDDGNormalNode(icfgN).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -295,18 +295,18 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
     n
   }
 
-  def getIDDGNormalNode(cgN : CGNormalNode) : Node =
-    pool(newIDDGNormalNode(cgN))
+  def getIDDGNormalNode(icfgN : ICFGNormalNode) : Node =
+    pool(newIDDGNormalNode(icfgN))
     
-  protected def newIDDGNormalNode(cgN : CGNormalNode) =
-    IDDGNormalNode(cgN)
+  protected def newIDDGNormalNode(icfgN : ICFGNormalNode) =
+    IDDGNormalNode(icfgN)
     
-  def iddgCenterNodeExists(cgN : CGCenterNode) : Boolean = {
-    graph.containsVertex(newIDDGCenterNode(cgN).asInstanceOf[Node])
+  def iddgCenterNodeExists(icfgN : ICFGCenterNode) : Boolean = {
+    graph.containsVertex(newIDDGCenterNode(icfgN).asInstanceOf[Node])
   }
   
-  def addIDDGCenterNode(cgN : CGCenterNode) : Node = {
-    val node = newIDDGCenterNode(cgN).asInstanceOf[Node]
+  def addIDDGCenterNode(icfgN : ICFGCenterNode) : Node = {
+    val node = newIDDGCenterNode(icfgN).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -317,18 +317,18 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
     n
   }
 
-  def getIDDGCenterNode(cgN : CGCenterNode) : Node =
-    pool(newIDDGCenterNode(cgN))
+  def getIDDGCenterNode(icfgN : ICFGCenterNode) : Node =
+    pool(newIDDGCenterNode(icfgN))
     
-  protected def newIDDGCenterNode(cgN : CGCenterNode) =
-    IDDGCenterNode(cgN)
+  protected def newIDDGCenterNode(icfgN : ICFGCenterNode) =
+    IDDGCenterNode(icfgN)
     
-  def iddgEntryNodeExists(cgN : CGEntryNode) : Boolean = {
-    graph.containsVertex(newIDDGEntryNode(cgN).asInstanceOf[Node])
+  def iddgEntryNodeExists(icfgN : ICFGEntryNode) : Boolean = {
+    graph.containsVertex(newIDDGEntryNode(icfgN).asInstanceOf[Node])
   }
   
-  def addIDDGEntryNode(cgN : CGEntryNode) : Node = {
-    val node = newIDDGEntryNode(cgN).asInstanceOf[Node]
+  def addIDDGEntryNode(icfgN : ICFGEntryNode) : Node = {
+    val node = newIDDGEntryNode(icfgN).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -339,58 +339,58 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
     n
   }
 
-  def getIDDGCenterNode(cgN : CGEntryNode) : Node =
-    pool(newIDDGEntryNode(cgN))
+  def getIDDGCenterNode(icfgN : ICFGEntryNode) : Node =
+    pool(newIDDGEntryNode(icfgN))
     
-  protected def newIDDGEntryNode(cgN : CGEntryNode) =
-    IDDGEntryNode(cgN)
+  protected def newIDDGEntryNode(icfgN : ICFGEntryNode) =
+    IDDGEntryNode(icfgN)
 }
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-sealed abstract class IDDGNode(cgN : CGNode) extends InterProceduralNode(cgN.getContext) {
-  def getCGNode = cgN
-  def getOwner = cgN.getOwner
-  def getCode : String = cgN.getCode
-  override def getContext = cgN.getContext
+sealed abstract class IDDGNode(icfgN : ICFGNode) extends InterProceduralNode(icfgN.getContext) {
+  def getICFGNode = icfgN
+  def getOwner = icfgN.getOwner
+  def getCode : String = icfgN.getCode
+  override def getContext = icfgN.getContext
 }
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-abstract class IDDGVirtualNode(cgN : CGNode) extends IDDGNode(cgN) 
+abstract class IDDGVirtualNode(icfgN : ICFGNode) extends IDDGNode(icfgN) 
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-abstract class IDDGLocNode(cgN : CGLocNode) extends IDDGNode(cgN) {
-  def getLocUri = cgN.getLocUri
-  def getLocIndex : Int = cgN.getLocIndex
+abstract class IDDGLocNode(icfgN : ICFGLocNode) extends IDDGNode(icfgN) {
+  def getLocUri = icfgN.getLocUri
+  def getLocIndex : Int = icfgN.getLocIndex
 }
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-abstract class IDDGInvokeNode(cgN : CGInvokeNode) extends IDDGLocNode(cgN) {
-  def getCalleeSet = cgN.getCalleeSet
+abstract class IDDGInvokeNode(icfgN : ICFGInvokeNode) extends IDDGLocNode(icfgN) {
+  def getCalleeSet = icfgN.getCalleeSet
 }
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class IDDGNormalNode(cgN : CGNormalNode) extends IDDGLocNode(cgN) 
+final case class IDDGNormalNode(icfgN : ICFGNormalNode) extends IDDGLocNode(icfgN) 
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class IDDGEntryParamNode(cgN : CGEntryNode, position : Int) extends IDDGVirtualNode(cgN){
+final case class IDDGEntryParamNode(icfgN : ICFGEntryNode, position : Int) extends IDDGVirtualNode(icfgN){
   var paramName : String = null
   def getVirtualLabel : String = "EntryParam:" + position
 }
@@ -399,7 +399,7 @@ final case class IDDGEntryParamNode(cgN : CGEntryNode, position : Int) extends I
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class IDDGCenterNode(cgN : CGCenterNode) extends IDDGVirtualNode(cgN){
+final case class IDDGCenterNode(icfgN : ICFGCenterNode) extends IDDGVirtualNode(icfgN){
   def getVirtualLabel : String = "Center"
 }
 
@@ -407,13 +407,13 @@ final case class IDDGCenterNode(cgN : CGCenterNode) extends IDDGVirtualNode(cgN)
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class IDDGEntryNode(cgN : CGEntryNode) extends IDDGVirtualNode(cgN)
+final case class IDDGEntryNode(icfgN : ICFGEntryNode) extends IDDGVirtualNode(icfgN)
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class IDDGExitParamNode(cgN : CGExitNode, position : Int) extends IDDGVirtualNode(cgN){
+final case class IDDGExitParamNode(icfgN : ICFGExitNode, position : Int) extends IDDGVirtualNode(icfgN){
   var paramName : String = null
   def getVirtualLabel : String = "ExitParam:" + position
 }
@@ -422,7 +422,7 @@ final case class IDDGExitParamNode(cgN : CGExitNode, position : Int) extends IDD
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class IDDGVirtualBodyNode(cgN : CGCallNode) extends IDDGInvokeNode(cgN){
+final case class IDDGVirtualBodyNode(icfgN : ICFGCallNode) extends IDDGInvokeNode(icfgN){
   var argNames : List[String] = null
   def getInvokeLabel : String = "VirtualBody"
 }
@@ -431,7 +431,7 @@ final case class IDDGVirtualBodyNode(cgN : CGCallNode) extends IDDGInvokeNode(cg
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class IDDGCallArgNode(cgN : CGCallNode, position : Int) extends IDDGInvokeNode(cgN){
+final case class IDDGCallArgNode(icfgN : ICFGCallNode, position : Int) extends IDDGInvokeNode(icfgN){
   var argName : String = null
   def getInvokeLabel : String = "CallArg:" + position
 }
@@ -440,7 +440,7 @@ final case class IDDGCallArgNode(cgN : CGCallNode, position : Int) extends IDDGI
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class IDDGReturnArgNode(cgN : CGReturnNode, position : Int) extends IDDGInvokeNode(cgN){
+final case class IDDGReturnArgNode(icfgN : ICFGReturnNode, position : Int) extends IDDGInvokeNode(icfgN){
   var argName : String = null
   def getInvokeLabel : String = "ReturnArg:" + position
 }
@@ -449,6 +449,6 @@ final case class IDDGReturnArgNode(cgN : CGReturnNode, position : Int) extends I
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class IDDGReturnVarNode(cgN : CGCallNode) extends IDDGInvokeNode(cgN){
+final case class IDDGReturnVarNode(icfgN : ICFGCallNode) extends IDDGInvokeNode(icfgN){
   def getInvokeLabel : String = "ReturnVar"
 }

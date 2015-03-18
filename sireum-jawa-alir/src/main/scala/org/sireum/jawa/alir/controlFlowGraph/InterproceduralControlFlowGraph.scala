@@ -30,12 +30,13 @@ import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.JawaProcedure
 import org.sireum.jawa.JawaCodeSource
 import java.util.regex.Pattern
+import org.sireum.jawa.alir.callGraph.CallGraph
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGraph[Node]{
+class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralGraph[Node]{
   private var succBranchMap : MMap[(Node, Option[Branch]), Node] = null
   private var predBranchMap : MMap[(Node, Option[Branch]), Node] = null
   val BRANCH_PROPERTY_KEY = ControlFlowGraph.BRANCH_PROPERTY_KEY
@@ -52,15 +53,15 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     e.getPropertyOrElse[String](EDGE_TYPE, null) == typ
   }
     
-  protected var entryN : CGNode = null
+  protected var entryN : ICFGNode = null
 
-  protected var exitN : CGNode = null
+  protected var exitN : ICFGNode = null
   
-  val centerContext = new Context(GlobalConfig.CG_CONTEXT_K)
+  val centerContext = new Context(GlobalConfig.ICFG_CONTEXT_K)
   centerContext.setContext("Center", "L0000")
-  private val cNode = addCGCenterNode(centerContext)
+  private val cNode = addICFGCenterNode(centerContext)
   cNode.setOwner(Center.CENTER_PROCEDURE_SIG)
-  protected var centerN : CGNode = cNode
+  protected var centerN : ICFGNode = cNode
   
   def centerNode : Node = this.centerN.asInstanceOf[Node]
   
@@ -68,6 +69,9 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   
   def exitNode : Node = this.exitN.asInstanceOf[Node]
   
+  private val cg : CallGraph = new CallGraph
+  
+  def getCallGraph : CallGraph = this.cg
   
   private val processed : MMap[(String, Context), ISet[Node]] = new HashMap[(String, Context), ISet[Node]] with SynchronizedMap[(String, Context), ISet[Node]]
   
@@ -82,83 +86,10 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   def entryNode(proc : String, callerContext : Context) : Node = {
     require(isProcessed(proc, callerContext))
     processed(proc, callerContext).foreach{
-      n => if(n.isInstanceOf[CGEntryNode]) return n
+      n => if(n.isInstanceOf[ICFGEntryNode]) return n
     }
     throw new RuntimeException("Cannot find entry node for: " + proc)
   }
-  
-  /**
-   * map from procedures to it's callee procedures
-   * map from caller sig to callee sigs
-   */
-  private var callMap : IMap[String, ISet[String]] = imapEmpty
-  
-  def setCallMap(from : String, to : String) = this.callMap += (from -> (this.callMap.getOrElse(from, isetEmpty) + to))
-  
-  def getCallMap = this.callMap
-
-  def getReachableProcedures(procs : Set[String]) : Set[String] = {
-    calculateReachableProcedures(procs, isetEmpty) ++ procs
-  }
-  
-  private def calculateReachableProcedures(procs : Set[String], processed : Set[String]) : Set[String] = {
-    if(procs.isEmpty) Set()
-    else
-      procs.map{
-	      proc =>
-	        if(processed.contains(proc)){
-	          Set[String]()
-	        } else {
-		        val callees = this.callMap.getOrElse(proc, isetEmpty)
-		        callees ++ calculateReachableProcedures(callees, processed + proc)
-	        }
-	    }.reduce((s1, s2) => s1 ++ s2)
-  }
-  
-//  def getBackwardCallChains(procSig : String) : Set[Seq[String]] = {
-//    if(procSig.isEmpty() || procSig == null) Set()
-//    else {
-//      val chains : MSet[Seq[String]] = msetEmpty
-//      chains += Seq(procSig)
-//      
-//      val callers = getAllCaller(procSig)
-//      calculateBackwardCallChains(callers, chains)
-//      chains.toSet
-//    }
-//  }
-//  
-//  private def calculateBackwardCallChains(callers : Set[String], chains : MSet[Seq[String]]) : Boolean = {
-//    var validCaller : Set[String] = Set() 
-//    chains.foreach{
-//      chain =>
-//        callers.foreach{
-//          caller =>
-//            if(!chain.contains(caller)){
-//              validCaller += caller
-//              chains += chain :+ caller
-//            }
-//        }
-//    }
-//    if(validCaller.isEmpty) false
-//    else {
-//      validCaller.foreach{
-//        caller =>
-//          val newCallers = getAllCaller(caller)
-//          calculateBackwardCallChains(newCallers, chains)
-//      }
-//    }
-//  }
-//  
-//  private def getAllCaller(procSig : String) : Set[String] = {
-//    var result : Set[String] = Set()
-//    this.callMap.foreach{
-//      case (caller, callees) =>
-//        if(callees.contains(procSig)){
-//          result += caller
-//        } 
-//    }
-//    result
-//  }
   
   def reverse : InterproceduralControlFlowGraph[Node] = {
     val result = new InterproceduralControlFlowGraph[Node]
@@ -317,34 +248,22 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
           )
         }
     )
-    // get start node S from sCfg by searching with relevant pUri and then get corresponding automata state
-    nodes.foreach(
-        gNode => { // ******* below check the hard-coded path for testing ***********
-		   if(gNode.toString().contains("pilar:/procedure/default/%5B%7Cde::mobinauten::smsspy::EmergencyTask.onLocationChanged%7C%5D/1/23/51eae215") && gNode.toString().endsWith(".Entry")) 
-		   {
-			   // val gStartNode = getVirtualNode("pilar:/procedure/default/%5B%7Cde::mobinauten::smsspy::EmergencyTask.onLocationChanged%7C%5D/1/23/51eae215.Entry".asInstanceOf[VirtualLabel]
-			   val startState = nodeMap(gNode)
-			   automata.setInitialState(startState)
-			   println(automata.toDot())
-		   }
-		}       
-    )
    automata
   }
    
   def isCall(l : LocationDecl) : Boolean = l.isInstanceOf[JumpLocation] && l.asInstanceOf[JumpLocation].jump.isInstanceOf[CallJump]
    
-  def merge(cg : InterproceduralControlFlowGraph[Node]) = {
-    this.pl ++= cg.pool
-    cg.nodes.foreach(addNode(_))
-    cg.edges.foreach(addEdge(_))
-    cg.callMap.foreach{
+  def merge(icfg : InterproceduralControlFlowGraph[Node]) = {
+    this.pl ++= icfg.pool
+    icfg.nodes.foreach(addNode(_))
+    icfg.edges.foreach(addEdge(_))
+    icfg.getCallGraph.getCallMap.foreach{
       case (src, dsts) =>
-        this.callMap += (src -> (this.callMap.getOrElse(src, isetEmpty) ++ dsts))
+        cg.addCalls(src, cg.getCallMap.getOrElse(src, isetEmpty) ++ dsts)
     }
-    this.processed ++= cg.processed
-    this.predBranchMap ++= cg.predBranchMap
-    this.succBranchMap ++= cg.succBranchMap
+    this.processed ++= icfg.processed
+    this.predBranchMap ++= icfg.predBranchMap
+    this.succBranchMap ++= icfg.succBranchMap
   }
   
   def collectCfgToBaseGraph[VirtualLabel](calleeProc : JawaProcedure, callerContext : Context, isFirst : Boolean = false) = {
@@ -362,12 +281,12 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 		        case vn : AlirVirtualNode[VirtualLabel] =>
 		          vn.label.toString match{
 		            case "Entry" => 
-		              val entryNode = addCGEntryNode(callerContext.copy.setContext(calleeSig, "Entry"))
+		              val entryNode = addICFGEntryNode(callerContext.copy.setContext(calleeSig, "Entry"))
 		              entryNode.setOwner(calleeProc.getSignature)
 		              nodes += entryNode
 		              if(isFirst) this.entryN = entryNode
 		            case "Exit" => 
-		              val exitNode = addCGExitNode(callerContext.copy.setContext(calleeSig,  "Exit"))
+		              val exitNode = addICFGExitNode(callerContext.copy.setContext(calleeSig,  "Exit"))
 		              exitNode.setOwner(calleeProc.getSignature)
 		              nodes += exitNode
 		              if(isFirst) this.exitN = exitNode
@@ -377,36 +296,36 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 		          val l = body.location(ln.locIndex)
 		          val code = codes.find(_.contains("#" + ln.locUri + ".")).getOrElse(throw new RuntimeException("Could not find " + ln.locUri + " from \n" + rawcode))
 		          if(isCall(l)){
-	              val c = addCGCallNode(callerContext.copy.setContext(calleeSig, ln.locUri))
+	              val c = addICFGCallNode(callerContext.copy.setContext(calleeSig, ln.locUri))
 	              c.setOwner(calleeProc.getSignature)
 	              c.setCode(code)
-	              c.asInstanceOf[CGLocNode].setLocIndex(ln.locIndex)
+	              c.asInstanceOf[ICFGLocNode].setLocIndex(ln.locIndex)
 	              nodes += c
-	              val r = addCGReturnNode(callerContext.copy.setContext(calleeSig, ln.locUri))
+	              val r = addICFGReturnNode(callerContext.copy.setContext(calleeSig, ln.locUri))
 	              r.setOwner(calleeProc.getSignature)
 	              r.setCode(code)
-	              r.asInstanceOf[CGLocNode].setLocIndex(ln.locIndex)
+	              r.asInstanceOf[ICFGLocNode].setLocIndex(ln.locIndex)
 	              nodes += r
 	//              addEdge(c, r)
 		          } else {
-		            val node = addCGNormalNode(callerContext.copy.setContext(calleeSig, ln.locUri))
+		            val node = addICFGNormalNode(callerContext.copy.setContext(calleeSig, ln.locUri))
 		            node.setOwner(calleeProc.getSignature)
 		            node.setCode(code)
-		            node.asInstanceOf[CGLocNode].setLocIndex(ln.locIndex)
+		            node.asInstanceOf[ICFGLocNode].setLocIndex(ln.locIndex)
 		            nodes += node
 		          }
 		        case a : AlirLocationNode => 
 		          // should not have a chance to reach here.
-		          val node = addCGNormalNode(callerContext.copy.setContext(calleeSig, a.locIndex.toString))
+		          val node = addICFGNormalNode(callerContext.copy.setContext(calleeSig, a.locIndex.toString))
 		          node.setOwner(calleeProc.getSignature)
 		          node.setCode("unknown")
-		          node.asInstanceOf[CGLocNode].setLocIndex(a.locIndex)
+		          node.asInstanceOf[ICFGLocNode].setLocIndex(a.locIndex)
 		          nodes += node
 		      }
 	    }
 	    for (e <- cfg.edges) {
-	      val entryNode = getCGEntryNode(callerContext.copy.setContext(calleeSig, "Entry"))
-	      val exitNode = getCGExitNode(callerContext.copy.setContext(calleeSig, "Exit"))
+	      val entryNode = getICFGEntryNode(callerContext.copy.setContext(calleeSig, "Entry"))
+	      val exitNode = getICFGExitNode(callerContext.copy.setContext(calleeSig, "Exit"))
 	      e.source match{
 	        case vns : AlirVirtualNode[VirtualLabel] =>
 	          e.target match{
@@ -415,14 +334,14 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 	            case lnt : AlirLocationUriNode =>
 	              val lt = body.location(lnt.locIndex)
 			          if(isCall(lt)){
-	                val callNodeTarget = getCGCallNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
+	                val callNodeTarget = getICFGCallNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
 	                addEdge(entryNode, callNodeTarget)
 			          } else {
-		              val targetNode = getCGNormalNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
+		              val targetNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
 		              addEdge(entryNode, targetNode)
 			          }
 	            case nt =>
-	              val targetNode = getCGNormalNode(callerContext.copy.setContext(calleeSig, nt.toString))
+	              val targetNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, nt.toString))
 	              addEdge(entryNode, targetNode)
 	          }
 	        case lns : AlirLocationUriNode =>
@@ -430,60 +349,60 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
 	          e.target match{
 	            case vnt : AlirVirtualNode[VirtualLabel] =>
 	              if(isCall(ls)){
-	                val returnNodeSource = getCGReturnNode(callerContext.copy.setContext(calleeSig, lns.locUri))
+	                val returnNodeSource = getICFGReturnNode(callerContext.copy.setContext(calleeSig, lns.locUri))
 	                addEdge(returnNodeSource, exitNode)
 	              } else {
-	                val sourceNode = getCGNormalNode(callerContext.copy.setContext(calleeSig, lns.locUri))
+	                val sourceNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, lns.locUri))
 	              	addEdge(sourceNode, exitNode)
 	              }
 	            case lnt : AlirLocationUriNode =>
 	              val lt = body.location(lnt.locIndex)
 	              if(isCall(ls)){
-	                val returnNodeSource = getCGReturnNode(callerContext.copy.setContext(calleeSig, lns.locUri))
+	                val returnNodeSource = getICFGReturnNode(callerContext.copy.setContext(calleeSig, lns.locUri))
 	                if(isCall(lt)){
-		                val callNodeTarget = getCGCallNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
+		                val callNodeTarget = getICFGCallNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
 		                addEdge(returnNodeSource, callNodeTarget)
 				          } else {
-			              val targetNode = getCGNormalNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
+			              val targetNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
 			              addEdge(returnNodeSource, targetNode)
 				          }
 	              } else {
-	                val sourceNode = getCGNormalNode(callerContext.copy.setContext(calleeSig, lns.locUri))
+	                val sourceNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, lns.locUri))
 	                if(isCall(lt)){
-		                val callNodeTarget = getCGCallNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
+		                val callNodeTarget = getICFGCallNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
 		                addEdge(sourceNode, callNodeTarget)
 				          } else {
-			              val targetNode = getCGNormalNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
+			              val targetNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
 			              addEdge(sourceNode, targetNode)
 				          }
 	              }
 	            case nt =>
-	              val targetNode = getCGNormalNode(callerContext.copy.setContext(calleeSig, nt.toString))
+	              val targetNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, nt.toString))
 	              if(isCall(ls)){
-	                val returnNodeSource = getCGReturnNode(callerContext.copy.setContext(calleeSig, lns.locUri))
+	                val returnNodeSource = getICFGReturnNode(callerContext.copy.setContext(calleeSig, lns.locUri))
 	                addEdge(returnNodeSource, targetNode)
 	              } else {
-	                val sourceNode = getCGNormalNode(callerContext.copy.setContext(calleeSig, lns.locUri))
+	                val sourceNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, lns.locUri))
 	                addEdge(sourceNode, targetNode)
 	              }
 	          }
 	        case ns =>
-	          val sourceNode = getCGNormalNode(callerContext.copy.setContext(calleeSig, ns.toString))
+	          val sourceNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, ns.toString))
 	          e.target match{
 	            case vnt : AlirVirtualNode[VirtualLabel] =>
 	              addEdge(sourceNode, exitNode)
 	            case lnt : AlirLocationUriNode =>
 	              val lt = body.location(lnt.locIndex)
 			          if(isCall(lt)){
-	                val callNodeTarget = getCGCallNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
-	                val returnNodeTarget = getCGReturnNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
+	                val callNodeTarget = getICFGCallNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
+	                val returnNodeTarget = getICFGReturnNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
 	                addEdge(sourceNode, callNodeTarget)
 			          } else {
-		              val targetNode = getCGNormalNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
+		              val targetNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, lnt.locUri))
 		              addEdge(sourceNode, targetNode)
 			          }
 	            case nt =>
-	              val targetNode = getCGNormalNode(callerContext.copy.setContext(calleeSig, nt.toString))
+	              val targetNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, nt.toString))
 	              addEdge(sourceNode, targetNode)
 	          }
 	      }
@@ -494,16 +413,16 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   }
   
   def extendGraph(calleeSig  : String, callerContext : Context) : Node = {
-    val callNode = getCGCallNode(callerContext)
-    val returnNode = getCGReturnNode(callerContext)
+    val callNode = getICFGCallNode(callerContext)
+    val returnNode = getICFGReturnNode(callerContext)
     val calleeEntryContext = callerContext.copy
     calleeEntryContext.setContext(calleeSig, "Entry")
     val calleeExitContext = callerContext.copy
     calleeExitContext.setContext(calleeSig, "Exit")
-    val targetNode = getCGEntryNode(calleeEntryContext)
-    val retSrcNode = getCGExitNode(calleeExitContext)
+    val targetNode = getICFGEntryNode(calleeEntryContext)
+    val retSrcNode = getICFGExitNode(calleeExitContext)
     this.synchronized{
-      setCallMap(callNode.getOwner, targetNode.getOwner)
+      this.cg.addCall(callNode.getOwner, targetNode.getOwner)
       if(!hasEdge(callNode, targetNode))
       	addEdge(callNode, targetNode)
       if(!hasEdge(retSrcNode, returnNode))
@@ -513,12 +432,12 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   }
   
   def extendGraphOneWay(calleeSig  : String, callerContext : Context, typ : String = null) : Node = {
-    val callNode = getCGCallNode(callerContext)
+    val callNode = getICFGCallNode(callerContext)
     val calleeEntryContext = callerContext.copy
     calleeEntryContext.setContext(calleeSig, "Entry")
-    val targetNode = getCGEntryNode(calleeEntryContext)
+    val targetNode = getICFGEntryNode(calleeEntryContext)
     this.synchronized{
-      setCallMap(callNode.getOwner, targetNode.getOwner)
+      this.cg.addCall(callNode.getOwner, targetNode.getOwner)
       if(!hasEdge(callNode, targetNode))
         addEdge(callNode, targetNode, typ)
     }
@@ -529,7 +448,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     val ns = nodes filter{
       n =>
         n match{
-          case cn : CGCallNode =>
+          case cn : ICFGCallNode =>
             false
           case _ => true
         }
@@ -542,7 +461,7 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     val ns = nodes filter{
       n =>
         n match{
-          case cn : CGCallNode =>
+          case cn : ICFGCallNode =>
             cn.getCalleeSet.exists { c => !c.callee.getDeclaringRecord.isFrameworkRecord }
           case _ => true
         }
@@ -552,8 +471,8 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
   }
   
   private def getSignatureFromCallNode(node : Node) : String = {
-    assume(node.isInstanceOf[CGCallNode])
-    val loc = Center.getProcedureWithoutFailing(node.getOwner).getProcedureBody.location(node.asInstanceOf[CGCallNode].getLocIndex)
+    assume(node.isInstanceOf[ICFGCallNode])
+    val loc = Center.getProcedureWithoutFailing(node.getOwner).getProcedureBody.location(node.asInstanceOf[ICFGCallNode].getLocIndex)
     val sig = loc.asInstanceOf[JumpLocation].jump.getValueAnnotation("signature") match {
       case Some(s) => s match {
         case ne : NameExp => ne.name.name
@@ -581,8 +500,8 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     w.write(res)
   }
   
-  def addCGNormalNode(context : Context) : Node = {
-    val node = newCGNormalNode(context).asInstanceOf[Node]
+  def addICFGNormalNode(context : Context) : Node = {
+    val node = newICFGNormalNode(context).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -593,18 +512,18 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     n
   }
   
-  def cgNormalNodeExists(context : Context) : Boolean = {
-    graph.containsVertex(newCGNormalNode(context).asInstanceOf[Node])
+  def icfgNormalNodeExists(context : Context) : Boolean = {
+    graph.containsVertex(newICFGNormalNode(context).asInstanceOf[Node])
   }
   
-  def getCGNormalNode(context : Context) : Node =
-    pool(newCGNormalNode(context))
+  def getICFGNormalNode(context : Context) : Node =
+    pool(newICFGNormalNode(context))
   
-  protected def newCGNormalNode(context : Context) =
-    CGNormalNode(context)
+  protected def newICFGNormalNode(context : Context) =
+    ICFGNormalNode(context)
     
-  def addCGCallNode(context : Context) : Node = {
-    val node = newCGCallNode(context).asInstanceOf[Node]
+  def addICFGCallNode(context : Context) : Node = {
+    val node = newICFGCallNode(context).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -615,18 +534,18 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     n
   }
   
-  def cgCallNodeExists(context : Context) : Boolean = {
-    graph.containsVertex(newCGCallNode(context).asInstanceOf[Node])
+  def icfgCallNodeExists(context : Context) : Boolean = {
+    graph.containsVertex(newICFGCallNode(context).asInstanceOf[Node])
   }
   
-  def getCGCallNode(context : Context) : Node =
-    pool(newCGCallNode(context))
+  def getICFGCallNode(context : Context) : Node =
+    pool(newICFGCallNode(context))
   
-  protected def newCGCallNode(context : Context) =
-    CGCallNode(context)
+  protected def newICFGCallNode(context : Context) =
+    ICFGCallNode(context)
     
-  def addCGReturnNode(context : Context) : Node = {
-    val node = newCGReturnNode(context).asInstanceOf[Node]
+  def addICFGReturnNode(context : Context) : Node = {
+    val node = newICFGReturnNode(context).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -637,19 +556,19 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     n
   }
   
-  def cgReturnNodeExists(context : Context) : Boolean = {
-    graph.containsVertex(newCGReturnNode(context).asInstanceOf[Node])
+  def icfgReturnNodeExists(context : Context) : Boolean = {
+    graph.containsVertex(newICFGReturnNode(context).asInstanceOf[Node])
   }
   
-  def getCGReturnNode(context : Context) : Node =
-    pool(newCGReturnNode(context))
+  def getICFGReturnNode(context : Context) : Node =
+    pool(newICFGReturnNode(context))
   
-  protected def newCGReturnNode(context : Context) =
-    CGReturnNode(context)
+  protected def newICFGReturnNode(context : Context) =
+    ICFGReturnNode(context)
   
     
-  def addCGEntryNode(context : Context) : Node = {
-    val node = newCGEntryNode(context).asInstanceOf[Node]
+  def addICFGEntryNode(context : Context) : Node = {
+    val node = newICFGEntryNode(context).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -660,18 +579,18 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     n
   }
   
-  def cgEntryNodeExists(context : Context) : Boolean = {
-    graph.containsVertex(newCGEntryNode(context).asInstanceOf[Node])
+  def icfgEntryNodeExists(context : Context) : Boolean = {
+    graph.containsVertex(newICFGEntryNode(context).asInstanceOf[Node])
   }
   
-  def getCGEntryNode(context : Context) : Node =
-    pool(newCGEntryNode(context))
+  def getICFGEntryNode(context : Context) : Node =
+    pool(newICFGEntryNode(context))
   
-  protected def newCGEntryNode(context : Context) =
-    CGEntryNode(context)
+  protected def newICFGEntryNode(context : Context) =
+    ICFGEntryNode(context)
     
-  def addCGCenterNode(context : Context) : Node = {
-    val node = newCGCenterNode(context).asInstanceOf[Node]
+  def addICFGCenterNode(context : Context) : Node = {
+    val node = newICFGCenterNode(context).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -682,18 +601,18 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     n
   }
   
-  def cgCGCenterNodeExists(context : Context) : Boolean = {
-    graph.containsVertex(newCGCenterNode(context).asInstanceOf[Node])
+  def icfgICFGCenterNodeExists(context : Context) : Boolean = {
+    graph.containsVertex(newICFGCenterNode(context).asInstanceOf[Node])
   }
   
-  def getCGCenterNode(context : Context) : Node =
-    pool(newCGCenterNode(context))
+  def getICFGCenterNode(context : Context) : Node =
+    pool(newICFGCenterNode(context))
   
-  protected def newCGCenterNode(context : Context) =
-    CGCenterNode(context)
+  protected def newICFGCenterNode(context : Context) =
+    ICFGCenterNode(context)
     
-  def addCGExitNode(context : Context) : Node = {
-    val node = newCGExitNode(context).asInstanceOf[Node]
+  def addICFGExitNode(context : Context) : Node = {
+    val node = newICFGExitNode(context).asInstanceOf[Node]
     val n =
       if (pool.contains(node)) pool(node)
       else {
@@ -704,19 +623,19 @@ class InterproceduralControlFlowGraph[Node <: CGNode] extends InterProceduralGra
     n
   }
   
-  def cgExitNodeExists(context : Context) : Boolean = {
-    graph.containsVertex(newCGExitNode(context).asInstanceOf[Node])
+  def icfgExitNodeExists(context : Context) : Boolean = {
+    graph.containsVertex(newICFGExitNode(context).asInstanceOf[Node])
   }
   
-  def getCGExitNode(context : Context) : Node =
-    pool(newCGExitNode(context))
+  def getICFGExitNode(context : Context) : Node =
+    pool(newICFGExitNode(context))
   
-  protected def newCGExitNode(context : Context) =
-    CGExitNode(context)
+  protected def newICFGExitNode(context : Context) =
+    ICFGExitNode(context)
   
 }
 
-sealed abstract class CGNode(context : Context) extends InterProceduralNode(context){
+sealed abstract class ICFGNode(context : Context) extends InterProceduralNode(context){
   protected var owner : String = null
   protected var loadedClassBitSet : BitSet = BitSet.empty
   protected var code : String = null
@@ -733,35 +652,35 @@ sealed abstract class CGNode(context : Context) extends InterProceduralNode(cont
 //  }
 }
 
-abstract class CGVirtualNode(context : Context) extends CGNode(context) {
+abstract class ICFGVirtualNode(context : Context) extends ICFGNode(context) {
   def getVirtualLabel : String
   
   override def toString : String = getVirtualLabel + "@" + context
 }
 
-final case class CGEntryNode(context : Context) extends CGVirtualNode(context){
+final case class ICFGEntryNode(context : Context) extends ICFGVirtualNode(context){
   this.code = "Entry: " + context.getProcedureSig
   def getVirtualLabel : String = "Entry"
 }
 
-final case class CGExitNode(context : Context) extends CGVirtualNode(context){
+final case class ICFGExitNode(context : Context) extends ICFGVirtualNode(context){
   this.code = "Exit: " + context.getProcedureSig
   def getVirtualLabel : String = "Exit"
 }
 
-final case class CGCenterNode(context : Context) extends CGVirtualNode(context){
+final case class ICFGCenterNode(context : Context) extends ICFGVirtualNode(context){
   this.code = "L0000: Center;"
   def getVirtualLabel : String = "Center"
 }
 
-abstract class CGLocNode(context : Context) extends CGNode(context) {
+abstract class ICFGLocNode(context : Context) extends ICFGNode(context) {
   def getLocUri : String = context.getLocUri
   protected val LOC_INDEX = "LocIndex"
   def setLocIndex(i : Int) = setProperty(LOC_INDEX, i)
   def getLocIndex : Int = getPropertyOrElse[Int](LOC_INDEX, throw new RuntimeException("did not have loc index"))
 }
 
-abstract class CGInvokeNode(context : Context) extends CGLocNode(context) {
+abstract class ICFGInvokeNode(context : Context) extends ICFGLocNode(context) {
   final val CALLEES = "callee_set"
   def getInvokeLabel : String
   def setCalleeSet(calleeSet : ISet[Callee]) = this.setProperty(CALLEES, calleeSet)
@@ -769,14 +688,14 @@ abstract class CGInvokeNode(context : Context) extends CGLocNode(context) {
   override def toString : String = getInvokeLabel + "@" + context
 }
 
-final case class CGCallNode(context : Context) extends CGInvokeNode(context){
+final case class ICFGCallNode(context : Context) extends ICFGInvokeNode(context){
   def getInvokeLabel : String = "Call"
 }
 
-final case class CGReturnNode(context : Context) extends CGInvokeNode(context){
+final case class ICFGReturnNode(context : Context) extends ICFGInvokeNode(context){
   def getInvokeLabel : String = "Return"
 }
 
-final case class CGNormalNode(context : Context) extends CGLocNode(context){
+final case class ICFGNormalNode(context : Context) extends ICFGLocNode(context){
   override def toString : String = context.toString
 }

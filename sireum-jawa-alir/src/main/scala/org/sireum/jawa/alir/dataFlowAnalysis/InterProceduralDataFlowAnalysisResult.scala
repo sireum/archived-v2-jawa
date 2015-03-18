@@ -8,7 +8,7 @@ http://www.eclipse.org/legal/epl-v10.html
 package org.sireum.jawa.alir.dataFlowAnalysis
 
 import org.sireum.util.ISet
-import org.sireum.jawa.alir.controlFlowGraph.CGNode
+import org.sireum.jawa.alir.controlFlowGraph.ICFGNode
 
 /**
  * Provide an Interface to let the developer get data facts corresponding
@@ -17,5 +17,5 @@ import org.sireum.jawa.alir.controlFlowGraph.CGNode
  * @author Fengguo Wei
  */
 trait InterProceduralDataFlowAnalysisResult[LatticeElement] {
-  def entrySet : CGNode => ISet[LatticeElement]
+  def entrySet : ICFGNode => ISet[LatticeElement]
 }

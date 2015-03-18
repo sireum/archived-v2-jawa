@@ -193,7 +193,7 @@ object JawaAlirInfoProvider {
   }
   
   def getClassInstance(r : JawaRecord) : ClassInstance = {
-    val mainContext = new Context(GlobalConfig.CG_CONTEXT_K)
+    val mainContext = new Context(GlobalConfig.ICFG_CONTEXT_K)
     mainContext.setContext("Center", "L0000")
     ClassInstance(r.getName, mainContext)
   }

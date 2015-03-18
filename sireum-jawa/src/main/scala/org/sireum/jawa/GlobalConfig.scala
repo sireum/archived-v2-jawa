@@ -25,9 +25,9 @@ object GlobalConfig {
 	final var mode : Mode.Value = Mode.APP_ONLY
 	
 	/**
-	 * call graph context length
+	 * icfg context length
 	 */
-	final var CG_CONTEXT_K = 1
+	final var ICFG_CONTEXT_K = 1
 	
 	/**
 	 * switch for jawa resolver parallel

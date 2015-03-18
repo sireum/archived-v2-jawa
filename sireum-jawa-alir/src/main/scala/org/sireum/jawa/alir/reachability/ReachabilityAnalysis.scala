@@ -11,7 +11,6 @@ import org.sireum.jawa.JawaProcedure
 import org.sireum.jawa.alir.pta.suspark.PointerAssignmentGraph
 import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
 import org.sireum.jawa.alir.pta.suspark.PtaNode
-import org.sireum.jawa.alir.controlFlowGraph.CGNode
 import org.sireum.jawa.Center
 import org.sireum.jawa.alir.pta.suspark.InterproceduralSuperSpark
 import org.sireum.jawa.util.MyTimer
@@ -29,7 +28,7 @@ object ReachabilityAnalysis {
 	 */
 	def getReachableProcedures(procedures : Set[JawaProcedure], timer : Option[MyTimer] = None) : Set[JawaProcedure] = {
     val idfg = InterproceduralSuperSpark(procedures, timer)
-    idfg.icfg.getReachableProcedures(procedures.map(_.getSignature)).map(Center.getProcedureWithoutFailing(_))
+    idfg.icfg.getCallGraph.getReachableProcedures(procedures.map(_.getSignature)).map(Center.getProcedureWithoutFailing(_))
 	}
 	
 	def getReachableProceduresBySBCG(procedures : Set[JawaProcedure], wholeProcs : Set[JawaProcedure], par : Boolean) : Set[JawaProcedure] = {

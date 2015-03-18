@@ -15,4 +15,4 @@ import org.sireum.jawa.alir.pta.PTAResult
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-case class InterProceduralDataFlowGraph(icfg : InterproceduralControlFlowGraph[CGNode], ptaresult : PTAResult)
+case class InterProceduralDataFlowGraph(icfg : InterproceduralControlFlowGraph[ICFGNode], ptaresult : PTAResult)
