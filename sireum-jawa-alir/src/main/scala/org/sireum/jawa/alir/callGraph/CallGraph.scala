@@ -8,6 +8,7 @@ http://www.eclipse.org/legal/epl-v10.html
 package org.sireum.jawa.alir.callGraph
 
 import org.sireum.util._
+import java.io.Writer
 
 class CallGraph {
   /**
@@ -37,5 +38,9 @@ class CallGraph {
             callees ++ calculateReachableProcedures(callees, processed + proc)
           }
       }.reduce((s1, s2) => s1 ++ s2)
+  }
+  
+  def write(w : Writer) = {
+    
   }
 }

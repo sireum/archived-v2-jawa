@@ -36,7 +36,7 @@ object CallHandler {
 	def getVirtualCalleeProcedure(fromType : Type, pSubSig : String) : JawaProcedure = {
 	  val name =
 	  	if(Center.isJavaPrimitiveType(fromType)) Center.DEFAULT_TOPLEVEL_OBJECT  // any array in java is an Object, so primitive type array is an object, object's method can be called
-	  	else fromType.name	
+	  	else fromType.name
 	  val from = Center.resolveRecord(name, Center.ResolveLevel.HIERARCHY)
 	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig)
 	}

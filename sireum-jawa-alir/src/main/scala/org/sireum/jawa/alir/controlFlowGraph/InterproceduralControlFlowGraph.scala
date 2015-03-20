@@ -444,20 +444,15 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     targetNode
   }
   
-  def toCallGraph : InterproceduralControlFlowGraph[Node] = {
-    val ns = nodes filter{
-      n =>
-        n match{
-          case cn : ICFGCallNode =>
-            false
-          case _ => true
-        }
-    }
-    ns foreach(compressByDelNode(_))
-    this
+  def toSimpleCallGraph(w : Writer) = {
+    this.cg.write(w)
   }
   
-  def toApiGraph : InterproceduralControlFlowGraph[Node] = {
+  def toDetailedCallGraph(w : Writer) = {
+    throw new RuntimeException("Have not implemented yet.")
+  }
+  
+  def toApiGraph(w : Writer) = {
     val ns = nodes filter{
       n =>
         n match{
@@ -467,7 +462,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
         }
     }
     ns foreach(compressByDelNode(_))
-    this
+    
   }
   
   private def getSignatureFromCallNode(node : Node) : String = {
