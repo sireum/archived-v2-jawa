@@ -31,6 +31,7 @@ import org.sireum.jawa.JawaProcedure
 import org.sireum.jawa.JawaCodeSource
 import java.util.regex.Pattern
 import org.sireum.jawa.alir.callGraph.CallGraph
+import org.jgrapht.ext.EdgeNameProvider
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -202,10 +203,41 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
       }
     }
   }
-   
-   // read the sCfg and build a corresponding DFA/NFA
   
-   def buildAutomata() : Automaton = {
+  val simpleCallGraphVlabelProvider = new VertexNameProvider[Node]() {
+    def filterLabel(uri : String) = {
+      uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
+    }
+      
+    def getVertexName(v : Node) : String = {
+      if(!v.isInstanceOf[ICFGCallNode]) throw new RuntimeException("Simple call graph should only contain call node!")
+      filterLabel(v.asInstanceOf[ICFGCallNode].getOwner)
+    }
+  }
+  
+  val simpleCallGraphElabelProvider = new EdgeNameProvider[Edge]() {
+    def filterLabel(uri : String) = {
+      uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
+    }
+    
+    def getEdgeName(e : Edge) : String = {
+      if(!e.source.isInstanceOf[ICFGCallNode] || !e.target.isInstanceOf[ICFGCallNode]) throw new RuntimeException("Simple call graph should only contain call node!")
+      filterLabel(e.source.asInstanceOf[ICFGCallNode].getOwner + "-calls->" + e.target.asInstanceOf[ICFGCallNode].getOwner)
+    }
+  }
+  
+  val detailedCallGraphVlabelProvider = new VertexNameProvider[Node]() {
+    def filterLabel(uri : String) = {
+      uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
+    }
+      
+    def getVertexName(v : Node) : String = {
+      throw new RuntimeException("Not implemented yet!")
+    }
+  }
+  
+  // read the sCfg and build a corresponding DFA/NFA  
+  def buildAutomata() : Automaton = {
     val automata = new Automaton()
     // build a map between sCfg-nodes-set and automata-nodes-set
     val nodeMap:MMap[Node, State] = mmapEmpty
@@ -444,15 +476,24 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     targetNode
   }
   
-  def toSimpleCallGraph(w : Writer) = {
-    this.cg.write(w)
+  def toSimpleCallGraph : InterproceduralControlFlowGraph[Node] = {
+    val ns = nodes filter{
+      n =>
+        n match{
+          case cn : ICFGCallNode =>
+            false
+          case _ => true
+        }
+    }
+    ns foreach(compressByDelNode(_))
+    this
   }
   
-  def toDetailedCallGraph(w : Writer) = {
+  def toDetailedCallGraph : InterproceduralControlFlowGraph[Node] = {
     throw new RuntimeException("Have not implemented yet.")
   }
   
-  def toApiGraph(w : Writer) = {
+  def toApiGraph : InterproceduralControlFlowGraph[Node] = {
     val ns = nodes filter{
       n =>
         n match{
@@ -462,7 +503,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
         }
     }
     ns foreach(compressByDelNode(_))
-    
+    this
   }
   
   private def getSignatureFromCallNode(node : Node) : String = {
@@ -478,7 +519,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     sig
   }
   
-  def toTextGraph(w : Writer)  = {
+  def toText(w : Writer)  = {
     var res : String = ""
     res += "Nodes:\n"
     nodes.foreach{

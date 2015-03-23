@@ -77,22 +77,22 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
     }
     
     def getEdgeName(e : Edge) : String = {
-      filterLabel(e.toString)
+      filterLabel(e.source.toString() + "->" + e.target.toString())
     }
   }
     
-  def toDot(w : Writer) = {
-    val de = new DOTExporter[Node, Edge](vlabelProvider, vlabelProvider, null)
+  def toDot(w : Writer, vlp : VertexNameProvider[Node] = vlabelProvider) = {
+    val de = new DOTExporter[Node, Edge](vlp, vlp, null)
     de.export(w, graph)
   }
   
-  def toGraphML(w : Writer) = {
-    val graphml = new GraphMLExporter[Node, Edge](vlabelProvider, null, elabelProvider, null)
+  def toGraphML(w : Writer, vlp : VertexNameProvider[Node] = vlabelProvider, elp : EdgeNameProvider[Edge] = elabelProvider) = {
+    val graphml = new GraphMLExporter[Node, Edge](vlp, null, elp, null)
     graphml.export(w, graph)
   }
   
-  def toGML(w : Writer) = {
-    val gml = new GmlExporter[Node, Edge](vlabelProvider, null, elabelProvider, null)
+  def toGML(w : Writer, vlp : VertexNameProvider[Node] = vlabelProvider, elp : EdgeNameProvider[Edge] = elabelProvider) = {
+    val gml = new GmlExporter[Node, Edge](vlp, null, elp, null)
     gml.export(w, graph)
   }
   
