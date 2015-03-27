@@ -151,14 +151,14 @@ trait PAGConstraint{
             }
         }
       case retP : PointRet =>
+        udChain(retP, ps, cfg, rda, true).foreach(
+          point => {
+            flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += retP
+          }
+        )
         retP.procPoint.retVar match{
           case Some(rev) =>
             flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(retP, msetEmpty) += rev
-            udChain(retP, ps, cfg, rda, true).foreach(
-              point => {
-                flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += retP
-              }
-            )
           case None =>
         }
         
@@ -202,6 +202,7 @@ trait PAGConstraint{
           p match {
             case pl : PointL => pl.varname
             case pr : PointR => pr.varname
+            case pr : PointRet => pr.retname
             case gl : Point with Global => gl.globalSig
             case ba : Point with Base => ba.baseName
             case al : PointArrayL => al.arrayname

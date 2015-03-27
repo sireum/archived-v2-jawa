@@ -77,7 +77,7 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
     }
     
     def getEdgeName(e : Edge) : String = {
-      filterLabel(e.source.toString() + "->" + e.target.toString())
+      filterLabel(e.source.toString()) + "-" + filterLabel(e.target.toString())
     }
   }
     
