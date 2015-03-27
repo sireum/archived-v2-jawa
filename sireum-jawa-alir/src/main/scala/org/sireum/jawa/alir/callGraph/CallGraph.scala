@@ -53,7 +53,6 @@ class CallGraph {
   
   def toSimpleCallGraph : SimpleCallGraph[CGSimpleCallNode] = {
     val scg = new SimpleCallGraph[CGSimpleCallNode]
-    println(this.callMap)
     this.callMap.foreach {
       case (caller, callees) =>
         val callerContext = new Context(0)
