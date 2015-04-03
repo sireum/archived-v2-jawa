@@ -61,7 +61,7 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
   
   def pool : MMap[InterProceduralNode, Node] = pl
   
-  protected val vlabelProvider = new VertexNameProvider[Node]() {
+  protected val vIDProvider = new VertexNameProvider[Node]() {
     def filterLabel(uri : String) = {
 		  uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
 		}
@@ -71,7 +71,7 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
 		}
   }
   
-  protected val elabelProvider = new EdgeNameProvider[Edge]() {
+  protected val eIDProvider = new EdgeNameProvider[Edge]() {
     def filterLabel(uri : String) = {
       uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
     }
@@ -81,18 +81,18 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
     }
   }
     
-  def toDot(w : Writer, vlp : VertexNameProvider[Node] = vlabelProvider) = {
+  def toDot(w : Writer, vlp : VertexNameProvider[Node] = vIDProvider) = {
     val de = new DOTExporter[Node, Edge](vlp, vlp, null)
     de.export(w, graph)
   }
   
-  def toGraphML(w : Writer, vlp : VertexNameProvider[Node] = vlabelProvider, elp : EdgeNameProvider[Edge] = elabelProvider) = {
-    val graphml = new GraphMLExporter[Node, Edge](vlp, null, elp, null)
+  def toGraphML(w : Writer, vip : VertexNameProvider[Node] = vIDProvider, vlp : VertexNameProvider[Node] = null, eip : EdgeNameProvider[Edge] = eIDProvider, elp : EdgeNameProvider[Edge] = null) = {
+    val graphml = new GraphMLExporter[Node, Edge](vip, vlp, eip, elp)
     graphml.export(w, graph)
   }
   
-  def toGML(w : Writer, vlp : VertexNameProvider[Node] = vlabelProvider, elp : EdgeNameProvider[Edge] = elabelProvider) = {
-    val gml = new GmlExporter[Node, Edge](vlp, null, elp, null)
+  def toGML(w : Writer, vip : VertexNameProvider[Node] = vIDProvider, vlp : VertexNameProvider[Node] = null, eip : EdgeNameProvider[Edge] = eIDProvider, elp : EdgeNameProvider[Edge] = null) = {
+    val gml = new GmlExporter[Node, Edge](vip, vlp, eip, elp)
     gml.export(w, graph)
   }
   

@@ -187,7 +187,7 @@ class SimpleCallGraph[Node <: CGSimpleCallNode] extends InterProceduralGraph[Nod
     n
   }
   
-  override val vlabelProvider = new VertexNameProvider[Node]() {  
+  override val vIDProvider = new VertexNameProvider[Node]() {  
     def filterLabel(uri : String) = {
       uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
     }
@@ -196,7 +196,7 @@ class SimpleCallGraph[Node <: CGSimpleCallNode] extends InterProceduralGraph[Nod
     }
   }
   
-  override val elabelProvider = new EdgeNameProvider[Edge]() {
+  override val eIDProvider = new EdgeNameProvider[Edge]() {
     def filterLabel(uri : String) = {
       uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
     }
@@ -219,40 +219,61 @@ class DetailedCallGraph[Node <: CGNode] extends InterProceduralGraph[Node]{
     n
   }
   
-  override val vlabelProvider = new VertexNameProvider[Node]() {
+  override val vIDProvider = new VertexNameProvider[Node]() {
     def filterLabel(uri : String) = {
       uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
     }
       
     def getVertexName(v : Node) : String = {
-      v.toString()
+      v.getID
     }
   }
   
-  override val elabelProvider = new EdgeNameProvider[Edge]() {
+  
+  val vLabelProvider = new VertexNameProvider[Node]() {
+    def filterLabel(uri : String) = {
+      uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
+    }
+      
+    def getVertexName(v : Node) : String = {
+      "name=" + v.getName + " type=" + v.getType + " location=" + v.getLocation
+    }
+  }
+  
+  
+  override val eIDProvider = new EdgeNameProvider[Edge]() {
     def filterLabel(uri : String) = {
       uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
     }
     def getEdgeName(e : Edge) : String = {
-      e.source.toString() + "-to-" + e.target.toString()
+      e.source.getID + "-to-" + e.target.getID
     }
   }
 }
 
-sealed abstract class CGNode(context : Context) extends InterProceduralNode(context)
+sealed abstract class CGNode(context : Context) extends InterProceduralNode(context) {
+  def getID : String = this.hashCode().toLong.toString()
+  def getName : String = context.getProcedureSig
+  def getType : String
+  def getLocation : String = context.getCurrentLocUri
+}
 
 final case class CGEntryNode(context : Context) extends CGNode(context){
-  override def toString : String = context.getProcedureSig + ".Entry"
+  def getType : String = "Entry"
+  override def toString : String = getID + ":" + getType
 }
 
 final case class CGExitNode(context : Context) extends CGNode(context){
-  override def toString : String = context.getProcedureSig + ".Exit"
+  def getType : String = "Exit"
+  override def toString : String = getID + ":" + getType
 }
 
 final case class CGSimpleCallNode(context : Context) extends CGNode(context){
-  override def toString : String = context.getProcedureSig
+  def getType : String = "Call"
+  override def toString : String = getID
 }
 
 final case class CGDetailCallNode(context : Context) extends CGNode(context){
-  override def toString : String = context.getProcedureSig + ".Call@" + context.getCurrentLocUri
+  def getType : String = "Call"
+  override def toString : String = getID + ":" + getType + "@" + getLocation
 }
