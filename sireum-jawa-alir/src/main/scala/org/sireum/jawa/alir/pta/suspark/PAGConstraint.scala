@@ -18,7 +18,7 @@ import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaReachingDefinitionAna
 trait PAGConstraint{
   
   object EdgeType extends Enumeration {
-		val ALLOCATION, ASSIGNMENT, FIELD_STORE, FIELD_LOAD, ARRAY_STORE, ARRAY_LOAD, GLOBAL_STORE, GLOBAL_LOAD, TRANSFER = Value
+		val ALLOCATION, ASSIGNMENT, FIELD_STORE, FIELD_LOAD, ARRAY_STORE, ARRAY_LOAD, GLOBAL_STORE, GLOBAL_LOAD, TRANSFER, THIS_TRANSFER = Value
 	}
   
   def applyConstraint(p : Point,

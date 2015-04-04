@@ -100,9 +100,15 @@ object InterproceduralSuperSpark {
       	          pag.worklist += dstNode
       	          val d = pag.pointsToMap.getDiff(srcNode, dstNode)
       	          pag.pointsToMap.transferPointsToSet(srcNode, dstNode)
-//      	          checkAndDoModelOperation(dstNode, pag)
       	          checkAndDoCall(dstNode, d, pag, icfg)
       	        }
+              case pag.EdgeType.THIS_TRANSFER => // e.g. L0: Call temp = foo(v1, v2); edge is v1@L0 -> foo.x@Lx
+                val dstNode = pag.successor(edge)
+                if(pag.pointsToMap.isThisDiff(srcNode, dstNode)){
+                  pag.worklist += dstNode
+                  val d = pag.pointsToMap.getThisDiff(srcNode, dstNode)
+                  pag.pointsToMap.transferPointsToSet(dstNode, d)
+                }
       	      case pag.EdgeType.ASSIGNMENT => // e.g. q = p; Edge: p -> q
       	        val dstNode = pag.successor(edge)
       	        if(pag.pointsToMap.isDiff(srcNode, dstNode)){

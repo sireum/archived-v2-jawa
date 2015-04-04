@@ -40,11 +40,15 @@ import org.sireum.jawa.alir.pta.PTAConcreteStringInstance
 import org.sireum.jawa.alir.pta.ArraySlot
 import org.sireum.jawa.alir.pta.FieldSlot
 import org.sireum.jawa.alir.pta.InvokeSlot
+import org.sireum.jawa.MessageCenter._
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
 class PointsToMap extends PTAResult {
+  
+  final val TITLE = "PointsToMap"
+  
   /**
    * e.g. L0: p = q; L1:  r = p; transfer means p@L0 -> p@L1
    */
@@ -53,6 +57,16 @@ class PointsToMap extends PTAResult {
       addInstances(_, n2.getContext.copy, pointsToSet(n1))
     }
   }
+  
+  /**
+   * e.g. L0: p = q; L1:  r = p; transfer means p@L0 -> p@L1
+   */
+  def transferPointsToSet(n : PtaNode, d : ISet[Instance]) = {
+    n.getSlots(this) foreach{
+      addInstances(_, n.getContext.copy, d)
+    }
+  }
+  
   /**
    * n1 -> n2 or n1.f -> n2 or n1[] -> n2, n1 -> n2.f, n1 -> n2[]
    */
@@ -87,12 +101,50 @@ class PointsToMap extends PTAResult {
     pointsToSet(n1) != pointsToSet(n2)
   }
   
+  def isThisDiff(n1 : PtaNode, n2 : PtaNode) : Boolean = {
+    !getThisDiff(n1, n2).isEmpty
+  }
+  
   def contained(n1 : PtaNode, n2 : PtaNode) : Boolean = {
     (pointsToSet(n1) -- pointsToSet(n2)).isEmpty
   }
   
   def getDiff(n1 : PtaNode, n2 : PtaNode) : ISet[Instance] = {
     pointsToSet(n1) diff pointsToSet(n2)
+  }
+  
+  def getThisDiff(n1 : PtaNode, n2 : PtaNode) : ISet[Instance] = {
+    assert(n2.point.isInstanceOf[PointThisEntry])
+    val ptsdiff = pointsToSet(n1) -- pointsToSet(n2)
+    val thisent = n2.point.asInstanceOf[PointThisEntry]
+    val calleeSubSig = StringFormConverter.getSubSigFromProcSig(thisent.ownerSig)
+    val thiscls = Center.resolveRecord(thisent.paramTyp.name, Center.ResolveLevel.HIERARCHY)
+    ptsdiff.filter { 
+      ins => 
+        val inscls = Center.resolveRecord(ins.getType.name, Center.ResolveLevel.HIERARCHY)
+        var res : Boolean = false
+        var tmpRec = inscls
+        import scala.util.control.Breaks._
+        breakable{
+          while(tmpRec.hasSuperClass){
+            if(tmpRec == thiscls){
+              res = true
+              break
+            }
+            else if(tmpRec.declaresProcedure(calleeSubSig)){
+              res = false
+              break
+            }
+            else tmpRec = tmpRec.getSuperClass
+          }
+        }
+        if(tmpRec == inscls) res = true
+        else {
+          err_msg_detail(TITLE, "Given inscls: " + inscls + " and thiscls: " + thiscls + " is not in the Same hierachy.")
+          res = false
+        }
+        res
+    }
   }
 }
 
@@ -424,7 +476,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
         val targetNodeEntry = getNode(vp.thisPEntry, targetContext.copy)
         worklist += srcNodeCall
         if(!graph.containsEdge(srcNodeCall, targetNodeEntry))
-          addEdge(srcNodeCall, targetNodeEntry, EdgeType.TRANSFER)
+          addEdge(srcNodeCall, targetNodeEntry, EdgeType.THIS_TRANSFER)
         val srcNodeExit = getNode(vp.thisPExit, targetContext.copy)
         val targetNodeReturn = getNode(pi.asInstanceOf[PointI].recvPReturn, srcContext.copy)
         worklist += srcNodeExit
