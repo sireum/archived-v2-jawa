@@ -20,6 +20,10 @@ import org.sireum.jawa.alir.controlFlowGraph.ICFGExitNode
 import org.sireum.jawa.alir.controlFlowGraph.ICFGReturnNode
 import org.jgrapht.ext.VertexNameProvider
 import org.jgrapht.ext.EdgeNameProvider
+import com.tinkerpop.blueprints.impls.tg.TinkerGraph
+import org.sireum.jawa.util.StringFormConverter
+import org.sireum.jawa.util.SignatureParser
+import com.tinkerpop.blueprints.Vertex
 
 class CallGraph {
   /**
@@ -51,27 +55,54 @@ class CallGraph {
       }.reduce((s1, s2) => s1 ++ s2)
   }
   
-  def toSimpleCallGraph : SimpleCallGraph[CGSimpleCallNode] = {
-    val scg = new SimpleCallGraph[CGSimpleCallNode]
+  private def addNode(tg : TinkerGraph, node : CGNode) : Vertex = {
+    var v = tg.getVertex(node.hashCode())
+    if(v == null){
+      v = tg.addVertex(node.hashCode())
+      v.setProperty("method", node.getMethodName)
+      v.setProperty("class", node.getClassName)
+      v.setProperty("returnType", node.getReturnType)
+      for(i <- 0 to node.getParamTypes.size - 1){
+        v.setProperty("param" + i + "Type", node.getParamTypes(i))
+      }
+      v.setProperty("type", node.getType)
+      v.setProperty("location", node.getLocation)
+    }
+    v
+  }
+  
+  def toSimpleCallGraph(outpath : String, format : String) = {
+    val fm = format match {
+      case "GraphML" => TinkerGraph.FileType.GRAPHML
+      case "GML" => TinkerGraph.FileType.GML
+      case _ => throw new RuntimeException("Given format " + format + " does not supported!")
+    }
+    val scg = new TinkerGraph(outpath, fm)
+    
     this.callMap.foreach {
       case (caller, callees) =>
         val callerContext = new Context(0)
         callerContext.setContext(caller, caller)
         val callerNode = CGSimpleCallNode(callerContext)
-        scg.addNode(callerNode)
+        val callerV = addNode(scg, callerNode)
         callees foreach {
           case callee =>
             val calleeContext = new Context(0)
             calleeContext.setContext(callee, callee)
             val calleeNode = CGSimpleCallNode(calleeContext)
-            scg.addNode(calleeNode)
-            scg.addEdge(callerNode, calleeNode)
+            val calleeV = addNode(scg, calleeNode)
+            scg.addEdge((callerV, calleeV).hashCode(), callerV, calleeV, "calls")
         }
     }
-    scg
+    scg.shutdown()
   }
   
-  def toDetailedCallGraph(icfg : InterproceduralControlFlowGraph[ICFGNode]) : DetailedCallGraph[CGNode] = {
+  def toDetailedCallGraph(icfg : InterproceduralControlFlowGraph[ICFGNode], outpath : String, format : String) = {
+    val fm = format match {
+      case "GraphML" => TinkerGraph.FileType.GRAPHML
+      case "GML" => TinkerGraph.FileType.GML
+      case _ => throw new RuntimeException("Given format " + format + " does not supported!")
+    }
     icfg.nodes foreach {
       n =>
         n match{
@@ -98,39 +129,39 @@ class CallGraph {
         }
     }
     ns foreach(icfg.compressByDelNode(_))
-    val dcg = new DetailedCallGraph[CGNode]
+    val dcg = new TinkerGraph(outpath, fm)
     icfg.nodes foreach {
       n =>
         n match{
           case cn : ICFGCallNode =>
             val source = CGDetailCallNode(cn.context)
-            dcg.addNode(source)
+            val sourceV = addNode(dcg, source)
             icfg.successors(cn).foreach { 
               s => 
                 s match {
                   case sen : ICFGEntryNode =>
                     val target = CGEntryNode(sen.context)
-                    dcg.addNode(target)
-                    dcg.addEdge(source, target)
+                    val targetV = addNode(dcg, target)
+                    dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "calls")
                   case sen : ICFGExitNode =>
                     val target = CGExitNode(sen.context)
-                    dcg.addNode(target)
-                    dcg.addEdge(source, target)
+                    val targetV = addNode(dcg, target)
+                    dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "leadsto")
                   case scn : ICFGCallNode => // this is a model call case
                     val target = CGDetailCallNode(scn.context)
-                    dcg.addNode(target)
-                    dcg.addEdge(source, target)
+                    val targetV = addNode(dcg, target)
+                    dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "leadsto")
                     val callees = cn.getCalleeSet
                     callees.foreach{
                       callee =>
                         val calleeContext = cn.getContext.setContext(callee.callee.getSignature, callee.callee.getSignature)
                         val calleeEntry = CGEntryNode(calleeContext)
                         val calleeExit = CGExitNode(calleeContext)
-                        dcg.addNode(calleeEntry)
-                        dcg.addNode(calleeExit)
-                        dcg.addEdge(calleeEntry, calleeExit)
-                        dcg.addEdge(source, calleeEntry)
-                        dcg.addEdge(calleeExit, source)
+                        val calleeEntryV = addNode(dcg, calleeEntry)
+                        val calleeExitV = addNode(dcg, calleeExit)
+                        dcg.addEdge((calleeEntryV, calleeExitV).hashCode, calleeEntryV, calleeExitV, "leadsto")
+                        dcg.addEdge((sourceV, calleeEntryV).hashCode, sourceV, calleeEntryV, "calls")
+                        dcg.addEdge((calleeExitV, source).hashCode, calleeExitV, sourceV, "return")
                     }
                   case _ => throw new RuntimeException(s + " cannot be successor of " + cn + "!")
                 }
@@ -138,31 +169,31 @@ class CallGraph {
             
           case en : ICFGEntryNode =>
             val source = CGEntryNode(en.context)
-            dcg.addNode(source)
+            val sourceV = addNode(dcg, source)
             icfg.successors(en) foreach {
               case s =>
                 s match {
                   case sen : ICFGExitNode =>
                     val target = CGExitNode(sen.context)
-                    dcg.addNode(target)
-                    dcg.addEdge(source, target)
+                    val targetV = addNode(dcg, target)
+                    dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "leadsto")
                   case scn : ICFGCallNode =>
                     val target = CGDetailCallNode(scn.context)
-                    dcg.addNode(target)
-                    dcg.addEdge(source, target)
+                    val targetV = addNode(dcg, target)
+                    dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "leadsto")
                   case _ => throw new RuntimeException(s + " cannot be successor of " + en + "!")
                 }
             }
           case en : ICFGExitNode =>
             val source = CGExitNode(en.context)
-            dcg.addNode(source)
+            val sourceV = addNode(dcg, source)
             icfg.successors(en) foreach {
               case s => // s should be only IcfgCallNode
                 s match {
                   case cn : ICFGCallNode =>
                     val target = CGDetailCallNode(cn.context)
-                    dcg.addNode(target)
-                    dcg.addEdge(source, target)
+                    val targetV = addNode(dcg, target)
+                    dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "return")
                   case _ => throw new RuntimeException(s + " cannot be successor of " + en + "!")
                 }
                 
@@ -170,110 +201,40 @@ class CallGraph {
           case _ => throw new RuntimeException(n + " should not exist!")
         }
     }
-    dcg
+    dcg.shutdown()
   }
 }
 
-class SimpleCallGraph[Node <: CGSimpleCallNode] extends InterProceduralGraph[Node] {
-  
-  override def addNode(node : Node) : Node = {
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-  
-  override val vIDProvider = new VertexNameProvider[Node]() {  
-    def filterLabel(uri : String) = {
-      uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
-    }
-    def getVertexName(v : Node) : String = {
-      v.toString
-    }
-  }
-  
-  override val eIDProvider = new EdgeNameProvider[Edge]() {
-    def filterLabel(uri : String) = {
-      uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
-    }
-    def getEdgeName(e : Edge) : String = {
-      e.source.toString() + "-Calls-" + e.target.toString()
-    }
-  }
-}
-
-class DetailedCallGraph[Node <: CGNode] extends InterProceduralGraph[Node]{
-  
-  override def addNode(node : Node) : Node = {
-    val n =
-      if (pool.contains(node)) pool(node)
-      else {
-        pl += (node -> node)
-        node
-      }
-    graph.addVertex(n)
-    n
-  }
-  
-  override val vIDProvider = new VertexNameProvider[Node]() {
-    def filterLabel(uri : String) = {
-      uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
-    }
-      
-    def getVertexName(v : Node) : String = {
-      v.getID
-    }
-  }
-  
-  
-  val vLabelProvider = new VertexNameProvider[Node]() {
-    def filterLabel(uri : String) = {
-      uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
-    }
-      
-    def getVertexName(v : Node) : String = {
-      "name=" + v.getName + " type=" + v.getType + " location=" + v.getLocation
-    }
-  }
-  
-  
-  override val eIDProvider = new EdgeNameProvider[Edge]() {
-    def filterLabel(uri : String) = {
-      uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
-    }
-    def getEdgeName(e : Edge) : String = {
-      e.source.getID + "-to-" + e.target.getID
-    }
-  }
-}
-
-sealed abstract class CGNode(context : Context) extends InterProceduralNode(context) {
+sealed abstract class CGNode(context : Context) {
   def getID : String = this.hashCode().toLong.toString()
-  def getName : String = context.getProcedureSig
+  def getMethodName : String = StringFormConverter.getProcedureNameFromProcedureSignature(context.getProcedureSig)
+  def getClassName : String = StringFormConverter.getRecordNameFromProcedureSignature(context.getProcedureSig)
+  def getReturnType : String = new SignatureParser(context.getProcedureSig).getReturnType().name
+  def getParamTypes : ISeq[String] = new SignatureParser(context.getProcedureSig).getParamSig.getParameters()
   def getType : String
   def getLocation : String = context.getCurrentLocUri
 }
 
-final case class CGEntryNode(context : Context) extends CGNode(context){
+abstract class CGVirtualNode(context : Context) extends CGNode(context){
+  override def toString : String = getID + ":" + getType
+}
+
+final case class CGEntryNode(context : Context) extends CGVirtualNode(context){
   def getType : String = "Entry"
-  override def toString : String = getID + ":" + getType
 }
 
-final case class CGExitNode(context : Context) extends CGNode(context){
-  def getType : String = "Exit"
-  override def toString : String = getID + ":" + getType
+final case class CGExitNode(context : Context) extends CGVirtualNode(context){
+  def getType : String = "Exit"  
 }
 
-final case class CGSimpleCallNode(context : Context) extends CGNode(context){
+abstract class CGCallNode(context : Context) extends CGNode(context) {
   def getType : String = "Call"
+}
+
+final case class CGSimpleCallNode(context : Context) extends CGCallNode(context){
   override def toString : String = getID
 }
 
-final case class CGDetailCallNode(context : Context) extends CGNode(context){
-  def getType : String = "Call"
+final case class CGDetailCallNode(context : Context) extends CGCallNode(context){
   override def toString : String = getID + ":" + getType + "@" + getLocation
 }

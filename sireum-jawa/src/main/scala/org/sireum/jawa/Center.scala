@@ -201,8 +201,8 @@ object Center {
 			            codes += code
 			            tmpList ::= record
 		            } else {
-		              resolveRecord(o, ResolveLevel.HIERARCHY)
-		              tmpList ::= record
+		              val unknownOut = resolveRecord(o, ResolveLevel.HIERARCHY)
+		              record.setOuterClass(unknownOut)
 		            }
 		        }
 	        case None =>
@@ -222,8 +222,8 @@ object Center {
 			            codes += code
 			            tmpList ::= record
 		            } else {
-		              resolveRecord(parName, ResolveLevel.HIERARCHY)
-		              tmpList ::= record
+		              val unknownSu = resolveRecord(parName, ResolveLevel.HIERARCHY)
+                  record.setSuperClass(unknownSu)
 		            }
 		        }
 	      }

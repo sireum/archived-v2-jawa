@@ -41,6 +41,7 @@ import org.sireum.jawa.alir.pta.ArraySlot
 import org.sireum.jawa.alir.pta.FieldSlot
 import org.sireum.jawa.alir.pta.InvokeSlot
 import org.sireum.jawa.MessageCenter._
+import org.sireum.jawa.alir.pta.BaseSlot
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -413,7 +414,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
   def breakPiEdges(pi : Point with Invoke, calleeAccessTyp : String, srcContext : Context) = {
     pi match {
       case vp : Point with Invoke with Dynamic =>
-        if(calleeAccessTyp != null && !calleeAccessTyp.contains("NATIVE")){
+        if(calleeAccessTyp != null){
           val srcNode = getNode(vp.recvPCall, srcContext.copy)
           val targetNode = getNode(vp.recvPReturn, srcContext.copy)
           if(hasEdge(srcNode, targetNode))
@@ -596,7 +597,7 @@ final case class PtaNode(point : Point, context : Context) extends InterProcedur
       case pso : PointStringO =>
         Set(InstanceSlot(PTAConcreteStringInstance(pso.text, context.copy)))
       case gla : Point with Loc with Global with Array =>
-        val pts = ptaresult.pointsToSet(VarSlot(gla.globalSig), context)
+        val pts = ptaresult.pointsToSet(BaseSlot(gla.globalSig), context)
         pts.map{
           ins =>
             ArraySlot(ins)
@@ -604,25 +605,25 @@ final case class PtaNode(point : Point, context : Context) extends InterProcedur
       case glo : Point with Loc with Global =>
         Set(VarSlot(glo.globalSig))
       case arr : PointArrayL =>
-        val pts = ptaresult.pointsToSet(VarSlot(arr.arrayname), context)
+        val pts = ptaresult.pointsToSet(BaseSlot(arr.arrayname), context)
         pts.map{
           ins =>
             ArraySlot(ins)
         }
       case arr : PointArrayR =>
-        val pts = ptaresult.pointsToSet(VarSlot(arr.arrayname), context)
+        val pts = ptaresult.pointsToSet(BaseSlot(arr.arrayname), context)
         pts.map{
           ins =>
             ArraySlot(ins)
         }
       case fie : Point with Loc with Field =>
-        val pts = ptaresult.pointsToSet(VarSlot(fie.baseP.baseName), context)
+        val pts = ptaresult.pointsToSet(BaseSlot(fie.baseP.baseName), context)
         pts.map{
           ins =>
             FieldSlot(ins, fie.fieldName)
         }
       case bas : Point with Loc with Base =>
-        Set(VarSlot(bas.baseName))
+        Set(BaseSlot(bas.baseName))
       case pl : PointL =>
         Set(VarSlot(pl.varname))
       case pr : PointR =>

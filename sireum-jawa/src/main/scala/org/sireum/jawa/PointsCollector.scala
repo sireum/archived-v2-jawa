@@ -69,7 +69,7 @@ class PointsCollector {
     if(AccessFlag.isStatic(AccessFlag.getAccessFlags(accessTyp))){
       PointStaticProc(procSig, accessTyp, paramPsEntry.toMap, paramPsExit.toMap, retP, ownerSig)
     } else {
-      if(thisPEntry == null) throw new RuntimeException("Virtual method does not have 'this' param.")
+      if(thisPEntry == null) throw new RuntimeException("Virtual method " + procSig + " does not have 'this' param.")
       PointProc(procSig, accessTyp, thisPEntry, thisPExit, paramPsEntry.toMap, paramPsExit.toMap, retP, ownerSig)
     }
   }

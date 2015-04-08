@@ -14,6 +14,15 @@ final case class VarSlot(varName : String) extends Slot {
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */
+final case class BaseSlot(varName : String) extends Slot {
+  def isGlobal : Boolean = varName.startsWith("@@")
+  override def toString = varName
+}
+
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 abstract class HeapSlot(ins : Instance) extends Slot{
   def matchWithInstance(ins : Instance) : Boolean = this.ins == ins

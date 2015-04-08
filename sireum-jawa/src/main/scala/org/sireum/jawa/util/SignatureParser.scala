@@ -110,7 +110,7 @@ class SignatureParser(sig : String) {
       else 0
     }
   
-    def getParameters() : MList[String] = {
+    def getParameters() : IList[String] = {
       var count = 0
       val params : MList[String] = mlistEmpty
       val iterator = new ParameterSignatureIterator()
@@ -119,7 +119,7 @@ class SignatureParser(sig : String) {
         params.insert(count, p)
         count+=1
       }
-      params
+      params.toList
     }
     
     def getParameterTypes() : List[Type] = {

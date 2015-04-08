@@ -41,12 +41,14 @@ object InterproceduralSuperSpark {
           icfg : InterproceduralControlFlowGraph[N],
           entryPoints : Set[JawaProcedure],
           timer : Option[MyTimer]) = {
+    var i = 0
     entryPoints.foreach{
 		  ep =>
 		    if(ep.isConcrete){
 		      if(!ep.hasProcedureBody)ep.resolveBody
 		    	doPTA(ep, pag, icfg, timer)
 		    }
+        i += 1
     }
   }
   
