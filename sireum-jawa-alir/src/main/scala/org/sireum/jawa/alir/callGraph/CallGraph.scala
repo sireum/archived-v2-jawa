@@ -207,10 +207,10 @@ class CallGraph {
 
 sealed abstract class CGNode(context : Context) {
   def getID : String = this.hashCode().toLong.toString()
-  def getMethodName : String = StringFormConverter.getProcedureNameFromProcedureSignature(context.getProcedureSig)
+  def getMethodName : String = StringFormConverter.getProcedureShortNameFromProcedureSignature(context.getProcedureSig)
   def getClassName : String = StringFormConverter.getRecordNameFromProcedureSignature(context.getProcedureSig)
   def getReturnType : String = new SignatureParser(context.getProcedureSig).getReturnType().name
-  def getParamTypes : ISeq[String] = new SignatureParser(context.getProcedureSig).getParamSig.getParameters()
+  def getParamTypes : ISeq[String] = new SignatureParser(context.getProcedureSig).getParamSig.getParameterTypes().map(_.name)
   def getType : String
   def getLocation : String = context.getCurrentLocUri
 }

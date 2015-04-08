@@ -43,6 +43,15 @@ object StringFormConverter {
 	}
   
   /**
+   * get proc short name from procedure signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> equals
+   */
+  
+  def getProcedureShortNameFromProcedureSignature(sig : String) : String = {
+    val strs = sig.substring(sig.indexOf(".") + 1, sig.indexOf(":"))
+    strs.replaceAll("\\/", ".").replaceAll("&lt;", "<").replaceAll("&gt;", ">")
+  }
+  
+  /**
 	 * convert type string from signature style to type style. [Ljava/lang/Object; -> (java.lang.Object, 1)
 	 */
 	
