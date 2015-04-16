@@ -513,7 +513,10 @@ object ReachingFactsAnalysisHelper {
                   val field = rec.getField(fieldSig)
                   val fName = field.getName
                   val fieldSlot = FieldSlot(ins, fName)
-	                val fieldValue : ISet[Instance] = ptaresult.pointsToSet(fieldSlot, currentContext)
+	                var fieldValue : ISet[Instance] = ptaresult.pointsToSet(fieldSlot, currentContext)
+                  if(ins.isInstanceOf[UnknownInstance]){
+                    fieldValue += UnknownInstance(field.getType, currentContext)
+                  }
 			            result(i) = fieldValue
                 }
             }
