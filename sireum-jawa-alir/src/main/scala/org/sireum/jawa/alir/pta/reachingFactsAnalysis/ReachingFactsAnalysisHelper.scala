@@ -211,7 +211,7 @@ object ReachingFactsAnalysisHelper {
               case ne : NameExp => BaseSlot(ne.name.name)
               case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
             }
-            val baseValue = s.filter { fact => fact.s == baseSlot }.map(_.v)
+            val baseValue = s.filter { fact => fact.s.toString() == baseSlot.toString() }.map(_.v)
             baseValue.map{
               ins =>
                 ptaresult.addInstance(baseSlot, currentContext, ins)
@@ -222,7 +222,7 @@ object ReachingFactsAnalysisHelper {
                 BaseSlot(ine.name.name)
               case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
             }
-            val baseValue = s.filter { fact => fact.s == baseSlot }.map(_.v)
+            val baseValue = s.filter { fact => fact.s.toString() == baseSlot.toString() }.map(_.v)
             baseValue.map{
               ins =>
                 ptaresult.addInstance(baseSlot, currentContext, ins)
