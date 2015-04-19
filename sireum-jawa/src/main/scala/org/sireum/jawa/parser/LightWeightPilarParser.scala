@@ -5,7 +5,7 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.pilarParser
+package org.sireum.jawa.parser
 
 import java.net._
 import java.io._
@@ -81,8 +81,7 @@ object LightWeightPilarParser {
 
     var lineText = lnr.readLine
 
-    val keywords = Set("package", "const", "enum", "typealias", "record",
-      "global", "procedure", "vset", "fun", "extension")
+    val keywords = Set("record", "global", "procedure")
 
     var found = false
     import scala.util.control.Breaks._
