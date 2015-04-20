@@ -125,14 +125,14 @@ object LightWeightPilarParser {
 
     val keyword = "record"
 
-    var recName : String = null
+    var className : String = null
     while (lineText != null) {
       val word = getFirstWord(lineText)
 
       if (keyword == word) {
-        if(recName!=null)
-        	JawaCodeSource.setRecordCode(recName, sb.toString, determiner)
-        recName = getRecordName(lineText)
+        if(className!=null)
+        	JawaCodeSource.setClassCode(className, sb.toString, determiner)
+        className = getClassName(lineText)
 
         sb = new StringBuilder
         chunkLineNo = lineNo
@@ -144,7 +144,7 @@ object LightWeightPilarParser {
 
       lineText = lnr.readLine
     }
-    JawaCodeSource.setRecordCode(recName, sb.toString, determiner)
+    JawaCodeSource.setClassCode(className, sb.toString, determiner)
   }
 
   def getFirstWord(line : String) = {
@@ -161,7 +161,7 @@ object LightWeightPilarParser {
     else ""
   }
   
-  def getRecordName(line : String) : String = {
+  def getClassName(line : String) : String = {
     val size = line.size
     var i = if(line.contains("record")) (line.indexOf("record") + 7) else size
     while (i < size && line.charAt(i).isWhitespace) {

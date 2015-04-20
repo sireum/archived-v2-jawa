@@ -18,7 +18,7 @@ import org.sireum.jawa.alir.pta._
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 object StringModel {
-	def isString(r : JawaRecord) : Boolean = r.getName == "java.lang.String"
+	def isString(r : JawaClass) : Boolean = r.getName == "java.lang.String"
 	
 	private def getReturnFactsWithAlias(rType : Type, retVar : String, currentContext : Context, alias : ISet[Instance]) : ISet[RFAFact] = 
     alias.map{a=>RFAFact(VarSlot(retVar), a)}
@@ -67,7 +67,7 @@ object StringModel {
    
   }
 	  
-	def doStringCall(s : PTAResult, p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def doStringCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var deleteFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true

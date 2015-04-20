@@ -71,7 +71,7 @@ class InterproceduralReachingDefinitionAnalysis {
     this.cg = cg
     cg.nodes.foreach{
 	    node =>
-	      val owner = Center.getProcedureWithoutFailing(node.getOwner)
+	      val owner = Center.getMethodWithoutFailing(node.getOwner)
 	      if(!owner.isUnknown){
 		      val cfg = JawaAlirInfoProvider.getCfg(owner)
 		      val rda = JawaAlirInfoProvider.getRda(owner, cfg)
@@ -80,8 +80,8 @@ class InterproceduralReachingDefinitionAnalysis {
 		          val rdafact = rda.entrySet(cfg.getVirtualNode(cvn.getVirtualLabel))
 		          factSet.update(cvn, rdafact.map{fact => (fact, getContext(fact, cvn.getContext))})
 		        case cln : ICFGLocNode =>
-		          val owner = Center.getProcedureWithoutFailing(cln.getOwner)
-		          val rdafact = rda.entrySet(cfg.getNode(owner.getProcedureBody.location(cln.getLocIndex)))
+		          val owner = Center.getMethodWithoutFailing(cln.getOwner)
+		          val rdafact = rda.entrySet(cfg.getNode(owner.getMethodBody.location(cln.getLocIndex)))
 		          factSet.update(cln, rdafact.map{fact => (fact, getContext(fact, cln.getContext))})
 		      }
 	      }
@@ -98,7 +98,7 @@ class InterproceduralReachingDefinitionAnalysis {
 	}
   
   private def getContext(fact : RDFact, srcContext : Context) : Context = {
-    val procSig = srcContext.getProcedureSig
+    val procSig = srcContext.getMethodSig
     val tarContext = srcContext.copy.removeTopContext
     fact._2 match {
       case pdd : ParamDefDesc =>

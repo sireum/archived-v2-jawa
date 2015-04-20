@@ -7,7 +7,7 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir.util
 
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 import org.sireum.pilar.ast._
 import org.sireum.util._
 import org.sireum.jawa.alir.JawaAlirInfoProvider
@@ -20,7 +20,7 @@ import org.sireum.alir.LocDefDesc
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 object ExplicitValueFinder {
-	def findExplicitIntValueForArgs(procedure : JawaProcedure, loc : JumpLocation, argNum : Int) : ISet[Int] = {
+	def findExplicitIntValueForArgs(procedure : JawaMethod, loc : JumpLocation, argNum : Int) : ISet[Int] = {
 	  loc.jump match{
 	    case t : CallJump if t.jump.isEmpty =>
 	      val cfg = JawaAlirInfoProvider.getCfg(procedure)
@@ -36,7 +36,7 @@ object ExplicitValueFinder {
 	  }
 	}
 	
-	def traverseRdaToFindIntger(procedure : JawaProcedure, varName : String, loc : LocationDecl, cfg : ControlFlowGraph[String], rda : ReachingDefinitionAnalysis.Result, resolvedStack : ISet[(org.sireum.alir.Slot, org.sireum.alir.DefDesc)] = isetEmpty) : ISet[Int] = {
+	def traverseRdaToFindIntger(procedure : JawaMethod, varName : String, loc : LocationDecl, cfg : ControlFlowGraph[String], rda : ReachingDefinitionAnalysis.Result, resolvedStack : ISet[(org.sireum.alir.Slot, org.sireum.alir.DefDesc)] = isetEmpty) : ISet[Int] = {
 	  val slots = rda.entrySet(cfg.getNode(Some(loc.name.get.uri), loc.index)) -- resolvedStack
     var nums : ISet[Int] = isetEmpty
     slots.foreach{
@@ -44,7 +44,7 @@ object ExplicitValueFinder {
         if(varName.equals(slot.toString())){
           defDesc match {
             case ldd : LocDefDesc => 
-              val locDecl = procedure.getProcedureBody.location(ldd.locIndex)
+              val locDecl = procedure.getMethodBody.location(ldd.locIndex)
               findIntegerFromLocationDecl(varName, locDecl) match{
                 case Left(num) => nums += num
                 case Right(varn) => nums ++= traverseRdaToFindIntger(procedure, varn, locDecl, cfg, rda, resolvedStack ++ slots)
@@ -77,7 +77,7 @@ object ExplicitValueFinder {
 	}
 	
 	
-	def findExplicitStringValueForArgs(procedure : JawaProcedure, loc : JumpLocation, argNum : Int) : ISet[String] = {
+	def findExplicitStringValueForArgs(procedure : JawaMethod, loc : JumpLocation, argNum : Int) : ISet[String] = {
 	  loc.jump match{
 	    case t : CallJump if t.jump.isEmpty =>
 	      val cfg = JawaAlirInfoProvider.getCfg(procedure)
@@ -97,7 +97,7 @@ object ExplicitValueFinder {
 		          defDesc match {
 		            case ldd : LocDefDesc => 
 		              val node = cfg.getNode(ldd.locUri, ldd.locIndex)
-		              val locDecl = procedure.getProcedureBody.location(ldd.locIndex)
+		              val locDecl = procedure.getMethodBody.location(ldd.locIndex)
 		              getStringFromLocationDecl(locDecl) match{
 		                case Some(str) => strs += str
 		                case None => throw new RuntimeException("Cannot find intgerNumber for: " + varName + ".in:" + loc.name.get.uri)

@@ -37,7 +37,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	    node =>
 	      node match{
 	        case en : ICFGEntryNode =>
-	          val owner = Center.getProcedureWithoutFailing(en.getOwner)
+	          val owner = Center.getMethodWithoutFailing(en.getOwner)
 	          val pnames = owner.getParamNames
 	          val ptyps = owner.getParamTypes
 	          var position = 0
@@ -53,7 +53,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	            position += 1
 	          }
 	        case en : ICFGExitNode =>
-	          val owner = Center.getProcedureWithoutFailing(en.getOwner)
+	          val owner = Center.getMethodWithoutFailing(en.getOwner)
 	          val pnames = owner.getParamNames
             val ptyps = owner.getParamTypes
             var position = 0
@@ -70,7 +70,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
             }
 	        case en : ICFGCenterNode =>
 	        case cn : ICFGCallNode =>
-	          val loc = Center.getProcedureWithoutFailing(cn.getOwner).getProcedureBody.location(cn.getLocIndex)
+	          val loc = Center.getMethodWithoutFailing(cn.getOwner).getMethodBody.location(cn.getLocIndex)
 	          val argNames : MList[String] = mlistEmpty
 	          loc match{
 	            case jumploc : JumpLocation =>
@@ -83,12 +83,12 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	            n.asInstanceOf[IDDGCallArgNode].argName = argName
 	          }
 	          val rn = addIDDGReturnVarNode(cn)
-	          if(cn.getCalleeSet.exists{p => p.callee.getDeclaringRecord.isFrameworkRecord || p.callee.getDeclaringRecord.isThirdPartyLibRecord}){
+	          if(cn.getCalleeSet.exists{p => p.callee.getDeclaringClass.isFrameworkClass || p.callee.getDeclaringClass.isThirdPartyLibClass}){
 	            val vn = addIDDGVirtualBodyNode(cn)
 	            vn.asInstanceOf[IDDGVirtualBodyNode].argNames = argNames.toList
 	          }
 	        case rn : ICFGReturnNode =>
-	          val loc =  Center.getProcedureWithoutFailing(rn.getOwner).getProcedureBody.location(rn.getLocIndex)
+	          val loc =  Center.getMethodWithoutFailing(rn.getOwner).getMethodBody.location(rn.getLocIndex)
 	          val argNames : MList[String] = mlistEmpty
 	          loc match{
 	            case jumploc : JumpLocation =>

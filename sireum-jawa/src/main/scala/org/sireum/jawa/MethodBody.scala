@@ -18,7 +18,7 @@ import org.sireum.pilar.symbol.SymbolTableProducer
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
-class ProcedureBody(val procedureUri : ResourceUri, st : SymbolTable) extends ProcedureSymbolTable with ProcedureSymbolTableProducer {
+class MethodBody(val procedureUri : ResourceUri, st : SymbolTable) extends ProcedureSymbolTable with ProcedureSymbolTableProducer {
   val tables = ProcedureSymbolTableData()
   var nextLocTable : CMap[ResourceUri, ResourceUri] = null
   var symbolTable : SymbolTable = st

@@ -26,49 +26,49 @@ object Center {
    * set of records contained by the current Center
    */
   
-	private var records : Set[JawaRecord] = Set()
+	private var records : Set[JawaClass] = Set()
 	
 	/**
    * set of application records contained by the current Center
    */
 	
-	private var applicationRecords : Set[JawaRecord] = Set()
+	private var applicationClasses : Set[JawaClass] = Set()
 	
 	/**
    * set of framework records contained by the current Center
    */
 	
-	private var frameworkRecords : Set[JawaRecord] = Set()
+	private var frameworkClasses : Set[JawaClass] = Set()
   
   /**
    * set of third party lib records contained by the current Center
    */
   
-  private var thirdPartyLibRecords : Set[JawaRecord] = Set()
+  private var thirdPartyLibClasses : Set[JawaClass] = Set()
 	
 	/**
-	 * map from record name to JawaRecord
+	 * map from record name to JawaClass
 	 */
 	
-	private var nameToRecord : Map[String, JawaRecord] = Map()
+	private var nameToClass : Map[String, JawaClass] = Map()
 	
 	/**
    * main records of the current Center
    */
 	
-	private var mainRecord : JawaRecord = null
+	private var mainClass : JawaClass = null
 	
 	/**
    * set of entry points of the current Center
    */
 	
-	private var entryPoints : Set[JawaProcedure] = Set()
+	private var entryPoints : Set[JawaMethod] = Set()
 	
 	/**
 	 * record hierarchy of all records in the current Center
 	 */
 	
-	private var hierarchy : RecordHierarchy = null
+	private var hierarchy : ClassHierarchy = null
 	
 	val DEFAULT_TOPLEVEL_OBJECT = "java.lang.Object"
 	  
@@ -92,24 +92,24 @@ object Center {
    * this special record is used to handle out-of-scope calls 
    */
   def setupCenter = {
-//    val unknown = new JawaRecord
+//    val unknown = new JawaClass
 //    unknown.init(Center.UNKNOWN_RECORD)
-//    unknown.setLibraryRecord
-//    val up = new JawaProcedure
+//    unknown.setLibraryClass
+//    val up = new JawaMethod
 //    up.init(Center.UNKNOWN_PROCEDURE_SIG)
 //    up.setPhantom
-//    unknown.addProcedure(up)
-//    Center.addRecord(unknown)
+//    unknown.addMethod(up)
+//    Center.addClass(unknown)
     
-    val center = new JawaRecord
+    val center = new JawaClass
     center.init(Center.CENTER_RECORD)
-    center.setFrameworkRecord
+    center.setFrameworkClass
     center.setUnknown
-    val cp = new JawaProcedure
+    val cp = new JawaMethod
     cp.init(Center.CENTER_PROCEDURE_SIG)
     cp.setUnknown
-    center.addProcedure(cp)
-    Center.addRecord(center)
+    center.addMethod(cp)
+    Center.addClass(center)
   }
   
   setupCenter
@@ -146,12 +146,12 @@ object Center {
    * resolve records relation
    */
   
-  def resolveRecordsRelation = {
-    getRecords.foreach{
+  def resolveClassesRelation = {
+    getClasses.foreach{
       record =>
         record.needToResolveOuterName match{
 	        case Some(o) =>
-	          tryGetRecord(o) match{
+	          tryGetClass(o) match{
 		          case Some(outer) =>
 		            record.needToResolveOuterName = None
 		            record.setOuterClass(outer)
@@ -162,7 +162,7 @@ object Center {
 		    var resolved : Set[String] = Set()
 		    record.needToResolveExtends.foreach{
 		      recName =>
-		        tryGetRecord(recName) match{
+		        tryGetClass(recName) match{
 		          case Some(parent) =>
 		            resolved += recName
 		            if(parent.isInterface) record.addInterface(parent)
@@ -178,30 +178,30 @@ object Center {
    * resolve records relation of the whole program
    */
   
-  def resolveRecordsRelationWholeProgram = {
+  def resolveClassesRelationWholeProgram = {
 //    if(GlobalConfig.mode < Mode.WHOLE_PROGRAM_TEST) throw new RuntimeException("It is not a whole program mode.")
-    val worklist : MList[JawaRecord] = mlistEmpty
+    val worklist : MList[JawaClass] = mlistEmpty
     var codes : Set[String] = Set()
-    worklist ++= getRecords
+    worklist ++= getClasses
     do{
       codes = Set()
-      var tmpList : List[JawaRecord] = List()
+      var tmpList : List[JawaClass] = List()
 	    while(!worklist.isEmpty){
 	      val record = worklist.remove(0)
 	      record.needToResolveOuterName match{
 	        case Some(o) =>
-	          tryGetRecord(o) match{
+	          tryGetClass(o) match{
 		          case Some(outer) =>
 		            record.needToResolveOuterName = None
 		            record.setOuterClass(outer)
 		            if(!outer.needToResolveExtends.isEmpty || outer.needToResolveOuterName.isDefined) worklist += outer
 		          case None =>
-		            if(JawaCodeSource.containsRecord(o)){
-			            val code = JawaCodeSource.getRecordCode(o, ResolveLevel.HIERARCHY)
+		            if(JawaCodeSource.containsClass(o)){
+			            val code = JawaCodeSource.getClassCode(o, ResolveLevel.HIERARCHY)
 			            codes += code
 			            tmpList ::= record
 		            } else {
-		              val unknownOut = resolveRecord(o, ResolveLevel.HIERARCHY)
+		              val unknownOut = resolveClass(o, ResolveLevel.HIERARCHY)
 		              record.setOuterClass(unknownOut)
 		            }
 		        }
@@ -210,19 +210,19 @@ object Center {
 	      var resolved : Set[String] = Set()
         record.needToResolveExtends.foreach{
 	        parName =>
-		        tryGetRecord(parName) match{
+		        tryGetClass(parName) match{
 		          case Some(parent) =>
 		            resolved += parName
 		            if(parent.isInterface) record.addInterface(parent)
 		            else record.setSuperClass(parent)
 		            if(!parent.needToResolveExtends.isEmpty || parent.needToResolveOuterName.isDefined) worklist += parent
 		          case None =>
-		            if(JawaCodeSource.containsRecord(parName)){
-			            val code = JawaCodeSource.getRecordCode(parName, ResolveLevel.HIERARCHY)
+		            if(JawaCodeSource.containsClass(parName)){
+			            val code = JawaCodeSource.getClassCode(parName, ResolveLevel.HIERARCHY)
 			            codes += code
 			            tmpList ::= record
 		            } else {
-		              val unknownSu = resolveRecord(parName, ResolveLevel.HIERARCHY)
+		              val unknownSu = resolveClass(parName, ResolveLevel.HIERARCHY)
                   record.setSuperClass(unknownSu)
 		            }
 		        }
@@ -236,11 +236,11 @@ object Center {
       }
     }while(!codes.isEmpty)
       
-    getRecords.foreach{
+    getClasses.foreach{
       rec =>
         if(!rec.isUnknown && !rec.hasSuperClass && rec.getName != DEFAULT_TOPLEVEL_OBJECT){
-          if(!hasRecord(DEFAULT_TOPLEVEL_OBJECT)) resolveRecord(DEFAULT_TOPLEVEL_OBJECT, ResolveLevel.HIERARCHY)
-          rec.setSuperClass(getRecord(DEFAULT_TOPLEVEL_OBJECT))
+          if(!hasClass(DEFAULT_TOPLEVEL_OBJECT)) resolveClass(DEFAULT_TOPLEVEL_OBJECT, ResolveLevel.HIERARCHY)
+          rec.setSuperClass(getClass(DEFAULT_TOPLEVEL_OBJECT))
         }
     }
   }
@@ -249,109 +249,109 @@ object Center {
 	 * get all the application records
 	 */
 	
-	def getApplicationRecords = this.applicationRecords
+	def getApplicationClasses = this.applicationClasses
 	
 	/**
 	 * get all the framework records
 	 */
 	
-	def getFrameworkRecords = this.frameworkRecords
+	def getFrameworkClasses = this.frameworkClasses
   
   /**
    * get all the third party lib records
    */
   
-  def getThirdPartyLibRecords = this.thirdPartyLibRecords
+  def getThirdPartyLibClasses = this.thirdPartyLibClasses
 	
 	/**
 	 * add an application record
 	 */
 	
-	def addApplicationRecord(ar : JawaRecord) = {
-    if(this.applicationRecords.contains(ar)) throw new RuntimeException("record " + ar.getName + " already exists in application record set.")
-    this.applicationRecords += ar
+	def addApplicationClass(ar : JawaClass) = {
+    if(this.applicationClasses.contains(ar)) throw new RuntimeException("record " + ar.getName + " already exists in application record set.")
+    this.applicationClasses += ar
   }
 	
 	/**
 	 * add a framework record
 	 */
 	
-	def addFrameworkRecord(l : JawaRecord) = {
-    if(this.frameworkRecords.contains(l)) throw new RuntimeException("record " + l.getName + " already exists in framework record set.")
-    else this.frameworkRecords += l
+	def addFrameworkClass(l : JawaClass) = {
+    if(this.frameworkClasses.contains(l)) throw new RuntimeException("record " + l.getName + " already exists in framework record set.")
+    else this.frameworkClasses += l
 	}
   
   /**
    * add a framework record
    */
   
-  def addThirdPartyLibRecord(l : JawaRecord) = {
-    if(this.thirdPartyLibRecords.contains(l)) throw new RuntimeException("record " + l.getName + " already exists in third party lib record set.")
-    else this.thirdPartyLibRecords += l
+  def addThirdPartyLibClass(l : JawaClass) = {
+    if(this.thirdPartyLibClasses.contains(l)) throw new RuntimeException("record " + l.getName + " already exists in third party lib record set.")
+    else this.thirdPartyLibClasses += l
   }
 	
 	/**
 	 * get records
 	 */
 	
-	def getRecords = this.records
+	def getClasses = this.records
 	
 	/**
 	 * return true if the center has given record
 	 */
 	
-	def hasRecord(name : String) : Boolean = this.nameToRecord.contains(name)
+	def hasClass(name : String) : Boolean = this.nameToClass.contains(name)
 	
 	/**
 	 * get record by a record name. e.g. java.lang.Object
 	 */
 	
-	def getRecord(name : String) : JawaRecord =
-	  this.nameToRecord.getOrElse(name, throw new RuntimeException("record " + name + " does not exist in record set."))
+	def getClass(name : String) : JawaClass =
+	  this.nameToClass.getOrElse(name, throw new RuntimeException("record " + name + " does not exist in record set."))
 	
 	/**
 	 * try to get record by name; if it does not exist, return None
 	 */
 	
-	def tryGetRecord(name : String) : Option[JawaRecord] = {
-	  this.nameToRecord.get(name)
+	def tryGetClass(name : String) : Option[JawaClass] = {
+	  this.nameToClass.get(name)
 	}
 	
 	/**
 	 * remove application record
 	 */
 	
-	def removeApplicationRecords(ar : JawaRecord) = {
-    if(!this.applicationRecords.contains(ar)) throw new RuntimeException("record " + ar.getName + " does not exist in application record set.")
-    else this.applicationRecords -= ar
+	def removeApplicationClasses(ar : JawaClass) = {
+    if(!this.applicationClasses.contains(ar)) throw new RuntimeException("record " + ar.getName + " does not exist in application record set.")
+    else this.applicationClasses -= ar
   }
 	
 	/**
 	 * remove framework record
 	 */
 	
-	def removeFrameworkRecords(l : JawaRecord) = {
-    if(!this.frameworkRecords.contains(l)) throw new RuntimeException("record " + l.getName + " does not exist in framework record set.")
-    else this.frameworkRecords -= l
+	def removeFrameworkClasses(l : JawaClass) = {
+    if(!this.frameworkClasses.contains(l)) throw new RuntimeException("record " + l.getName + " does not exist in framework record set.")
+    else this.frameworkClasses -= l
 	}
   
   /**
    * remove third party lib record
    */
   
-  def removeThirdPartyLibRecords(l : JawaRecord) = {
-    if(!this.thirdPartyLibRecords.contains(l)) throw new RuntimeException("record " + l.getName + " does not exist in third party lib record set.")
-    else this.thirdPartyLibRecords -= l
+  def removeThirdPartyLibClasses(l : JawaClass) = {
+    if(!this.thirdPartyLibClasses.contains(l)) throw new RuntimeException("record " + l.getName + " does not exist in third party lib record set.")
+    else this.thirdPartyLibClasses -= l
   }
 	
 	/**
 	 * get containing set of given record
 	 */
 	
-	def getContainingSet(ar : JawaRecord) : Set[JawaRecord] = {
-    if(ar.isApplicationRecord) this.applicationRecords
-    else if(ar.isFrameworkRecord) this.frameworkRecords
-    else if(ar.isThirdPartyLibRecord) this.thirdPartyLibRecords
+	def getContainingSet(ar : JawaClass) : Set[JawaClass] = {
+    if(ar.isApplicationClass) this.applicationClasses
+    else if(ar.isFrameworkClass) this.frameworkClasses
+    else if(ar.isThirdPartyLibClass) this.thirdPartyLibClasses
     else null
   }
 	
@@ -359,53 +359,53 @@ object Center {
 	 * remove given record from containing set
 	 */
 	
-	def removeFromContainingSet(ar : JawaRecord) = {
-    if(ar.isApplicationRecord) removeApplicationRecords(ar)
-    else if(ar.isFrameworkRecord) removeFrameworkRecords(ar)
-    else if(ar.isThirdPartyLibRecord) removeThirdPartyLibRecords(ar)
+	def removeFromContainingSet(ar : JawaClass) = {
+    if(ar.isApplicationClass) removeApplicationClasses(ar)
+    else if(ar.isFrameworkClass) removeFrameworkClasses(ar)
+    else if(ar.isThirdPartyLibClass) removeThirdPartyLibClasses(ar)
   }
 	
 	/**
 	 * set main record
 	 */
 	
-	def setMainRecord(mr : JawaRecord) = {
-	  if(!mr.declaresProcedure("main([Ljava/lang/String;)V")) throw new RuntimeException("Main record does not have Main procedure")
-	  this.mainRecord = mr
+	def setMainClass(mr : JawaClass) = {
+	  if(!mr.declaresMethod("main([Ljava/lang/String;)V")) throw new RuntimeException("Main record does not have Main procedure")
+	  this.mainClass = mr
 	}
 	
 	/**
 	 * return has main record or not
 	 */
 	
-	def hasMainRecord : Boolean = this.mainRecord != null
+	def hasMainClass : Boolean = this.mainClass != null
 	
 	/**
 	 * get main record
 	 */
 	
-	def getMainRecord : JawaRecord = {
-	  if(!hasMainRecord) throw new RuntimeException("No main record has been set!")
-	  this.mainRecord
+	def getMainClass : JawaClass = {
+	  if(!hasMainClass) throw new RuntimeException("No main record has been set!")
+	  this.mainClass
 	}
 	
 	/**
 	 * get main record
 	 */
 	
-	def tryGetMainRecord : Option[JawaRecord] = {
-	  if(!hasMainRecord) None
-	  else Some(this.mainRecord)
+	def tryGetMainClass : Option[JawaClass] = {
+	  if(!hasMainClass) None
+	  else Some(this.mainClass)
 	}
 	
 	/**
 	 * get main procedure
 	 */
 	
-	def getMainProcedure : JawaProcedure = {
-	  if(!hasMainRecord) throw new RuntimeException("No main record has been set!")
-	  if(!this.mainRecord.declaresProcedure("main([Ljava/lang/String;)V")) throw new RuntimeException("Main record does not have Main procedure")
-	  this.mainRecord.getProcedure("main([Ljava/lang/String;)V")
+	def getMainMethod : JawaMethod = {
+	  if(!hasMainClass) throw new RuntimeException("No main record has been set!")
+	  if(!this.mainClass.declaresMethod("main([Ljava/lang/String;)V")) throw new RuntimeException("Main record does not have Main procedure")
+	  this.mainClass.getMethod("main([Ljava/lang/String;)V")
 	}
 	
 	/**
@@ -413,7 +413,7 @@ object Center {
 	 */
 	
 	def modifyHierarchy = {
-	  releaseRecordHierarchy
+	  releaseClassHierarchy
 	  
 	}
 	
@@ -421,8 +421,8 @@ object Center {
 	 * retrieve the normal record hierarchy
 	 */
 	
-	def getRecordHierarchy : RecordHierarchy ={
-	  if(!hasRecordHierarchy) setRecordHierarchy(new RecordHierarchy().build)
+	def getClassHierarchy : ClassHierarchy ={
+	  if(!hasClassHierarchy) setClassHierarchy(new ClassHierarchy().build)
 	  this.hierarchy
 	}
 	
@@ -430,41 +430,41 @@ object Center {
 	 * set normal record hierarchy
 	 */
 	
-	def setRecordHierarchy(h : RecordHierarchy) = this.hierarchy = h
+	def setClassHierarchy(h : ClassHierarchy) = this.hierarchy = h
 	
 	/**
 	 * check whether record hierarchy available or not
 	 */
 	
-	def hasRecordHierarchy : Boolean = this.hierarchy != null
+	def hasClassHierarchy : Boolean = this.hierarchy != null
 	
 	/**
 	 * release record hierarchy
 	 */
 	
-	def releaseRecordHierarchy = this.hierarchy = null
+	def releaseClassHierarchy = this.hierarchy = null
 	
 	/**
 	 * add record into Center
 	 */
 	
-	def addRecord(ar : JawaRecord) = {
+	def addClass(ar : JawaClass) = {
     if(ar.isInCenter) throw new RuntimeException("already in center: " + ar.getName)
-    if(containsRecord(ar.getName) && getRecord(ar.getName).getResolvingLevel >= ar.getResolvingLevel) throw new RuntimeException("duplicate record: " + ar.getName)
-	  tryRemoveRecord(ar.getName)
+    if(containsClass(ar.getName) && getClass(ar.getName).getResolvingLevel >= ar.getResolvingLevel) throw new RuntimeException("duplicate record: " + ar.getName)
+	  tryRemoveClass(ar.getName)
     this.records += ar
     if(ar.isArray){
-      ar.setFrameworkRecord
-    } else if (JawaCodeSource.containsRecord(ar.getName)){
+      ar.setFrameworkClass
+    } else if (JawaCodeSource.containsClass(ar.getName)){
 	    JawaCodeSource.getCodeType(ar.getName) match{
-	      case JawaCodeSource.CodeType.APP => ar.setApplicationRecord
-	      case JawaCodeSource.CodeType.THIRD_PARTY_LIB => ar.setThirdPartyLibRecord
-	      case JawaCodeSource.CodeType.FRAMEWORK => ar.setFrameworkRecord
+	      case JawaCodeSource.CodeType.APP => ar.setApplicationClass
+	      case JawaCodeSource.CodeType.THIRD_PARTY_LIB => ar.setThirdPartyLibClass
+	      case JawaCodeSource.CodeType.FRAMEWORK => ar.setFrameworkClass
 	    }
     } else {
-      ar.setFrameworkRecord
+      ar.setFrameworkClass
     }
-    this.nameToRecord += (ar.getName -> ar)
+    this.nameToClass += (ar.getName -> ar)
     ar.setInCenter(true)
     modifyHierarchy
   }
@@ -473,13 +473,13 @@ object Center {
 	 * remove record from Center
 	 */
 	
-	def removeRecord(ar : JawaRecord) = {
+	def removeClass(ar : JawaClass) = {
 	  if(!ar.isInCenter) throw new RuntimeException("does not exist in center: " + ar.getName)
 	  this.records -= ar
-	  this.nameToRecord -= ar.getName
-	  if(ar.isFrameworkRecord) this.frameworkRecords -= ar
-    else if(ar.isThirdPartyLibRecord) this.thirdPartyLibRecords -= ar
-	  else if(ar.isApplicationRecord) this.applicationRecords -= ar
+	  this.nameToClass -= ar.getName
+	  if(ar.isFrameworkClass) this.frameworkClasses -= ar
+    else if(ar.isThirdPartyLibClass) this.thirdPartyLibClasses -= ar
+	  else if(ar.isApplicationClass) this.applicationClasses -= ar
 	  ar.setInCenter(false)
 	  modifyHierarchy
 	}
@@ -488,11 +488,11 @@ object Center {
 	 * try to remove record from Center
 	 */
 	
-	def tryRemoveRecord(recordName : String) = {
-	  val aropt = tryGetRecord(recordName)
+	def tryRemoveClass(recordName : String) = {
+	  val aropt = tryGetClass(recordName)
 	  aropt match{
 	    case Some(ar) =>
-			  removeRecord(ar)
+			  removeClass(ar)
 	    case None =>
 	  }
 	}
@@ -501,7 +501,7 @@ object Center {
 	 * get record name from procedure name. e.g. java.lang.Object.equals -> java.lang.Object
 	 */
 	
-	def procedureNameToRecordName(name : String) : String = {
+	def procedureNameToClassName(name : String) : String = {
 	  val index = name.lastIndexOf('.')
 	  if(index < 0) throw new RuntimeException("wrong procedure name: " + name)
 	  name.substring(0, index)
@@ -511,7 +511,7 @@ object Center {
 	 * get record name from procedure signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object
 	 */
 	
-	def getRecordNameFromProcedureSignature(sig : String) : String = StringFormConverter.getRecordNameFromProcedureSignature(sig)
+	def getClassNameFromMethodSignature(sig : String) : String = StringFormConverter.getClassNameFromMethodSignature(sig)
 	
 	/**
 	 * convert type string from signature style to type style. Ljava/lang/Object; -> java.lang.Object 
@@ -523,7 +523,7 @@ object Center {
 	 * get sub-signature from signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> equals:(Ljava/lang/Object;)Z
 	 */
 	
-	def getSubSigFromProcSig(sig : String) : String = StringFormConverter.getSubSigFromProcSig(sig)
+	def getSubSigFromMethodSig(sig : String) : String = StringFormConverter.getSubSigFromMethodSig(sig)
 	
 	/**
 	 * get outer class name from inner class name
@@ -541,21 +541,21 @@ object Center {
 	 * current Center contains the given record or not
 	 */
 	
-	def containsRecord(ar : JawaRecord) = ar.isInCenter
+	def containsClass(ar : JawaClass) = ar.isInCenter
 	
 	/**
 	 * current Center contains the given record or not
 	 */
 	
-	def containsRecord(name : String) = this.nameToRecord.contains(name)
+	def containsClass(name : String) = this.nameToClass.contains(name)
 	
 	/**
 	 * grab field from Center. Input example is java.lang.Throwable.stackState
 	 */
 	def getField(fieldSig : String) : Option[JawaField] = {
-	  val rName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
-	  if(!containsRecord(rName)) return None
-	  val r = getRecord(rName)
+	  val rName = StringFormConverter.getClassNameFromFieldSignature(fieldSig)
+	  if(!containsClass(rName)) return None
+	  val r = getClass(rName)
 	  if(!r.declaresField(fieldSig)) return None
 	  Some(r.getField(fieldSig))
 	}
@@ -570,25 +570,25 @@ object Center {
 	 * get procedure from Center. Input example is Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
 	
-	def getProcedure(procSig : String) : Option[JawaProcedure] = {
-	  val rName = StringFormConverter.getRecordNameFromProcedureSignature(procSig)
-	  val subSig = getSubSigFromProcSig(procSig)
-	  if(!containsRecord(rName)) return None
-	  val r = getRecord(rName)
-	  r.tryGetProcedure(subSig)
+	def getMethod(procSig : String) : Option[JawaMethod] = {
+	  val rName = StringFormConverter.getClassNameFromMethodSignature(procSig)
+	  val subSig = getSubSigFromMethodSig(procSig)
+	  if(!containsClass(rName)) return None
+	  val r = getClass(rName)
+	  r.tryGetMethod(subSig)
 	}
 	
-	def getProcedureDeclarations(procSig : String) : Set[JawaProcedure] = {
-	  val result : MSet[JawaProcedure] = msetEmpty
-	  val rName = StringFormConverter.getRecordNameFromProcedureSignature(procSig)
-	  val subSig = getSubSigFromProcSig(procSig)
-	  if(!containsRecord(rName)) resolveRecord(rName, ResolveLevel.HIERARCHY)
-	  val r = getRecord(rName)
-	  val worklist : MList[JawaRecord] = mlistEmpty
+	def getMethodDeclarations(procSig : String) : Set[JawaMethod] = {
+	  val result : MSet[JawaMethod] = msetEmpty
+	  val rName = StringFormConverter.getClassNameFromMethodSignature(procSig)
+	  val subSig = getSubSigFromMethodSig(procSig)
+	  if(!containsClass(rName)) resolveClass(rName, ResolveLevel.HIERARCHY)
+	  val r = getClass(rName)
+	  val worklist : MList[JawaClass] = mlistEmpty
 	  worklist += r
 	  while(!worklist.isEmpty){
 	    val rec = worklist.remove(0)
-	    rec.tryGetProcedure(subSig) match{
+	    rec.tryGetMethod(subSig) match{
 	      case Some(proc) => result += proc
 	      case None =>
 	        if(rec.hasSuperClass) worklist += rec.getSuperClass
@@ -602,7 +602,7 @@ object Center {
 	 * return true if contains the given procedure. Input example is Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
 	
-	def containsProcedure(procSig : String) : Boolean = getProcedure(procSig).isDefined
+	def containsMethod(procSig : String) : Boolean = getMethod(procSig).isDefined
 	
 	/**
 	 * get field from Center. Input example is java.lang.Throwable.stackState
@@ -620,9 +620,9 @@ object Center {
 	def findField(baseType : Type, fieldSig : String) : Option[JawaField] = {
 	  val rName = baseType.name
 	  val fieldName = StringFormConverter.getFieldNameFromFieldSignature(fieldSig)
-	  tryLoadRecord(rName, ResolveLevel.HIERARCHY)
-	  if(!containsRecord(rName)) return None
-	  var r = getRecord(rName)
+	  tryLoadClass(rName, ResolveLevel.HIERARCHY)
+	  if(!containsClass(rName)) return None
+	  var r = getClass(rName)
 	  while(!r.declaresFieldByName(fieldName) && r.hasSuperClass){
 	    r = r.getSuperClass
 	  }
@@ -641,12 +641,12 @@ object Center {
 	 * find field from Center. Input: @@java.lang.Throwable.stackState
 	 */
 	def findStaticField(fieldSig : String) : Option[JawaField] = {
-	  val baseType = StringFormConverter.getRecordTypeFromFieldSignature(fieldSig)
+	  val baseType = StringFormConverter.getClassTypeFromFieldSignature(fieldSig)
 	  val rName = baseType.name
 	  val fieldName = StringFormConverter.getFieldNameFromFieldSignature(fieldSig)
-	  tryLoadRecord(rName, ResolveLevel.HIERARCHY)
-	  if(!containsRecord(rName)) return None
-	  var r = getRecord(rName)
+	  tryLoadClass(rName, ResolveLevel.HIERARCHY)
+	  if(!containsClass(rName)) return None
+	  var r = getClass(rName)
 	  while(!r.declaresFieldByName(fieldName) && r.hasSuperClass){
 	    r = r.getSuperClass
 	  }
@@ -668,8 +668,8 @@ object Center {
 	 * get procedure from Center. Input: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
 	
-	def getProcedureWithoutFailing(procSig : String) : JawaProcedure = {
-	  getProcedure(procSig) match{
+	def getMethodWithoutFailing(procSig : String) : JawaMethod = {
+	  getMethod(procSig) match{
 	    case Some(p) => p
 	    case None => throw new RuntimeException("Given procedure signature: " + procSig + " is not in the Center.")
 	  }
@@ -688,9 +688,9 @@ object Center {
 	 * get entry points
 	 */
 	
-	def getEntryPoints(entryProcedureName : String) = {
+	def getEntryPoints(entryMethodName : String) = {
 	  if(hasEntryPoints) this.entryPoints == Set()
-	  findEntryPoints(entryProcedureName)
+	  findEntryPoints(entryMethodName)
 	  this.entryPoints
 	}
 	  
@@ -698,17 +698,17 @@ object Center {
 	 * set entry points
 	 */
 	
-	def setEntryPoints(entryPoints : Set[JawaProcedure]) = this.entryPoints ++= entryPoints
+	def setEntryPoints(entryPoints : Set[JawaMethod]) = this.entryPoints ++= entryPoints
 	
 	/**
 	 * find entry points from current app/test cases
 	 */
 	
-	def findEntryPoints(entryProcedureName : String) = {
-	  getApplicationRecords.foreach{
+	def findEntryPoints(entryMethodName : String) = {
+	  getApplicationClasses.foreach{
 	    appRec =>
-	      if(appRec.declaresProcedureByShortName(entryProcedureName))
-	        this.entryPoints += appRec.getProcedureByShortName(entryProcedureName)
+	      if(appRec.declaresMethodByShortName(entryMethodName))
+	        this.entryPoints += appRec.getMethodByShortName(entryMethodName)
 	  }
 	}
 	
@@ -730,9 +730,9 @@ object Center {
 	 * try to resolve given record and load all of the required support based on your desired resolve level.
 	 */
 	
-	def tryLoadRecord(recordName : String, desiredLevel : ResolveLevel.Value) : Option[JawaRecord] = {
+	def tryLoadClass(recordName : String, desiredLevel : ResolveLevel.Value) : Option[JawaClass] = {
 	  this.synchronized{
-	  	JawaResolver.tryResolveRecord(recordName, desiredLevel)
+	  	JawaResolver.tryResolveClass(recordName, desiredLevel)
 	  }
 	}
 	
@@ -740,9 +740,9 @@ object Center {
 	 * resolve given record and load all of the required support.
 	 */
 	
-	def loadRecordAndSupport(recordName : String) : JawaRecord = {
+	def loadClassAndSupport(recordName : String) : JawaClass = {
 	  this.synchronized{
-	  	JawaResolver.resolveRecord(recordName, ResolveLevel.BODY)
+	  	JawaResolver.resolveClass(recordName, ResolveLevel.BODY)
 	  }
 	}
 	
@@ -750,9 +750,9 @@ object Center {
 	 * resolve given record.
 	 */
 	
-	def resolveRecord(recordName : String, desiredLevel : ResolveLevel.Value) : JawaRecord = {
+	def resolveClass(recordName : String, desiredLevel : ResolveLevel.Value) : JawaClass = {
 	  this.synchronized{
-	  	JawaResolver.resolveRecord(recordName, desiredLevel)
+	  	JawaResolver.resolveClass(recordName, desiredLevel)
 	  }
 	}
 	
@@ -760,10 +760,10 @@ object Center {
 	 * softly resolve given record.
 	 */
 	
-	def softlyResolveRecord(recordName : String, desiredLevel : ResolveLevel.Value) : Option[JawaRecord] = {
+	def softlyResolveClass(recordName : String, desiredLevel : ResolveLevel.Value) : Option[JawaClass] = {
 	  this.synchronized{
-		  if(JawaCodeSource.containsRecord(recordName))
-		  	Some(JawaResolver.resolveRecord(recordName, desiredLevel))
+		  if(JawaCodeSource.containsClass(recordName))
+		  	Some(JawaResolver.resolveClass(recordName, desiredLevel))
 		  else None
 	  }
 	}
@@ -772,9 +772,9 @@ object Center {
 	 * force resolve given record to given level
 	 */
 	
-	def forceResolveRecord(recordName : String, desiredLevel : ResolveLevel.Value) : JawaRecord = {
+	def forceResolveClass(recordName : String, desiredLevel : ResolveLevel.Value) : JawaClass = {
 	  this.synchronized{
-	  	JawaResolver.forceResolveRecord(recordName, desiredLevel)
+	  	JawaResolver.forceResolveClass(recordName, desiredLevel)
 	  }
 	}
 	
@@ -794,11 +794,11 @@ object Center {
 	
 	def reset = {
 	  this.records = Set()
-	  this.applicationRecords = Set()
-	  this.frameworkRecords = Set()
-    this.thirdPartyLibRecords = Set()
-	  this.nameToRecord = Map()
-	  this.mainRecord = null
+	  this.applicationClasses = Set()
+	  this.frameworkClasses = Set()
+    this.thirdPartyLibClasses = Set()
+	  this.nameToClass = Map()
+	  this.mainClass = null
 	  this.entryPoints = Set()
 	  this.hierarchy = null
 	  setupCenter
@@ -809,22 +809,22 @@ object Center {
 	 */
 	
 	class CenterImage {
-  	var records : Set[JawaRecord] = Center.records
-  	var applicationRecords : Set[JawaRecord] = Center.applicationRecords
-  	var frameworkRecords : Set[JawaRecord] = Center.frameworkRecords
-    var thirdPartyLibRecords : Set[JawaRecord] = Center.thirdPartyLibRecords
-  	var nameToRecord : Map[String, JawaRecord] = Center.nameToRecord
-  	var mainRecord : JawaRecord = Center.mainRecord
-  	var entryPoints : Set[JawaProcedure] = Center.entryPoints
-  	var hierarchy : RecordHierarchy = Center.hierarchy
+  	var records : Set[JawaClass] = Center.records
+  	var applicationClasses : Set[JawaClass] = Center.applicationClasses
+  	var frameworkClasses : Set[JawaClass] = Center.frameworkClasses
+    var thirdPartyLibClasses : Set[JawaClass] = Center.thirdPartyLibClasses
+  	var nameToClass : Map[String, JawaClass] = Center.nameToClass
+  	var mainClass : JawaClass = Center.mainClass
+  	var entryPoints : Set[JawaMethod] = Center.entryPoints
+  	var hierarchy : ClassHierarchy = Center.hierarchy
   	
 //  	override def equals(obj : Any) : Boolean = {
 //  	  obj match {
 //  	    case img : CenterImage =>
 //  	      if(records == img.records &&
-//  	         applicationRecords == img.applicationRecords &&
-//  	         libraryRecords == img.libraryRecords &&
-//  	         nameToRecord == img.nameToRecord &&
+//  	         applicationClasses == img.applicationClasses &&
+//  	         libraryClasses == img.libraryClasses &&
+//  	         nameToClass == img.nameToClass &&
 //  	         entryPoints == img.entryPoints 
 ////  	         hierarchy == img.hierarchy
 //  	         )
@@ -850,32 +850,32 @@ object Center {
 	def restore(img : CenterImage) = {
 	  reset
 	  this.records = img.records
-	  this.applicationRecords = img.applicationRecords
-	  this.frameworkRecords = img.frameworkRecords
-    this.thirdPartyLibRecords = img.thirdPartyLibRecords
-	  this.nameToRecord = img.nameToRecord
-	  this.mainRecord = img.mainRecord
+	  this.applicationClasses = img.applicationClasses
+	  this.frameworkClasses = img.frameworkClasses
+    this.thirdPartyLibClasses = img.thirdPartyLibClasses
+	  this.nameToClass = img.nameToClass
+	  this.mainClass = img.mainClass
 	  this.entryPoints = img.entryPoints
 	  this.hierarchy = img.hierarchy
 	}
 	
 	def printDetails = {
 	  println("***************Center***************")
-	  println("applicationRecords: " + getApplicationRecords)
-    println("thirdPartyLibRecords: " + getThirdPartyLibRecords)
-	  println("frameworkRecords: " + getFrameworkRecords)
-	  println("noCategorizedRecords: " + (getRecords -- getFrameworkRecords -- getThirdPartyLibRecords -- getApplicationRecords))
-	  println("mainRecord: " + tryGetMainRecord)
+	  println("applicationClasses: " + getApplicationClasses)
+    println("thirdPartyLibClasses: " + getThirdPartyLibClasses)
+	  println("frameworkClasses: " + getFrameworkClasses)
+	  println("noCategorizedClasses: " + (getClasses -- getFrameworkClasses -- getThirdPartyLibClasses -- getApplicationClasses))
+	  println("mainClass: " + tryGetMainClass)
 	  println("entryPoints: " + getEntryPoints)
-	  println("hierarchy: " + getRecordHierarchy)
+	  println("hierarchy: " + getClassHierarchy)
 	  if(DEBUG){
-	  	getRecords.foreach{
+	  	getClasses.foreach{
 	  	  case r=>
 	  	  	r.printDetail
 	  	  	r.getFields.foreach(_.printDetail)
-	  	  	r.getProcedures.foreach(_.printDetail)
+	  	  	r.getMethods.foreach(_.printDetail)
 	  	}
-	  	getRecordHierarchy.printDetails
+	  	getClassHierarchy.printDetails
 	  }
 	  println("******************************")
 	}

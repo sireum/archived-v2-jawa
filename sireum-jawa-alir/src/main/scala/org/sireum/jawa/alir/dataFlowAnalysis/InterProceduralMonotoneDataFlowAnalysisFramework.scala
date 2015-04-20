@@ -195,7 +195,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
       protected def visitBackward(
         currentNode : ICFGLocNode,
         esl : Option[EntrySetListener[LatticeElement]]) : IMap[N, DFF] = {
-        val pst = Center.getProcedureWithoutFailing(currentNode.getOwner).getProcedureBody
+        val pst = Center.getMethodWithoutFailing(currentNode.getOwner).getMethodBody
         val l = pst.location(currentNode.getLocIndex)
         val currentContext = currentNode.getContext
         val callerContext = currentContext.copy.removeTopContext
@@ -369,7 +369,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
       protected def visitForward(
         currentNode : ICFGLocNode,
         esl : Option[EntrySetListener[LatticeElement]]) : IMap[N, DFF] = {
-        val pst = Center.getProcedureWithoutFailing(currentNode.getOwner).getProcedureBody
+        val pst = Center.getMethodWithoutFailing(currentNode.getOwner).getMethodBody
         val l = pst.location(currentNode.getLocIndex)
         val currentContext = currentNode.getContext
         val callerContext = currentContext.copy.removeTopContext

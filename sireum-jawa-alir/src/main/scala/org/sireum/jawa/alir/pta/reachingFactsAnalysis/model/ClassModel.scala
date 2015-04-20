@@ -21,9 +21,9 @@ import org.sireum.jawa.alir.pta._
  */ 
 object ClassModel {
   val TITLE = "ClassModel"
-	def isClass(r : JawaRecord) : Boolean = r.getName == "java.lang.Class"
+	def isClass(r : JawaClass) : Boolean = r.getName == "java.lang.Class"
 	  
-	def doClassCall(s : PTAResult, p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def doClassCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
@@ -182,11 +182,11 @@ object ClassModel {
       cIns =>
         cIns match{
           case cstr @ PTAConcreteStringInstance(text, c) =>
-            val recordName = StringFormConverter.formatClassNameToRecordName(text)
-            val recordOpt = Center.tryLoadRecord(recordName, Center.ResolveLevel.HIERARCHY)
-            recordOpt match{
-              case Some(record) =>
-            		newfacts += RFAFact(VarSlot(retVar), JawaAlirInfoProvider.getClassInstance(record))
+            val classType = StringFormConverter.formatClassNameToType(text)
+            val classOpt = Center.tryLoadClass(classType.name, Center.ResolveLevel.HIERARCHY)
+            classOpt match{
+              case Some(clazz) =>
+            		newfacts += RFAFact(VarSlot(retVar), JawaAlirInfoProvider.getClassInstance(clazz))
               case None =>
                 err_msg_normal(TITLE, "Given class name probably come from another app: " + cIns)
             }

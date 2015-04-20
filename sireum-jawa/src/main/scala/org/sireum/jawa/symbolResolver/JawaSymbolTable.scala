@@ -9,7 +9,7 @@ package org.sireum.jawa.symbolResolver
 
 import org.sireum.pilar.symbol._
 import org.sireum.util._
-import org.sireum.jawa.ProcedureBody
+import org.sireum.jawa.MethodBody
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -60,7 +60,7 @@ class JawaSymbolTable extends SymbolTable with SymbolTableProducer {
     tags += Tag.toTag(fileUri, line, column, offset, length, message,
       WARNING_TAG_TYPE)
 
-  val pdMap = mmapEmpty[ResourceUri, ProcedureBody]
+  val pdMap = mmapEmpty[ResourceUri, MethodBody]
 
   def globalVars = tables.globalVarTable.keys
   def globalVar(globalUri : ResourceUri) = tables.globalVarTable(globalUri)
@@ -76,7 +76,7 @@ class JawaSymbolTable extends SymbolTable with SymbolTableProducer {
 
   def procedureSymbolTableProducer(procedureAbsUri : ResourceUri) = {
     assert(tables.procedureAbsTable.contains(procedureAbsUri))
-    pdMap.getOrElseUpdate(procedureAbsUri, new ProcedureBody(procedureAbsUri, st))
+    pdMap.getOrElseUpdate(procedureAbsUri, new MethodBody(procedureAbsUri, st))
   }
 
   def toSymbolTable : SymbolTable = this

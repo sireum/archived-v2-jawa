@@ -7,12 +7,12 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 
-import org.sireum.jawa.JawaRecord
+import org.sireum.jawa.JawaClass
 import org.sireum.util._
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.alir.pta._
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 import org.sireum.jawa.Center
 import org.sireum.jawa.Type
 import org.sireum.jawa.NormalType
@@ -22,7 +22,7 @@ import org.sireum.jawa.alir.Context
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 object HashSetModel {
-	def isHashSet(r : JawaRecord) : Boolean = r.getName == "java.util.HashSet"
+	def isHashSet(r : JawaClass) : Boolean = r.getName == "java.util.HashSet"
 	  
   private def addItemToHashSetField(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  require(args.size > 1)
@@ -45,7 +45,7 @@ object HashSetModel {
 	  thisValue.map{s => RFAFact(VarSlot(retVar), s.clone(currentContext))}
   }
   
-  def doHashSetCall(s : PTAResult, p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+  def doHashSetCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true

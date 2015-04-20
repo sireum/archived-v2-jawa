@@ -27,7 +27,7 @@ import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.GlobalConfig
 import org.sireum.jawa.Center
 import org.sireum.jawa.alir.interProcedural.Callee
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 import org.sireum.jawa.JawaCodeSource
 import java.util.regex.Pattern
 import org.sireum.jawa.alir.callGraph.CallGraph
@@ -187,8 +187,8 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     }
   
   /**
-   * (We ASSUME that predecessors ???? and successors of n are within the same procedure as of n)
-   * So, this algorithm is only for an internal node of a procedure NOT for a procedure's Entry node or Exit node
+   * (We ASSUME that predecessors ???? and successors of n are within the same method as of n)
+   * So, this algorithm is only for an internal node of a method NOT for a method's Entry node or Exit node
    * The algorithm is obvious from the following code 
    */
   def compressByDelNode (n : Node) = {
@@ -222,7 +222,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     var calleeIndex = 0
     nodes.foreach(
         gNode => {   // ******* below check the hard-coded path for testing ***********
-          if(!gNode.toString().contains("pilar:/procedure/default/%5B%7Cde::mobinauten") && gNode.toString().endsWith(".Entry"))
+          if(!gNode.toString().contains("pilar:/method/default/%5B%7Cde::mobinauten") && gNode.toString().endsWith(".Entry"))
           {
             calleeMap(gNode) = ('A' + calleeIndex).toChar
             println("in calleeMap: node " + gNode.toString() + "  has label = " + calleeMap(gNode))
@@ -266,12 +266,12 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     this.succBranchMap ++= icfg.succBranchMap
   }
   
-  def collectCfgToBaseGraph[VirtualLabel](calleeProc : JawaProcedure, callerContext : Context, isFirst : Boolean = false) = {
+  def collectCfgToBaseGraph[VirtualLabel](calleeProc : JawaMethod, callerContext : Context, isFirst : Boolean = false) = {
     this.synchronized{
 	    val calleeSig = calleeProc.getSignature
 	    if(!calleeProc.checkLevel(Center.ResolveLevel.BODY)) calleeProc.resolveBody
-	    val body = calleeProc.getProcedureBody
-	    val rawcode = JawaCodeSource.getProcedureCodeWithoutFailing(calleeProc.getSignature)
+	    val body = calleeProc.getMethodBody
+	    val rawcode = JawaCodeSource.getMethodCodeWithoutFailing(calleeProc.getSignature)
 	    val codes = rawcode.split("\\r?\\n")
 	    val cfg = JawaAlirInfoProvider.getCfg(calleeProc)
 	    var nodes = isetEmpty[Node]
@@ -449,7 +449,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
       n =>
         n match{
           case cn : ICFGCallNode =>
-            cn.getCalleeSet.exists { c => !c.callee.getDeclaringRecord.isFrameworkRecord }
+            cn.getCalleeSet.exists { c => !c.callee.getDeclaringClass.isFrameworkClass }
           case _ => true
         }
     }
@@ -459,7 +459,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
   
   private def getSignatureFromCallNode(node : Node) : String = {
     assume(node.isInstanceOf[ICFGCallNode])
-    val loc = Center.getProcedureWithoutFailing(node.getOwner).getProcedureBody.location(node.asInstanceOf[ICFGCallNode].getLocIndex)
+    val loc = Center.getMethodWithoutFailing(node.getOwner).getMethodBody.location(node.asInstanceOf[ICFGCallNode].getLocIndex)
     val sig = loc.asInstanceOf[JumpLocation].jump.getValueAnnotation("signature") match {
       case Some(s) => s match {
         case ne : NameExp => ne.name.name
@@ -629,12 +629,12 @@ abstract class ICFGVirtualNode(context : Context) extends ICFGNode(context) {
 }
 
 final case class ICFGEntryNode(context : Context) extends ICFGVirtualNode(context){
-  this.code = "Entry: " + context.getProcedureSig
+  this.code = "Entry: " + context.getMethodSig
   def getVirtualLabel : String = "Entry"
 }
 
 final case class ICFGExitNode(context : Context) extends ICFGVirtualNode(context){
-  this.code = "Exit: " + context.getProcedureSig
+  this.code = "Exit: " + context.getMethodSig
   def getVirtualLabel : String = "Exit"
 }
 

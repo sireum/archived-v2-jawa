@@ -12,7 +12,6 @@ import java.util.zip.GZIPInputStream
 import java.io.FileInputStream
 import org.sireum.jawa.xml.AndroidXStream
 import org.sireum.util._
-import org.sireum.jawa.JawaProcedure
 import java.io.File
 
 /**

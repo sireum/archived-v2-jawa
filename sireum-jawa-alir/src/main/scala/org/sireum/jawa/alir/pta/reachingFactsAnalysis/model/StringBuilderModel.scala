@@ -19,7 +19,7 @@ import org.sireum.jawa.alir.pta._
  */ 
 object StringBuilderModel {
   
-  def isStringBuilder(r : JawaRecord) : Boolean = r.getName == "java.lang.StringBuilder"
+  def isStringBuilder(r : JawaClass) : Boolean = r.getName == "java.lang.StringBuilder"
 	
 	private def getReturnFactsWithAlias(rType : Type, retVar : String, currentContext : Context, alias : ISet[Instance]) : ISet[RFAFact] = 
     alias.map{a=>RFAFact(VarSlot(retVar), a)}
@@ -162,7 +162,7 @@ object StringBuilderModel {
     
 
      
-	def doStringBuilderCall(s : PTAResult, p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def doStringBuilderCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var deleteFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true

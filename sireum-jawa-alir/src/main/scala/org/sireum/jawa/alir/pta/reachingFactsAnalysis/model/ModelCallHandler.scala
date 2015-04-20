@@ -7,9 +7,9 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 import org.sireum.util._
-import org.sireum.jawa.JawaRecord
+import org.sireum.jawa.JawaClass
 import org.sireum.jawa.Type
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.Center
@@ -27,8 +27,8 @@ trait ModelCallHandler {
   /**
    * return true if the given callee procedure needs to be modeled
    */
-  def isModelCall(calleeProc : JawaProcedure) : Boolean = {
-	  val r = calleeProc.getDeclaringRecord
+  def isModelCall(calleeProc : JawaMethod) : Boolean = {
+	  val r = calleeProc.getDeclaringClass
 	  StringBuilderModel.isStringBuilder(r) ||
 	  StringModel.isString(r) || 
 	  HashSetModel.isHashSet(r) || 
@@ -42,7 +42,7 @@ trait ModelCallHandler {
   /**
    * instead of doing operation inside callee procedure's real code, we do it manually and return the result. 
    */
-	def doModelCall(s : PTAResult, calleeProc : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
+	def doModelCall(s : PTAResult, calleeProc : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
 	  var (newFacts, delFacts, byPassFlag) = caculateResult(s, calleeProc, args, retVars, currentContext)
 	  if(byPassFlag){
 	  	val (newF, delF) = ReachingFactsAnalysisHelper.getUnknownObject(calleeProc, s, args, retVars, currentContext)
@@ -52,8 +52,8 @@ trait ModelCallHandler {
 	  (newFacts, delFacts)
 	}
 	
-	def caculateResult(s : PTAResult, calleeProc : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
-	  val r = calleeProc.getDeclaringRecord
+	def caculateResult(s : PTAResult, calleeProc : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	  val r = calleeProc.getDeclaringClass
 	  if(StringModel.isString(r)) StringModel.doStringCall(s, calleeProc, args, retVars, currentContext)
 	  else if(StringBuilderModel.isStringBuilder(r)) StringBuilderModel.doStringBuilderCall(s, calleeProc, args, retVars, currentContext)
 	  else if(HashSetModel.isHashSet(r)) HashSetModel.doHashSetCall(s, calleeProc, args, retVars, currentContext)

@@ -12,7 +12,7 @@ import org.sireum.util._
 
 
 /**
- * This class is an amandroid representation of a pilar record. A record corresponds to a class or an interface of the source code. They are usually created by Amandroid Resolver.
+ * This class is an jawa class representation of a pilar record. A record corresponds to a class or an interface of the source code. They are usually created by jawa Resolver.
  * You can also construct it manually. Call init() method first when you want to do any further things.
  * 
  * 
@@ -20,7 +20,7 @@ import org.sireum.util._
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  *
  */
-class JawaRecord extends ResolveLevel{
+class JawaClass extends ResolveLevel {
   
   val constructorName : String = "<init>"
 	val staticInitializerName : String = "<clinit>"
@@ -65,31 +65,31 @@ class JawaRecord extends ResolveLevel{
    * set of procedures which belong to this record
    */
   
-  protected var procedures : Set[JawaProcedure] = Set()
+  protected var procedures : Set[JawaMethod] = Set()
   
   /**
    * set of interfaces which this record extends or implements 
    */
   
-  protected var interfaces : Set[JawaRecord] = Set()
+  protected var interfaces : Set[JawaClass] = Set()
   
   /**
    * super class of this record
    */
   
-  protected var superClass : JawaRecord = null
+  protected var superClass : JawaClass = null
   
   /**
    * outer class of this record
    */
   
-  protected var outerClass : JawaRecord = null
+  protected var outerClass : JawaClass = null
   
   /**
    * map from sub-signature to procedure
    */
   
-  protected var subSigToProcedures : Map[String, JawaProcedure] = Map()
+  protected var subSigToMethods : Map[String, JawaMethod] = Map()
   
   /**
    * true: is phantom, which means it's not available in our code repo
@@ -135,7 +135,7 @@ class JawaRecord extends ResolveLevel{
    * when you construct a amandroid record instance, call this init function first
    */
   
-  def init(name : String, accessFlags : Int) : JawaRecord = {
+  def init(name : String, accessFlags : Int): JawaClass = {
     setName(name)
     this.accessFlags = accessFlags
     this
@@ -145,7 +145,7 @@ class JawaRecord extends ResolveLevel{
    * when you construct a amandroid record instance, call this init function first
    */
   
-  def init(name : String) : JawaRecord = init(name, 0)
+  def init(name : String): JawaClass = init(name, 0)
   
   /**
    * if the amandroidrecord is array type return true
@@ -245,7 +245,7 @@ class JawaRecord extends ResolveLevel{
 	
 	def getFields = {
     var results = getDeclaredFields
-    var worklist : Set[JawaRecord] = Set()
+    var worklist : Set[JawaClass] = Set()
     worklist += this
     while(!worklist.isEmpty){
       worklist =
@@ -262,7 +262,7 @@ class JawaRecord extends ResolveLevel{
 			        else Set[JawaField]()
 	          results ++= fields
 	          parents
-	      }.reduce(iunion[JawaRecord])
+	      }.reduce(iunion[JawaClass])
     }
     results
   }
@@ -340,7 +340,7 @@ class JawaRecord extends ResolveLevel{
 	def addField(field : JawaField) = {
 	  if(field.isDeclared) throw new RuntimeException("already declared: " + field.getName)
 	  this.fields += field
-	  field.setDeclaringRecord(this)
+	  field.setDeclaringClass(this)
 	}
 	
   /**
@@ -381,9 +381,9 @@ class JawaRecord extends ResolveLevel{
 	 */
 	
 	def removeField(field : JawaField) = {
-	  if(!field.isDeclared || field.getDeclaringRecord != this) throw new RuntimeException("did not declare: " + field.getName)
+	  if(!field.isDeclared || field.getDeclaringClass != this) throw new RuntimeException("did not declare: " + field.getName)
 	  this.fields -= field
-	  field.clearDeclaringRecord
+	  field.clearDeclaringClass
 	}
 	
 	/**
@@ -416,14 +416,14 @@ class JawaRecord extends ResolveLevel{
 	 * get procedure from this record by the given subsignature
 	 */
 	
-	def getProcedure(subSig : String) : JawaProcedure = {
-	  tryGetProcedure(subSig) match{
+	def getMethod(subSig : String) : JawaMethod = {
+	  tryGetMethod(subSig) match{
       case Some(p) => p
       case None => 
         if(isUnknown){
-          val sig = StringFormConverter.getSigFromOwnerAndProcSubSig(getName, subSig)
-          val proc = new JawaProcedure().init(sig)
-          addProcedure(proc)
+          val sig = StringFormConverter.getSigFromOwnerAndMethodSubSig(getName, subSig)
+          val proc = new JawaMethod().init(sig)
+          addMethod(proc)
           proc
         } else throw new RuntimeException("No procedure " + subSig + " in record " + getName)
     }
@@ -433,29 +433,29 @@ class JawaRecord extends ResolveLevel{
 	 * try to get procedure from this record by the given subsignature
 	 */
 	
-	def tryGetProcedure(subSig : String) : Option[JawaProcedure] = {
-	  this.subSigToProcedures.get(subSig)
+	def tryGetMethod(subSig : String) : Option[JawaMethod] = {
+	  this.subSigToMethods.get(subSig)
 	}
 	
 	/**
 	 * get procedure from this record by the given subsignature
 	 */
 	
-	def getProcedureByName(procName : String) : JawaProcedure = {
-	  if(!declaresProcedureByName(procName)) throw new RuntimeException("No procedure " + procName + " in record " + getName)
+	def getMethodByName(procName : String) : JawaMethod = {
+	  if(!declaresMethodByName(procName)) throw new RuntimeException("No procedure " + procName + " in record " + getName)
 	  var found = false
-	  var foundProcedure : JawaProcedure = null
-	  getProcedures.foreach{
+	  var foundMethod : JawaMethod = null
+	  getMethods.foreach{
 	    proc=>
 	      if(proc.getName == procName){
 	        if(found) throw new RuntimeException("ambiguous procedure" + procName)
 	        else {
 	          found = true
-	          foundProcedure = proc
+	          foundMethod = proc
 	        }
 	      }
 	  }
-	  if(found) foundProcedure
+	  if(found) foundMethod
 	  else throw new RuntimeException("couldn't find method " + procName + "(*) in " + this)
 	}
 	
@@ -463,21 +463,21 @@ class JawaRecord extends ResolveLevel{
 	 * get procedure from this record by the given subsignature
 	 */
 	
-	def getProcedureByShortName(procShortName : String) : JawaProcedure = {
-	  if(!declaresProcedureByShortName(procShortName)) throw new RuntimeException("No procedure " + procShortName + " in record " + getName)
+	def getMethodByShortName(procShortName : String) : JawaMethod = {
+	  if(!declaresMethodByShortName(procShortName)) throw new RuntimeException("No procedure " + procShortName + " in record " + getName)
 	  var found = false
-	  var foundProcedure : JawaProcedure = null
-	  getProcedures.foreach{
+	  var foundMethod : JawaMethod = null
+	  getMethods.foreach{
 	    proc=>
 	      if(proc.getShortName == procShortName){
 	        if(found) throw new RuntimeException("ambiguous procedure " + procShortName)
 	        else {
 	          found = true
-	          foundProcedure = proc
+	          foundMethod = proc
 	        }
 	      }
 	  }
-	  if(found) foundProcedure
+	  if(found) foundMethod
 	  else throw new RuntimeException("couldn't find method " + procShortName + "(*) in " + this)
 	}
 	
@@ -485,48 +485,48 @@ class JawaRecord extends ResolveLevel{
 	 * get procedure from this record by the given procedure name
 	 */
 	
-	def getProceduresByName(procName : String) : Set[JawaProcedure] = {
-	  getProcedures.filter(proc=> proc.getName == procName)
+	def getMethodsByName(procName : String) : Set[JawaMethod] = {
+	  getMethods.filter(proc=> proc.getName == procName)
 	}
 	
 	/**
 	 * get procedure from this record by the given short proc name
 	 */
 	
-	def getProceduresByShortName(procShortName : String) : Set[JawaProcedure] = {
-	  getProcedures.filter(proc=> proc.getShortName == procShortName)
+	def getMethodsByShortName(procShortName : String) : Set[JawaMethod] = {
+	  getMethods.filter(proc=> proc.getShortName == procShortName)
 	}
 	
 	/**
 	 * get static initializer of this record
 	 */
 	
-	def getStaticInitializer : JawaProcedure = getProcedureByShortName(this.staticInitializerName)
+	def getStaticInitializer : JawaMethod = getMethodByShortName(this.staticInitializerName)
 	
 	/**
 	 * whether this procedure exists in the record or not
 	 */
 	
-	def declaresProcedure(subSig : String) : Boolean = this.subSigToProcedures.contains(subSig)
+	def declaresMethod(subSig : String) : Boolean = this.subSigToMethods.contains(subSig)
 	
 	/**
 	 * get procedure size of this record
 	 */
 	
-	def getProcedureSize : Int = this.procedures.size
+	def getMethodSize : Int = this.procedures.size
 	
 	/**
 	 * get procedures of this record
 	 */
 	
-	def getProcedures = this.procedures
+	def getMethods = this.procedures
 	
 	/**
 	 * get procedure by the given name, parameter types and return type
 	 */
 	
-	def getProcedure(name : String, paramTyps : List[String], returnTyp : Type) : JawaProcedure = {
-	  var ap : JawaProcedure = null
+	def getMethod(name : String, paramTyps : List[String], returnTyp : Type) : JawaMethod = {
+	  var ap : JawaMethod = null
 	  this.procedures.foreach{
 	    proc=>
 	      if(proc.getName == name && proc.getParamTypes == paramTyps && proc.getReturnType == returnTyp) ap = proc
@@ -539,7 +539,7 @@ class JawaRecord extends ResolveLevel{
 	 * does procedure exist with the given name, parameter types and return type?
 	 */
 	
-	def declaresProcedure(name : String, paramTyps : List[String], returnTyp : Type) : Boolean = {
+	def declaresMethod(name : String, paramTyps : List[String], returnTyp : Type) : Boolean = {
 	  var find : Boolean = false
 	  this.procedures.foreach{
 	    proc=>
@@ -552,7 +552,7 @@ class JawaRecord extends ResolveLevel{
 	 * does procedure exist with the given name and parameter types?
 	 */
 	
-	def declaresProcedure(name : String, paramTyps : List[String]) : Boolean = {
+	def declaresMethod(name : String, paramTyps : List[String]) : Boolean = {
 	  var find : Boolean = false
 	  this.procedures.foreach{
 	    proc=>
@@ -565,7 +565,7 @@ class JawaRecord extends ResolveLevel{
 	 * does procedure exists with the given name?
 	 */
 	
-	def declaresProcedureByName(name : String) : Boolean = {
+	def declaresMethodByName(name : String) : Boolean = {
 	  var find : Boolean = false
 	  this.procedures.foreach{
 	    proc=>
@@ -578,7 +578,7 @@ class JawaRecord extends ResolveLevel{
 	 * does procedure exists with the given short name?
 	 */
 	
-	def declaresProcedureByShortName(name : String) : Boolean = {
+	def declaresMethodByShortName(name : String) : Boolean = {
 	  var find : Boolean = false
 	  this.procedures.foreach{
 	    proc=>
@@ -591,31 +591,31 @@ class JawaRecord extends ResolveLevel{
 	 * return true if this record has static initializer
 	 */
 	
-	def declaresStaticInitializer : Boolean = declaresProcedureByShortName(this.staticInitializerName)
+	def declaresStaticInitializer : Boolean = declaresMethodByShortName(this.staticInitializerName)
 	
 	/**
 	 * add the given procedure to this record
 	 */
 	
-	def addProcedure(ap : JawaProcedure) = {
-	  if(ap.isDeclared) throw new RuntimeException(ap.getName + " is already declared in record " + ap.getDeclaringRecord.getName)
+	def addMethod(ap : JawaMethod) = {
+	  if(ap.isDeclared) throw new RuntimeException(ap.getName + " is already declared in record " + ap.getDeclaringClass.getName)
 
-	  if(this.subSigToProcedures.contains(ap.getSubSignature)) throw new RuntimeException("The procedure " + ap.getName + " is already declared in record " + getName)
-	  this.subSigToProcedures += (ap.getSubSignature -> ap)
+	  if(this.subSigToMethods.contains(ap.getSubSignature)) throw new RuntimeException("The procedure " + ap.getName + " is already declared in record " + getName)
+	  this.subSigToMethods += (ap.getSubSignature -> ap)
 	  this.procedures += ap
-	  ap.setDeclaringRecord(this)
+	  ap.setDeclaringClass(this)
 	}
 	
 	/**
 	 * remove the given procedure from this record
 	 */
 	
-	def removeProcedure(ap : JawaProcedure) = {
-	  if(!ap.isDeclared || ap.getDeclaringRecord != this) throw new RuntimeException("Not correct declarer for remove: " + ap.getName)
-	  if(!this.subSigToProcedures.contains(ap.getSubSignature)) throw new RuntimeException("The procedure " + ap.getName + " is not declared in record " + getName)
-	  this.subSigToProcedures -= ap.getSubSignature
+	def removeMethod(ap : JawaMethod) = {
+	  if(!ap.isDeclared || ap.getDeclaringClass != this) throw new RuntimeException("Not correct declarer for remove: " + ap.getName)
+	  if(!this.subSigToMethods.contains(ap.getSubSignature)) throw new RuntimeException("The procedure " + ap.getName + " is not declared in record " + getName)
+	  this.subSigToMethods -= ap.getSubSignature
 	  this.procedures -= ap
-	  ap.clearDeclaringRecord
+	  ap.clearDeclaringClass
 	}
 	
 	/**
@@ -646,7 +646,7 @@ class JawaRecord extends ResolveLevel{
 	 * add an interface which is directly implemented by this record
 	 */
 	
-	def addInterface(i : JawaRecord) = {
+	def addInterface(i : JawaClass) = {
     if(!i.isInterface) throw new RuntimeException("This is not an interface:" + i)
 	  this.interfaces += i
 	}
@@ -655,7 +655,7 @@ class JawaRecord extends ResolveLevel{
 	 * add an interface which is directly implemented by this record
 	 */
 	
-	def addInterfaceCheck(i : JawaRecord) = {
+	def addInterfaceCheck(i : JawaClass) = {
 	  if(implementsInterface(i.getName)) throw new RuntimeException("already implements this interface: " + i.getName)
 	  addInterface(i)
 	}
@@ -664,7 +664,7 @@ class JawaRecord extends ResolveLevel{
 	 * remove an interface from this record
 	 */
 	
-	def removeInterface(i : JawaRecord) = {
+	def removeInterface(i : JawaClass) = {
     if(!i.isInterface) throw new RuntimeException("This is not an interface:" + i)
     this.interfaces += i
 	  if(implementsInterface(i.getName)) throw new RuntimeException("no such interface: " + i.getName)
@@ -681,7 +681,7 @@ class JawaRecord extends ResolveLevel{
 	 * get the super class
 	 */
 	
-	def getSuperClass : JawaRecord = {
+	def getSuperClass : JawaClass = {
 	  if(!hasSuperClass) throw new RuntimeException("no super class for: " + getName)
 	  else this.superClass
 	}
@@ -690,7 +690,7 @@ class JawaRecord extends ResolveLevel{
 	 * try to get the super class
 	 */
 	
-	def tryGetSuperClass : Option[JawaRecord] = {
+	def tryGetSuperClass : Option[JawaClass] = {
 	  if(!hasSuperClass) None
 	  else Some(this.superClass)
 	}
@@ -699,7 +699,7 @@ class JawaRecord extends ResolveLevel{
 	 * set the super class
 	 */
 	
-	def setSuperClass(sc : JawaRecord) = {
+	def setSuperClass(sc : JawaClass) = {
 	  this.superClass = sc
 	}
 	
@@ -713,7 +713,7 @@ class JawaRecord extends ResolveLevel{
 	 * get the outer class
 	 */
 	
-	def getOuterClass : JawaRecord = {
+	def getOuterClass : JawaClass = {
 	  if(!hasOuterClass) throw new RuntimeException("no outer class for: " + getName)
 	  else this.outerClass
 	}
@@ -722,7 +722,7 @@ class JawaRecord extends ResolveLevel{
 	 * try to get the outer class
 	 */
 	
-	def tryGetOuterClass : Option[JawaRecord] = {
+	def tryGetOuterClass : Option[JawaClass] = {
 	  if(!hasOuterClass) None
 	  else Some(this.outerClass)
 	}
@@ -731,7 +731,7 @@ class JawaRecord extends ResolveLevel{
 	 * set outer class
 	 */
 	
-	def setOuterClass(oc : JawaRecord) = {
+	def setOuterClass(oc : JawaClass) = {
 	  this.outerClass = oc
 	}
 	
@@ -793,57 +793,57 @@ class JawaRecord extends ResolveLevel{
    * return true if it's a child of given record
    */
   
-  def isChildOf(rec : JawaRecord) : Boolean = {
-	  Center.getRecordHierarchy.getAllSuperClassesOf(this).contains(rec)
+  def isChildOf(rec : JawaClass): Boolean = {
+	  Center.getClassHierarchy.getAllSuperClassesOf(this).contains(rec)
 	}
   
   /**
    * is this record an application record
    */
   
-  def isApplicationRecord : Boolean = Center.getApplicationRecords.contains(this)
+  def isApplicationClass : Boolean = Center.getApplicationClasses.contains(this)
   
   /**
    * set this record as an application record
    */
   
-  def setApplicationRecord = {
+  def setApplicationClass = {
 	  val c = Center.getContainingSet(this)
 	  if(c != null) Center.removeFromContainingSet(this)
-	  Center.addApplicationRecord(this)
+	  Center.addApplicationClass(this)
 	}
 	
 	/**
    * is this record  a framework record
    */
   
-  def isFrameworkRecord : Boolean = Center.getFrameworkRecords.contains(this)
+  def isFrameworkClass : Boolean = Center.getFrameworkClasses.contains(this)
   
   /**
    * is this record  a third party lib record
    */
   
-  def isThirdPartyLibRecord : Boolean = Center.getThirdPartyLibRecords.contains(this)
+  def isThirdPartyLibClass : Boolean = Center.getThirdPartyLibClasses.contains(this)
   
   
   /**
    * set this record as a framework record
    */
   
-  def setFrameworkRecord = {
+  def setFrameworkClass = {
 	  val c = Center.getContainingSet(this)
 	  if(c != null) Center.removeFromContainingSet(this)
-	  Center.addFrameworkRecord(this)
+	  Center.addFrameworkClass(this)
 	}
   
   /**
    * set this record as a third party lib record
    */
   
-  def setThirdPartyLibRecord = {
+  def setThirdPartyLibClass = {
     val c = Center.getContainingSet(this)
     if(c != null) Center.removeFromContainingSet(this)
-    Center.addThirdPartyLibRecord(this)
+    Center.addThirdPartyLibClass(this)
   }
   
   /**
@@ -863,18 +863,18 @@ class JawaRecord extends ResolveLevel{
 	 * retrieve code belong to this record
 	 */
 	
-	def retrieveCode = JawaCodeSource.getRecordCode(getName, Center.ResolveLevel.BODY)
+	def retrieveCode = JawaCodeSource.getClassCode(getName, Center.ResolveLevel.BODY)
 	
 	/**
 	 * update resolving level for current record
 	 */
 	
 	def updateResolvingLevel = {
-    setResolvingLevel(getProcedures.map(_.getResolvingLevel).reduceLeft((x, y) => if(x < y) x else y))
+    setResolvingLevel(getMethods.map(_.getResolvingLevel).reduceLeft((x, y) => if(x < y) x else y))
   }
 	
 	def printDetail = {
-    println("++++++++++++++++AmandroidRecord++++++++++++++++")
+    println("++++++++++++++++AmandroidClass++++++++++++++++")
     println("recName: " + getName)
     println("packageName: " + getPackageName)
     println("shortName: " + getShortName)
@@ -884,7 +884,7 @@ class JawaRecord extends ResolveLevel{
     println("accessFlags: " + getAccessFlagString)
     println("isInCenter: " + isInCenter)
     println("fields: " + getFields)
-    println("procedures: " + getProcedures)
+    println("procedures: " + getMethods)
     println("++++++++++++++++++++++++++++++++")
   }
 	

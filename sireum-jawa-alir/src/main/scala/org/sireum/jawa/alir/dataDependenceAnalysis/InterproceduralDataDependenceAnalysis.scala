@@ -13,7 +13,7 @@ import org.sireum.jawa.Center
 import org.sireum.jawa.MessageCenter._
 import org.sireum.jawa.alir.pta.NullInstance
 import org.sireum.jawa.alir.pta.UnknownInstance
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 import org.sireum.alir.ReachingDefinitionAnalysis
 import org.sireum.alir.ControlFlowGraph
 import org.sireum.alir.ParamDefDesc
@@ -85,7 +85,7 @@ object InterproceduralDataDependenceAnalysis {
 	            targetNodes ++= icfgTarN.map(n => iddg.findDefSite(n.getContext, en.position))
 	          case en : IDDGExitParamNode =>
 	            val icfgN = icfg.getICFGExitNode(en.getContext)
-	            val proc =  Center.getProcedureWithoutFailing(icfgN.getOwner)
+	            val proc =  Center.getMethodWithoutFailing(icfgN.getOwner)
 	            val procName = en.paramName
 	            val irdaFacts = irdaResult(icfgN)
 	            targetNodes ++= searchRda(procName, en, irdaFacts, iddg)
@@ -115,8 +115,8 @@ object InterproceduralDataDependenceAnalysis {
 	            targetNodes ++= processVirtualBody(vn, ptaresult, irdaFacts, iddg)
 	          case ln : IDDGNormalNode =>
 	            val icfgN = icfg.getICFGNormalNode(ln.getContext)
-	            val ownerProc = Center.getProcedureWithoutFailing(ln.getOwner)
-				      val loc = ownerProc.getProcedureBody.location(ln.getLocIndex)
+	            val ownerProc = Center.getMethodWithoutFailing(ln.getOwner)
+				      val loc = ownerProc.getMethodBody.location(ln.getLocIndex)
 				      val irdaFacts = irdaResult(icfgN)
 	    	      targetNodes ++= processLocation(node, loc, ptaresult, irdaFacts, iddg)
 	          case a => 
@@ -163,7 +163,7 @@ object InterproceduralDataDependenceAnalysis {
     calleeSet.foreach{
       callee =>
         val calleep = callee.callee
-        if(calleep.getDeclaringRecord.isFrameworkRecord || calleep.getDeclaringRecord.isThirdPartyLibRecord){
+        if(calleep.getDeclaringClass.isFrameworkClass || calleep.getDeclaringClass.isThirdPartyLibClass){
           val sideEffectResult = if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleep.getSignature)
           											 else None
           for(i <- 0 to virtualBodyNode.argNames.size - 1){
@@ -326,8 +326,8 @@ object InterproceduralDataDependenceAnalysis {
           ins =>
             result += iddg.findDefSite(ins.getDefSite)
             if(!ins.isInstanceOf[NullInstance]){ // if(!ins.isInstanceOf[NullInstance] && !ins.isInstanceOf[UnknownInstance]){
-              val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
-              val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
+              val recName = StringFormConverter.getClassNameFromFieldSignature(fieldSig)
+              val rec = Center.resolveClass(recName, Center.ResolveLevel.HIERARCHY)
               if(!rec.isArray){ // if(!rec.isUnknown && !rec.isArray){
 	              val fName = rec.getField(fieldSig).getName
 		            val fieldSlot = FieldSlot(ins, fName)
@@ -386,7 +386,7 @@ object InterproceduralDataDependenceAnalysis {
 	          calleeSet.foreach{
 	            callee =>
 	              val calleep = callee.callee
-	              if(calleep.getDeclaringRecord.isFrameworkRecord || calleep.getDeclaringRecord.isThirdPartyLibRecord){
+	              if(calleep.getDeclaringClass.isFrameworkClass || calleep.getDeclaringClass.isThirdPartyLibClass){
 	                val sideEffectResult = if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleep.getSignature)
 	                											 else None
 		              for(i <- 0 to argSlots.size - 1){
@@ -472,7 +472,7 @@ object InterproceduralDataDependenceAnalysis {
             case dd : DefDesc =>
               if(dd.isDefinedInitially && !varName.startsWith("@@")){
                 val indexs : MSet[Int] = msetEmpty
-                val owner = Center.getProcedureWithoutFailing(node.getOwner)
+                val owner = Center.getMethodWithoutFailing(node.getOwner)
                 val paramNames = owner.getParamNames
                 val paramTyps = owner.getParamTypes
                 var index = 0

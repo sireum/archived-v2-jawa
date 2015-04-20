@@ -17,6 +17,6 @@ trait ScopeManager {
 	/**
 	 * return true if given record needs to be bypassed
 	 */
-  def shouldBypass(rec : JawaRecord) : Boolean
+  def shouldBypass(rec : JawaClass) : Boolean
   
 }

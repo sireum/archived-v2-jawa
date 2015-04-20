@@ -11,7 +11,7 @@ import org.sireum.util._
 import java.io._
 import org.sireum.jawa.PointsCollector
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 import org.sireum.jawa.GlobalConfig
 import org.sireum.jawa.PointBaseR
 
@@ -20,19 +20,19 @@ import org.sireum.jawa.PointBaseR
  */ 
 class IntraprocedureSuperSpark {
 
-  def apply(ap : JawaProcedure)
+  def apply(ap : JawaMethod)
   = build(ap)
 
-  def build(ap : JawaProcedure)
+  def build(ap : JawaMethod)
    : PointerAssignmentGraph[PtaNode] = {
     val pag = new PointerAssignmentGraph[PtaNode]()
     doPTA(ap, pag)
     pag
   }
   
-  def doPTA(ap : JawaProcedure,
+  def doPTA(ap : JawaMethod,
             pag : PointerAssignmentGraph[PtaNode]) : Unit = {
-    val points = new PointsCollector().points(ap.getSignature, ap.getProcedureBody)
+    val points = new PointsCollector().points(ap.getSignature, ap.getMethodBody)
     val context : Context = new Context(GlobalConfig.ICFG_CONTEXT_K)
     pag.constructGraph(ap, points, context.copy)
     workListPropagation(pag)
@@ -95,13 +95,13 @@ class IntraprocedureSuperSpark {
       	          pag.worklist += dstNode
       	        	pag.pointsToMap.propagatePointsToSet(srcNode, dstNode)
       	        }
-      	      case pag.EdgeType.GLOBAL_LOAD => // e.g. q = @@p; Edge: @@p -> q
+      	      case pag.EdgeType.STATIC_FIELD_LOAD => // e.g. q = @@p; Edge: @@p -> q
       	        val dstNode = pag.successor(edge)
       	        if(pag.pointsToMap.isDiff(srcNode, dstNode)){
       	          pag.worklist += dstNode
       	        	pag.pointsToMap.propagatePointsToSet(srcNode, dstNode)
       	        }
-      	      case pag.EdgeType.GLOBAL_STORE => // e.g. @@r = q; Edge: q -> @@r
+      	      case pag.EdgeType.STATIC_FIELD_STORE => // e.g. @@r = q; Edge: q -> @@r
       	        val dstNode = pag.successor(edge)
       	        if(!pag.pointsToMap.contained(srcNode, dstNode)){
       	          pag.worklist += dstNode
@@ -122,7 +122,7 @@ class IntraprocedureSuperSpark {
     	          pag.worklist += edge.target
     	        	pag.pointsToMap.propagatePointsToSet(edge.source, edge.target)
     	        }
-    	      case pag.EdgeType.GLOBAL_STORE => // e.g. @@r = q; Edge: q -> @@r
+    	      case pag.EdgeType.STATIC_FIELD_STORE => // e.g. @@r = q; Edge: q -> @@r
     	        if(!pag.pointsToMap.contained(edge.source, edge.target)){
     	          pag.worklist += edge.target
     	        	pag.pointsToMap.propagatePointsToSet(edge.source, edge.target)
@@ -143,7 +143,7 @@ class IntraprocedureSuperSpark {
     	          pag.worklist += edge.target
     	        	pag.pointsToMap.propagatePointsToSet(edge.source, edge.target)
     	        }
-    	      case pag.EdgeType.GLOBAL_LOAD => // e.g. q = @@p; Edge: @@p -> q
+    	      case pag.EdgeType.STATIC_FIELD_LOAD => // e.g. q = @@p; Edge: @@p -> q
       	        if(pag.pointsToMap.isDiff(edge.source, edge.target)){
       	          pag.worklist += edge.target
       	        	pag.pointsToMap.propagatePointsToSet(edge.source, edge.target)

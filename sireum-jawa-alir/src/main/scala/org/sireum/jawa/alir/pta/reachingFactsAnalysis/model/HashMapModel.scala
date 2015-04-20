@@ -17,7 +17,7 @@ import org.sireum.jawa.alir.pta._
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 object HashMapModel {
-	def isHashMap(r : JawaRecord) : Boolean = r.getName == "java.util.HashMap"
+	def isHashMap(r : JawaClass) : Boolean = r.getName == "java.util.HashMap"
 	
 	private def getPointStringToRet(retVar : String, currentContext : Context): RFAFact = {
     val newThisValue = PTAPointStringInstance(currentContext.copy)
@@ -137,7 +137,7 @@ object HashMapModel {
 	  result
   }
 	
-	def doHashMapCall(s : PTAResult, p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def doHashMapCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true

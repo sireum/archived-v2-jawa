@@ -157,10 +157,10 @@ class SignatureParser(sig : String) {
     }
     
     /**
-		 * get record name from procedure signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object
+		 * get record name from method signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object
 		 */
     
-    def getRecordName : String = StringFormConverter.getRecordNameFromProcedureSignature(this.signature)
+    def getClassName : String = StringFormConverter.getClassNameFromMethodSignature(this.signature)
     
     /**
      * before cut: LSavings;.interest:(I)V, after cut: (I)V

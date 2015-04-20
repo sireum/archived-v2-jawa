@@ -17,22 +17,22 @@ class ClassLoadManager {
   /**
    * set of classes can be loaded by the program
    */
-	private var classes : IList[JawaRecord] = ilistEmpty
+	private var classes : IList[JawaClass] = ilistEmpty
 	
 	def reset = classes = ilistEmpty
 	
-	protected def addClass(clazz : JawaRecord) = {
+	protected def addClass(clazz : JawaClass) = {
 	  this.synchronized(
 	  		this.classes :+= clazz
 	  )
 	}
 	
-	def getClassPosition(clazz : JawaRecord) : Int = {
+	def getClassPosition(clazz : JawaClass) : Int = {
 	  if(!this.classes.contains(clazz)) addClass(clazz)
 	  this.classes.indexOf(clazz)
 	}
 	
-	def loadClass(clazz : JawaRecord) : BitSet = {
+	def loadClass(clazz : JawaClass) : BitSet = {
 	  val position = getClassPosition(clazz)
 	  if(position < 0){
 	    throw new RuntimeException("Negative position:" + position)
@@ -40,7 +40,7 @@ class ClassLoadManager {
 	  BitSet(position)
 	}
 	
-	def loadClass(clazz : JawaRecord, bitset : BitSet) : BitSet = {
+	def loadClass(clazz : JawaClass, bitset : BitSet) : BitSet = {
 	  require(!isLoaded(clazz, bitset))
 	  val position = getClassPosition(clazz)
 	  if(position < 0){
@@ -49,7 +49,7 @@ class ClassLoadManager {
 	  bitset + position
 	}
 	
-	def isLoaded(clazz : JawaRecord, bitset : BitSet) : Boolean = {
+	def isLoaded(clazz : JawaClass, bitset : BitSet) : Boolean = {
 	  val position = getClassPosition(clazz)
 	  bitset(position)
 	}

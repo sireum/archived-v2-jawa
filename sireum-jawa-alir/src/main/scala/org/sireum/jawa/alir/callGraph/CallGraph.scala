@@ -27,7 +27,7 @@ import com.tinkerpop.blueprints.Vertex
 
 class CallGraph {
   /**
-   * map from procedures to it's callee procedures
+   * map from methods to it's callee methods
    * map from caller sig to callee sigs
    */
   private val callMap : MMap[String, ISet[String]] = mmapEmpty
@@ -37,11 +37,11 @@ class CallGraph {
   
   def getCallMap : IMap[String, ISet[String]] = this.callMap.toMap
 
-  def getReachableProcedures(procs : Set[String]) : Set[String] = {
-    calculateReachableProcedures(procs, isetEmpty) ++ procs
+  def getReachableMethods(procs : Set[String]) : Set[String] = {
+    calculateReachableMethods(procs, isetEmpty) ++ procs
   }
   
-  private def calculateReachableProcedures(procs : Set[String], processed : Set[String]) : Set[String] = {
+  private def calculateReachableMethods(procs : Set[String], processed : Set[String]) : Set[String] = {
     if(procs.isEmpty) Set()
     else
       procs.map{
@@ -50,7 +50,7 @@ class CallGraph {
             Set[String]()
           } else {
             val callees = this.callMap.getOrElse(proc, isetEmpty)
-            callees ++ calculateReachableProcedures(callees, processed + proc)
+            callees ++ calculateReachableMethods(callees, processed + proc)
           }
       }.reduce((s1, s2) => s1 ++ s2)
   }
@@ -207,10 +207,10 @@ class CallGraph {
 
 sealed abstract class CGNode(context : Context) {
   def getID : String = this.hashCode().toLong.toString()
-  def getMethodName : String = StringFormConverter.getProcedureShortNameFromProcedureSignature(context.getProcedureSig)
-  def getClassName : String = StringFormConverter.getRecordNameFromProcedureSignature(context.getProcedureSig)
-  def getReturnType : String = new SignatureParser(context.getProcedureSig).getReturnType().name
-  def getParamTypes : ISeq[String] = new SignatureParser(context.getProcedureSig).getParamSig.getParameterTypes().map(_.name)
+  def getMethodName : String = StringFormConverter.getMethodShortNameFromMethodSignature(context.getMethodSig)
+  def getClassName : String = StringFormConverter.getClassNameFromMethodSignature(context.getMethodSig)
+  def getReturnType : String = new SignatureParser(context.getMethodSig).getReturnType().name
+  def getParamTypes : ISeq[String] = new SignatureParser(context.getMethodSig).getParamSig.getParameterTypes().map(_.name)
   def getType : String
   def getLocation : String = context.getCurrentLocUri
 }

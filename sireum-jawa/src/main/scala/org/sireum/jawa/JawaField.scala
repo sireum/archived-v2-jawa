@@ -10,7 +10,7 @@ package org.sireum.jawa
 import org.sireum.jawa.util.StringFormConverter
 
 /**
- * This class is an amandroid representation of a pilar field. It can belong to JawaRecord.
+ * This class is an amandroid representation of a pilar field. It can belong to JawaClass.
  * You can also construct it manually. 
  * 
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -42,10 +42,10 @@ class JawaField {
 	protected var accessFlags : Int = 0
 	
 	/**
-	 * declaring record of this field
+	 * declaring class of this field
 	 */
 	
-	protected var declaringRecord : JawaRecord = null
+	protected var declaringClass : JawaClass = null
 	
    /**
    * when you construct an amandroid field instance, call this init function first
@@ -131,28 +131,28 @@ class JawaField {
 	def getAccessFlagsStr = AccessFlag.toString(this.accessFlags)
 	
 	/**
-	 * get declaring record
+	 * get declaring class
 	 */
 	
-	def getDeclaringRecord : JawaRecord = {
+	def getDeclaringClass : JawaClass = {
 	  if(!isDeclared) throw new RuntimeException("not declared: " + getName + " " + getType)
-	  declaringRecord
+	  declaringClass
 	}
 	
 	/**
-	 * set declaring record of this field
+	 * set declaring class of this field
 	 */
 	
-	def setDeclaringRecord(dr : JawaRecord) ={
-	  this.declaringRecord = dr
-	  if(this.signature == null) this.signature = generateSignature(this.declaringRecord, this.name, isStatic)
+	def setDeclaringClass(dr : JawaClass) ={
+	  this.declaringClass = dr
+	  if(this.signature == null) this.signature = generateSignature(this.declaringClass, this.name, isStatic)
 	}
 	
 	/**
-	 * clear declaring recordof this field
+	 * clear declaring class of this field
 	 */
 	
-	def clearDeclaringRecord = this.declaringRecord = null
+	def clearDeclaringClass = this.declaringClass = null
 	
 	/**
 	 * return true if the field is public
@@ -200,14 +200,14 @@ class JawaField {
 	 * generate signature of this field
 	 */
 	
-	def generateSignature(ar : JawaRecord, name : String, isStatic : Boolean) : String = StringFormConverter.generateFieldSignature(ar.getName, name, isStatic)
+	def generateSignature(ar : JawaClass, name : String, isStatic : Boolean) : String = StringFormConverter.generateFieldSignature(ar.getName, name, isStatic)
 	
 	/**
 	 * get signature of this field
 	 */
 	
 	def getSignature = {
-	  if(this.signature == null) this.signature = generateSignature(this.declaringRecord, this.name, isStatic)
+	  if(this.signature == null) this.signature = generateSignature(this.declaringClass, this.name, isStatic)
 	  this.signature
 	}
 	
@@ -215,7 +215,7 @@ class JawaField {
 	 * this field is declared or not
 	 */
 	
-	def isDeclared = declaringRecord != null
+	def isDeclared = declaringClass != null
 	
 	override def toString() : String = getSignature
 	
@@ -225,7 +225,7 @@ class JawaField {
 	  println("sig: " + getSignature)
 	  println("type: " + getType)
 	  println("accessFlags: " + AccessFlag.toString(getAccessFlags))
-	  println("declaringRecord: " + getDeclaringRecord)
+	  println("declaringClass: " + getDeclaringClass)
 	  println("~~~~~~~~~~~~~~~~~~~~~~~~~~")
 	}
 	

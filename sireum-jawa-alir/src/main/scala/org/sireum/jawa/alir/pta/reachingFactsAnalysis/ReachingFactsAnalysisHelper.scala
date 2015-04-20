@@ -12,7 +12,7 @@ import org.sireum.alir.Slot
 import org.sireum.jawa.alir.pta.Instance
 import org.sireum.pilar.ast._
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 import org.sireum.jawa.Center
 import org.sireum.jawa.MessageCenter._
 import org.sireum.jawa.alir.pta.NullInstance
@@ -99,7 +99,7 @@ object ReachingFactsAnalysisHelper {
         }
         case None => throw new RuntimeException("cannot found annotation 'signature' from: " + cj)
       }
-    val subSig = Center.getSubSigFromProcSig(sig)
+    val subSig = Center.getSubSigFromMethodSig(sig)
     val typ = cj.getValueAnnotation("type") match {
         case Some(s) => s match {
           case ne : NameExp => ne.name.name
@@ -123,19 +123,19 @@ object ReachingFactsAnalysisHelper {
                   err_msg_normal(TITLE, "Try to invoke method: " + sig + "@" + callerContext + "with Null pointer:" + ins)
                 case _ =>
                   if(typ == "super"){
-                    val p = CallHandler.getSuperCalleeProcedure(sig)
+                    val p = CallHandler.getSuperCalleeMethod(sig)
                     calleeSet += InstanceCallee(p, ins)
                   }
                   else if(typ == "direct"){
-                    val p = CallHandler.getDirectCalleeProcedure(sig)
+                    val p = CallHandler.getDirectCalleeMethod(sig)
                     calleeSet += InstanceCallee(p, ins)
                   }
                   else {
                     if(ins.isInstanceOf[UnknownInstance]){
-                      val ps = CallHandler.getUnknownVirtualCalleeProcedures(ins.getType, subSig)
+                      val ps = CallHandler.getUnknownVirtualCalleeMethods(ins.getType, subSig)
                       calleeSet ++= ps.map{p=> UnknownCallee(p)}
                     } else {
-                      val p = CallHandler.getVirtualCalleeProcedure(ins.typ, subSig)
+                      val p = CallHandler.getVirtualCalleeMethod(ins.typ, subSig)
                       calleeSet += InstanceCallee(p, ins)
                     }
                   }
@@ -145,7 +145,7 @@ object ReachingFactsAnalysisHelper {
         case _ => throw new RuntimeException("wrong exp type: " + cj.callExp.arg)
       }
     } else {
-      val p = CallHandler.getStaticCalleeProcedure(sig)
+      val p = CallHandler.getStaticCalleeMethod(sig)
       calleeSet += StaticCallee(p)
     }
     calleeSet.toSet
@@ -164,7 +164,7 @@ object ReachingFactsAnalysisHelper {
 	  } else None
 	}
 	
-	def getUnknownObject(calleeProc : JawaProcedure, s : PTAResult, args : Seq[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
+	def getUnknownObject(calleeMethod : JawaMethod, s : PTAResult, args : Seq[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
 	  var genFacts : ISet[RFAFact] = isetEmpty
 	  var killFacts : ISet[RFAFact] = isetEmpty
     val argSlots = args.map(arg=>VarSlot(arg))
@@ -172,12 +172,12 @@ object ReachingFactsAnalysisHelper {
       val argSlot = argSlots(i)
       val argValues = s.pointsToSet(argSlot, currentContext)
       val influencedFields = if(LibSideEffectProvider.isDefined)
-        												LibSideEffectProvider.getInfluencedFields(i, calleeProc.getSignature)
+        												LibSideEffectProvider.getInfluencedFields(i, calleeMethod.getSignature)
         										 else Set("ALL")
       argValues.foreach(_.addFieldsUnknownDefSite(currentContext, influencedFields))
     }
 //    killFacts ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(argValues, s)
-    val retTyp = calleeProc.getReturnType
+    val retTyp = calleeMethod.getReturnType
     if(!Center.isJavaPrimitiveType(retTyp) && retTyp.name != "void")
 	    retVars.foreach{
 	      retVar =>
@@ -190,9 +190,9 @@ object ReachingFactsAnalysisHelper {
 	  (genFacts, killFacts)
 	}
 	
-	def getUnknownObjectForClinit(calleeProc : JawaProcedure, currentContext : Context) : ISet[RFAFact] = {
+	def getUnknownObjectForClinit(calleeMethod : JawaMethod, currentContext : Context) : ISet[RFAFact] = {
 	  var result : ISet[RFAFact] = isetEmpty
-	  val record = calleeProc.getDeclaringRecord
+	  val record = calleeMethod.getDeclaringClass
     record.getDeclaredStaticObjectTypeFields.foreach{
       field =>
         result += RFAFact(VarSlot(field.getSignature), UnknownInstance(field.getType, currentContext))
@@ -247,8 +247,8 @@ object ReachingFactsAnalysisHelper {
       ins =>
         if(ins.isInstanceOf[NullInstance]){}
         else {
-          val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
-          val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
+          val recName = StringFormConverter.getClassNameFromFieldSignature(fieldSig)
+          val rec = Center.resolveClass(recName, Center.ResolveLevel.HIERARCHY)
           val field = rec.getField(fieldSig)
           val fName = field.getName
           val fieldSlot = FieldSlot(ins, fName)
@@ -321,8 +321,8 @@ object ReachingFactsAnalysisHelper {
       case ne : NameExp =>
         val slot = VarSlot(ne.name.name)
         if(slot.isGlobal && StringFormConverter.getFieldNameFromFieldSignature(slot.varName) == "class"){
-          val baseName = StringFormConverter.getRecordNameFromFieldSignature(slot.varName)
-          val rec = Center.resolveRecord(baseName, Center.ResolveLevel.HIERARCHY)
+          val baseName = StringFormConverter.getClassNameFromFieldSignature(slot.varName)
+          val rec = Center.resolveClass(baseName, Center.ResolveLevel.HIERARCHY)
           val ins = JawaAlirInfoProvider.getClassInstance(rec)
           ptaresult.addInstance(slot, currentContext, ins)
         } else if(slot.isGlobal){
@@ -395,8 +395,8 @@ object ReachingFactsAnalysisHelper {
                 if(ins.isInstanceOf[NullInstance])
                   err_msg_normal(TITLE, "Access field: " + baseSlot + "." + fieldSig + "@" + currentContext + "\nwith Null pointer: " + ins)
                 else{
-                  val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
-                  val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
+                  val recName = StringFormConverter.getClassNameFromFieldSignature(fieldSig)
+                  val rec = Center.resolveClass(recName, Center.ResolveLevel.HIERARCHY)
                   val fName = rec.getField(fieldSig).getName
 	                if(baseValue.size>1) result(i) = (FieldSlot(ins, fName), false)
 	                else result(i) = (FieldSlot(ins, fName), true)
@@ -459,8 +459,8 @@ object ReachingFactsAnalysisHelper {
             val slot = VarSlot(ne.name.name)
             var value : ISet[Instance] = isetEmpty
             if(slot.isGlobal && StringFormConverter.getFieldNameFromFieldSignature(slot.varName) == "class"){
-              val baseName = StringFormConverter.getRecordNameFromFieldSignature(slot.varName)
-              val rec = Center.resolveRecord(baseName, Center.ResolveLevel.HIERARCHY)
+              val baseName = StringFormConverter.getClassNameFromFieldSignature(slot.varName)
+              val rec = Center.resolveClass(baseName, Center.ResolveLevel.HIERARCHY)
               value += JawaAlirInfoProvider.getClassInstance(rec)
             } else if(slot.isGlobal){
               Center.findStaticField(ne.name.name) match{
@@ -508,8 +508,8 @@ object ReachingFactsAnalysisHelper {
                 if(ins.isInstanceOf[NullInstance])
                   err_msg_normal(TITLE, "Access field: " + baseSlot + "." + fieldSig + "@" + currentContext + "\nwith Null pointer: " + ins)
                 else {
-                  val recName = StringFormConverter.getRecordNameFromFieldSignature(fieldSig)
-                  val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
+                  val recName = StringFormConverter.getClassNameFromFieldSignature(fieldSig)
+                  val rec = Center.resolveClass(recName, Center.ResolveLevel.HIERARCHY)
                   val field = rec.getField(fieldSig)
                   val fName = field.getName
                   val fieldSlot = FieldSlot(ins, fName)

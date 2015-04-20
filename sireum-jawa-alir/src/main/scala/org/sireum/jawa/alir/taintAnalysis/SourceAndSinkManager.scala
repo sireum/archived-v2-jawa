@@ -7,7 +7,7 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir.taintAnalysis
 
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 import org.sireum.pilar.ast.JumpLocation
 import org.sireum.pilar.ast.LocationDecl
 import org.sireum.util.ISet
@@ -19,8 +19,8 @@ import org.sireum.jawa.alir.pta.PTAResult
  */ 
 trait SourceAndSinkManager {
   def isSource(loc : LocationDecl, ptaresult : PTAResult) : Boolean
-  def isSource(calleeProcedure : JawaProcedure, callerProcedure : JawaProcedure, callerLoc : JumpLocation) : Boolean
-  def isSourceProcedure(procedure : JawaProcedure) : Boolean
+  def isSource(calleeMethod : JawaMethod, callerMethod : JawaMethod, callerLoc : JumpLocation) : Boolean
+  def isSourceMethod(procedure : JawaMethod) : Boolean
   def isSink(loc : LocationDecl, ptaresult : PTAResult) : Boolean
-  def isSinkProcedure(procedure : JawaProcedure) : Boolean
+  def isSinkMethod(procedure : JawaMethod) : Boolean
 }

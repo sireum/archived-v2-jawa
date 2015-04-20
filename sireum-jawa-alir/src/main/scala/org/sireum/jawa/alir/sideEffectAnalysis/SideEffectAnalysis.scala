@@ -38,7 +38,7 @@ case class InterProceduralSideEffectResult(procSig : String,
   																						globalWrite : Set[String]) {
   override def toString : String = {
     val sb : StringBuilder = new StringBuilder()
-    sb.append("Procedure:" + procSig + "\n")
+    sb.append("Method:" + procSig + "\n")
     sb.append("readMap:\n")
     readMap.foreach{
       case (i, fields) => sb.append(i + "," + fields + "\n")
@@ -63,7 +63,7 @@ case class InterProceduralSideEffectResult(procSig : String,
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-case class IntraProceduralSideEffectResult(procedure : JawaProcedure,
+case class IntraProceduralSideEffectResult(procedure : JawaMethod,
 																						readMap : Map[Int, Set[String]],
 																						writeMap : Map[Int, Set[String]],
 																						globalRead : Set[String],
@@ -71,7 +71,7 @@ case class IntraProceduralSideEffectResult(procedure : JawaProcedure,
 																						callInfos : Set[CallInfo]) {
   override def toString : String = {
     val sb : StringBuilder = new StringBuilder()
-    sb.append("Procedure:" + procedure + "\n")
+    sb.append("Method:" + procedure + "\n")
     sb.append("readMap:\n")
     readMap.foreach{
       case (i, fields) => sb.append(i + ":" + fields + "\n")
@@ -100,7 +100,7 @@ case class IntraProceduralSideEffectResult(procedure : JawaProcedure,
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-case class CallInfo(callees : Set[JawaProcedure], paramMap : Map[Int, Int]){
+case class CallInfo(callees : Set[JawaMethod], paramMap : Map[Int, Int]){
   override def toString : String = {
     val sb : StringBuilder = new StringBuilder()
     sb.append("CallInfo(" + callees + ",")
@@ -201,7 +201,7 @@ object SideEffectAnalysis {
     InterProceduralSideEffectResult(procedure.getSignature, readMap, writeMap, globalRead, globalWrite)
   }
   																						
-	def intraProceduralSideEffect(procedure : JawaProcedure) : IntraProceduralSideEffectResult = {
+	def intraProceduralSideEffect(procedure : JawaMethod) : IntraProceduralSideEffectResult = {
     var readMap : Map[Int, Set[String]] = Map()
     var writeMap : Map[Int, Set[String]] = Map()
     var globalRead : Set[String] = Set()
@@ -209,7 +209,7 @@ object SideEffectAnalysis {
     var callInfos : Set[CallInfo] = Set()
     val cfg = JawaAlirInfoProvider.getCfg(procedure)
     val rda = JawaAlirInfoProvider.getRda(procedure, cfg)
-    val points = new PointsCollector().points(procedure.getSignature, procedure.getProcedureBody)
+    val points = new PointsCollector().points(procedure.getSignature, procedure.getMethodBody)
     points.foreach{
       point =>
         point match{
@@ -221,8 +221,8 @@ object SideEffectAnalysis {
 		            val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pfl.loc), pfl.locIndex)
 		            if(position >= 0)
 		            	writeMap += (position -> (writeMap.getOrElse(position, Set()) + fieldName))
-              case pgl : PointGlobalL =>
-                val globalSig = pgl.globalSig
+              case pgl : PointStaticFieldL =>
+                val globalSig = pgl.staticFieldSig
                 globalWrite += globalSig
               case _ =>
             }
@@ -233,8 +233,8 @@ object SideEffectAnalysis {
 		            val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pfr.loc), pfr.locIndex)
 		            if(position >= 0)
 		            	readMap += (position -> (readMap.getOrElse(position, Set()) + fieldName))
-              case pgr : PointGlobalR =>
-                val globalSig = pgr.globalSig
+              case pgr : PointStaticFieldR =>
+                val globalSig = pgr.staticFieldSig
                 globalRead += globalSig
               case _ =>
             }
@@ -266,7 +266,7 @@ object SideEffectAnalysis {
 	  IntraProceduralSideEffectResult(procedure, readMap, writeMap, globalRead, globalWrite, callInfos)
 	}
   
-  private def findPositionFromRda(procedure : JawaProcedure, 
+  private def findPositionFromRda(procedure : JawaMethod, 
 	      													cfg : ControlFlowGraph[String], 
 	      													rda : JawaReachingDefinitionAnalysis.Result, 
 	      													varName : String, 
@@ -288,7 +288,7 @@ object SideEffectAnalysis {
             return -2				// postion for local variable
           } else if(defDesc.isInstanceOf[LocDefDesc]) {
             val locDefDesc = defDesc.asInstanceOf[LocDefDesc]
-            val loc = procedure.getProcedureBody.location(locDefDesc.locIndex)
+            val loc = procedure.getMethodBody.location(locDefDesc.locIndex)
             if(isSimpleAssignment(loc)){
               val rhsVar = getAssignmentRhsVar(loc)
               return findPositionFromRda(procedure, cfg, rda, rhsVar, locDefDesc.locUri, locDefDesc.locIndex, slotStack ++ slots)

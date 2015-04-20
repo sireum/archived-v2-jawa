@@ -12,7 +12,7 @@ package org.sireum.jawa
  */ 
 trait ResolveLevel {
 	/**
-   * resolving level of current record
+   * resolving level of current class
    */
   protected var resolvingLevel : Center.ResolveLevel.Value = null
   

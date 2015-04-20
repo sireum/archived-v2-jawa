@@ -8,30 +8,30 @@ http://www.eclipse.org/legal/epl-v10.html
 package org.sireum.jawa.alir.interProcedural
 
 import org.sireum.jawa.alir.pta.Instance
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 abstract class Callee {
-  def callee : JawaProcedure
+  def callee : JawaMethod
 }
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class InstanceCallee(callee : JawaProcedure, ins : Instance) extends Callee
+final case class InstanceCallee(callee : JawaMethod, ins : Instance) extends Callee
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class UnknownCallee(callee : JawaProcedure) extends Callee
+final case class UnknownCallee(callee : JawaMethod) extends Callee
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class StaticCallee(callee : JawaProcedure) extends Callee
+final case class StaticCallee(callee : JawaMethod) extends Callee

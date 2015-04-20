@@ -18,7 +18,7 @@ import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaReachingDefinitionAna
 trait PAGConstraint{
   
   object EdgeType extends Enumeration {
-		val ALLOCATION, ASSIGNMENT, FIELD_STORE, FIELD_LOAD, ARRAY_STORE, ARRAY_LOAD, GLOBAL_STORE, GLOBAL_LOAD, TRANSFER, THIS_TRANSFER = Value
+		val ALLOCATION, ASSIGNMENT, FIELD_STORE, FIELD_LOAD, ARRAY_STORE, ARRAY_LOAD, STATIC_FIELD_STORE, STATIC_FIELD_LOAD, TRANSFER, THIS_TRANSFER = Value
 	}
   
   def applyConstraint(p : Point,
@@ -66,8 +66,8 @@ trait PAGConstraint{
 		            )
 		          case _ =>
             }
-          case pgl : PointGlobalL =>
-            flowMap.getOrElseUpdate(EdgeType.GLOBAL_STORE, mmapEmpty).getOrElseUpdate(rhs, msetEmpty) += pgl
+          case pgl : PointStaticFieldL =>
+            flowMap.getOrElseUpdate(EdgeType.STATIC_FIELD_STORE, mmapEmpty).getOrElseUpdate(rhs, msetEmpty) += pgl
             rhs match {
 		          case pr : PointR =>
 		            udChain(pr, ps, cfg, rda).foreach(
@@ -93,8 +93,8 @@ trait PAGConstraint{
 		                flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += par
 		              }
 		            )
-		          case pgr : PointGlobalR =>
-		            flowMap.getOrElseUpdate(EdgeType.GLOBAL_LOAD, mmapEmpty).getOrElseUpdate(pgr, msetEmpty) += lhs
+		          case pgr : PointStaticFieldR =>
+		            flowMap.getOrElseUpdate(EdgeType.STATIC_FIELD_LOAD, mmapEmpty).getOrElseUpdate(pgr, msetEmpty) += lhs
 		          case po : Point with Right with NewObj =>
 		            flowMap.getOrElseUpdate(EdgeType.ALLOCATION, mmapEmpty).getOrElseUpdate(rhs, msetEmpty) += lhs
 		          case pi : Point with Right with Invoke =>
@@ -134,17 +134,17 @@ trait PAGConstraint{
             )
             flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(cp, msetEmpty) += pi.argPsReturn(i)
         }
-      case procP : PointProc =>
+      case procP : PointMethod =>
         val t_exit = procP.thisPExit
         val ps_exit = procP.paramPsExit
-        udChainForProcExit(t_exit, ps, cfg, rda, true).foreach{
+        udChainForMethodExit(t_exit, ps, cfg, rda, true).foreach{
           point =>{
             flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += t_exit
           }
         }
         ps_exit.foreach{
           case (i, p_exit) =>
-            udChainForProcExit(p_exit, ps, cfg, rda, true).foreach{
+            udChainForMethodExit(p_exit, ps, cfg, rda, true).foreach{
               point =>{
                 flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += p_exit
               }
@@ -167,7 +167,7 @@ trait PAGConstraint{
     flowMap
   }
   
-  def udChainForProcExit(p : Point with Param with Exit,
+  def udChainForMethodExit(p : Point with Param with Exit,
                          points : Set[Point],
 					               cfg : ControlFlowGraph[String],
 					               rda : JawaReachingDefinitionAnalysis.Result,
@@ -203,7 +203,7 @@ trait PAGConstraint{
             case pl : PointL => pl.varname
             case pr : PointR => pr.varname
             case pr : PointRet => pr.retname
-            case gl : Point with Global => gl.globalSig
+            case gl : Point with Static_Field => gl.staticFieldSig
             case ba : Point with Base => ba.baseName
             case al : PointArrayL => al.arrayname
             case ar : PointArrayR => ar.arrayname
@@ -258,8 +258,8 @@ trait PAGConstraint{
                 val locationIndex = baseP.locIndex
                 if(baseP.baseName.equals(uri) && locUri.equals(locationUri) && locIndex == locationIndex)
                 	point = baseP
-              case gl : Point with Loc with Global with Left =>
-                if(gl.globalSig.equals(uri) && locUri.equals(gl.loc) && locIndex == gl.locIndex)
+              case gl : Point with Loc with Static_Field with Left =>
+                if(gl.staticFieldSig.equals(uri) && locUri.equals(gl.loc) && locIndex == gl.locIndex)
                   point = lhs
               case ar : PointArrayL =>
                 if(ar.arrayname.equals(uri) && locUri.equals(ar.loc) && locIndex == ar.locIndex)
@@ -305,14 +305,14 @@ trait PAGConstraint{
     ps.foreach(
       p => {
         p match {
-          case psp : PointStaticProc =>
+          case psp : PointStaticMethod =>
             psp.paramPsEntry.foreach{
               case (_, pa) =>
                 if(pa.paramName.equals(uri)){
                   point = pa
                 }
             }
-          case pp : PointProc =>
+          case pp : PointMethod =>
             if(pp.thisPEntry.paramName.equals(uri)){
               point = pp.thisPEntry
             }
@@ -336,14 +336,14 @@ trait PAGConstraint{
     ps.foreach(
       p => {
         p match {
-          case psp : PointStaticProc =>
+          case psp : PointStaticMethod =>
             psp.paramPsExit.foreach{
               case (_, pa) =>
                 if(pa.paramName.equals(uri)){
                   point = pa
                 }
             }
-          case pp : PointProc =>
+          case pp : PointMethod =>
             if(pp.thisPExit.paramName.equals(uri)){
               point = pp.thisPExit
             }

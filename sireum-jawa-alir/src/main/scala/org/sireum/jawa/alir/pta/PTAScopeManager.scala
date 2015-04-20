@@ -9,7 +9,7 @@ package org.sireum.jawa.alir.pta
 
 import org.sireum.jawa.ScopeManager
 import org.sireum.util._
-import org.sireum.jawa.JawaRecord
+import org.sireum.jawa.JawaClass
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -27,10 +27,10 @@ object PTAScopeManager extends ScopeManager{
   /**
    * return true if given record needs to be bypassed
    */
-  def shouldBypass(rec : JawaRecord) : Boolean = {
-    if(this.passFramework && rec.isFrameworkRecord) true
-    else if(this.passThirdPartyLib && rec.isThirdPartyLibRecord) true
-    else if(this.passApplication && rec.isApplicationRecord) true
+  def shouldBypass(rec : JawaClass) : Boolean = {
+    if(this.passFramework && rec.isFrameworkClass) true
+    else if(this.passThirdPartyLib && rec.isThirdPartyLibClass) true
+    else if(this.passApplication && rec.isApplicationClass) true
     else false
   }
 }

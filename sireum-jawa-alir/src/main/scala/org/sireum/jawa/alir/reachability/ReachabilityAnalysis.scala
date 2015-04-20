@@ -7,7 +7,7 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir.reachability
 
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 import org.sireum.jawa.alir.pta.suspark.PointerAssignmentGraph
 import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
 import org.sireum.jawa.alir.pta.suspark.PtaNode
@@ -26,24 +26,24 @@ object ReachabilityAnalysis {
 	 * @param wholeProgram Building call graph in whole program mode or not
 	 * @return Set of reachable procedure resource uris from initial set
 	 */
-	def getReachableProcedures(procedures : Set[JawaProcedure], timer : Option[MyTimer] = None) : Set[JawaProcedure] = {
+	def getReachableMethods(procedures : Set[JawaMethod], timer : Option[MyTimer] = None) : Set[JawaMethod] = {
     val idfg = InterproceduralSuperSpark(procedures, timer)
-    idfg.icfg.getCallGraph.getReachableProcedures(procedures.map(_.getSignature)).map(Center.getProcedureWithoutFailing(_))
+    idfg.icfg.getCallGraph.getReachableMethods(procedures.map(_.getSignature)).map(Center.getMethodWithoutFailing(_))
 	}
 	
-	def getReachableProceduresBySBCG(procedures : Set[JawaProcedure], wholeProcs : Set[JawaProcedure], par : Boolean) : Set[JawaProcedure] = {
-	  SignatureBasedCallGraph.getReachableProcedures(procedures, wholeProcs, par)
+	def getReachableMethodsBySBCG(procedures : Set[JawaMethod], wholeProcs : Set[JawaMethod], par : Boolean) : Set[JawaMethod] = {
+	  SignatureBasedCallGraph.getReachableMethods(procedures, wholeProcs, par)
 	}
 	
-	def getBackwardReachability(apiSigs : Set[String], par : Boolean) : Map[String, Set[JawaProcedure]] = {
-	  BackwardCallChain.getReachableProcedures(apiSigs, par)
+	def getBackwardReachability(apiSigs : Set[String], par : Boolean) : Map[String, Set[JawaMethod]] = {
+	  BackwardCallChain.getReachableMethods(apiSigs, par)
 	}
 	
-	def getBackwardReachability(apiSig : String, par : Boolean) : Set[JawaProcedure] = {
-	  BackwardCallChain.getReachableProcedures(apiSig, par)
+	def getBackwardReachability(apiSig : String, par : Boolean) : Set[JawaMethod] = {
+	  BackwardCallChain.getReachableMethods(apiSig, par)
 	}
 	
-	def getBackwardReachabilityForSubSig(apiSubSig : String, par : Boolean) : Set[JawaProcedure] = {
-	  BackwardCallChain.getReachableProceduresBySubSig(apiSubSig, par)
+	def getBackwardReachabilityForSubSig(apiSubSig : String, par : Boolean) : Set[JawaMethod] = {
+	  BackwardCallChain.getReachableMethodsBySubSig(apiSubSig, par)
 	}
 }

@@ -7,42 +7,42 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir.reachability
 
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 import org.sireum.util._
 import org.sireum.jawa.Center
 import org.sireum.pilar.ast.LocationDecl
 import org.sireum.pilar.ast.CallJump
 import org.sireum.pilar.ast.NameExp
-import org.sireum.jawa.JawaRecord
+import org.sireum.jawa.JawaClass
 import org.sireum.jawa.alir.util.CallHandler
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 object SignatureBasedCallGraph {
-  def getReachableProcedures(record : JawaRecord, wholeProcs : Set[JawaProcedure], par : Boolean) : Set[JawaProcedure] = {
-    require(!record.isInterface && !record.isUnknown)
-    getReachableProcedures(record.getProcedures, wholeProcs, par)
+  def getReachableMethods(clazz : JawaClass, wholeProcs : Set[JawaMethod], par : Boolean) : Set[JawaMethod] = {
+    require(!clazz.isInterface && !clazz.isUnknown)
+    getReachableMethods(clazz.getMethods, wholeProcs, par)
   }
   
-	def getReachableProcedures(procedures : Set[JawaProcedure], appProcs : Set[JawaProcedure], par : Boolean) : Set[JawaProcedure] = {
-	  var result : Set[JawaProcedure] = Set()
-	  val processed = mlistEmpty[JawaProcedure]
-	  var workList = isetEmpty[JawaProcedure]
+	def getReachableMethods(procedures : Set[JawaMethod], appProcs : Set[JawaMethod], par : Boolean) : Set[JawaMethod] = {
+	  var result : Set[JawaMethod] = Set()
+	  val processed = mlistEmpty[JawaMethod]
+	  var workList = isetEmpty[JawaMethod]
     workList ++= procedures
     while(!workList.isEmpty){
       val tmp =
 			  (if (par) workList else workList).map{
 			    proc =>
 			      if(proc.isConcrete){
-			        if(!proc.hasProcedureBody) proc.resolveBody
-			        val body = proc.getProcedureBody
+			        if(!proc.hasMethodBody) proc.resolveBody
+			        val body = proc.getMethodBody
 			        body.locations.map{
 			          loc =>
 			            visitLoc(loc, appProcs)
-			        }.reduce(iunion[JawaProcedure])
-			      } else Set[JawaProcedure]()
-			  }.reduce(iunion[JawaProcedure])
+			        }.reduce(iunion[JawaMethod])
+			      } else Set[JawaMethod]()
+			  }.reduce(iunion[JawaMethod])
 			processed ++= workList
 			workList = tmp.filter(!processed.contains(_))
     }
@@ -50,8 +50,8 @@ object SignatureBasedCallGraph {
   }
 	
 	
-	def visitLoc(loc : LocationDecl, appProcs : Set[JawaProcedure]) : Set[JawaProcedure] = {
-	  var result = Set[JawaProcedure]()
+	def visitLoc(loc : LocationDecl, appProcs : Set[JawaMethod]) : Set[JawaMethod] = {
+	  var result = Set[JawaMethod]()
 	  val visitor = Visitor.build({
       case t : CallJump if t.jump.isEmpty =>
         val sig = t.getValueAnnotation("signature") match {

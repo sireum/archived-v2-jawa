@@ -11,4 +11,4 @@ package org.sireum.jawa.util
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-class IgnoreException extends Exception
+class IgnoreException(msg : String = "ignored") extends RuntimeException(msg)

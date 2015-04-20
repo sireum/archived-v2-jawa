@@ -29,9 +29,9 @@ trait Left
 trait Right
 
 /**
- * global variable
+ * static variable
  */
-trait Global{def globalSig : String}
+trait Static_Field{def staticFieldSig : String}
 
 /**
  * array
@@ -87,12 +87,12 @@ trait Invoke{
   def retTyp : Type
 }
 
-trait Proc{
-  def procSig : String
+trait Method{
+  def methodSig : String
   def accessTyp : String
   def paramPsEntry : IMap[Int, PointParamEntry]
   def paramPsExit : IMap[Int, PointParamExit]
-  def retVar : Option[PointProcRet]
+  def retVar : Option[PointMethodRet]
 }
 
 trait Param{

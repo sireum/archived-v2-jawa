@@ -23,8 +23,8 @@ import org.sireum.alir.AlirIntraProceduralGraph
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaReachingDefinitionAnalysis
 import org.sireum.jawa.GlobalConfig
 import org.sireum.jawa.Center
-import org.sireum.jawa.JawaProcedure
-import org.sireum.jawa.JawaRecord
+import org.sireum.jawa.JawaMethod
+import org.sireum.jawa.JawaClass
 import org.sireum.jawa.util.StringFormConverter
 import org.sireum.jawa.Transform
 import org.sireum.pilar.ast.NameExp
@@ -86,14 +86,14 @@ object JawaAlirInfoProvider {
       	var result = isetEmpty[CatchClause]
       	val thrownExcNames = ExceptionCenter.getExceptionsMayThrow(loc)
       	if(thrownExcNames.forall(_ != ExceptionCenter.ANY_EXCEPTION)){
-	      	val thrownExceptions = thrownExcNames.map(Center.resolveRecord(_, Center.ResolveLevel.HIERARCHY))
+	      	val thrownExceptions = thrownExcNames.map(Center.resolveClass(_, Center.ResolveLevel.HIERARCHY))
 	      	thrownExceptions.foreach{
 	      	  thrownException=>
 	      	    val ccOpt = 
 		      	    catchclauses.find{
 				          catchclause =>
 				            val excName = if(getExceptionName(catchclause) == ExceptionCenter.ANY_EXCEPTION) Center.DEFAULT_TOPLEVEL_OBJECT else getExceptionName(catchclause)
-				            val exc = Center.resolveRecord(excName, Center.ResolveLevel.HIERARCHY)
+				            val exc = Center.resolveClass(excName, Center.ResolveLevel.HIERARCHY)
 				          	thrownException == exc || thrownException.isChildOf(exc)
 		      	    }
 	      	    ccOpt match{
@@ -120,17 +120,17 @@ object JawaAlirInfoProvider {
     }
 	}
   
-	def getIntraProcedureResult(code : String) : Map[ResourceUri, TransformIntraProcedureResult] = {
+	def getIntraMethodResult(code : String) : Map[ResourceUri, TransformIntraMethodResult] = {
 	  val newModels = parseCodes(Set(code))
-	  doGetIntraProcedureResult(newModels)
+	  doGetIntraMethodResult(newModels)
 	}
 	
-	def getIntraProcedureResult(codes : Set[String]) : Map[ResourceUri, TransformIntraProcedureResult] = {
+	def getIntraMethodResult(codes : Set[String]) : Map[ResourceUri, TransformIntraMethodResult] = {
 	  val newModels = parseCodes(codes)
-	  doGetIntraProcedureResult(newModels)
+	  doGetIntraMethodResult(newModels)
 	}
 	
-	private def doGetIntraProcedureResult(models : List[Model]) : Map[ResourceUri, TransformIntraProcedureResult] = {
+	private def doGetIntraMethodResult(models : List[Model]) : Map[ResourceUri, TransformIntraMethodResult] = {
 	  val result = JawaSymbolTableBuilder(models, Transform.fst, GlobalConfig.jawaResolverParallel)
 	  result.procedureSymbolTables.map{
 	    pst=>
@@ -142,7 +142,7 @@ object JawaAlirInfoProvider {
 			        exp.name.name
 			      case _ => throw new RuntimeException("Can not find signature")
 			    }
-	      (procSig, new TransformIntraProcedureResult(pst, cfg, rda))
+	      (procSig, new TransformIntraMethodResult(pst, cfg, rda))
 	  }.toMap
 	}
   
@@ -168,10 +168,10 @@ object JawaAlirInfoProvider {
    * get cfg of current procedure
    */
   
-  def getCfg(p : JawaProcedure) = {
+  def getCfg(p : JawaMethod) = {
     if(!(p ? CFG)){
       this.synchronized{
-	      val cfg = buildCfg(p.getProcedureBody)._2
+	      val cfg = buildCfg(p.getMethodBody)._2
 	      p.setProperty(CFG, cfg)
       }
     }
@@ -182,21 +182,21 @@ object JawaAlirInfoProvider {
    * get rda result of current procedure
    */
   
-  def getRda(p : JawaProcedure, cfg : ControlFlowGraph[VirtualLabel]) = {
+  def getRda(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel]) = {
     if(!(p ? RDA)){
       this.synchronized{
-	      val rda = buildRda(p.getProcedureBody, cfg)
+	      val rda = buildRda(p.getMethodBody, cfg)
 	      p.setProperty(RDA, rda)
       }
     }
     p.getProperty(RDA).asInstanceOf[JawaReachingDefinitionAnalysis.Result]
   }
   
-  def getClassInstance(r : JawaRecord) : ClassInstance = {
+  def getClassInstance(r : JawaClass) : ClassInstance = {
     val mainContext = new Context(GlobalConfig.ICFG_CONTEXT_K)
     mainContext.setContext("Center", "L0000")
     ClassInstance(r.getName, mainContext)
   }
 }
 
-case class TransformIntraProcedureResult(pst : ProcedureSymbolTable, cfg : ControlFlowGraph[String], rda : JawaReachingDefinitionAnalysis.Result)
+case class TransformIntraMethodResult(pst : ProcedureSymbolTable, cfg : ControlFlowGraph[String], rda : JawaReachingDefinitionAnalysis.Result)

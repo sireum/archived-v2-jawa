@@ -7,13 +7,13 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir.util
 
-import org.sireum.jawa.JawaRecord
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaClass
+import org.sireum.jawa.JawaMethod
 import org.sireum.jawa.Center
 import org.sireum.jawa.Type
 import org.sireum.jawa.util.StringFormConverter
 import org.sireum.util._
-import org.sireum.jawa.ProcedureInvisibleException
+import org.sireum.jawa.MethodInvisibleException
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -23,97 +23,97 @@ object CallHandler {
 	/**
 	 * get callee procedure from Center. Input: .equals:(Ljava/lang/Object;)Z
 	 */
-//	def getCalleeProcedure(from : JawaRecord, pSubSig : String) : JawaProcedure = {
-//	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig) match{
+//	def getCalleeMethod(from : JawaClass, pSubSig : String) : JawaMethod = {
+//	  Center.getClassHierarchy.resolveConcreteDispatch(from, pSubSig) match{
 //  	  case Some(ap) => ap
-//  	  case None => Center.getProcedureWithoutFailing(Center.UNKNOWN_PROCEDURE_SIG)
+//  	  case None => Center.getMethodWithoutFailing(Center.UNKNOWN_PROCEDURE_SIG)
 //  	}
 //	}
 	
 	/**
 	 * check and get virtual callee procedure from Center. Input: .equals:(Ljava/lang/Object;)Z
 	 */
-	def getVirtualCalleeProcedure(fromType : Type, pSubSig : String) : JawaProcedure = {
+	def getVirtualCalleeMethod(fromType : Type, pSubSig : String) : JawaMethod = {
 	  val name =
 	  	if(Center.isJavaPrimitiveType(fromType)) Center.DEFAULT_TOPLEVEL_OBJECT  // any array in java is an Object, so primitive type array is an object, object's method can be called
 	  	else fromType.name
-	  val from = Center.resolveRecord(name, Center.ResolveLevel.HIERARCHY)
-	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig)
+	  val from = Center.resolveClass(name, Center.ResolveLevel.HIERARCHY)
+	  Center.getClassHierarchy.resolveConcreteDispatch(from, pSubSig)
 	}
   
   /**
    * check and get virtual callee procedure from Center. Input: .equals:(Ljava/lang/Object;)Z
    */
-  def getUnknownVirtualCalleeProcedures(baseType : Type, pSubSig : String) : Set[JawaProcedure] = {
+  def getUnknownVirtualCalleeMethods(baseType : Type, pSubSig : String) : Set[JawaMethod] = {
     val baseName =
       if(Center.isJavaPrimitiveType(baseType)) Center.DEFAULT_TOPLEVEL_OBJECT  // any array in java is an Object, so primitive type array is an object, object's method can be called
       else baseType.name  
-    val baseRec = Center.resolveRecord(baseName, Center.ResolveLevel.HIERARCHY)
-    Center.getRecordHierarchy.resolveAbstractDispatch(baseRec, pSubSig)
+    val baseRec = Center.resolveClass(baseName, Center.ResolveLevel.HIERARCHY)
+    Center.getClassHierarchy.resolveAbstractDispatch(baseRec, pSubSig)
   }
 	
 	/**
 	 * check and get super callee procedure from Center. Input: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
-	def getSuperCalleeProcedure(pSig : String) : JawaProcedure = {
-	  val fromType = StringFormConverter.getRecordTypeFromProcedureSignature(pSig)
-	  val pSubSig = StringFormConverter.getSubSigFromProcSig(pSig)
-	  val from = Center.resolveRecord(fromType.name, Center.ResolveLevel.HIERARCHY)
-	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig)
+	def getSuperCalleeMethod(pSig : String) : JawaMethod = {
+	  val fromType = StringFormConverter.getClassTypeFromMethodSignature(pSig)
+	  val pSubSig = StringFormConverter.getSubSigFromMethodSig(pSig)
+	  val from = Center.resolveClass(fromType.name, Center.ResolveLevel.HIERARCHY)
+	  Center.getClassHierarchy.resolveConcreteDispatch(from, pSubSig)
 	}
 	
 	/**
 	 * check and get static callee procedure from Center. Input: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
-	def getStaticCalleeProcedure(procSig : String) : JawaProcedure = {
-	  val recType = StringFormConverter.getRecordTypeFromProcedureSignature(procSig)
-	  val pSubSig = Center.getSubSigFromProcSig(procSig)
-	  val from = Center.resolveRecord(recType.name, Center.ResolveLevel.HIERARCHY)
-	  Center.getRecordHierarchy.resolveConcreteDispatch(from, pSubSig)
+	def getStaticCalleeMethod(procSig : String) : JawaMethod = {
+	  val recType = StringFormConverter.getClassTypeFromMethodSignature(procSig)
+	  val pSubSig = Center.getSubSigFromMethodSig(procSig)
+	  val from = Center.resolveClass(recType.name, Center.ResolveLevel.HIERARCHY)
+	  Center.getClassHierarchy.resolveConcreteDispatch(from, pSubSig)
 	}
 	
 	/**
 	 * check and get direct callee procedure from Center. Input: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
-	def getDirectCalleeProcedure(procSig : String) : JawaProcedure = {
-	  val pSubSig = Center.getSubSigFromProcSig(procSig)
-	  val recType = StringFormConverter.getRecordTypeFromProcedureSignature(procSig)
-	  val rec = Center.resolveRecord(recType.name, Center.ResolveLevel.HIERARCHY)
+	def getDirectCalleeMethod(procSig : String) : JawaMethod = {
+	  val pSubSig = Center.getSubSigFromMethodSig(procSig)
+	  val recType = StringFormConverter.getClassTypeFromMethodSignature(procSig)
+	  val rec = Center.resolveClass(recType.name, Center.ResolveLevel.HIERARCHY)
 	  if(rec.isUnknown){
 	    this.synchronized{
-		    Center.getProcedure(procSig) match {
+		    Center.getMethod(procSig) match {
 			    case Some(ap) => ap
 			    case None => 
-			      val ap = new JawaProcedure
+			      val ap = new JawaMethod
 			      ap.init(procSig)
 			      ap.setUnknown
-			      rec.addProcedure(ap)
+			      rec.addMethod(ap)
 			      ap
 			  }
 	    }
 	  } else {
-	    rec.getProcedure(pSubSig)
+	    rec.getMethod(pSubSig)
 	  }
 	}
 	
-	def resolveSignatureBasedCall(callSig : String, typ : String) : ISet[JawaProcedure] = {
-	  val result : MSet[JawaProcedure] = msetEmpty
-	  val recName = Center.getRecordNameFromProcedureSignature(callSig)
-    val subSig = Center.getSubSigFromProcSig(callSig)
-    val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
+	def resolveSignatureBasedCall(callSig : String, typ : String) : ISet[JawaMethod] = {
+	  val result : MSet[JawaMethod] = msetEmpty
+	  val recName = Center.getClassNameFromMethodSignature(callSig)
+    val subSig = Center.getSubSigFromMethodSig(callSig)
+    val rec = Center.resolveClass(recName, Center.ResolveLevel.HIERARCHY)
     if(!rec.isUnknown){
 		  typ match{
 		    case "interface" =>
 		      require(rec.isInterface)
-	        Center.getRecordHierarchy.getAllImplementersOf(rec).foreach{
+	        Center.getClassHierarchy.getAllImplementersOf(rec).foreach{
 	          record =>
 	            if(record.isConcrete){
 		            val fromType = StringFormConverter.getTypeFromName(record.getName)
-		            var callee  : JawaProcedure = null 
+		            var callee  : JawaMethod = null 
                 try{
-                  callee = getVirtualCalleeProcedure(fromType, subSig)
+                  callee = getVirtualCalleeMethod(fromType, subSig)
                 } catch {
-                  case pe : ProcedureInvisibleException =>
+                  case pe : MethodInvisibleException =>
                     println(pe.getMessage)
                   case a : Throwable =>
                     throw a
@@ -124,15 +124,15 @@ object CallHandler {
 	        }
 	      case "virtual" =>
 	        require(!rec.isInterface)
-	        Center.getRecordHierarchy.getAllSubClassesOfIncluding(rec).foreach{
+	        Center.getClassHierarchy.getAllSubClassesOfIncluding(rec).foreach{
 	          record =>
 	            if(record.isConcrete){
 	            	val fromType = StringFormConverter.getTypeFromName(record.getName)
-		            var callee  : JawaProcedure = null 
+		            var callee  : JawaMethod = null 
                 try{
-                  callee = getVirtualCalleeProcedure(fromType, subSig)
+                  callee = getVirtualCalleeMethod(fromType, subSig)
                 } catch {
-                  case pe : ProcedureInvisibleException =>
+                  case pe : MethodInvisibleException =>
                     println(pe.getMessage)
                   case a : Throwable =>
                     throw a
@@ -142,11 +142,11 @@ object CallHandler {
 	            }
 	        }
 	      case "super" =>
-	        result += getSuperCalleeProcedure(callSig)
+	        result += getSuperCalleeMethod(callSig)
 	      case "direct" =>
-	        result += getDirectCalleeProcedure(callSig)
+	        result += getDirectCalleeMethod(callSig)
 	      case "static" =>
-	      	result += getStaticCalleeProcedure(callSig)
+	      	result += getStaticCalleeMethod(callSig)
 	    }
     }
 	  result.toSet

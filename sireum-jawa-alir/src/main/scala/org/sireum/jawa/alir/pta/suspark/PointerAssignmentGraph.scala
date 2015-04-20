@@ -118,11 +118,11 @@ class PointsToMap extends PTAResult {
     assert(n2.point.isInstanceOf[PointThisEntry])
     val ptsdiff = pointsToSet(n1) -- pointsToSet(n2)
     val thisent = n2.point.asInstanceOf[PointThisEntry]
-    val calleeSubSig = StringFormConverter.getSubSigFromProcSig(thisent.ownerSig)
-    val thiscls = Center.resolveRecord(thisent.paramTyp.name, Center.ResolveLevel.HIERARCHY)
+    val calleeSubSig = StringFormConverter.getSubSigFromMethodSig(thisent.ownerSig)
+    val thiscls = Center.resolveClass(thisent.paramTyp.name, Center.ResolveLevel.HIERARCHY)
     ptsdiff.filter { 
       ins => 
-        val inscls = Center.resolveRecord(ins.getType.name, Center.ResolveLevel.HIERARCHY)
+        val inscls = Center.resolveClass(ins.getType.name, Center.ResolveLevel.HIERARCHY)
         var res : Boolean = false
         var tmpRec = inscls
         import scala.util.control.Breaks._
@@ -132,7 +132,7 @@ class PointsToMap extends PTAResult {
               res = true
               break
             }
-            else if(tmpRec.declaresProcedure(calleeSubSig)){
+            else if(tmpRec.declaresMethod(calleeSubSig)){
               res = false
               break
             }
@@ -159,17 +159,17 @@ class PointerAssignmentGraph[Node <: PtaNode]
     
   val pointsToMap = new PointsToMap
   
-  private val processed : MMap[(JawaProcedure, Context), Point with Proc] = new HashMap[(JawaProcedure, Context), Point with Proc] with SynchronizedMap[(JawaProcedure, Context), Point with Proc]
+  private val processed : MMap[(JawaMethod, Context), Point with Method] = new HashMap[(JawaMethod, Context), Point with Method] with SynchronizedMap[(JawaMethod, Context), Point with Method]
   
-  def isProcessed(proc : JawaProcedure, callerContext : Context) : Boolean = processed.contains(proc, callerContext)
+  def isProcessed(proc : JawaMethod, callerContext : Context) : Boolean = processed.contains(proc, callerContext)
   
-  def getPointProc(proc : JawaProcedure, callerContext : Context) : Point with Proc =  processed(proc, callerContext)
+  def getPointMethod(proc : JawaMethod, callerContext : Context) : Point with Method =  processed(proc, callerContext)
   
-  def addProcessed(jp : JawaProcedure, c : Context, ps : Set[Point]) = {
+  def addProcessed(jp : JawaMethod, c : Context, ps : Set[Point]) = {
     ps.foreach{
       p =>
-        if(p.isInstanceOf[Point with Proc])
-          this.processed += ((jp, c) -> p.asInstanceOf[Point with Proc])
+        if(p.isInstanceOf[Point with Method])
+          this.processed += ((jp, c) -> p.asInstanceOf[Point with Method])
     }
   }
   
@@ -178,7 +178,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
   private var newNodes : Set[Node] = isetEmpty
   private var newEdges : Set[Edge] = isetEmpty
   
-  final case class PTACallee(callee : JawaProcedure, pi : Point with Invoke, node : Node) extends Callee
+  final case class PTACallee(callee : JawaMethod, pi : Point with Invoke, node : Node) extends Callee
   
   def processStaticCall : ISet[PTACallee] = {
     val staticCallees = msetEmpty[PTACallee]
@@ -258,7 +258,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
    * to the given program point. If a value is added to a node, then that 
    * node is added to the worklist.
    */
-  def constructGraph(ap : JawaProcedure, ps : Set[Point], callerContext : Context) = {
+  def constructGraph(ap : JawaMethod, ps : Set[Point], callerContext : Context) = {
     addProcessed(ap, callerContext.copy, ps)
     ps.foreach{
       p =>
@@ -301,7 +301,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
           case _ =>
         }
         rhs match {
-          case pgr : PointGlobalR =>
+          case pgr : PointStaticFieldR =>
             val globalVarNode = getNodeOrElse(pgr, context.copy)
             nodes += globalVarNode
           case pfr : PointFieldR =>
@@ -350,9 +350,9 @@ class PointerAssignmentGraph[Node <: PtaNode]
             nodes += argNode
             argNode.setProperty(PARAM_NUM, pa.index)
         }
-      case procP : Point with Proc =>
+      case procP : Point with Method =>
         procP match {
-          case vp : Point with Proc with Virtual => 
+          case vp : Point with Method with Virtual => 
             nodes += getNodeOrElse(vp.thisPEntry, context.copy)
             nodes += getNodeOrElse(vp.thisPExit, context.copy)
           case _ =>
@@ -438,9 +438,9 @@ class PointerAssignmentGraph[Node <: PtaNode]
     }
   }
   
-  private def connectCallEdges(met : Point with Proc, pi : Point with Invoke, srcContext : Context) ={
+  private def connectCallEdges(met : Point with Method, pi : Point with Invoke, srcContext : Context) ={
     val targetContext = srcContext.copy
-    targetContext.setContext(met.procSig, met.ownerSig)
+    targetContext.setContext(met.methodSig, met.ownerSig)
     met.paramPsEntry.foreach{
       case (_, paramp) => 
         pi.argPsCall.foreach{
@@ -471,7 +471,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
     }
     
     met match {
-      case vp : Point with Proc with Virtual =>
+      case vp : Point with Method with Virtual =>
         assume(pi.isInstanceOf[PointI])
         val srcNodeCall = getNode(pi.asInstanceOf[PointI].recvPCall, srcContext.copy)
         val targetNodeEntry = getNode(vp.thisPEntry, targetContext.copy)
@@ -497,7 +497,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
     }
   }
   
-  def extendGraph(met : Point with Proc, pi : Point with Invoke, srcContext : Context) = {
+  def extendGraph(met : Point with Method, pi : Point with Invoke, srcContext : Context) = {
     breakPiEdges(pi, met.accessTyp, srcContext)
     connectCallEdges(met, pi, srcContext)
   }
@@ -519,28 +519,28 @@ class PointerAssignmentGraph[Node <: PtaNode]
     }
   }
   
-  def getDirectCallee(pi : Point with Invoke) : JawaProcedure = CallHandler.getDirectCalleeProcedure(pi.sig)
+  def getDirectCallee(pi : Point with Invoke) : JawaMethod = CallHandler.getDirectCalleeMethod(pi.sig)
   
-  def getStaticCallee(pi : Point with Invoke) : JawaProcedure = CallHandler.getStaticCalleeProcedure(pi.sig)
+  def getStaticCallee(pi : Point with Invoke) : JawaMethod = CallHandler.getStaticCalleeMethod(pi.sig)
   
   def getSuperCalleeSet(diff : ISet[Instance],
-	                 pi : Point with Invoke) : ISet[JawaProcedure] = {
-    val calleeSet : MSet[JawaProcedure] = msetEmpty
+	                 pi : Point with Invoke) : ISet[JawaMethod] = {
+    val calleeSet : MSet[JawaMethod] = msetEmpty
     diff.foreach{
       d =>
-        val p = CallHandler.getSuperCalleeProcedure(pi.sig)
+        val p = CallHandler.getSuperCalleeMethod(pi.sig)
         calleeSet += p
     }
     calleeSet.toSet
   }
 
   def getVirtualCalleeSet(diff : ISet[Instance],
-	                 pi : Point with Invoke) : ISet[JawaProcedure] = {
-    val calleeSet : MSet[JawaProcedure] = msetEmpty
-    val subSig = Center.getSubSigFromProcSig(pi.sig)
+	                 pi : Point with Invoke) : ISet[JawaMethod] = {
+    val calleeSet : MSet[JawaMethod] = msetEmpty
+    val subSig = Center.getSubSigFromMethodSig(pi.sig)
     diff.foreach{
       d =>
-        val p = CallHandler.getVirtualCalleeProcedure(d.typ, subSig)
+        val p = CallHandler.getVirtualCalleeMethod(d.typ, subSig)
         calleeSet += p
     }
     calleeSet.toSet
@@ -596,14 +596,14 @@ final case class PtaNode(point : Point, context : Context) extends InterProcedur
         Set(InstanceSlot(PTAInstance(new NormalType(po.obj), context.copy)))
       case pso : PointStringO =>
         Set(InstanceSlot(PTAConcreteStringInstance(pso.text, context.copy)))
-      case gla : Point with Loc with Global with Array =>
-        val pts = ptaresult.pointsToSet(BaseSlot(gla.globalSig), context)
+      case gla : Point with Loc with Static_Field with Array =>
+        val pts = ptaresult.pointsToSet(BaseSlot(gla.staticFieldSig), context)
         pts.map{
           ins =>
             ArraySlot(ins)
         }
-      case glo : Point with Loc with Global =>
-        Set(VarSlot(glo.globalSig))
+      case glo : Point with Loc with Static_Field =>
+        Set(VarSlot(glo.staticFieldSig))
       case arr : PointArrayL =>
         val pts = ptaresult.pointsToSet(BaseSlot(arr.arrayname), context)
         pts.map{
@@ -636,7 +636,7 @@ final case class PtaNode(point : Point, context : Context) extends InterProcedur
         Set(InvokeSlot(inp.sig, inp.invokeTyp))
       case p : PointRet =>
         Set(VarSlot(p.retname))
-      case p : PointProcRet =>
+      case p : PointMethodRet =>
         Set(VarSlot("ret"))
       case _ => throw new RuntimeException("No slot for such pta node: " + point + "@" + context)
     }

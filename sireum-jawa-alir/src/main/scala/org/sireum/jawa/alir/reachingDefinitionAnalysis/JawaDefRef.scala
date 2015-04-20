@@ -146,7 +146,7 @@ final class JawaDefRef(st: SymbolTable, val varAccesses: VarAccesses)
       def resolveNameExp(ne : NameExp) = {
         var uri : ResourceUri = null
         if(!ne.name.hasResourceInfo){
-          val recType = StringFormConverter.getRecordTypeFromFieldSignature(ne.name.name)
+          val recType = StringFormConverter.getClassTypeFromFieldSignature(ne.name.name)
           val gf = Center.findField(recType, ne.name.name).getOrElse(throw new RuntimeException("cannot find field: " + ne.name.name))
           Center.getGlobalVarUri(gf.getSignature) match{
             case Some(u) => uri = u

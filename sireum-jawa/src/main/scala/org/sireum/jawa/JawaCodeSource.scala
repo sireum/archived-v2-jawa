@@ -61,8 +61,8 @@ object JawaCodeSource {
     fileUris.foreach{
       fileUri => 
         val recCode = MyFileUtil.readFileContent(fileUri)
-        val recName = getRecordName(recCode)
-        setRecordCode(recName, recCode, Left(CodeType.FRAMEWORK))
+        val recName = getClassName(recCode)
+        setClassCode(recName, recCode, Left(CodeType.FRAMEWORK))
     }
     this.preLoaded = true
   }
@@ -76,12 +76,12 @@ object JawaCodeSource {
     fileUris.foreach{
       fileUri => 
         val recCode = MyFileUtil.readFileContent(fileUri)
-        val recName = getRecordName(recCode)
-        setRecordCode(recName, recCode, Right(summary))
+        val recName = getClassName(recCode)
+        setClassCode(recName, recCode, Right(summary))
     }
   }
   
-  private def getRecordName(rCode : String) : String = {
+  private def getClassName(rCode : String) : String = {
     if(getFirstWord(rCode) != "record") throw new RuntimeException("Following code has format problem: \n" + rCode)
     val size = rCode.size
     var i = rCode.indexOf("record") + 7
@@ -123,22 +123,22 @@ object JawaCodeSource {
   def isPreLoaded = this.preLoaded
   
   /**
-   * map from record name to pilar code of library. E.g. record name java.lang.Object to its pilar code 
+   * map from class name to pilar code of library. E.g. record name java.lang.Object to its pilar code 
    */
   
-  protected var frameworkRecordsCodes : Map[String, String] = Map()
+  protected var frameworkClassCodes : Map[String, String] = Map()
 	
 	/**
-   * map from record name to pilar code of library. E.g. record name java.lang.Object to its pilar code 
+   * map from class name to pilar code of library. E.g. record name java.lang.Object to its pilar code 
    */
   
-	protected var thirdPartyLibRecordsCodes : Map[String, String] = Map()
+	protected var thirdPartyLibClassCodes : Map[String, String] = Map()
 	
 	/**
-   * map from record name to pilar code of app. E.g. record name java.lang.MyObject to its pilar code 
+   * map from class name to pilar code of app. E.g. record name java.lang.MyObject to its pilar code 
    */
   
-	protected var appRecordsCodes : Map[String, String] = Map()
+	protected var appClassCodes : Map[String, String] = Map()
 	
 //	/**
 //	 * map from procedure sig to container record name. sig e.g. [|Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z|]
@@ -153,88 +153,88 @@ object JawaCodeSource {
 //	protected var globalVarsCodes : Map[String, String] = Map()
 	
 	/**
-	 * get lib records' code
+	 * get lib class codes
 	 */
 	
-	def getFrameworkRecordsCodes = this.frameworkRecordsCodes
+	def getFrameworkClassCodes = this.frameworkClassCodes
 	
 	/**
-	 * set lib record code
+	 * set lib class code
 	 */
 	
-	def setFrameworkRecordCode(name : String, code : String) = this.frameworkRecordsCodes += (name -> code)
+	def setFrameworkClassCode(name : String, code : String) = this.frameworkClassCodes += (name -> code)
 	
 	/**
-	 * get app using lib records' code
+	 * get app using lib class codes
 	 */
 	
-	def getThirdPartyLibraryRecordsCodes = this.thirdPartyLibRecordsCodes
+	def getThirdPartyLibraryClassCodes = this.thirdPartyLibClassCodes
 	
 	/**
-	 * set app using lib record code
+	 * set app using lib class code
 	 */
 	
-	def setThirdPartyLibraryRecordCode(name : String, code : String) = this.thirdPartyLibRecordsCodes += (name -> code)
+	def setThirdPartyLibraryClassCode(name : String, code : String) = this.thirdPartyLibClassCodes += (name -> code)
 	
 	/**
-	 * get app records codes
+	 * get app class codes
 	 */
 	
-	def getAppRecordsCodes = this.appRecordsCodes
+	def getAppClassCodes = this.appClassCodes
 	
 	/**
-	 * clear app records codes
+	 * clear app class codes
 	 */
 	
-	def clearAppRecordsCodes = {
-    this.appRecordsCodes = Map()
-    this.thirdPartyLibRecordsCodes = Map()
+	def clearAppClassCodes = {
+    this.appClassCodes = Map()
+    this.thirdPartyLibClassCodes = Map()
   }
 	
 	/**
 	 * set app record code
 	 */
 	
-	def setAppRecordCode(name : String, code : String) = this.appRecordsCodes += (name -> code)
+	def setAppClassCode(name : String, code : String) = this.appClassCodes += (name -> code)
 	
 	/**
 	 * set record code
 	 */
 	
-	def setRecordCode(name : String, code : String, determiner : Either[CodeType.Value, LibraryAPISummary]) = {
+	def setClassCode(name : String, code : String, determiner : Either[CodeType.Value, LibraryAPISummary]) = {
     determiner match{
       case Left(typ) =>
         typ match{
-          case CodeType.FRAMEWORK => setFrameworkRecordCode(name, code)
-          case CodeType.APP => setAppRecordCode(name, code)
-          case CodeType.THIRD_PARTY_LIB => setThirdPartyLibraryRecordCode(name, code)
+          case CodeType.FRAMEWORK => setFrameworkClassCode(name, code)
+          case CodeType.APP => setAppClassCode(name, code)
+          case CodeType.THIRD_PARTY_LIB => setThirdPartyLibraryClassCode(name, code)
         }
       case Right(summary) =>
         summary.isLibraryAPI(name) match{
-		      case true => setThirdPartyLibraryRecordCode(name, code)
-		      case false => setAppRecordCode(name, code)
+		      case true => setThirdPartyLibraryClassCode(name, code)
+		      case false => setAppClassCode(name, code)
 		    }
     }
   }
 	
-	def addAppRecordCode(name : String, procCode : String) = {
-	  val recCode = this.appRecordsCodes.getOrElse(name, throw new RuntimeException("Record " + name + " does not exist in the app code."))
+	def addAppClassCode(name : String, procCode : String) = {
+	  val recCode = this.appClassCodes.getOrElse(name, throw new RuntimeException("Class " + name + " does not exist in the app code."))
 	  val newRecCode = recCode + "\n" + procCode
-	  setAppRecordCode(name, newRecCode)
+	  setAppClassCode(name, newRecCode)
 	}
 	
 	/**
 	 * get record code
 	 */
 	
-	def getRecordCode(name : String, level : Center.ResolveLevel.Value) : String = {
-    var code = this.appRecordsCodes.get(name) match{
+	def getClassCode(name : String, level : Center.ResolveLevel.Value) : String = {
+    var code = this.appClassCodes.get(name) match{
       case Some(code) => code
       case None =>
-        this.thirdPartyLibRecordsCodes.get(name) match{
+        this.thirdPartyLibClassCodes.get(name) match{
           case Some(code) => code
           case None =>
-            this.frameworkRecordsCodes.getOrElse(name, throw new RuntimeException("record " + name + " does not exist in the current code base."))
+            this.frameworkClassCodes.getOrElse(name, throw new RuntimeException("Class " + name + " does not exist in the current code base."))
         }
     }
     if(level < Center.ResolveLevel.BODY){
@@ -248,9 +248,9 @@ object JawaCodeSource {
 	 */
 	
 	def getCodeType(name : String) : CodeType.Value = {
-	  if(this.appRecordsCodes.contains(name)) CodeType.APP
-	  else if(this.thirdPartyLibRecordsCodes.contains(name)) CodeType.THIRD_PARTY_LIB
-	  else if(this.frameworkRecordsCodes.contains(name)) CodeType.FRAMEWORK
+	  if(this.appClassCodes.contains(name)) CodeType.APP
+	  else if(this.thirdPartyLibClassCodes.contains(name)) CodeType.THIRD_PARTY_LIB
+	  else if(this.frameworkClassCodes.contains(name)) CodeType.FRAMEWORK
 	  else throw new RuntimeException("record " + name + " does not exist in the current code base.")
 	}
 	
@@ -258,14 +258,14 @@ object JawaCodeSource {
 	 * contains given record or not?
 	 */
 	
-	def containsRecord(name : String) : Boolean = this.appRecordsCodes.contains(name) || this.thirdPartyLibRecordsCodes.contains(name) || this.frameworkRecordsCodes.contains(name)
+	def containsClass(name : String) : Boolean = this.appClassCodes.contains(name) || this.thirdPartyLibClassCodes.contains(name) || this.frameworkClassCodes.contains(name)
 	
 	/**
 	 * contains given procedure's container record or not?
 	 */
 	
-	def containsProcedure(sig : String) : Boolean = {
-    getProcedureCode(sig).isDefined
+	def containsMethod(sig : String) : Boolean = {
+    getMethodCode(sig).isDefined
   }
 	
 	/**
@@ -273,26 +273,26 @@ object JawaCodeSource {
 	 */
 	
 	def containsGlobalVar(sig : String) : Boolean = {
-	  getProcedureCode(sig).isDefined
+	  getMethodCode(sig).isDefined
 	}
 //	/**
 //	 * set procedure container name
 //	 */
 //	
-//	def setProcedureContainer(sig : String, recName : String) = this.proceduresCodes += (sig -> recName)
+//	def setMethodContainer(sig : String, recName : String) = this.proceduresCodes += (sig -> recName)
 //	
 	/**
 	 * get procedure's containing record's code
 	 */
 	
-	def getProcedureCode(sig : String) : Option[String] = {
-    val name = StringFormConverter.getRecordNameFromProcedureSignature(sig)
-    val recordCode = getRecordCode(name, Center.ResolveLevel.BODY)
+	def getMethodCode(sig : String) : Option[String] = {
+    val name = StringFormConverter.getClassNameFromMethodSignature(sig)
+    val recordCode = getClassCode(name, Center.ResolveLevel.BODY)
     LightWeightPilarParser.getCode(recordCode, sig)
   }
 
-	def getProcedureCodeWithoutFailing(sig : String) : String = {
-    getProcedureCode(sig) match{
+	def getMethodCodeWithoutFailing(sig : String) : String = {
+    getMethodCode(sig) match{
       case Some(code) => code
       case None => throw new RuntimeException("Given proc sig " + sig + " does not exisit.")
     }
@@ -303,9 +303,9 @@ object JawaCodeSource {
 	 */
 	
 	def getGlobalVarCode(sig : String) : Option[String] = {
-	  val name = StringFormConverter.getRecordNameFromFieldSignature(sig)
-    val recordCode = getRecordCode(name, Center.ResolveLevel.BODY)
-    LightWeightPilarParser.getCode(recordCode, sig)
+	  val name = StringFormConverter.getClassNameFromFieldSignature(sig)
+    val classCode = getClassCode(name, Center.ResolveLevel.BODY)
+    LightWeightPilarParser.getCode(classCode, sig)
 	}
 	
 	def getGlobalVarCodeWithoutFailing(sig : String) : String = {
@@ -320,8 +320,8 @@ object JawaCodeSource {
 	 */
 	
 	def printContent = {
-	  println("appRecordsCodes:")
-	  this.appRecordsCodes.foreach{
+	  println("appClassesCodes:")
+	  this.appClassCodes.foreach{
 	    case (k, v)=>
 	      println("recName: " + k)
 	      println(v)

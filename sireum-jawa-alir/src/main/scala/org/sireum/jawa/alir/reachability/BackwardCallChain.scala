@@ -7,7 +7,7 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir.reachability
 
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 import scala.collection.GenSet
 import org.sireum.util._
 import org.sireum.jawa.Center
@@ -20,9 +20,9 @@ import org.sireum.pilar.ast.NameExp
  */ 
 object BackwardCallChain {
   
-  def getReachableProceduresBySubSig(apiSubSig : String, par : Boolean) : Set[JawaProcedure] = {
-    var result : ISet[JawaProcedure] = isetEmpty
-	  val ps : Set[JawaProcedure] = Center.getApplicationRecords.map(_.getProcedures).reduce(iunion[JawaProcedure])
+  def getReachableMethodsBySubSig(apiSubSig : String, par : Boolean) : Set[JawaMethod] = {
+    var result : ISet[JawaMethod] = isetEmpty
+	  val ps : Set[JawaMethod] = Center.getApplicationClasses.map(_.getMethods).reduce(iunion[JawaMethod])
 	  val workList = mlistEmpty[String]
     val processed = msetEmpty[String]
 	  result ++=
@@ -30,8 +30,8 @@ object BackwardCallChain {
 		    proc =>
 		      var flag : Boolean = false
 		      if(proc.isConcrete){
-		        if(!proc.hasProcedureBody) proc.resolveBody
-		        val body = proc.getProcedureBody
+		        if(!proc.hasMethodBody) proc.resolveBody
+		        val body = proc.getMethodBody
 		        flag = body.locations.map{
 		          loc =>
 		            visitLocUseSubSig(apiSubSig, loc)
@@ -50,8 +50,8 @@ object BackwardCallChain {
 			    proc =>
 			      var flag : Boolean = false
 			      if(proc.isConcrete){
-			        if(!proc.hasProcedureBody) proc.resolveBody
-			        val body = proc.getProcedureBody
+			        if(!proc.hasMethodBody) proc.resolveBody
+			        val body = proc.getMethodBody
 			        flag = body.locations.map{
 			          loc =>
 			            visitLoc(sig, loc)
@@ -65,22 +65,22 @@ object BackwardCallChain {
 	  result
   }
   
-	def getReachableProcedures(apiSigs : Set[String], par : Boolean) : Map[String, Set[JawaProcedure]] = {
-	  var result : Map[String, Set[JawaProcedure]] = Map()
+	def getReachableMethods(apiSigs : Set[String], par : Boolean) : Map[String, Set[JawaMethod]] = {
+	  var result : Map[String, Set[JawaMethod]] = Map()
 	  result ++= 
 	    (if (par) apiSigs.par else apiSigs).map{
 		    sig =>
-		      (sig, getReachableProcedures(sig, par))
+		      (sig, getReachableMethods(sig, par))
 		  }
 	  result
   }
 	
-	def getReachableProcedures(apiSig : String, par : Boolean) : Set[JawaProcedure] = {
-	  var result : ISet[JawaProcedure] = isetEmpty
-	  if(Center.getApplicationRecords.isEmpty) {
+	def getReachableMethods(apiSig : String, par : Boolean) : Set[JawaMethod] = {
+	  var result : ISet[JawaMethod] = isetEmpty
+	  if(Center.getApplicationClasses.isEmpty) {
 	    return Set()
 	  }
-	  val ps : Set[JawaProcedure] = Center.getApplicationRecords.map(_.getProcedures).reduce(iunion[JawaProcedure])
+	  val ps : Set[JawaMethod] = Center.getApplicationClasses.map(_.getMethods).reduce(iunion[JawaMethod])
 	  
     val workList = mlistEmpty[String]
 	  val processed = msetEmpty[String]
@@ -93,8 +93,8 @@ object BackwardCallChain {
 			    proc =>
 			      var flag : Boolean = false
 			      if(proc.isConcrete){
-			        if(!proc.hasProcedureBody) proc.resolveBody
-			        val body = proc.getProcedureBody
+			        if(!proc.hasMethodBody) proc.resolveBody
+			        val body = proc.getMethodBody
 			        flag = body.locations.map{
 			          loc =>
 			            visitLoc(sig, loc)
@@ -109,9 +109,9 @@ object BackwardCallChain {
 	}
 	
 	def visitLoc(apiSig : String, loc : LocationDecl) : Boolean = {
-	  val apiRecName = Center.getRecordNameFromProcedureSignature(apiSig)
-	  val apiSubSig = Center.getSubSigFromProcSig(apiSig)
-	  val apiRec = Center.resolveRecord(apiRecName, Center.ResolveLevel.HIERARCHY)
+	  val apiRecName = Center.getClassNameFromMethodSignature(apiSig)
+	  val apiSubSig = Center.getSubSigFromMethodSig(apiSig)
+	  val apiRec = Center.resolveClass(apiRecName, Center.ResolveLevel.HIERARCHY)
 	  var found = false
 	  val visitor = Visitor.build({
       case t : CallJump if t.jump.isEmpty =>
@@ -122,9 +122,9 @@ object BackwardCallChain {
           }
           case None => ""
         }
-        val recName = Center.getRecordNameFromProcedureSignature(sig)
-        val subSig = Center.getSubSigFromProcSig(sig)
-        val rec = Center.resolveRecord(recName, Center.ResolveLevel.HIERARCHY)
+        val recName = Center.getClassNameFromMethodSignature(sig)
+        val subSig = Center.getSubSigFromMethodSig(sig)
+        val rec = Center.resolveClass(recName, Center.ResolveLevel.HIERARCHY)
         val typ = t.getValueAnnotation("type") match {
           case Some(s) => s match {
             case ne : NameExp => ne.name.name
@@ -136,10 +136,10 @@ object BackwardCallChain {
           case "virtual" | "interface" | "super" =>
             if(apiSubSig == subSig){ 
               if(rec.isInterface){
-                if(apiRec.isInterface) found = Center.getRecordHierarchy.isRecordRecursivelySubInterfaceOfIncluding(apiRec, rec)
-                else found = Center.getRecordHierarchy.getAllImplementersOf(rec).contains(apiRec)
+                if(apiRec.isInterface) found = Center.getClassHierarchy.isClassRecursivelySubInterfaceOfIncluding(apiRec, rec)
+                else found = Center.getClassHierarchy.getAllImplementersOf(rec).contains(apiRec)
               } else {
-                if(!apiRec.isInterface) found = Center.getRecordHierarchy.isRecordRecursivelySubClassOfIncluding(apiRec, rec)
+                if(!apiRec.isInterface) found = Center.getClassHierarchy.isClassRecursivelySubClassOfIncluding(apiRec, rec)
               }
             }
           case "direct" | "static" =>
@@ -163,7 +163,7 @@ object BackwardCallChain {
           }
           case None => ""
         }
-        val subSig = Center.getSubSigFromProcSig(sig)
+        val subSig = Center.getSubSigFromMethodSig(sig)
         found = (subSig == apiSubSig)
         false
     })

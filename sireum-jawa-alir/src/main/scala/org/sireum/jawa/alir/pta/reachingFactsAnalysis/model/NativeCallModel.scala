@@ -7,7 +7,7 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 
-import org.sireum.jawa.JawaProcedure
+import org.sireum.jawa.JawaMethod
 import org.sireum.util._
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.Center
@@ -19,9 +19,9 @@ import org.sireum.jawa.alir.pta._
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 object NativeCallModel {
-	 def isNativeCall(p : JawaProcedure) : Boolean = p.isNative
+	 def isNativeCall(p : JawaMethod) : Boolean = p.isNative
 	 
-	 def doNativeCall(s : PTAResult, p : JawaProcedure, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	 def doNativeCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
@@ -35,8 +35,8 @@ object NativeCallModel {
 	      val thisValue = s.pointsToSet(thisSlot, currentContext)
 	      thisValue.foreach{
 	        ins =>
-	          require(Center.hasRecord(ins.getType.typ))
-	          val insRec = Center.getRecord(ins.getType.typ)
+	          require(Center.hasClass(ins.getType.typ))
+	          val insRec = Center.getClass(ins.getType.typ)
 	          val insClasObj = JawaAlirInfoProvider.getClassInstance(insRec)
 	          newFacts += RFAFact(VarSlot(retVars(0)), insClasObj)
 	          val strIns = PTAConcreteStringInstance(insClasObj.getName, insClasObj.getDefSite)

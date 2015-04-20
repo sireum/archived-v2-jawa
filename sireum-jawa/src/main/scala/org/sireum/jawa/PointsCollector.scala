@@ -18,17 +18,17 @@ import org.sireum.jawa.util.StringFormConverter
  */ 
 class PointsCollector {
   
-  def collectProcPoint(ownerSig : String, pst : ProcedureSymbolTable) : Point with Proc = {
-    val procSig = 
+  def collectMethodPoint(ownerSig : String, pst : ProcedureSymbolTable) : Point with Method = {
+    val methodSig = 
       pst.procedure.getValueAnnotation("signature") match {
 	      case Some(exp : NameExp) =>
 	        exp.name.name
 	      case _ => throw new RuntimeException("Can not find signature")
 	    }
     
-    val parser = new SignatureParser(procSig).getParamSig
+    val parser = new SignatureParser(methodSig).getParamSig
     val types = parser.getParameterTypes()
-    val thisTyp = StringFormConverter.getRecordTypeFromProcedureSignature(procSig)
+    val thisTyp = StringFormConverter.getClassTypeFromMethodSignature(methodSig)
     
     val accessTyp = pst.procedure.getValueAnnotation("Access") match{
       case Some(acc) =>
@@ -61,25 +61,25 @@ class PointsCollector {
       }
     )
     
-    var retP : Option[PointProcRet] = None
+    var retP : Option[PointMethodRet] = None
     if(parser.isReturnObject || parser.isReturnArray){
-      retP = Some(PointProcRet(procSig))
+      retP = Some(PointMethodRet(methodSig))
     }
     
     if(AccessFlag.isStatic(AccessFlag.getAccessFlags(accessTyp))){
-      PointStaticProc(procSig, accessTyp, paramPsEntry.toMap, paramPsExit.toMap, retP, ownerSig)
+      PointStaticMethod(methodSig, accessTyp, paramPsEntry.toMap, paramPsExit.toMap, retP, ownerSig)
     } else {
-      if(thisPEntry == null) throw new RuntimeException("Virtual method " + procSig + " does not have 'this' param.")
-      PointProc(procSig, accessTyp, thisPEntry, thisPExit, paramPsEntry.toMap, paramPsExit.toMap, retP, ownerSig)
+      if(thisPEntry == null) throw new RuntimeException("Virtual method " + methodSig + " does not have 'this' param.")
+      PointMethod(methodSig, accessTyp, thisPEntry, thisPExit, paramPsEntry.toMap, paramPsExit.toMap, retP, ownerSig)
     }
   }
   
   /**
-   * Resolve native procedure node collect
+   * Resolve native method node collect
    */
-//  def resolveNativeProc(pst : ProcedureSymbolTable, pProc : PointProc) = {
+//  def resolveNativeMethod(pst : ProcedureSymbolTable, pMethod : PointMethod) = {
 //    val thisP = PointThis("native", pst.procedureUri)
-//    pProc.setThisParam(thisP)
+//    pMethod.setThisParam(thisP)
 //  }
   
   /**
@@ -116,7 +116,7 @@ class PointsCollector {
     var loc : ResourceUri = ""
     var locIndex = 0
 
-    val procPoint = collectProcPoint(ownerSig, pst)
+    val procPoint = collectMethodPoint(ownerSig, pst)
     points += procPoint
     
     def getLocUri(l : LocationDecl) =
@@ -125,15 +125,15 @@ class PointsCollector {
         else
           l.name.get.uri
           
-    def isGlobal(name : String) : Boolean = {
+    def isStaticField(name : String) : Boolean = {
       if(name.startsWith("@@")){true} else {false}
     }
     
     def initExpPointL(e : Exp) : Point with Left = {
       e match {
         case n : NameExp =>
-          if(isGlobal(n.name.name)){
-            PointGlobalL(n.name.name, loc, locIndex, ownerSig)
+          if(isStaticField(n.name.name)){
+            PointStaticFieldL(n.name.name, loc, locIndex, ownerSig)
           } else {
             PointL(n.name.name, loc, locIndex, ownerSig)
           }
@@ -141,8 +141,8 @@ class PointsCollector {
           ie.exp match {
             case n : NameExp =>
               val dimensions = ie.indices.size
-              if(isGlobal(n.name.name)){
-                PointGlobalArrayL(n.name.name, dimensions, loc, locIndex, ownerSig)
+              if(isStaticField(n.name.name)){
+                PointStaticFieldArrayL(n.name.name, dimensions, loc, locIndex, ownerSig)
               } else {
                 PointArrayL(n.name.name, dimensions, loc, locIndex, ownerSig)
               }
@@ -155,8 +155,8 @@ class PointsCollector {
     def initExpPointR(e : Exp) : Point with Right = {
       e match {
         case n : NameExp =>
-          if(isGlobal(n.name.name)){
-            PointGlobalR(n.name.name, loc, locIndex, ownerSig)
+          if(isStaticField(n.name.name)){
+            PointStaticFieldR(n.name.name, loc, locIndex, ownerSig)
           } else {
             PointR(n.name.name, loc, locIndex, ownerSig)
           }
@@ -164,8 +164,8 @@ class PointsCollector {
           val dimensions = ie.indices.size
           ie.exp match {
             case n : NameExp =>
-              if(isGlobal(n.name.name)){
-                PointGlobalArrayR(n.name.name, dimensions, loc, locIndex, ownerSig)
+              if(isStaticField(n.name.name)){
+                PointStaticFieldArrayR(n.name.name, dimensions, loc, locIndex, ownerSig)
               } else {
                 PointArrayR(n.name.name, dimensions, loc, locIndex, ownerSig)
               }
@@ -413,24 +413,24 @@ final case class PointArrayL(arrayname : String, dimensions: Int, loc : Resource
 final case class PointArrayR(arrayname : String, dimensions: Int, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Right with Array
 
 /**
- * Set of program points corresponding to l-value global variable. 
+ * Set of program points corresponding to l-value static field variable. 
  */
-final case class PointGlobalL(globalSig : String, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Left with Global
+final case class PointStaticFieldL(staticFieldSig : String, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Left with Static_Field
 
 /**
- * Set of program points corresponding to R-value global variable. 
+ * Set of program points corresponding to R-value static field variable. 
  */
-final case class PointGlobalR(globalSig : String, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Right with Global
+final case class PointStaticFieldR(staticFieldSig : String, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Right with Static_Field
 
 /**
- * Set of program points corresponding to l-value global array variable. 
+ * Set of program points corresponding to l-value static field array variable. 
  */
-final case class PointGlobalArrayL(globalSig : String, dimensions: Int, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Left with Global with Array
+final case class PointStaticFieldArrayL(staticFieldSig : String, dimensions: Int, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Left with Static_Field with Array
 
 /**
- * Set of program points corresponding to R-value global array variable. 
+ * Set of program points corresponding to R-value static field array variable. 
  */
-final case class PointGlobalArrayR(globalSig : String, dimensions: Int, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Right with Global with Array
+final case class PointStaticFieldArrayR(staticFieldSig : String, dimensions: Int, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc with Right with Static_Field with Array
 
 /**
  * Set of program points corresponding to base part of field access expressions in the LHS. 
@@ -501,19 +501,19 @@ final case class PointParamExit(paramName : String, paramTyp : Type, index : Int
 /**
  * Set of program points corresponding to return variable.
  */
-final case class PointRet(retname : String, procPoint : Point with Proc, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc
+final case class PointRet(retname : String, procPoint : Point with Method, loc : ResourceUri, locIndex : Int, ownerSig : String) extends Point with Loc
 
 /**
  * Set of program points corresponding to return variable (fake one).
  */
-final case class PointProcRet(ownerSig : String) extends Point
+final case class PointMethodRet(ownerSig : String) extends Point
 
 /**
- * Set of program points corresponding to procedures. 
+ * Set of program points corresponding to methods. 
  */
-final case class PointProc(procSig : String, accessTyp : String, thisPEntry : PointThisEntry, thisPExit : PointThisExit, paramPsEntry : IMap[Int, PointParamEntry], paramPsExit : IMap[Int, PointParamExit], retVar : Option[PointProcRet], ownerSig : String) extends Point with Proc with Virtual
+final case class PointMethod(methodSig : String, accessTyp : String, thisPEntry : PointThisEntry, thisPExit : PointThisExit, paramPsEntry : IMap[Int, PointParamEntry], paramPsExit : IMap[Int, PointParamExit], retVar : Option[PointMethodRet], ownerSig : String) extends Point with Method with Virtual
 
 /**
- * Set of program points corresponding to static procedures. 
+ * Set of program points corresponding to static methods. 
  */
-final case class PointStaticProc(procSig : String, accessTyp : String, paramPsEntry : IMap[Int, PointParamEntry], paramPsExit : IMap[Int, PointParamExit], retVar : Option[PointProcRet], ownerSig : String) extends Point with Proc 
+final case class PointStaticMethod(methodSig : String, accessTyp : String, paramPsEntry : IMap[Int, PointParamEntry], paramPsExit : IMap[Int, PointParamExit], retVar : Option[PointMethodRet], ownerSig : String) extends Point with Method 

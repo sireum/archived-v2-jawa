@@ -16,37 +16,37 @@ import org.sireum.jawa._
 object StringFormConverter {
   
   /**
-	 * get record name from procedure signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object
+	 * get class name from method signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object
 	 */
   
-  def getRecordNameFromProcedureSignature(sig : String) : String = {
-    val typ = getRecordTypeFromProcedureSignature(sig)
+  def getClassNameFromMethodSignature(sig : String) : String = {
+    val typ = getClassTypeFromMethodSignature(sig)
     typ.name
   }
   
   /**
-	 * get record type from procedure signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> (java.lang.Object, 0)
+	 * get class type from method signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> (java.lang.Object, 0)
 	 */
   
-  def getRecordTypeFromProcedureSignature(sig : String) : Type = {
-    if(!isValidProcSig(sig)) throw new RuntimeException("wrong sig: " + sig)
+  def getClassTypeFromMethodSignature(sig : String) : Type = {
+    if(!isValidMethodSig(sig)) throw new RuntimeException("wrong sig: " + sig)
     formatSigToTypeForm(sig.substring(0, sig.indexOf('.')))
   }
   
   /**
-	 * get proc name from procedure signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object.equals
+	 * get proc name from method signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object.equals
 	 */
   
-  def getProcedureNameFromProcedureSignature(sig : String) : String = {
+  def getMethodNameFromMethodSignature(sig : String) : String = {
 	  val strs = sig.substring(1, sig.indexOf(":"))
 	  strs.replaceAll("\\/", ".").replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll(";", "")
 	}
   
   /**
-   * get proc short name from procedure signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> equals
+   * get proc short name from method signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> equals
    */
   
-  def getProcedureShortNameFromProcedureSignature(sig : String) : String = {
+  def getMethodShortNameFromMethodSignature(sig : String) : String = {
     val strs = sig.substring(sig.indexOf(".") + 1, sig.indexOf(":"))
     strs.replaceAll("\\/", ".").replaceAll("&lt;", "<").replaceAll("&gt;", ">")
   }
@@ -108,7 +108,7 @@ object StringFormConverter {
    * check whether it is a valid pilar proc signature e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
    */
   
-  def isValidProcSig(sig : String) : Boolean = sig.lastIndexOf('.') > 0
+  def isValidMethodSig(sig : String) : Boolean = sig.lastIndexOf('.') > 0
   
   /**
    * check whether it is a valid type signature e.g. Ljava/lang/Object
@@ -186,18 +186,18 @@ object StringFormConverter {
 	 * get sub-signature from signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> equals:(Ljava/lang/Object;)Z
 	 */
   
-  def getSubSigFromProcSig(sig : String) : String = {
-    if(!isValidProcSig(sig)) throw new RuntimeException("wrong procedure sig: " + sig)
+  def getSubSigFromMethodSig(sig : String) : String = {
+    if(!isValidMethodSig(sig)) throw new RuntimeException("wrong method sig: " + sig)
     sig.substring(sig.lastIndexOf('.') + 1)
   }
   
    /**
-	 * get procedure signature from the owner record name and the procedure sub-signature. e.g. ( java.lang.Object, equals:(Ljava/lang/Object;)Z ) -> Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z 
+	 * get method signature from the owner class name and the method sub-signature. e.g. ( java.lang.Object, equals:(Ljava/lang/Object;)Z ) -> Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z 
 	 */
   
-  def getSigFromOwnerAndProcSubSig(recordName: String, subSig : String) : String = {
-//      if(!isValidType(recordName)) throw new RuntimeException("given type is not a valid form: " + recordName)
-    val recSig =  formatTypeToSigForm(recordName)
+  def getSigFromOwnerAndMethodSubSig(className: String, subSig : String) : String = {
+//      if(!isValidType(className)) throw new RuntimeException("given type is not a valid form: " + className)
+    val recSig =  formatTypeToSigForm(className)
 	  val sb = new StringBuffer
 	  sb.append(recSig + "." + subSig)
 	  sb.toString().intern()
@@ -220,10 +220,10 @@ object StringFormConverter {
   }
   
   /**
-   * get record name from field signature. e.g. java.lang.Throwable.stackState -> java.lang.Throwable
+   * get class name from field signature. e.g. java.lang.Throwable.stackState -> java.lang.Throwable
    */
   
-  def getRecordNameFromFieldSignature(sig : String) : String = {
+  def getClassNameFromFieldSignature(sig : String) : String = {
     if(!isValidFieldSig(sig)) throw new RuntimeException("given field signature is not a valid form: " + sig)
     var tmp = sig
     if(tmp.startsWith("@@")) tmp = tmp.substring(2)
@@ -235,11 +235,11 @@ object StringFormConverter {
   }
   
   /**
-   * get record Type from field signature. e.g. java.lang.Throwable.stackState -> (java.lang.Throwable, 0)
+   * get class Type from field signature. e.g. java.lang.Throwable.stackState -> (java.lang.Throwable, 0)
    */
   
-  def getRecordTypeFromFieldSignature(sig : String) : Type = {
-    val recName = getRecordNameFromFieldSignature(sig)
+  def getClassTypeFromFieldSignature(sig : String) : Type = {
+    val recName = getClassNameFromFieldSignature(sig)
     getTypeFromName(recName)
   }
   
@@ -247,23 +247,23 @@ object StringFormConverter {
 	 * generate signature of this field. input: ("java.lang.Throwable", "stackState") output: "java.lang.Throwable.stackState"
 	 */
 	
-	def generateFieldSignature(recordName : String, name : String, isStatic : Boolean) : String = {
-//	  if(!isValidType(recordName)) throw new RuntimeException("given type is not a valid form: " + recordName)
+	def generateFieldSignature(className : String, name : String, isStatic : Boolean) : String = {
+//	  if(!isValidType(className)) throw new RuntimeException("given type is not a valid form: " + className)
 	  val sb = new StringBuffer
 	  if(isStatic) sb.append("@@")
-	  sb.append(recordName + "." + name)
+	  sb.append(className + "." + name)
 	  sb.toString().intern()
 	}
   
 	
 	/**
-	 * generate a procedure full name from a record name and proc short name. input: ("java.lang.Throwable", "foo") output: "java.lang.Throwable.foo"
+	 * generate a method full name from a class name and proc short name. input: ("java.lang.Throwable", "foo") output: "java.lang.Throwable.foo"
 	 */
 	
-	def generateProcName(recordName : String, name : String) : String = {
-//	  if(!isValidType(recordName)) throw new RuntimeException("given type is not a valid form: " + recordName)
+	def generateMethodName(className : String, name : String) : String = {
+//	  if(!isValidType(className)) throw new RuntimeException("given type is not a valid form: " + className)
 	  val sb = new StringBuffer
-	  sb.append(recordName + "." + name)
+	  sb.append(className + "." + name)
 	  sb.toString().intern()
 	}
 	
@@ -317,34 +317,34 @@ object StringFormConverter {
     getType(tmp, d)
 	}
 	
-	def formatClassNameToRecordName(cName : String) : String = {
-	  formatClassNameToType(cName).name
-	}
+//	def formatClassNameToClassName(cName : String) : String = {
+//	  formatClassNameToType(cName).name
+//	}
 	
 	/**
-   * convert jawa record name to java class name.
+   * convert jawa class name to java class name.
    *  e.g. java.lang.String[] -> [Ljava.lang.String;   java.lang.String -> java.lang.String
    */
-  def formatRecordNameToClassName(name : String) : String = {
-//    require(isValidType(name))
-    val t = getTypeFromName(name)
-    val d = t.dimensions
-    if(d > 0){
-	    t.typ match{
-	      case "byte" => 		getClassName("B", d)
-	      case "char" => 		getClassName("C", d)
-	      case "double" => 	getClassName("D", d)
-	      case "float" => 	getClassName("F", d)
-	      case "int" => 		getClassName("I", d)
-	      case "long" => 		getClassName("J", d)
-	      case "short" =>		getClassName("S", d)
-	      case "boolean" =>	getClassName("Z", d)
-	      case _ =>
-	        getClassName("L" + t.typ + ";", d)
-	    }
-    } else {
-      t.typ
-    }
-  }
+//  def formatClassNameToClassName(name : String) : String = {
+////    require(isValidType(name))
+//    val t = getTypeFromName(name)
+//    val d = t.dimensions
+//    if(d > 0){
+//	    t.typ match{
+//	      case "byte" => 		getClassName("B", d)
+//	      case "char" => 		getClassName("C", d)
+//	      case "double" => 	getClassName("D", d)
+//	      case "float" => 	getClassName("F", d)
+//	      case "int" => 		getClassName("I", d)
+//	      case "long" => 		getClassName("J", d)
+//	      case "short" =>		getClassName("S", d)
+//	      case "boolean" =>	getClassName("Z", d)
+//	      case _ =>
+//	        getClassName("L" + t.typ + ";", d)
+//	    }
+//    } else {
+//      t.typ
+//    }
+//  }
   
 }
