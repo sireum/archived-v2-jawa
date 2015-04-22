@@ -1,3 +1,10 @@
+/*
+Copyright (c) 2013-2014 Fengguo Wei & Sankardas Roy, Kansas State University.        
+All rights reserved. This program and the accompanying materials      
+are made available under the terms of the Eclipse Public License v1.0 
+which accompanies this distribution, and is available at              
+http://www.eclipse.org/legal/epl-v10.html                             
+*/
 package org.sireum.jawa.lexer
 
 import org.sireum.jawa.lexer.Tokens._
@@ -12,11 +19,11 @@ object Keywords {
     "switch" -> SWITCH,
     "if" -> IF,
     "goto" -> GOTO,
-    "extends" -> EXTENDS,
+    "extends" -> EXTENDS_AND_IMPLEMENTS,
     "procedure" -> METHOD,
     "true" -> TRUE,
     "return" -> RETURN,
-    "record" -> CLASS,
+    "record" -> CLASS_OR_INTERFACE,
     "catch" -> CATCH,
     "then" -> THEN,
     "global" -> STATIC_FIELD,

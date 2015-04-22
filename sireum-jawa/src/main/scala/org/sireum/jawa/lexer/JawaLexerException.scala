@@ -7,18 +7,6 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.lexer
 
-case class TokenType(name: String) {
+import org.sireum.jawa.parser.JawaParserException
 
-//  def isNewline = this == Tokens.NEWLINE || this == Tokens.NEWLINES
-
-  def isKeyword = Tokens.KEYWORDS contains this
-
-  def isComment = Tokens.COMMENTS contains this
-
-  def isId = Tokens.IDS contains this
-
-  def isLiteral = Tokens.LITERALS contains this
-
-  override lazy val toString = name
-
-}
+class JawaLexerException(message: String) extends JawaParserException(message)

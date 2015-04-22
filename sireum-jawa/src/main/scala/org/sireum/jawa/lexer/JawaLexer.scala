@@ -1,3 +1,10 @@
+/*
+Copyright (c) 2013-2014 Fengguo Wei & Sankardas Roy, Kansas State University.        
+All rights reserved. This program and the accompanying materials      
+are made available under the terms of the Eclipse Public License v1.0 
+which accompanies this distribution, and is available at              
+http://www.eclipse.org/legal/epl-v10.html                             
+*/
 package org.sireum.jawa.lexer
 
 import org.sireum.pilar.parser.Antlr4PilarLexer
@@ -9,7 +16,7 @@ import org.antlr.v4.runtime.ANTLRInputStream
 import org.antlr.v4.runtime.{Token => AntlrToken}
 import java.net.URI
 
-class JawaPilarLexer(aplexer: Antlr4PilarLexer) extends Iterator[Token] {
+class JawaLexer(aplexer: Antlr4PilarLexer) extends Iterator[Token] {
   
   private var eofTokenEmitted = false
   protected var builtToken: Token = _
@@ -40,7 +47,7 @@ class JawaPilarLexer(aplexer: Antlr4PilarLexer) extends Iterator[Token] {
         case T__21 =>  // }
           Tokens.RBRACE
         case T__22 =>  // extends
-          Tokens.EXTENDS
+          Tokens.EXTENDS_AND_IMPLEMENTS
         case T__23 =>  // goto
           Tokens.GOTO
         case T__25 =>  // ;
@@ -52,7 +59,7 @@ class JawaPilarLexer(aplexer: Antlr4PilarLexer) extends Iterator[Token] {
         case T__29 =>  // true
           Tokens.TRUE
         case T__30 =>  // record
-          Tokens.CLASS
+          Tokens.CLASS_OR_INTERFACE
         case T__31 =>  // catch
           Tokens.CATCH
         case T__33 =>  // then
@@ -75,6 +82,8 @@ class JawaPilarLexer(aplexer: Antlr4PilarLexer) extends Iterator[Token] {
           Tokens.CALL
         case T__50 =>  // =
           Tokens.EQUALS
+        case T__51 =>  // ..
+          Tokens.RANGE
         case T__52 =>  // {
           Tokens.LBRACE
         case T__53 =>  // new
@@ -105,11 +114,11 @@ class JawaPilarLexer(aplexer: Antlr4PilarLexer) extends Iterator[Token] {
           Tokens.FLOATING_POINT_LITERAL
         case CHAR =>
           Tokens.CHARACTER_LITERAL
+        case AssignOP =>
+          Tokens.ASSIGN_OP
         case T__7      // >
            | T__8      // |
            | T__38     // <
-           | T__51     // ..
-           | AssignOP
            | CondAndOP
            | CondOrOP
            | AndOP
@@ -148,9 +157,9 @@ class JawaPilarLexer(aplexer: Antlr4PilarLexer) extends Iterator[Token] {
            | T__54     // fun
            | ErrorChar
            => 
-           throw new JawaPilarLexerException("Unexpected token: " + aptoken)
+           throw new JawaLexerException("Unexpected token: " + aptoken)
         case _ =>
-          throw new JawaPilarLexerException("Unexpected token: " + aptoken)
+          throw new JawaLexerException("Unexpected token: " + aptoken)
       }
     
     val tokenLine = aptoken.getLine
@@ -179,7 +188,7 @@ class JawaPilarLexer(aplexer: Antlr4PilarLexer) extends Iterator[Token] {
   def hasNext = !eofTokenEmitted
 }
 
-object JawaPilarLexer {
+object JawaLexer {
 
   /**
    * Convert the given Pilar source code into a list of "raw" tokens.
@@ -187,7 +196,7 @@ object JawaPilarLexer {
    * This includes whitespace and comment tokens. No NEWLINE or NEWLINES tokens are inferred. The final token
    * will be of type EOF.
    */
-  @throws(classOf[JawaPilarLexerException])
+  @throws(classOf[JawaLexerException])
   def rawTokenise(source: Either[String, ResourceUri]): List[Token] =
     createRawLexer(source).toList
 
@@ -196,7 +205,7 @@ object JawaPilarLexer {
    *
    * @see rawTokenise
    */
-  def createRawLexer(source: Either[String, ResourceUri]): JawaPilarLexer = {
+  def createRawLexer(source: Either[String, ResourceUri]): JawaLexer = {
     val reader = source match {
       case Left(text)     => new StringReader(text)
       case Right(fileUri) => new FileReader(new File(new URI(fileUri)))
@@ -206,8 +215,8 @@ object JawaPilarLexer {
     makeRawLexer(aplexer)
   }
     
-  def makeRawLexer(aplexer: Antlr4PilarLexer): JawaPilarLexer =
-    new JawaPilarLexer(aplexer)
+  def makeRawLexer(aplexer: Antlr4PilarLexer): JawaLexer =
+    new JawaLexer(aplexer)
 
   /**
    * Convert the given Pilar source code into a list of tokens.
@@ -219,7 +228,7 @@ object JawaPilarLexer {
    * @param pilarVersion -- the version of Pilar to assume as the source type (e.g. "4.0"). This can affect the
    *   interpretation of certain tokens (for example, floating point literals).
    */
-  @throws(classOf[JawaPilarLexerException])
+  @throws(classOf[JawaLexerException])
   def tokenise(source: Either[String, ResourceUri]): List[Token] = {
     val rawLexer = createRawLexer(source)
     val lexer = new WhitespaceAndCommentsGrouper(rawLexer)

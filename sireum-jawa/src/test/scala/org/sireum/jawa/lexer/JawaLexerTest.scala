@@ -5,7 +5,7 @@ import org.sireum.jawa.lexer.Tokens._
 import org.scalatest._
 import java.io._
 
-class JawaPilarLexerTest extends FlatSpec with ShouldMatchers {
+class JawaLexerTest extends FlatSpec with ShouldMatchers {
 
   implicit def string2TestString(s: String) =
     new TestString(s)
@@ -18,13 +18,13 @@ class JawaPilarLexerTest extends FlatSpec with ShouldMatchers {
 
   "|||" producesTokens (OP)
 
-  ":=" producesTokens (OP)
+  ":=" producesTokens (ASSIGN_OP)
 
   "^~" producesTokens (OP)
 
   "v0/2" producesTokens (ID, OP, INTEGER_LITERAL)
 
-  "record" producesTokens (CLASS)
+  "record" producesTokens (CLASS_OR_INTERFACE)
 
   "procedure" producesTokens (METHOD)
 
@@ -99,7 +99,7 @@ class JawaPilarLexerTest extends FlatSpec with ShouldMatchers {
   """'\n'""" producesTokens (CHARACTER_LITERAL)
   """'\025'""" producesTokens (CHARACTER_LITERAL)
 
-  "#L0001. tokenTextBuffer:= new StringBuilder" producesTokens (LOCATION_ID, WS, ID, OP, WS, NEW, WS, ID)
+  "#L0001. tokenTextBuffer:= new StringBuilder" producesTokens (LOCATION_ID, WS, ID, ASSIGN_OP, WS, NEW, WS, ID)
 
   """println("bob")
 println("foo")""" producesTokens (ID, LPAREN, STRING_LITERAL, RPAREN, WS, ID, LPAREN, STRING_LITERAL, RPAREN)
@@ -120,7 +120,7 @@ println("foo")""" producesTokens (ID, LPAREN, STRING_LITERAL, RPAREN, WS, ID, LP
   "-5f.max(2)" producesTokens (FLOATING_POINT_LITERAL, DOT, ID, LPAREN, INTEGER_LITERAL, RPAREN)
   
   "Lexer" should "throw a lexer exception" in {
-    evaluating { JawaPilarLexer.rawTokenise(Left("\"\"\"")) } should produce[JawaPilarLexerException]
+    evaluating { JawaLexer.rawTokenise(Left("\"\"\"")) } should produce[JawaLexerException]
   }
 
 """
@@ -140,7 +140,7 @@ record `com.ksu.passwordPassTest.MainActivity`  @type class @AccessFlag PUBLIC  
 
    }
 """ producesTokens 
-  (WS, CLASS, WS, ID, WS, AT, ID, WS, ID, WS, AT, ID, WS, ID, WS, EXTENDS, WS, ID, WS, LBRACE,
+  (WS, CLASS_OR_INTERFACE, WS, ID, WS, AT, ID, WS, ID, WS, AT, ID, WS, ID, WS, EXTENDS_AND_IMPLEMENTS, WS, ID, WS, LBRACE,
    WS, ID, WS, ID, WS, AT, ID, WS, SEMI,
    WS, ID, WS, ID, WS, AT, ID, WS, SEMI,
    WS, RBRACE,
@@ -148,10 +148,10 @@ record `com.ksu.passwordPassTest.MainActivity`  @type class @AccessFlag PUBLIC  
    WS, ID, WS, SEMI,
    WS, ID, SEMI,
    WS,
-   LOCATION_ID, WS, ID, OP, WS, INTEGER_LITERAL, WS, AT, ID, WS, ID, SEMI, WS,
-   LOCATION_ID, WS, CALL, WS, ID, OP, WS, ID, LPAREN, ID, RPAREN, WS, AT, ID, WS, ID, WS, AT, ID, WS, ID, WS, AT, ID, WS, ID, SEMI, WS,
-   LOCATION_ID, WS, ID, DOT, ID, WS, OP, WS, ID, WS, AT, ID, WS, ID, SEMI, WS,
-   LOCATION_ID, WS, ID, DOT, ID, WS, OP, WS, ID, WS, AT, ID, WS, ID, SEMI, WS,
+   LOCATION_ID, WS, ID, ASSIGN_OP, WS, INTEGER_LITERAL, WS, AT, ID, WS, ID, SEMI, WS,
+   LOCATION_ID, WS, CALL, WS, ID, ASSIGN_OP, WS, ID, LPAREN, ID, RPAREN, WS, AT, ID, WS, ID, WS, AT, ID, WS, ID, WS, AT, ID, WS, ID, SEMI, WS,
+   LOCATION_ID, WS, ID, DOT, ID, WS, ASSIGN_OP, WS, ID, WS, AT, ID, WS, ID, SEMI, WS,
+   LOCATION_ID, WS, ID, DOT, ID, WS, ASSIGN_OP, WS, ID, WS, AT, ID, WS, ID, SEMI, WS,
    LOCATION_ID, WS, RETURN, WS, AT, ID, WS, SEMI,
    WS,
    RBRACE, WS)
@@ -164,7 +164,7 @@ record `com.ksu.passwordPassTest.MainActivity`  @type class @AccessFlag PUBLIC  
 
     private def check(s: String, expectedTokens: List[TokenType]) {
       it should ("tokenise >>>" + s + "<<< as >>>" + expectedTokens + "<<<") in {
-        val actualTokens: List[Token] = JawaPilarLexer.rawTokenise(Left(s))
+        val actualTokens: List[Token] = JawaLexer.rawTokenise(Left(s))
         val actualTokenTypes = actualTokens.map(_.tokenType)
         require(actualTokenTypes.last == EOF, "Last token must be EOF, but was " + actualTokens.last.tokenType)
         require(actualTokenTypes.count(_ == EOF) == 1, "There must only be one EOF token")

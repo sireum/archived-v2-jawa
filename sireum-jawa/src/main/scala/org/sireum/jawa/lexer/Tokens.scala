@@ -1,11 +1,18 @@
+/*
+Copyright (c) 2013-2014 Fengguo Wei & Sankardas Roy, Kansas State University.        
+All rights reserved. This program and the accompanying materials      
+are made available under the terms of the Eclipse Public License v1.0 
+which accompanies this distribution, and is available at              
+http://www.eclipse.org/legal/epl-v10.html                             
+*/
 package org.sireum.jawa.lexer
 
 object Tokens {
 
-  val CLASS = TokenType("CLASS")
+  val CLASS_OR_INTERFACE = TokenType("CLASS_OR_INTERFACE")
   val METHOD = TokenType("METHOD")
   val STATIC_FIELD = TokenType("STATIC_FIELD")
-  val EXTENDS = TokenType("EXTENDS")
+  val EXTENDS_AND_IMPLEMENTS = TokenType("EXTENDS_AND_IMPLEMENTS")
 
   val EQUALS = TokenType("EQUALS")
   
@@ -41,12 +48,14 @@ object Tokens {
   val FALSE = TokenType("FALSE")
   val NULL = TokenType("NULL")
   
-  val EXCLAMATION = TokenType("EXCLAMATION")
   val COMMA = TokenType("COMMA")
   val DOT = TokenType("DOT")
   val SEMI = TokenType("SEMI")
   val COLON = TokenType("COLON")
   val ARROW = TokenType("ARROW")
+  val AT = TokenType("AT")
+  val RANGE = TokenType("RANGE")
+  val ASSIGN_OP = TokenType("ASSIGN_OP")
   
 //  val NEWLINE = TokenType("NEWLINE")
 //  val NEWLINES = TokenType("NEWLINES")
@@ -57,10 +66,10 @@ object Tokens {
   val WS = TokenType("WS")
  
   val OP = TokenType("OP")
-  val AT = TokenType("AT")
+  
   
   val KEYWORDS = Set(
-    CLASS, METHOD, EXTENDS, IF, THEN, NEW,
+    CLASS_OR_INTERFACE, METHOD, EXTENDS_AND_IMPLEMENTS, IF, THEN, NEW,
     RETURN, THROW, CALL, SWITCH, ELSE, GOTO, CATCH,
     TRUE, FALSE, NULL)
 
