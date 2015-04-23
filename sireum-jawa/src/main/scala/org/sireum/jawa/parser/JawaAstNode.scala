@@ -166,8 +166,14 @@ case class Type(baseTypeID: Token, typeFragments: IList[TypeFragment]) extends J
   def typ: org.sireum.jawa.Type = org.sireum.jawa.NormalType(baseTypeName, dimentions)
 }
 
-case class TypeFragment(lbracket: Token, varIDOpt: Option[Token], rbracket: Token) extends JawaAstNode {
-  lazy val tokens = flatten(lbracket, varIDOpt, rbracket)
+sealed trait TypeFragment extends JawaAstNode
+
+case class RawTypeFragment(lbracket: Token, rbracket: Token) extends TypeFragment {
+  lazy val tokens = flatten(lbracket, rbracket)
+}
+
+case class TypeFragmentWithInit(lbracket: Token, varIDs: IList[(Token, Option[Token])], rbracket: Token) extends TypeFragment {
+  lazy val tokens = flatten(lbracket, varIDs, rbracket)
 }
 
 case class MethodDeclaration(
@@ -354,6 +360,13 @@ case class AccessExpression(
   lazy val tokens = flatten(baseID, dot, fieldID)
 }
 
+case class TupleExpression(
+    lparen: Token,
+    constants: IList[(Token, Option[Token])],
+    rparen: Token) extends Expression {
+  lazy val tokens = flatten(lparen, constants, rparen)
+}
+
 case class CastExpression(
     lparen: Token,
     typ: Type,
@@ -387,6 +400,16 @@ case class BinaryExpression(
   right: Token)
     extends Expression {
   lazy val tokens = flatten(left, op, right)
+}
+
+case class CmpExpression(
+    cmp: Token,
+    lparen: Token,
+    var1ID: Token,
+    comma: Token,
+    var2ID: Token,
+    rparen: Token) extends Expression {
+  lazy val tokens = flatten(cmp, lparen, var1ID, comma, var2ID, rparen)
 }
 
 case class CatchClause(

@@ -125,12 +125,17 @@ record `b.a.a.a`  @type class @AccessFlag PUBLIC_FINAL extends  `java.io.Externa
     """)
   }
 
-  val fileUri = FileUtil.toUri("/Users/fgwei/Developer/Sireum/apps/amandroid/androidlib/5.0/framework/android/accounts/AccountManager.pilar")
-  val str = FileUtil.readFile(fileUri)._1
-  
-  "Parser" should "not throw an exception on this file" in {
-    parseCompilationUnit(str)
-  }
+//  val dirUri = FileUtil.toUri("/Users/fgwei/Developer/Sireum/apps/amandroid/androidlib/5.0")
+//  val filelist = FileUtil.listFiles(dirUri, "pilar", true)
+//  
+//  
+//  "Parser" should "not throw an exception on those files" in {
+//    filelist.foreach{
+//      fileUri =>
+//        val str = FileUtil.readFile(fileUri)._1
+//        parseCompilationUnit(str)
+//    }
+//  }
   
   private def parser(s: String) = new JawaParser(JawaLexer.tokenise(Left(s)).toArray)
   private def parseLocation(s: String) = parser(s).location

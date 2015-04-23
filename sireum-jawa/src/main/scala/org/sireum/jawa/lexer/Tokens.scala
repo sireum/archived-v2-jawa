@@ -57,6 +57,8 @@ object Tokens {
   val RANGE = TokenType("RANGE")
   val ASSIGN_OP = TokenType("ASSIGN_OP")
   
+  val CMP = TokenType("CMP")
+  
 //  val NEWLINE = TokenType("NEWLINE")
 //  val NEWLINES = TokenType("NEWLINES")
   

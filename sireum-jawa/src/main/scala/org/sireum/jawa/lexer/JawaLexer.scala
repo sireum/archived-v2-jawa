@@ -91,7 +91,9 @@ class JawaLexer(aplexer: Antlr4PilarLexer) extends Iterator[Token] {
         case GID =>
           Tokens.STATIC_ID
         case ID =>
-          Tokens.ID
+          if(aptoken.getText == "cmp" || aptoken.getText == "cmpl" || aptoken.getText == "cmpg")
+            Tokens.CMP
+          else Tokens.ID
         case LID =>
           Tokens.LOCATION_ID
         case MSTRING

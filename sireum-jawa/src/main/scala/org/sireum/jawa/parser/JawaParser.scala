@@ -102,7 +102,7 @@ class JawaParser(tokens: Array[Token]) {
   private def instanceFieldDeclarations(): IList[InstanceFieldDeclaration] = {
     val instanceFields: MList[InstanceFieldDeclaration] = mlistEmpty
     while(currentTokenType != RBRACE){
-      val typ_ : Type = typ()
+      val typ_ : Type = typ(withinit = false)
       val nameID: Token = accept(ID)
       val annotations_ = annotations()
       val semi: Token = accept(SEMI)
@@ -117,7 +117,7 @@ class JawaParser(tokens: Array[Token]) {
       currentTokenType match {
         case STATIC_FIELD =>
           val staticFieldToken: Token = accept(STATIC_FIELD)
-          val typ_ : Type = typ()
+          val typ_ : Type = typ(withinit = false)
           val nameID: Token = accept(STATIC_ID)
           val annotations_ = annotations()
           val semi: Token = accept(SEMI)
@@ -136,7 +136,7 @@ class JawaParser(tokens: Array[Token]) {
       currentTokenType match {
         case METHOD =>
           val dclToken: Token = nextToken()
-          val returnType: Type = typ()
+          val returnType: Type = typ(withinit = false)
           val nameID: Token = accept(ID)
           val paramClause_ : ParamClause = paramClause()
           val annotations_ : IList[Annotation] = annotations()
@@ -167,7 +167,7 @@ class JawaParser(tokens: Array[Token]) {
   }
   
   private def param(): Param = {
-    val typ_ : Type = typ()
+    val typ_ : Type = typ(withinit = false)
     val nameID: Token = accept(ID)
     val annotations_ = annotations()
     Param(typ_, nameID, annotations)
@@ -357,7 +357,13 @@ class JawaParser(tokens: Array[Token]) {
   private def expression(): Expression = {
     currentTokenType match {
       case NEW => newExpression()
-      case LPAREN => castExpression()
+      case CMP => cmpExpression()
+      case LPAREN => 
+        val next: TokenType = lookahead(1)
+        next match {
+          case x if isLiteralToken(x) || x == RPAREN => tupleExpression()
+          case _ => castExpression()
+        }
       case x if isLiteralToken(currentTokenType) => literalExpression()
       case x if isUnaryOP(currentToken) => unaryExpression()
       case STATIC_ID =>
@@ -412,9 +418,26 @@ class JawaParser(tokens: Array[Token]) {
     AccessExpression(baseID, dot, fieldID)
   }
   
+  private def tupleExpression(): TupleExpression = {
+    val lparen: Token = accept(LPAREN)
+    val constants: MList[(Token, Option[Token])] = mlistEmpty
+    while(currentTokenType != RPAREN) {
+      if(!isLiteral) throw new JawaParserException("expected literal but found " + currentToken)
+      val cons: Token = nextToken()
+      val commaOpt: Option[Token] = 
+        currentTokenType match {
+          case COMMA => Some(nextToken())
+          case _ => None
+        }
+      constants += ((cons, commaOpt))
+    }
+    val rparen: Token = accept(RPAREN)
+    TupleExpression(lparen, constants.toList, rparen)
+  }
+  
   private def castExpression(): CastExpression = {
     val lparen: Token = accept(LPAREN)
-    val typ_ : Type = typ()
+    val typ_ : Type = typ(withinit = false)
     val rparen: Token = accept(RPAREN)
     val exp: Expression = expression()
     CastExpression(lparen, typ_, rparen, exp)
@@ -422,7 +445,7 @@ class JawaParser(tokens: Array[Token]) {
   
   private def newExpression(): NewExpression = {
     val newToken: Token = accept(NEW)
-    val typ_ : Type = typ()
+    val typ_ : Type = typ(withinit = true)
     NewExpression(newToken, typ_)
   }
   
@@ -467,9 +490,19 @@ class JawaParser(tokens: Array[Token]) {
     catchClauses.toList
   }
   
+  private def cmpExpression(): CmpExpression = {
+    val cmp: Token = accept(CMP)
+    val lparen: Token = accept(LPAREN)
+    val var1ID: Token = accept(ID)
+    val comma: Token = accept(COMMA)
+    val var2ID: Token = accept(ID)
+    val rparen: Token = accept(RPAREN)
+    CmpExpression(cmp, lparen, var1ID, comma, var2ID, rparen)
+  }
+  
   private def catchClause(): CatchClause = {
     val catchToken: Token = accept(CATCH)
-    val typ_ : Type = typ()
+    val typ_ : Type = typ(withinit = false)
     val range: CatchRange = catchRange()
     val goto: Token = accept(GOTO)
     val targetLocation: Token = accept(ID)
@@ -487,26 +520,45 @@ class JawaParser(tokens: Array[Token]) {
     CatchRange(at, lbracket, fromLocation, range, toLocation, rbracket)
   }
   
-  private def typ(): Type = {
+  private def typ(withinit: Boolean): Type = {
     val baseTypeID: Token = accept(ID)
     val typeFragments: MList[TypeFragment] = mlistEmpty
     def loop() {
       currentTokenType match {
         case LBRACKET =>
-          val lbracket: Token = nextToken()
-          val varIDOpt: Option[Token] = 
-            currentTokenType match {
-              case ID => Some(nextToken())
-              case _ => None
-            } 
-          val rbracket: Token = accept(RBRACKET)
-          typeFragments += TypeFragment(lbracket, varIDOpt, rbracket)
+          if(withinit){
+            typeFragments += typeFragmentWithInit()
+          } else {
+            typeFragments += rawTypeFragment()
+          }
           loop()
         case _ =>
       }
     }
     loop()
     Type(baseTypeID, typeFragments.toList)
+  }
+  
+  private def rawTypeFragment(): RawTypeFragment = {
+    val lbracket: Token = nextToken()
+    val rbracket: Token = accept(RBRACKET)
+    RawTypeFragment(lbracket, rbracket)
+  }
+  
+  private def typeFragmentWithInit(): TypeFragmentWithInit = {
+    val lbracket: Token = nextToken()
+    val varIDs: MList[(Token, Option[Token])] = mlistEmpty
+    while(currentTokenType != RBRACKET) {
+      val varID: Token = accept(ID)
+      val commaOpt: Option[Token] = 
+        currentTokenType match {
+          case COMMA => Some(nextToken)
+          case _ => None
+        }
+      varIDs += ((varID, commaOpt))
+    }
+    val rbracket: Token = accept(RBRACKET)
+    TypeFragmentWithInit(lbracket, varIDs.toList, rbracket)
   }
   
   private def isUnaryOP(token: Token): Boolean = {
