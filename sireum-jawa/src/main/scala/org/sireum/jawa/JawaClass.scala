@@ -793,8 +793,19 @@ class JawaClass extends ResolveLevel {
    * return true if it's a child of given record
    */
   
-  def isChildOf(rec : JawaClass): Boolean = {
-	  Center.getClassHierarchy.getAllSuperClassesOf(this).contains(rec)
+  def isChildOf(clazzName : String): Boolean = {
+    Center.tryGetClass(clazzName) match {
+      case Some(c) => isChildOf(c)
+      case None => false
+    }
+  }
+  
+  /**
+   * return true if it's a child of given record
+   */
+  
+  def isChildOf(clazz : JawaClass): Boolean = {
+	  Center.getClassHierarchy.getAllSuperClassesOf(this).contains(clazz)
 	}
   
   /**
