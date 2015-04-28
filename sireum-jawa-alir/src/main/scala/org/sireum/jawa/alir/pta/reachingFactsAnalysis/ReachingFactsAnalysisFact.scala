@@ -7,11 +7,11 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir.pta.reachingFactsAnalysis
 
-import org.sireum.alir.Slot
 import org.sireum.jawa.alir.pta.Instance
+import org.sireum.jawa.alir.pta.PTASlot
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class RFAFact(s : Slot, v : Instance)
+final case class RFAFact(s : PTASlot, v : Instance)

@@ -76,7 +76,7 @@ object InterproceduralDataDependenceAnalysis {
 	  iddg.initGraph(icfg)
 	  iddg.nodes.foreach{
 	    node =>
-	      var targetNodes : ISet[Node] = isetEmpty
+	      val targetNodes : MSet[Node] = msetEmpty
 	      if(node != iddg.entryNode){
 	        node match{
 	          case en : IDDGEntryParamNode =>
@@ -192,7 +192,14 @@ object InterproceduralDataDependenceAnalysis {
 	            }
 	          } else if(calleep.isConcrete) {
 	            val argRelatedValue = ptaresult.getRelatedHeapInstances(argInss, virtualBodyNode.getContext)
-	            argRelatedValue.foreach{ins => result += iddg.findDefSite(ins.getDefSite)}
+	            argRelatedValue.foreach{
+                ins => 
+                  result += iddg.findDefSite(ins.getDefSite)
+                  val fieldsUnknownDefSites = ins.getFieldsUnknownDefSites
+                  fieldsUnknownDefSites.foreach{
+                    case (defsite, fs) => result += iddg.findDefSite(defsite)
+                  }
+              }
 	          }
           }
         }

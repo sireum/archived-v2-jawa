@@ -23,6 +23,7 @@ abstract class Instance{
   def getType = typ
   def defSite: Context
   def getDefSite = defSite
+  def ===(ins: Instance): Boolean = this == ins
   def clone(newDefSite: Context): Instance
   private val fieldsUnknownDefSites: MMap[Context, Set[String]] = mmapEmpty
   def addFieldsUnknownDefSite(defSite: Context, fields: Set[String]) = this.fieldsUnknownDefSites += (defSite -> fields)
@@ -30,7 +31,7 @@ abstract class Instance{
     this.fieldsUnknownDefSites.clear()
     this.fieldsUnknownDefSites ++= defSites
   }
-  def getFieldsUnknownDefSites = this.fieldsUnknownDefSites
+  def getFieldsUnknownDefSites: IMap[Context, ISet[String]] = this.fieldsUnknownDefSites.toMap
 }
 
 
@@ -38,11 +39,8 @@ final case class ClassInstance(name: String, defSite: Context) extends Instance{
   override def clone(newDefSite: Context): Instance = ClassInstance(name, newDefSite)
   def typ = NormalType("java.lang.Class", 0)
   def getName = name
-  override def hashCode: Int = {
-    getName.hashCode()
-  }
-  override def equals(a: Any): Boolean = {
-    if(a.isInstanceOf[ClassInstance]) a.asInstanceOf[ClassInstance].getName.equals(getName)
+  override def ===(ins: Instance): Boolean = {
+    if(ins.isInstanceOf[ClassInstance]) ins.asInstanceOf[ClassInstance].getName.equals(getName)
     else false
   }
   override def toString: String = this.name + ".class@" + this.defSite.getCurrentLocUri
@@ -106,15 +104,12 @@ abstract class PTAAbstractStringInstance(defSite: Context) extends Instance{
  */ 
 final case class PTAPointStringInstance(defSite: Context) extends PTAAbstractStringInstance(defSite){
   override def clone(newDefSite: Context): Instance = PTAPointStringInstance(newDefSite)
-  override def hashCode: Int = {
-    "PTAPointStringInstance".hashCode()
-  }
-  override def equals(a: Any): Boolean = {
-    if(a.isInstanceOf[PTAPointStringInstance]) true
-    else if(a.isInstanceOf[PTAConcreteStringInstance]) true
+  override def ===(ins: Instance): Boolean = {
+    if(ins.isInstanceOf[PTAPointStringInstance]) true
+    else if(ins.isInstanceOf[PTAConcreteStringInstance]) true
     else false
   }
-  override def toString: String = this.typ + ":point@" + this.defSite.getCurrentLocUri
+  override def toString: String = this.typ + ":*@" + this.defSite.getCurrentLocUri
 }
 
 /**
@@ -123,18 +118,15 @@ final case class PTAPointStringInstance(defSite: Context) extends PTAAbstractStr
  */ 
 final case class PTAConcreteStringInstance(string: String, defSite: Context) extends PTAAbstractStringInstance(defSite){
   override def clone(newDefSite: Context): Instance = PTAConcreteStringInstance(string, newDefSite)
-  override def hashCode: Int = {
-    string.hashCode()
-  }
-  override def equals(a: Any): Boolean = {
-    if(a.isInstanceOf[PTAConcreteStringInstance]) a.asInstanceOf[PTAConcreteStringInstance].string.equals(string)
-    else if(a.isInstanceOf[PTAPointStringInstance]) true
+  override def ===(ins: Instance): Boolean = {
+    if(ins.isInstanceOf[PTAConcreteStringInstance]) ins.asInstanceOf[PTAConcreteStringInstance].string.equals(string)
+    else if(ins.isInstanceOf[PTAPointStringInstance]) true
     else false
   }
   override def toString: String = {
     val sb = new StringBuilder
-    sb.append(this.typ + ".")
-    sb.append("\"" + {if(this.string.length > 30)this.string.substring(0, 30) + ".." else this.string} + "\".")
+    sb.append(this.typ + ":")
+    sb.append("\"" + {if(this.string.length > 30)this.string.substring(0, 30) + ".." else this.string} + "\"@")
     sb.append(this.defSite.getCurrentLocUri)
     sb.toString.intern()
   }
