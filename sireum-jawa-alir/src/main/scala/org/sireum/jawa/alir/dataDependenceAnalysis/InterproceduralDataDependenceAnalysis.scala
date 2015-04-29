@@ -76,6 +76,9 @@ object InterproceduralDataDependenceAnalysis {
 	  iddg.initGraph(icfg)
 	  iddg.nodes.foreach{
 	    node =>
+//        if(node.getContext.toString().contains("L02725e")) println("L02725e: " + ptaresult.getPTSMap(node.getContext))
+//        if(node.getContext.toString().contains("L0271c4")) println("L0271c4: " + ptaresult.getPTSMap(node.getContext))
+//        if(node.getContext.toString().contains("L026f42")) println("42: " + ptaresult.getPTSMap(node.getContext))
 	      val targetNodes : MSet[Node] = msetEmpty
 	      if(node != iddg.entryNode){
 	        node match{
@@ -138,7 +141,7 @@ object InterproceduralDataDependenceAnalysis {
     result ++= searchRda(callArgNode.argName, callArgNode, irdaFacts, iddg)
     val argSlot = VarSlot(callArgNode.argName)
     val inss = ptaresult.pointsToSet(argSlot, callArgNode.getContext)
-    inss.foreach(ins => result += iddg.findDefSite(ins.getDefSite))
+    inss.foreach(ins => result += iddg.findDefSite(ins.defSite))
 // Foeget why I do like this way???
 //    val calleeSet = callArgNode.getCalleeSet
 //    
@@ -169,7 +172,7 @@ object InterproceduralDataDependenceAnalysis {
           for(i <- 0 to virtualBodyNode.argNames.size - 1){
             val argSlot = VarSlot(virtualBodyNode.argNames(i))
 	          val argInss = ptaresult.pointsToSet(argSlot, virtualBodyNode.getContext)
-	          argInss.foreach (ins => result += iddg.findDefSite(ins.getDefSite))
+	          argInss.foreach (ins => result += iddg.findDefSite(ins.defSite))
 	          if(sideEffectResult.isDefined){
 	            val readmap = sideEffectResult.get.readMap
 //	            val writemap = sideEffectResult.get.writeMap
@@ -182,23 +185,23 @@ object InterproceduralDataDependenceAnalysis {
 	                  f => 
 	                    val fs = FieldSlot(argIns, f)
 	                    val argRelatedValue = ptaresult.getRelatedInstances(fs, virtualBodyNode.getContext)
-                      argRelatedValue.foreach{ins => result += iddg.findDefSite(ins.getDefSite)}
-		                  argIns.getFieldsUnknownDefSites.foreach{
-		                  	case (defsite, udfields) =>
-		                  	  if(udfields.contains("ALL")) result += iddg.findDefSite(defsite)
-		                  	  else if(udfields.contains(f)) result += iddg.findDefSite(defsite)
-		                	}
+                      argRelatedValue.foreach{ins => result += iddg.findDefSite(ins.defSite)}
+//		                  argIns.getFieldsUnknownDefSites.foreach{
+//		                  	case (defsite, udfields) =>
+//		                  	  if(udfields.contains("ALL")) result += iddg.findDefSite(defsite)
+//		                  	  else if(udfields.contains(f)) result += iddg.findDefSite(defsite)
+//		                	}
 	                }
 	            }
 	          } else if(calleep.isConcrete) {
 	            val argRelatedValue = ptaresult.getRelatedHeapInstances(argInss, virtualBodyNode.getContext)
 	            argRelatedValue.foreach{
                 ins => 
-                  result += iddg.findDefSite(ins.getDefSite)
-                  val fieldsUnknownDefSites = ins.getFieldsUnknownDefSites
-                  fieldsUnknownDefSites.foreach{
-                    case (defsite, fs) => result += iddg.findDefSite(defsite)
-                  }
+                  result += iddg.findDefSite(ins.defSite)
+//                  val fieldsUnknownDefSites = ins.getFieldsUnknownDefSites
+//                  fieldsUnknownDefSites.foreach{
+//                    case (defsite, fs) => result += iddg.findDefSite(defsite)
+//                  }
               }
 	          }
           }
@@ -317,7 +320,7 @@ object InterproceduralDataDependenceAnalysis {
         val value = ptaresult.pointsToSet(slot, node.getContext)
         value.foreach{
           ins =>
-            val defSite = ins.getDefSite
+            val defSite = ins.defSite
             result += iddg.findDefSite(defSite)
         }
       case ae : AccessExp =>
@@ -331,7 +334,7 @@ object InterproceduralDataDependenceAnalysis {
         val baseValue = ptaresult.pointsToSet(baseSlot, node.getContext)
         baseValue.foreach{
           ins =>
-            result += iddg.findDefSite(ins.getDefSite)
+            result += iddg.findDefSite(ins.defSite)
             if(!ins.isInstanceOf[NullInstance]){ // if(!ins.isInstanceOf[NullInstance] && !ins.isInstanceOf[UnknownInstance]){
               val recName = StringFormConverter.getClassNameFromFieldSignature(fieldSig)
               val rec = Center.resolveClass(recName, Center.ResolveLevel.HIERARCHY)
@@ -339,12 +342,12 @@ object InterproceduralDataDependenceAnalysis {
 	              val fName = rec.getField(fieldSig).getName
 		            val fieldSlot = FieldSlot(ins, fName)
 	              val fieldValue = ptaresult.pointsToSet(fieldSlot, node.getContext)
-                fieldValue.foreach(fIns => result += iddg.findDefSite(fIns.getDefSite))
-                ins.getFieldsUnknownDefSites.foreach{
-                	case (defsite, fields) =>
-                	  if(fields.contains("ALL")) result += iddg.findDefSite(defsite)
-                	  else if(fields.contains(fName)) result += iddg.findDefSite(defsite)
-              	}
+                fieldValue.foreach(fIns => result += iddg.findDefSite(fIns.defSite))
+//                ins.getFieldsUnknownDefSites.foreach{
+//                	case (defsite, fields) =>
+//                	  if(fields.contains("ALL")) result += iddg.findDefSite(defsite)
+//                	  else if(fields.contains(fName)) result += iddg.findDefSite(defsite)
+//              	}
               }
             }
         }
@@ -358,10 +361,10 @@ object InterproceduralDataDependenceAnalysis {
         val baseValue = ptaresult.pointsToSet(baseSlot, node.getContext)
         baseValue.foreach{
           ins =>
-            result += iddg.findDefSite(ins.getDefSite)
+            result += iddg.findDefSite(ins.defSite)
             val arraySlot = ArraySlot(ins)
             val arrayValue = ptaresult.getRelatedInstances(arraySlot, node.getContext)
-            arrayValue.foreach(aIns => result += iddg.findDefSite(aIns.getDefSite))
+            arrayValue.foreach(aIns => result += iddg.findDefSite(aIns.defSite))
         }
       case ce : CastExp =>
         ce.exp match{
@@ -371,7 +374,7 @@ object InterproceduralDataDependenceAnalysis {
             val value = ptaresult.pointsToSet(slot, node.getContext)
             value.foreach{
               ins =>
-                val defSite = ins.getDefSite
+                val defSite = ins.defSite
                 result += iddg.findDefSite(defSite)
             }
           case nle : NewListExp => 
@@ -399,7 +402,7 @@ object InterproceduralDataDependenceAnalysis {
 		              for(i <- 0 to argSlots.size - 1){
 				            val argSlot = argSlots(i)
 			              val argValue = ptaresult.pointsToSet(argSlot, node.getContext)
-			              argValue.foreach{ins => result += iddg.findDefSite(ins.getDefSite)}
+			              argValue.foreach{ins => result += iddg.findDefSite(ins.defSite)}
 			              if(sideEffectResult.isDefined){
 			                val readmap = sideEffectResult.get.readMap
 			                val writemap = sideEffectResult.get.writeMap
@@ -411,24 +414,24 @@ object InterproceduralDataDependenceAnalysis {
 			                      f => 
 			                        val fs = FieldSlot(argIns, f)
 			                        val argRelatedValue = ptaresult.getRelatedInstances(fs, node.getContext)
-                              argRelatedValue.foreach{ins => result += iddg.findDefSite(ins.getDefSite)}
-						                  argIns.getFieldsUnknownDefSites.foreach{
-						                  	case (defsite, udfields) =>
-						                  	  if(udfields.contains("ALL")) result += iddg.findDefSite(defsite)
-						                  	  else if(udfields.contains(f)) result += iddg.findDefSite(defsite)
-						                	}
+                              argRelatedValue.foreach{ins => result += iddg.findDefSite(ins.defSite)}
+//						                  argIns.getFieldsUnknownDefSites.foreach{
+//						                  	case (defsite, udfields) =>
+//						                  	  if(udfields.contains("ALL")) result += iddg.findDefSite(defsite)
+//						                  	  else if(udfields.contains(f)) result += iddg.findDefSite(defsite)
+//						                	}
 			                    }
 			                }
 			              } else if(calleep.isConcrete) {
 				              val argRelatedValue = ptaresult.getRelatedHeapInstances(argValue, node.getContext)
-                      argRelatedValue.foreach{ins => result += iddg.findDefSite(ins.getDefSite)}
+                      argRelatedValue.foreach{ins => result += iddg.findDefSite(ins.defSite)}
 			              }
 				          }
 	              } else {
 	                for(i <- 0 to argSlots.size - 1){
 				            val argSlot = argSlots(i)
 			              val argValue = ptaresult.getRelatedInstances(argSlot, node.getContext)
-			              argValue.foreach{ins => result += iddg.findDefSite(ins.getDefSite)}
+			              argValue.foreach{ins => result += iddg.findDefSite(ins.defSite)}
 	                }
 	              }
 	          }

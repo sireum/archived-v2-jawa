@@ -132,7 +132,7 @@ object ReachingFactsAnalysisHelper {
                   }
                   else {
                     if(ins.isInstanceOf[UnknownInstance]){
-                      val ps = CallHandler.getUnknownVirtualCalleeMethods(ins.getType, subSig)
+                      val ps = CallHandler.getUnknownVirtualCalleeMethods(ins.typ, subSig)
                       calleeSet ++= ps.map{p=> UnknownCallee(p)}
                     } else {
                       val p = CallHandler.getVirtualCalleeMethod(ins.typ, subSig)
@@ -174,7 +174,23 @@ object ReachingFactsAnalysisHelper {
       val influencedFields = if(LibSideEffectProvider.isDefined)
         												LibSideEffectProvider.getInfluencedFields(i, calleeMethod.getSignature)
         										 else Set("ALL")
-      argValues.foreach(_.addFieldsUnknownDefSite(currentContext, influencedFields))
+//      argValues.foreach(_.addFieldsUnknownDefSite(currentContext, influencedFields))
+      argValues.foreach{
+        ins => 
+          influencedFields.foreach{
+            f => 
+              val fs = FieldSlot(ins, f)
+              Center.getField(f) match {
+                case Some(field) =>
+                  val ins = UnknownInstance(field.getType, currentContext)
+                  genFacts += RFAFact(fs, ins)
+                case None =>
+                  val ins = UnknownInstance(new NormalType(Center.DEFAULT_TOPLEVEL_OBJECT), currentContext)
+                  genFacts += RFAFact(fs, ins)
+              }
+              
+          }
+      }
     }
 //    killFacts ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(argValues, s)
     val retTyp = calleeMethod.getReturnType
@@ -253,13 +269,22 @@ object ReachingFactsAnalysisHelper {
           val fName = field.getName
           val fieldSlot = FieldSlot(ins, fName)
           s.filter { fact => fact.s == fieldSlot }.map( f => ptaresult.addInstance(fieldSlot, currentContext, f.v))
-          val fieldUnknownValue: MSet[Instance] = msetEmpty
-          ins.getFieldsUnknownDefSites.foreach{
-            case (defsite, fields) =>
-              if(fields.contains("ALL")) fieldUnknownValue += UnknownInstance(field.getType, defsite)
-              else if(fields.contains(fName)) fieldUnknownValue += UnknownInstance(field.getType, defsite)
+          s.foreach {
+            case fact =>
+              if(fact.s.isInstanceOf[FieldSlot] && 
+                  fact.s.asInstanceOf[FieldSlot].ins == ins && 
+                  fact.s.asInstanceOf[FieldSlot].fieldName.equals("ALL")){
+                val uIns = UnknownInstance(field.getType, fact.v.defSite)
+                ptaresult.addInstance(fieldSlot, currentContext, uIns)
+              }
           }
-          fieldUnknownValue.map( v => ptaresult.addInstance(fieldSlot, currentContext, v))
+//          val fieldUnknownValue: MSet[Instance] = msetEmpty
+//          ins.getFieldsUnknownDefSites.foreach{
+//            case (defsite, fields) =>
+//              if(fields.contains("ALL")) fieldUnknownValue += UnknownInstance(field.getType, defsite)
+//              else if(fields.contains(fName)) fieldUnknownValue += UnknownInstance(field.getType, defsite)
+//          }
+//          fieldUnknownValue.map( v => ptaresult.addInstance(fieldSlot, currentContext, v))
         }
     }
   }
@@ -286,7 +311,7 @@ object ReachingFactsAnalysisHelper {
               f.v
           }
           if(temp.isEmpty){
-            val uIns = UnknownInstance(new NormalType(ins.getType.typ, ins.getType.dimensions-1), currentContext)
+            val uIns = UnknownInstance(new NormalType(ins.typ.typ, ins.typ.dimensions-1), currentContext)
             ptaresult.addInstance(arraySlot, currentContext, uIns)
           }
         }
@@ -368,30 +393,30 @@ object ReachingFactsAnalysisHelper {
     val result: MSet[RFAFact] = msetEmpty
     exp match {
       case ae: AccessExp =>
-        val fieldSig = ae.attributeName.name
-        val baseSlot = ae.exp match {
-          case ne: NameExp => BaseSlot(ne.name.name)
-          case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
-        }
-        val baseValue = ptaresult.pointsToSet(baseSlot, currentContext)
-        baseValue.map{
-          ins =>
-            if(ins.isInstanceOf[NullInstance]){}
-            else {
-              val recName = StringFormConverter.getClassNameFromFieldSignature(fieldSig)
-              val rec = Center.resolveClass(recName, Center.ResolveLevel.HIERARCHY)
-              val field = rec.getField(fieldSig)
-              val fName = field.getName
-              val fieldSlot = FieldSlot(ins, fName)
-              val fieldUnknownValue: MSet[Instance] = msetEmpty
-              ins.getFieldsUnknownDefSites.foreach{
-                case (defsite, fields) =>
-                  if(fields.contains("ALL")) fieldUnknownValue += UnknownInstance(field.getType, defsite)
-                  else if(fields.contains(fName)) fieldUnknownValue += UnknownInstance(field.getType, defsite)
-              }
-              result ++= fieldUnknownValue.map(ins => RFAFact(fieldSlot, ins))
-            }
-        }
+//        val fieldSig = ae.attributeName.name
+//        val baseSlot = ae.exp match {
+//          case ne: NameExp => BaseSlot(ne.name.name)
+//          case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
+//        }
+//        val baseValue = ptaresult.pointsToSet(baseSlot, currentContext)
+//        baseValue.map{
+//          ins =>
+//            if(ins.isInstanceOf[NullInstance]){}
+//            else {
+//              val recName = StringFormConverter.getClassNameFromFieldSignature(fieldSig)
+//              val rec = Center.resolveClass(recName, Center.ResolveLevel.HIERARCHY)
+//              val field = rec.getField(fieldSig)
+//              val fName = field.getName
+//              val fieldSlot = FieldSlot(ins, fName)
+//              val fieldUnknownValue: MSet[Instance] = msetEmpty
+//              ins.getFieldsUnknownDefSites.foreach{
+//                case (defsite, fields) =>
+//                  if(fields.contains("ALL")) fieldUnknownValue += UnknownInstance(field.getType, defsite)
+//                  else if(fields.contains(fName)) fieldUnknownValue += UnknownInstance(field.getType, defsite)
+//              }
+//              result ++= fieldUnknownValue.map(ins => RFAFact(fieldSlot, ins))
+//            }
+//        }
       case ie: IndexingExp =>
         val baseSlot = ie.exp match {
           case ine: NameExp =>
@@ -425,8 +450,8 @@ object ReachingFactsAnalysisHelper {
     result.toSet
   }
 	
-	def processLHSs(lhss: List[Exp], currentContext: Context, ptaresult: PTAResult): Map[Int, (PTASlot, Boolean)] = {
-    val result = mmapEmpty[Int, (PTASlot, Boolean)]
+	def processLHSs(lhss: List[Exp], currentContext: Context, ptaresult: PTAResult): IMap[Int, IMap[PTASlot, Boolean]] = {
+    val result = mmapEmpty[Int, MMap[PTASlot, Boolean]]
     var i = -1
     lhss.foreach{
       key=>
@@ -437,12 +462,12 @@ object ReachingFactsAnalysisHelper {
             if(vs.isGlobal){
               Center.findStaticField(ne.name.name) match{
                 case Some(af) =>
-                  result(i) = (VarSlot(af.getSignature), true)
+                  result.getOrElseUpdate(i, mmapEmpty)(VarSlot(af.getSignature)) = true
                 case None =>
                   err_msg_normal(TITLE, "Given field may be in other library: " + ne.name.name)
               }
             } else {
-            	result(i) = (vs, true)
+              result.getOrElseUpdate(i, mmapEmpty)(vs) = true
             }
           case ae: AccessExp =>
             val fieldSig = ae.attributeName.name
@@ -459,8 +484,8 @@ object ReachingFactsAnalysisHelper {
                   val recName = StringFormConverter.getClassNameFromFieldSignature(fieldSig)
                   val rec = Center.resolveClass(recName, Center.ResolveLevel.HIERARCHY)
                   val fName = rec.getField(fieldSig).getName
-	                if(baseValue.size>1) result(i) = (FieldSlot(ins, fName), false)
-	                else result(i) = (FieldSlot(ins, fName), true)
+	                if(baseValue.size>1) result.getOrElseUpdate(i, mmapEmpty)(FieldSlot(ins, fName)) = false
+	                else result.getOrElseUpdate(i, mmapEmpty)(FieldSlot(ins, fName)) = true
                 }
             }
           case ie: IndexingExp =>
@@ -474,12 +499,12 @@ object ReachingFactsAnalysisHelper {
               ins =>
                 if(ins.isInstanceOf[NullInstance])
                   err_msg_normal(TITLE, "Access array: " + baseSlot + "@" + currentContext + "\nwith Null pointer: " + ins)
-                result(i) = (ArraySlot(ins), false)
+                result.getOrElseUpdate(i, mmapEmpty)(ArraySlot(ins)) = false
             }
           case _=>
         }
     }
-    result.toMap
+    result.map(x => (x._1, x._2.toMap)).toMap
   }
   
 //  def checkRHSs(rhss: List[Exp], currentContext: Context, ptaresult: PTAResult): Boolean = {
@@ -596,7 +621,7 @@ object ReachingFactsAnalysisHelper {
                   val arraySlot = ArraySlot(ins)
                   val arrayValue: MSet[Instance] = msetEmpty
                   arrayValue ++= ptaresult.pointsToSet(arraySlot, currentContext)
-                  val originalType = ins.getType
+                  val originalType = ins.typ
                   if(originalType.dimensions == 0) throw new RuntimeException("Some problem must be happened for " + ins + " because indexing cannot happen on 0 dimension object. @" + currentContext)
                   val newType = new NormalType(originalType.typ, originalType.dimensions - 1)
                   val newUnknown = 
@@ -634,8 +659,12 @@ object ReachingFactsAnalysisHelper {
                 result(i) = value.map{
                   v =>
                     if(v.isInstanceOf[UnknownInstance]){
-                      UnknownInstance(ins.getType, v.defSite.copy)
-                    } else v
+                      UnknownInstance(ins.typ, v.defSite.copy)
+                    } else {
+                      val clazz = Center.getClass(v.typ.name)
+                      if(clazz.isChildOf(ins.typ.name)) v
+                      else UnknownInstance(ins.typ, v.defSite.copy)
+                    }
                 }
               case nle: NewListExp =>
                 System.err.println(TITLE, "NewListExp: " + nle)

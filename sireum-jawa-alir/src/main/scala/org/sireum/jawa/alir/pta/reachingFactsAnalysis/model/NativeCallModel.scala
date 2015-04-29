@@ -35,11 +35,11 @@ object NativeCallModel {
 	      val thisValue = s.pointsToSet(thisSlot, currentContext)
 	      thisValue.foreach{
 	        ins =>
-	          require(Center.hasClass(ins.getType.typ))
-	          val insRec = Center.getClass(ins.getType.typ)
+	          require(Center.hasClass(ins.typ.typ))
+	          val insRec = Center.getClass(ins.typ.typ)
 	          val insClasObj = JawaAlirInfoProvider.getClassInstance(insRec)
 	          newFacts += RFAFact(VarSlot(retVars(0)), insClasObj)
-	          val strIns = PTAConcreteStringInstance(insClasObj.getName, insClasObj.getDefSite)
+	          val strIns = PTAConcreteStringInstance(insClasObj.getName, insClasObj.defSite)
 	          newFacts += (RFAFact(FieldSlot(insClasObj, "java.lang.Class.name"), strIns))
 	      }
 	      byPassFlag = false
@@ -53,7 +53,7 @@ object NativeCallModel {
 	          println(cIns + " " + cIns.getClass())
 	          require(cIns.isInstanceOf[ClassInstance])
 	          val name = cIns.asInstanceOf[ClassInstance].getName
-	          val strIns = PTAConcreteStringInstance(name, cIns.getDefSite)
+	          val strIns = PTAConcreteStringInstance(name, cIns.defSite)
               newFacts += (RFAFact(VarSlot(retVars(0)), strIns))
 	      }
 	      byPassFlag = false

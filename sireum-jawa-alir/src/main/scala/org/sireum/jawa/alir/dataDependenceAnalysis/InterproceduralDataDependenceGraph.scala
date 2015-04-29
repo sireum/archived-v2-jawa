@@ -83,7 +83,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	            n.asInstanceOf[IDDGCallArgNode].argName = argName
 	          }
 	          val rn = addIDDGReturnVarNode(cn)
-	          if(cn.getCalleeSet.exists{p => p.callee.getDeclaringClass.isFrameworkClass || p.callee.getDeclaringClass.isThirdPartyLibClass}){
+            if(cn.getCalleeSet.exists{p => p.callee.getDeclaringClass.isFrameworkClass || p.callee.getDeclaringClass.isThirdPartyLibClass || p.callee.isUnknown}){
 	            val vn = addIDDGVirtualBodyNode(cn)
 	            vn.asInstanceOf[IDDGVirtualBodyNode].argNames = argNames.toList
 	          }

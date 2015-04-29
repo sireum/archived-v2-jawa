@@ -553,11 +553,15 @@ object Center {
 	 * grab field from Center. Input example is java.lang.Throwable.stackState
 	 */
 	def getField(fieldSig : String) : Option[JawaField] = {
-	  val rName = StringFormConverter.getClassNameFromFieldSignature(fieldSig)
-	  if(!containsClass(rName)) return None
-	  val r = getClass(rName)
-	  if(!r.declaresField(fieldSig)) return None
-	  Some(r.getField(fieldSig))
+    try{
+  	  val rName = StringFormConverter.getClassNameFromFieldSignature(fieldSig)
+  	  if(!containsClass(rName)) return None
+  	  val r = getClass(rName)
+  	  if(!r.declaresField(fieldSig)) return None
+  	  Some(r.getField(fieldSig))
+    } catch {
+      case t: Throwable => None
+    }
 	}
 	
 	/**

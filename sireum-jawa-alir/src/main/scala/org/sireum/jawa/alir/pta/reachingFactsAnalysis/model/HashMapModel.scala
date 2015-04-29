@@ -110,7 +110,7 @@ object HashMapModel {
 	      valueValue.foreach{
 	        vv =>
             thisValue.foreach{
-              ins => entrys += PTATupleInstance(kv, vv, ins.getDefSite)
+              ins => entrys += PTATupleInstance(kv, vv, ins.defSite)
             }
 	      }
 	  }

@@ -213,7 +213,7 @@ object ClassModel {
       cIns =>
         require(cIns.isInstanceOf[ClassInstance])
         val name = cIns.asInstanceOf[ClassInstance].getName
-        val strIns = PTAConcreteStringInstance(name, cIns.getDefSite)
+        val strIns = PTAConcreteStringInstance(name, cIns.defSite)
         newfacts += (RFAFact(VarSlot(retVar), strIns))
     }
     (newfacts, delfacts)

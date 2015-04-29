@@ -122,7 +122,7 @@ class PointsToMap extends PTAResult {
     val thiscls = Center.resolveClass(thisent.paramTyp.name, Center.ResolveLevel.HIERARCHY)
     ptsdiff.filter { 
       ins => 
-        val inscls = Center.resolveClass(ins.getType.name, Center.ResolveLevel.HIERARCHY)
+        val inscls = Center.resolveClass(ins.typ.name, Center.ResolveLevel.HIERARCHY)
         var res : Boolean = false
         var tmpRec = inscls
         import scala.util.control.Breaks._

@@ -20,18 +20,16 @@ import org.sireum.jawa.alir.Context
  */ 
 abstract class Instance{
   def typ: Type
-  def getType = typ
   def defSite: Context
-  def getDefSite = defSite
   def ===(ins: Instance): Boolean = this == ins
   def clone(newDefSite: Context): Instance
-  private val fieldsUnknownDefSites: MMap[Context, Set[String]] = mmapEmpty
-  def addFieldsUnknownDefSite(defSite: Context, fields: Set[String]) = this.fieldsUnknownDefSites += (defSite -> fields)
-  def setFieldsUnknownDefSites(defSites: IMap[Context, Set[String]]) = {
-    this.fieldsUnknownDefSites.clear()
-    this.fieldsUnknownDefSites ++= defSites
-  }
-  def getFieldsUnknownDefSites: IMap[Context, ISet[String]] = this.fieldsUnknownDefSites.toMap
+//  private val fieldsUnknownDefSites: MMap[Context, Set[String]] = mmapEmpty
+//  def addFieldsUnknownDefSite(defSite: Context, fields: Set[String]) = this.fieldsUnknownDefSites += (defSite -> fields)
+//  def setFieldsUnknownDefSites(defSites: IMap[Context, Set[String]]) = {
+//    this.fieldsUnknownDefSites.clear()
+//    this.fieldsUnknownDefSites ++= defSites
+//  }
+//  def getFieldsUnknownDefSites: IMap[Context, ISet[String]] = this.fieldsUnknownDefSites.toMap
 }
 
 

@@ -112,7 +112,7 @@ object HashtableModel {
 	        vv =>
             thisValue.foreach{
               ins =>
-                entrys += PTATupleInstance(kv, vv, ins.getDefSite)
+                entrys += PTATupleInstance(kv, vv, ins.defSite)
             }
 	          
 	      }
