@@ -16,7 +16,7 @@ import org.antlr.v4.runtime.ANTLRInputStream
 import org.antlr.v4.runtime.{Token => AntlrToken}
 import java.net.URI
 
-class JawaLexer(aplexer: Antlr4PilarLexer) extends Iterator[Token] {
+class JawaLexer(aplexer: Antlr4PilarLexer, fileUriOpt: Option[FileResourceUri]) extends Iterator[Token] {
   
   private var eofTokenEmitted = false
   protected var builtToken: Token = _
@@ -165,16 +165,17 @@ class JawaLexer(aplexer: Antlr4PilarLexer) extends Iterator[Token] {
       }
     
     val tokenLine = aptoken.getLine
-    val tokenOffset = aptoken.getCharPositionInLine
+    val tokenColumn = aptoken.getCharPositionInLine
+    val tokenOffset = aptoken.getStartIndex
     val rawText = aptoken.getText
-    token(tokenType, tokenLine, tokenOffset, rawText)
+    token(tokenType, tokenLine, tokenColumn, tokenOffset, rawText)
   }
   
   /**
    * Mark the end of a token of the given type.
    */
-  protected def token(tokenType: TokenType, tokenLine: Int, tokenOffset: Int, rawText: String) {
-    builtToken = Token(tokenType, tokenLine, tokenOffset, rawText)
+  protected def token(tokenType: TokenType, tokenLine: Int, tokenColumn: Int, tokenOffset: Int, rawText: String) {
+    builtToken = Token(tokenType, fileUriOpt, tokenLine, tokenColumn, tokenOffset, rawText)
   }
   
   private[lexer] def text = aplexer.getText()
@@ -214,11 +215,12 @@ object JawaLexer {
     }
     val input = new ANTLRInputStream(reader)
     val aplexer = new Antlr4PilarLexer(input)
-    makeRawLexer(aplexer)
+    val fileUriOpt = source match {case Left => None; case Right(uri) => Some(uri)}
+    makeRawLexer(aplexer, fileUriOpt)
   }
     
-  def makeRawLexer(aplexer: Antlr4PilarLexer): JawaLexer =
-    new JawaLexer(aplexer)
+  def makeRawLexer(aplexer: Antlr4PilarLexer, fileUriOpt: Option[FileResourceUri]): JawaLexer =
+    new JawaLexer(aplexer, fileUriOpt)
 
   /**
    * Convert the given Pilar source code into a list of tokens.

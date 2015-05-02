@@ -133,6 +133,7 @@ case class ExtendsAndImplimentsClauses(
 sealed trait Field extends JawaAstNode {
   def typ: Type
   def nameID: Token
+  def isStatic: Boolean
 }
 
 case class InstanceFieldDeclarationBlock(
@@ -148,6 +149,7 @@ case class InstanceFieldDeclaration(
     annotations: IList[Annotation], 
     semi: Token) extends Field with Declaration {
   lazy val tokens = flatten(typ, nameID, annotations, semi)
+  def isStatic: Boolean = false
 }
 
 case class StaticFieldDeclaration(
@@ -157,6 +159,7 @@ case class StaticFieldDeclaration(
     annotations: IList[Annotation], 
     semi: Token) extends Field with Declaration {
   lazy val tokens = flatten(staticFieldToken, typ, nameID, annotations, semi)
+  def isStatic: Boolean = true
 }
 
 case class Type(baseTypeID: Token, typeFragments: IList[TypeFragment]) extends JawaAstNode {
@@ -198,6 +201,7 @@ case class ParamClause(
       case n if (n >= 0 && n < params.size) => params(n)._1
       case _ => throw new IndexOutOfBoundsException("List size " + params.size + " but index " + i)
     }
+  def paramlist: IList[Param] = params.map(_._1)
 }
 
 case class Param(
@@ -216,6 +220,7 @@ case class Body(
     catchClauses: IList[CatchClause], 
     rbrace: Token) extends JawaAstNode {
   lazy val tokens = flatten(lbrace, locals, locations, catchClauses, rbrace)
+  def isEmptyBody: Boolean = locations.isEmpty || catchClauses.isEmpty
 }
 
 case class LocalVarDeclaration(

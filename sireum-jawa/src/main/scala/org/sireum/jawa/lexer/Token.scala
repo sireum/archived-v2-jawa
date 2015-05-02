@@ -9,13 +9,14 @@ package org.sireum.jawa.lexer
 
 import org.sireum.jawa.lexer.Tokens._
 import org.sireum.jawa.util.Range
+import org.sireum.util.FileResourceUri
 
 /**
  * A token of Pilar source.
  *
  * @param rawText -- the text associated with the token
  */
-case class Token(tokenType: TokenType, line: Int, offset: Int, text: String) {
+case class Token(tokenType: TokenType, fileUriOpt: Option[FileResourceUri], line: Int, column: Int, offset: Int, text: String) {
 
   private[lexer] var associatedWhitespaceAndComments_ : HiddenTokens = null
 
@@ -39,7 +40,7 @@ case class Token(tokenType: TokenType, line: Int, offset: Int, text: String) {
     else {
       txt = "<no text>"
     }
-    return "["+txt+"',<"+tokenType+">"+","+line+":"+offset+"]";
+    return "["+txt+"',<"+tokenType+">"+","+line+":"+column+","+offset+"]";
   }
 
 }
