@@ -9,7 +9,6 @@ package org.sireum.jawa
 
 import org.sireum.util.FileResourceUri
 import org.sireum.util.FileUtil
-import org.sireum.jawa.parser.LightWeightPilarParser
 import org.sireum.jawa.util.StringFormConverter
 import org.sireum.util.ISet
 import java.io.InputStream
