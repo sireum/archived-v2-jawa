@@ -19,6 +19,9 @@ import org.sireum.jawa.alir.pta.PTAInstance
 import org.sireum.jawa.util.MyTimer
 import org.sireum.jawa.alir.pta.Instance
 import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralDataFlowGraph
+import org.sireum.jawa.alir.controlFlowGraph.ICFGInvokeNode
+import org.sireum.jawa.alir.interProcedural.Callee
+import org.sireum.jawa.alir.interProcedural.InstanceCallee
 
 
 /**
@@ -69,7 +72,11 @@ object InterproceduralSuperSpark {
     staticCallees.foreach{
       callee=>
         if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringClass))
-        	extendGraphWithConstructGraph(callee.callee, callee.pi, callee.node.getContext.copy, pag, icfg)
+        	extendGraphWithConstructGraph(callee, callee.pi, callee.node.getContext.copy, pag, icfg)
+        val callNode = icfg.getICFGCallNode(callee.node.context).asInstanceOf[ICFGInvokeNode]
+        callNode.addCallee(callee)
+        val returnNode = icfg.getICFGReturnNode(callee.node.context).asInstanceOf[ICFGInvokeNode]
+        returnNode.addCallee(callee)
     }
   }
   
@@ -199,9 +206,9 @@ object InterproceduralSuperSpark {
     piOpt match {
       case Some(pi) =>
         val callerContext : Context = node.getContext
-        val calleeSet : MSet[JawaMethod] = msetEmpty
+        val calleeSet : MSet[Callee] = msetEmpty
         if(pi.invokeTyp.equals("direct")){
-          calleeSet += pag.getDirectCallee(pi)
+          calleeSet ++= pag.getDirectCallee(d, pi)
         } else if(pi.invokeTyp.equals("super")){
           calleeSet ++= pag.getSuperCalleeSet(d, pi)
         } else {
@@ -210,14 +217,17 @@ object InterproceduralSuperSpark {
         var bypassflag = true
         calleeSet.foreach(
           callee => {
-            if(!PTAScopeManager.shouldBypass(callee.getDeclaringClass))
+            if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringClass))
             	extendGraphWithConstructGraph(callee, pi, callerContext.copy, pag, icfg)
             else bypassflag = false
           }  
         )
+        val callNode = icfg.getICFGCallNode(callerContext).asInstanceOf[ICFGInvokeNode]
+        callNode.addCallees(calleeSet.toSet)
+        val returnNode = icfg.getICFGReturnNode(callerContext).asInstanceOf[ICFGInvokeNode]
+        returnNode.addCallees(calleeSet.toSet)
+
         if(!bypassflag){
-          val callNode = icfg.getICFGCallNode(callerContext)
-          val returnNode = icfg.getICFGReturnNode(callerContext)
           icfg.addEdge(callNode, returnNode)
         }
         processStaticInfo(pag, icfg)
@@ -226,11 +236,12 @@ object InterproceduralSuperSpark {
   }
   
   
-  def extendGraphWithConstructGraph(calleeProc : JawaMethod, 
+  def extendGraphWithConstructGraph(callee : Callee, 
       															pi : Point with Invoke, 
       															callerContext : Context,
       															pag : PointerAssignmentGraph[PtaNode], 
       															icfg : InterproceduralControlFlowGraph[N]) = {
+    val calleeProc = callee.callee
     val calleeSig = calleeProc.getSignature
     if(!pag.isProcessed(calleeProc, callerContext)){
     	val points = new PointsCollector().points(calleeProc.getSignature, calleeProc.getMethodBody)

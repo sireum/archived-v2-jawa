@@ -91,14 +91,7 @@ object ReachingFactsAnalysisHelper {
     result
   }
 	
-	def getCalleeSet(cj: CallJump, callerContext: Context, ptaresult: PTAResult): ISet[Callee] = {
-    val sig = cj.getValueAnnotation("signature") match {
-        case Some(s) => s match {
-          case ne: NameExp => ne.name.name
-          case _ => ""
-        }
-        case None => throw new RuntimeException("cannot found annotation 'signature' from: " + cj)
-      }
+	def getCalleeSet(cj: CallJump, sig: String, callerContext: Context, ptaresult: PTAResult): ISet[Callee] = {
     val subSig = Center.getSubSigFromMethodSig(sig)
     val typ = cj.getValueAnnotation("type") match {
         case Some(s) => s match {

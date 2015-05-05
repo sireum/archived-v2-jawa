@@ -24,6 +24,7 @@ import com.tinkerpop.blueprints.impls.tg.TinkerGraph
 import org.sireum.jawa.util.StringFormConverter
 import org.sireum.jawa.util.SignatureParser
 import com.tinkerpop.blueprints.Vertex
+import org.sireum.jawa.alir.interProcedural.Callee
 
 class CallGraph {
   /**
@@ -103,21 +104,32 @@ class CallGraph {
       case "GML" => TinkerGraph.FileType.GML
       case _ => throw new RuntimeException("Given format " + format + " does not supported!")
     }
-    icfg.nodes foreach {
-      n =>
-        n match{
-          case cn: ICFGCallNode =>
-            val rn = icfg.getICFGReturnNode(cn.context)
-            icfg.addEdge(n, rn)
-            icfg.predecessors(rn) foreach {
-              pred =>
-                if(pred.isInstanceOf[ICFGExitNode]){
-                  icfg.deleteEdge(pred, rn)
-                  icfg.addEdge(pred, n)
-                }
-            }
-          case _ =>
-        }
+    val worklist: MList[ICFGNode] = mlistEmpty ++ icfg.nodes.toList
+    while(!worklist.isEmpty) {
+      val n = worklist.remove(0)
+      n match{
+        case cn: ICFGCallNode =>
+          val rn = icfg.getICFGReturnNode(cn.context)
+          icfg.addEdge(n, rn)
+          icfg.predecessors(rn) foreach {
+            pred =>
+              if(pred.isInstanceOf[ICFGExitNode]){
+                icfg.deleteEdge(pred, rn)
+              }
+          }
+          val calleeSigs = cn.getCalleeSet.map(_.callee.getSignature)
+          val hasCallees = icfg.successors(cn).filter { x => x.isInstanceOf[ICFGEntryNode] }.map {
+            succ =>
+              succ.asInstanceOf[ICFGEntryNode].getOwner
+          }
+          (calleeSigs -- hasCallees).foreach {
+            sig =>
+              val calleeContext = cn.getContext.copy.setContext(sig, "Entry")
+              val calleeEntryNode = icfg.addICFGEntryNode(calleeContext)
+              icfg.addEdge(cn, calleeEntryNode)
+          }
+        case _ =>
+      }
     }
     val ns = icfg.nodes filter{
       n =>
@@ -134,7 +146,9 @@ class CallGraph {
       n =>
         n match{
           case cn: ICFGCallNode =>
-            val source = CGDetailCallNode(cn.context)
+            val callees: ISet[Callee] = cn.getCalleeSet
+            val calleesig: String = cn.getCalleeSig
+            val source = CGDetailCallNode(calleesig, callees, cn.context)
             val sourceV = addNode(dcg, source)
             icfg.successors(cn).foreach { 
               s => 
@@ -147,22 +161,12 @@ class CallGraph {
                     val target = CGExitNode(sen.context)
                     val targetV = addNode(dcg, target)
                     dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "leadsto")
-                  case scn: ICFGCallNode => // this is a model call case
-                    val target = CGDetailCallNode(scn.context)
+                  case scn: ICFGCallNode =>
+                    val callees: ISet[Callee] = scn.getCalleeSet
+                    val calleesig: String = scn.getCalleeSig
+                    val target = CGDetailCallNode(calleesig, callees, scn.context)
                     val targetV = addNode(dcg, target)
                     dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "leadsto")
-                    val callees = cn.getCalleeSet
-                    callees.foreach{
-                      callee =>
-                        val calleeContext = cn.getContext.setContext(callee.callee.getSignature, callee.callee.getSignature)
-                        val calleeEntry = CGEntryNode(calleeContext)
-                        val calleeExit = CGExitNode(calleeContext)
-                        val calleeEntryV = addNode(dcg, calleeEntry)
-                        val calleeExitV = addNode(dcg, calleeExit)
-                        dcg.addEdge((calleeEntryV, calleeExitV).hashCode, calleeEntryV, calleeExitV, "leadsto")
-                        dcg.addEdge((sourceV, calleeEntryV).hashCode, sourceV, calleeEntryV, "calls")
-                        dcg.addEdge((calleeExitV, source).hashCode, calleeExitV, sourceV, "return")
-                    }
                   case _ => throw new RuntimeException(s + " cannot be successor of " + cn + "!")
                 }
             }
@@ -178,7 +182,9 @@ class CallGraph {
                     val targetV = addNode(dcg, target)
                     dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "leadsto")
                   case scn: ICFGCallNode =>
-                    val target = CGDetailCallNode(scn.context)
+                    val callees: ISet[Callee] = scn.getCalleeSet
+                    val calleesig: String = scn.getCalleeSig
+                    val target = CGDetailCallNode(calleesig, callees, scn.context)
                     val targetV = addNode(dcg, target)
                     dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "leadsto")
                   case _ => throw new RuntimeException(s + " cannot be successor of " + en + "!")
@@ -191,7 +197,9 @@ class CallGraph {
               case s => // s should be only IcfgCallNode
                 s match {
                   case cn: ICFGCallNode =>
-                    val target = CGDetailCallNode(cn.context)
+                    val callees: ISet[Callee] = cn.getCalleeSet
+                    val calleesig: String = cn.getCalleeSig
+                    val target = CGDetailCallNode(calleesig, callees, cn.context)
                     val targetV = addNode(dcg, target)
                     dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "return")
                   case _ => throw new RuntimeException(s + " cannot be successor of " + en + "!")
@@ -235,6 +243,10 @@ final case class CGSimpleCallNode(context: Context) extends CGCallNode(context){
   override def toString: String = getID
 }
 
-final case class CGDetailCallNode(context: Context) extends CGCallNode(context){
+final case class CGDetailCallNode(sig: String, callees: ISet[Callee], context: Context) extends CGCallNode(context){
+  override def getMethodName: String = StringFormConverter.getMethodShortNameFromMethodSignature(sig)
+  override def getClassName: String = StringFormConverter.getClassNameFromMethodSignature(sig)
+  override def getReturnType: String = new SignatureParser(sig).getReturnType().name
+  override def getParamTypes: ISeq[String] = new SignatureParser(sig).getParamSig.getParameterTypes().map(_.name)
   override def toString: String = getID + ":" + getType + "@" + getLocation
 }

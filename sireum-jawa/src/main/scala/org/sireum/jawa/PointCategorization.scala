@@ -12,7 +12,7 @@ import org.sireum.util.ResourceUri
 import org.sireum.util.IMap
 
 abstract class Point{
-  def ownerSig : String
+  def ownerSig: String
 }
 
 /**
@@ -31,79 +31,79 @@ trait Right
 /**
  * static variable
  */
-trait Static_Field{def staticFieldSig : String}
+trait Static_Field{def staticFieldSig: String}
 
 /**
  * array
  */
-trait Array{def dimensions : Int}
+trait Array{def dimensions: Int}
 
 /**
  * object creation
  */
-trait NewObj{def obj : String}
+trait NewObj{def obj: String}
 
 /**
  * base variable
  */
 trait Base{
-  def baseName : String
-  private var fieldP : Point with Field = null
-  def setFieldPoint(f : Point with Field) = fieldP = f
-  def getFieldPoint : Point with Field = fieldP
+  def baseName: String
+  private var fieldP: Point with Field = null
+  def setFieldPoint(f: Point with Field) = fieldP = f
+  def getFieldPoint: Point with Field = fieldP
 }
 
 /**
  * field variable
  */
 trait Field{
-  def baseP : Point with Base
-  def fieldName : String
+  def baseP: Point with Base
+  def fieldName: String
 }
 
 /**
  * have location and index
  */
 trait Loc{
-  def loc : ResourceUri
-  def locIndex : Int
+  def loc: ResourceUri
+  def locIndex: Int
 }
 
 trait Dynamic{
-  def recvPCall : PointRecvCall
-  def recvPReturn : PointRecvReturn
+  def recvPCall: PointRecvCall
+  def recvPReturn: PointRecvReturn
 }
 
 trait Virtual{
-  def thisPEntry : PointThisEntry
-  def thisPExit : PointThisExit
+  def thisPEntry: PointThisEntry
+  def thisPExit: PointThisExit
 }
 
 trait Invoke{
-  def sig : String
-  def invokeTyp : String
-  def argPsCall : IMap[Int, PointArgCall]
-  def argPsReturn : IMap[Int, PointArgReturn]
-  def retTyp : Type
+  def sig: String
+  def invokeTyp: String
+  def argPsCall: IMap[Int, PointArgCall]
+  def argPsReturn: IMap[Int, PointArgReturn]
+  def retTyp: Type
 }
 
 trait Method{
-  def methodSig : String
-  def accessTyp : String
-  def paramPsEntry : IMap[Int, PointParamEntry]
-  def paramPsExit : IMap[Int, PointParamExit]
-  def retVar : Option[PointMethodRet]
+  def methodSig: String
+  def accessTyp: String
+  def paramPsEntry: IMap[Int, PointParamEntry]
+  def paramPsExit: IMap[Int, PointParamExit]
+  def retVar: Option[PointMethodRet]
 }
 
 trait Param{
-  def paramName : String
-  def index : Int
-  def paramTyp : Type
+  def paramName: String
+  def index: Int
+  def paramTyp: Type
 }
 
 trait Arg{
-  def argName : String
-  def index : Int
+  def argName: String
+  def index: Int
 }
 
 trait Entry
@@ -111,13 +111,13 @@ trait Entry
 trait Exit
 
 trait Call {
-  private var container : Point with Invoke = null
-  def setContainer(c : Point with Invoke) = container = c
-  def getContainer : Point with Invoke = container
+  private var container: Point with Invoke = null
+  def setContainer(c: Point with Invoke) = container = c
+  def getContainer: Point with Invoke = container
 }
 
 trait Return {
-  private var container : Point with Invoke = null
-  def setContainer(c : Point with Invoke) = container = c
-  def getContainer : Point with Invoke = container
+  private var container: Point with Invoke = null
+  def setContainer(c: Point with Invoke) = container = c
+  def getContainer: Point with Invoke = container
 }
