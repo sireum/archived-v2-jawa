@@ -12,11 +12,13 @@ import org.sireum.pilar._
 import org.sireum.jawa.sjc.lexer.Token
 import org.sireum.jawa.sjc.util.CaseClassReflector
 import org.sireum.util._
+import org.sireum.jawa.sjc.JawaType
+import org.sireum.jawa.sjc.JavaKnowledge
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-sealed trait JawaAstNode extends CaseClassReflector {
+sealed trait JawaAstNode extends CaseClassReflector with JavaKnowledge {
 
   def tokens: IList[Token]
 
@@ -77,17 +79,21 @@ sealed trait JawaAstNode extends CaseClassReflector {
 
 }
 
+sealed trait ParsableAstNode extends JawaAstNode
+
 case class CompilationUnit(
     topDecls: IList[ClassOrInterfaceDeclaration], 
-    eofToken: Token) extends JawaAstNode {
+    eofToken: Token) extends ParsableAstNode {
   lazy val tokens = flatten(topDecls, eofToken)
 }
 
 sealed trait Declaration extends JawaAstNode {
   def annotations: IList[Annotation]
-  def accessModifierOpt: Option[String] = {
-    val annotOpt = annotations.find { a => a.key == "AccessFlag" || a.key == "Access" }
-    annotOpt.map { a => if(a.value != "") a.value else null }
+  def accessModifier: String = {
+    annotations.find { a => a.key == "AccessFlag" || a.key == "Access" } match{
+      case Some(a) => a.value
+      case None => ""
+    }
   }
 }
 
@@ -98,11 +104,12 @@ case class ClassOrInterfaceDeclaration(
     extendsAndImplimentsClausesOpt: Option[ExtendsAndImplimentsClauses],
     instanceFieldDeclarationBlock: InstanceFieldDeclarationBlock,
     staticFields: IList[StaticFieldDeclaration],
-    methods: IList[MethodDeclaration]) extends Declaration {
+    methods: IList[MethodDeclaration]) extends Declaration with ParsableAstNode {
   lazy val tokens = flatten(dclToken, nameID, annotations, extendsAndImplimentsClausesOpt, instanceFieldDeclarationBlock, staticFields, methods)
   def isInterface: Boolean = {
     annotations.exists { a => a.key == "type" && a.value == "interface" }
   }
+  def parents: IList[String] = extendsAndImplimentsClausesOpt match {case Some(e) => e.parents; case None => ilistEmpty}
   def instanceFields: IList[InstanceFieldDeclaration] = instanceFieldDeclarationBlock.instanceFields
 }
 
@@ -130,6 +137,8 @@ case class ExtendsAndImplimentsClauses(
 sealed trait Field extends JawaAstNode {
   def typ: Type
   def nameID: Token
+  def FQN: String
+  def fieldName: String = getFieldNameFromFieldFQN(FQN)
   def isStatic: Boolean
 }
 
@@ -146,6 +155,7 @@ case class InstanceFieldDeclaration(
     annotations: IList[Annotation], 
     semi: Token) extends Field with Declaration {
   lazy val tokens = flatten(typ, nameID, annotations, semi)
+  def FQN: String = nameID.text
   def isStatic: Boolean = false
 }
 
@@ -156,6 +166,7 @@ case class StaticFieldDeclaration(
     annotations: IList[Annotation], 
     semi: Token) extends Field with Declaration {
   lazy val tokens = flatten(staticFieldToken, typ, nameID, annotations, semi)
+  def FQN: String = nameID.text.replace("@@", "")
   def isStatic: Boolean = true
 }
 
@@ -163,6 +174,7 @@ case class Type(baseTypeID: Token, typeFragments: IList[TypeFragment]) extends J
   lazy val tokens = flatten(baseTypeID, typeFragments)
   def dimentions: Int = typeFragments.size
   def baseTypeName: String = baseTypeID.text
+  def typ: JawaType = getType(baseTypeName, dimentions)
 }
 
 sealed trait TypeFragment extends JawaAstNode
@@ -181,7 +193,7 @@ case class MethodDeclaration(
     nameID: Token,
     paramClause: ParamClause,
     annotations: IList[Annotation],
-    body: Body) extends Declaration {
+    body: Body) extends Declaration with ParsableAstNode {
   lazy val tokens = flatten(dclToken, returnType, nameID, paramClause)
   def owner: String = annotations.find { a => a.key == "owner" }.get.value
   def signature: String = annotations.find { a => a.key == "signature" }.get.value
@@ -207,6 +219,7 @@ case class Param(
   lazy val tokens = flatten(typ, nameID, annotations)
   def isThis: Boolean = annotations.exists { a => a.key == "type" && a.value == "this" }
   def isObject: Boolean = annotations.exists { a => a.key == "type" && (a.value == "this" || a.value == "object") }
+  def name: String = nameID.text
 }
 
 case class Body(
@@ -229,7 +242,7 @@ case class LocalVarDeclaration(
 case class Location(
     locationID: Token, 
     statement: Statement, 
-    semiOpt: Option[Token]) extends JawaAstNode {
+    semiOpt: Option[Token]) extends ParsableAstNode {
   lazy val tokens = flatten(locationID, statement, semiOpt)
   def locationUri: String = locationID.text.substring(1, locationID.length - 1)
   var locationIndex: Int = 0

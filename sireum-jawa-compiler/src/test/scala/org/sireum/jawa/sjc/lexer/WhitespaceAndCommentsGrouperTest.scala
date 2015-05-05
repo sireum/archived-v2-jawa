@@ -31,7 +31,7 @@ class WhitespaceAndCommentsGrouperTest extends FlatSpec with ShouldMatchers {
 
     private def check(s: String, expectedTokens: List[TokenType]) {
       it should ("tokenise >>>" + s + "<<< as >>>" + expectedTokens + "<<<") in {
-        val actualTokens: List[Token] = JawaLexer.tokenise(Left(s))
+        val actualTokens: List[Token] = JawaLexer.tokenise(s, None)
         val actualTokenTypes = actualTokens.map(_.tokenType)
         require(actualTokenTypes.last == EOF, "Last token must be EOF, but was " + actualTokens.last.tokenType)
         require(actualTokenTypes.count(_ == EOF) == 1, "There must only be one EOF token")

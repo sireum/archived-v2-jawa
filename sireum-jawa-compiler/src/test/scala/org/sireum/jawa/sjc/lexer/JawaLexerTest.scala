@@ -123,7 +123,7 @@ println("foo")""" producesTokens (ID, LPAREN, STRING_LITERAL, RPAREN, WS, ID, LP
   "-5f.max(2)" producesTokens (FLOATING_POINT_LITERAL, DOT, ID, LPAREN, INTEGER_LITERAL, RPAREN)
   
   "Lexer" should "throw a lexer exception" in {
-    evaluating { JawaLexer.rawTokenise(Left("\"\"\"")) } should produce[JawaLexerException]
+    evaluating { JawaLexer.rawTokenise("\"\"\"", None) } should produce[JawaLexerException]
   }
 
 """
@@ -167,7 +167,7 @@ record `com.ksu.passwordPassTest.MainActivity`  @type class @AccessFlag PUBLIC  
 
     private def check(s: String, expectedTokens: List[TokenType]) {
       it should ("tokenise >>>" + s + "<<< as >>>" + expectedTokens + "<<<") in {
-        val actualTokens: List[Token] = JawaLexer.rawTokenise(Left(s))
+        val actualTokens: List[Token] = JawaLexer.rawTokenise(s, None)
         val actualTokenTypes = actualTokens.map(_.tokenType)
         require(actualTokenTypes.last == EOF, "Last token must be EOF, but was " + actualTokens.last.tokenType)
         require(actualTokenTypes.count(_ == EOF) == 1, "There must only be one EOF token")

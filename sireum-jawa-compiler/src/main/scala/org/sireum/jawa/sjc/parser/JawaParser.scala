@@ -14,11 +14,9 @@ import org.sireum.util._
 class JawaParser(tokens: Array[Token]) {
   private val logging: Boolean = false
 
-//  private val forgiving: Boolean = true
-
   import JawaParser._
 
-  def safeParse[T](production: ⇒ T): Option[T] = try Some(production) catch { case e: JawaParserException ⇒ None }
+  def safeParse[T <: ParsableAstNode](production: ⇒ T): Option[T] = try Some(production) catch { case e: JawaParserException ⇒ None }
 
   require(!tokens.isEmpty) // at least EOF
   
@@ -27,7 +25,7 @@ class JawaParser(tokens: Array[Token]) {
     def loop() {
       currentTokenType match {
         case CLASS_OR_INTERFACE =>
-          topDecls += classOrInterfaceDeclaration()
+          topDecls += classOrInterfaceDeclaration0()
           loop()
         case _ =>
       }
@@ -37,7 +35,9 @@ class JawaParser(tokens: Array[Token]) {
     CompilationUnit(topDecls.toList, eofToken)
   }
   
-  private def classOrInterfaceDeclaration(): ClassOrInterfaceDeclaration = {
+  def classOrInterfaceDeclaration: ClassOrInterfaceDeclaration = classOrInterfaceDeclaration0
+  
+  private def classOrInterfaceDeclaration0(): ClassOrInterfaceDeclaration = {
     val dclToken: Token = accept(CLASS_OR_INTERFACE)
     val nameID: Token = accept(ID)
     val annotations_ : IList[Annotation] = annotations()
@@ -135,19 +135,25 @@ class JawaParser(tokens: Array[Token]) {
     def loop() {
       currentTokenType match {
         case METHOD =>
-          val dclToken: Token = nextToken()
-          val returnType: Type = typ(withinit = false)
-          val nameID: Token = accept(ID)
-          val paramClause_ : ParamClause = paramClause()
-          val annotations_ : IList[Annotation] = annotations()
-          val body_ : Body = body()
-          methods += MethodDeclaration(dclToken, returnType, nameID, paramClause_, annotations_, body_)
+          methods += methodDeclaration0()
           loop()
         case _ =>
       }
     }
     loop()
     methods.toList
+  }
+  
+  def methodDeclaration: MethodDeclaration = methodDeclaration0
+  
+  private def methodDeclaration0(): MethodDeclaration = {
+    val dclToken: Token = nextToken()
+    val returnType: Type = typ(withinit = false)
+    val nameID: Token = accept(ID)
+    val paramClause_ : ParamClause = paramClause()
+    val annotations_ : IList[Annotation] = annotations()
+    val body_ : Body = body()
+    MethodDeclaration(dclToken, returnType, nameID, paramClause_, annotations_, body_)
   }
   
   private def paramClause(): ParamClause = {
@@ -208,7 +214,7 @@ class JawaParser(tokens: Array[Token]) {
     locations.toList
   }
   
-  def location(): Location = location0()
+  def location: Location = location0()
   
   private def location0(index: Int = 0): Location = {
     val locationID = nextToken
@@ -616,17 +622,55 @@ class JawaParser(tokens: Array[Token]) {
     } else
       f
   }
-  
 }
 
 object JawaParser {
-
+  
+  import scala.reflect.runtime.{ universe => ru }
+  final val COMPILATION_UNIT_TYPE = ru.typeOf[CompilationUnit]
+  final val CLASS_OR_INTERFACE_DECLARATION_TYPE = ru.typeOf[ClassOrInterfaceDeclaration]
+  final val METHOD_DECLARATION_TYPE = ru.typeOf[MethodDeclaration]
+  final val LOCATION_TYPE = ru.typeOf[Location]
+  
   /**
-   * Parse the given source as a compilation unit
+   * Safe parse the given source as a compilation unit
    * @return None if there is a parse error.
    */
-  def parse(source: Either[String, ResourceUri]): Option[JawaAstNode] = {
-    val parser = new JawaParser(JawaLexer.tokenise(source).toArray)
-    parser.safeParse(parser.compilationUnit())
+  def safeParse[T <: ParsableAstNode : ru.TypeTag](code: String, fileUriOpt: Option[ResourceUri]): Option[T] = {
+    val parser = new JawaParser(JawaLexer.tokenise(code, fileUriOpt).toArray)
+    (ru.typeOf[T] match {
+        case t if t =:= COMPILATION_UNIT_TYPE =>
+          parser.safeParse(parser.compilationUnit())
+        case t if t =:= CLASS_OR_INTERFACE_DECLARATION_TYPE =>
+          parser.safeParse(parser.classOrInterfaceDeclaration)
+        case t if t =:= METHOD_DECLARATION_TYPE =>
+          parser.safeParse(parser.methodDeclaration)
+        case t if t=:= LOCATION_TYPE =>
+          parser.safeParse(parser.location)
+    }).asInstanceOf[Option[T]]
+  }
+  
+  /**
+   * parse the given source as a parsable ast node
+   */
+  def parse[T <: ParsableAstNode : ru.TypeTag](fileUriOpt: Option[ResourceUri], code: String): (Option[T], String) = {
+    val parser = new JawaParser(JawaLexer.tokenise(code, fileUriOpt).toArray)
+    try{
+      val pasable: T =
+        (ru.typeOf[T] match {
+            case t if t =:= COMPILATION_UNIT_TYPE =>
+              parser.compilationUnit()
+            case t if t =:= CLASS_OR_INTERFACE_DECLARATION_TYPE =>
+              parser.classOrInterfaceDeclaration
+            case t if t =:= METHOD_DECLARATION_TYPE =>
+              parser.methodDeclaration
+            case t if t=:= LOCATION_TYPE =>
+              parser.location
+        }).asInstanceOf[T]
+      (Some(pasable), "")
+    } catch {
+      case e: JawaParserException ⇒
+        (None, e.getMessage)
+    }
   }
 }

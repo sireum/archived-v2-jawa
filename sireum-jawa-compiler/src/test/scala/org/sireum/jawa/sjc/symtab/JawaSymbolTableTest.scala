@@ -119,7 +119,7 @@ record `b.a.a.a`  @type class @AccessFlag PUBLIC_FINAL extends  `java.io.Externa
 //  }
   
   private def resolveSymbol(s: String) = {
-    val parser = new JawaParser(JawaLexer.tokenise(Left(s)).toArray)
+    val parser = new JawaParser(JawaLexer.tokenise(s, None).toArray)
     val cu = parser.compilationUnit()
     var fst = { _ : Unit => new JawaCompilationUnitSymbolTable }
     val st = JawaCompilationUnitSymbolTableBuilder(List(cu), fst, true)

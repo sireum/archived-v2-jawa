@@ -11,21 +11,19 @@ package org.sireum.jawa.sjc
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-trait Type extends JavaKnowledge {
+trait JawaType extends JavaKnowledge {
 	def typ: String
-  def isArray: Boolean
 }
 
-final case class PrimitiveType(val typ: String) extends Type {
+final case class PrimitiveType(val typ: String) extends JawaType {
   require(isJavaPrimitive(this))
-  def isArray: Boolean = false
 }
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class ObjectType(val typ: String, val dimensions: Int) extends Type {
+final case class ObjectType(val typ: String, val dimensions: Int) extends JawaType {
   def this(typ: String) = this(typ, 0)
   require(!isJavaPrimitive(this))
   def isArray = dimensions > 0
@@ -42,6 +40,7 @@ final case class ObjectType(val typ: String, val dimensions: Int) extends Type {
     if(isJavaPrimitive(typ) || isArray) null
     else typ.substring(0, typ.lastIndexOf(".")).intern()
   }
+  def toUnknown: ObjectType = ObjectType(typ + "*", dimensions)
   override def toString: String = {
     name
   }
@@ -51,9 +50,8 @@ final case class ObjectType(val typ: String, val dimensions: Int) extends Type {
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class NullType() extends Type {
+final case class NullType() extends JawaType {
   def typ = "Null"
-  def isArray: Boolean = false
   override def toString: String = {
     val sb = new StringBuilder
     sb.append(typ)

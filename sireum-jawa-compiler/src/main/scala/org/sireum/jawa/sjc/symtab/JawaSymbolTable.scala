@@ -11,17 +11,17 @@ class JawaCompilationUnitSymbolTable extends CompilationUnitSymbolTable with Com
   var hasErrors = false
 
   val ERROR_TAG_TYPE = MarkerType(
-    "org.sireum.pilar.tag.error.symtab",
+    "org.sireum.jawa.sjc.tag.error.symtab",
     None,
-    "Pilar Symbol Resolution Error",
+    "Jawa Symbol Resolution Error",
     MarkerTagSeverity.Error,
     MarkerTagPriority.Normal,
     ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
 
   val WARNING_TAG_TYPE = MarkerType(
-    "org.sireum.pilar.tag.error.symtab",
+    "org.sireum.jawa.sjc.tag.error.symtab",
     None,
-    "Pilar Symbol Resolution Warning",
+    "Jawa Symbol Resolution Warning",
     MarkerTagSeverity.Warning,
     MarkerTagPriority.Normal,
     ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
@@ -98,8 +98,12 @@ class JawaMethodSymbolTable(val methodSig: String, clst: JawaClassOrInterfaceSym
 
   def methodName: String = ciSymbolTable.methodDecl(methodSig).nameID.text
   def methodDecl: MethodDeclaration = ciSymbolTable.methodDecl(methodSig)
-  def paramNames: ISeq[String] = tables.params.map(_.nameID.text).toList
-  def params: ISeq[Param] = tables.params.toList
+  def thisNameOpt: Option[String] = thisOpt.map(_.name)
+  def thisOpt: Option[Param] = {
+    tables.params.find(_.isThis)
+  }
+  def paramNames: ISeq[String] = params.map(_.name).toList
+  def params: ISeq[Param] = tables.params.filter(!_.isThis).toList
   def isParam(varname: String): Boolean = paramNames.contains(varname)
   def param(paramName: String): Param = tables.params.find { x => x.nameID.text == paramName }.get
   def localNames: Iterable[String] = tables.localVarTable.keys

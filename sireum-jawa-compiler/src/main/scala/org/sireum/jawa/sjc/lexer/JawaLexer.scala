@@ -202,22 +202,18 @@ object JawaLexer {
    * will be of type EOF.
    */
   @throws(classOf[JawaLexerException])
-  def rawTokenise(source: Either[String, ResourceUri]): List[Token] =
-    createRawLexer(source).toList
+  def rawTokenise(code: String, fileUriOpt: Option[ResourceUri]): List[Token] =
+    createRawLexer(code, fileUriOpt).toList
 
   /**
    * Create a lexer for "raw" tokens.
    *
    * @see rawTokenise
    */
-  def createRawLexer(source: Either[String, ResourceUri]): JawaLexer = {
-    val reader = source match {
-      case Left(text)     => new StringReader(text)
-      case Right(fileUri) => new FileReader(new File(new URI(fileUri)))
-    }
+  def createRawLexer(code: String, fileUriOpt: Option[ResourceUri]): JawaLexer = {
+    val reader = new StringReader(code)
     val input = new ANTLRInputStream(reader)
     val aplexer = new Antlr4PilarLexer(input)
-    val fileUriOpt = source match {case Left(_) => None; case Right(uri) => Some(uri)}
     makeRawLexer(aplexer, fileUriOpt)
   }
     
@@ -235,8 +231,8 @@ object JawaLexer {
    *   interpretation of certain tokens (for example, floating point literals).
    */
   @throws(classOf[JawaLexerException])
-  def tokenise(source: Either[String, ResourceUri]): List[Token] = {
-    val rawLexer = createRawLexer(source)
+  def tokenise(code: String, fileUriOpt: Option[ResourceUri]): List[Token] = {
+    val rawLexer = createRawLexer(code, fileUriOpt)
     val lexer = new WhitespaceAndCommentsGrouper(rawLexer)
     lexer.toList
   }

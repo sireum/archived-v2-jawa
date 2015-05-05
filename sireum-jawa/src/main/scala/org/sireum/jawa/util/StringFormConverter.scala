@@ -140,7 +140,7 @@ object StringFormConverter {
   }
   
   /**
-   * input ("[|java:lang:String|]", 1) output Type
+   * input ("java.lang.String", 1) output Type
    */
   
   protected def getType(typ : String, dimension : Int) : Type = new NormalType(typ, dimension)

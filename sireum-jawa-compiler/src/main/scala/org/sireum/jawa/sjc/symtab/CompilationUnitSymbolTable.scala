@@ -5,12 +5,15 @@ import org.sireum.jawa.sjc.parser._
 import org.sireum.jawa.sjc.parser.{Location => JawaLocation}
 import org.sireum.jawa.sjc.lexer.Token
 import org.sireum.jawa.sjc.symtab.SymbolTableHelper.CompilationUnitElementMiner
+import org.sireum.jawa.sjc.interactive.JawaDelta
+import org.sireum.jawa.sjc.interactive.RichCompilationUnits
+
 
 trait CompilationUnitSymbolTable {
   def classOrInterfaceNames: Iterable[String]
   def classOrInterfaces: Iterable[ClassOrInterfaceDeclaration]
   def classOrInterface(classOrInterfaceName: String): ClassOrInterfaceDeclaration
-  def classOrInterfaceSymbolTables : Iterable[ClassOrInterfaceSymbolTable]
+  def classOrInterfaceSymbolTables: Iterable[ClassOrInterfaceSymbolTable]
   def classOrInterfaceSymbolTable(classOrInterfaceName: String): ClassOrInterfaceSymbolTable 
 }
 
@@ -40,6 +43,8 @@ trait MethodSymbolTable {
   def methodSig: String
   def methodName: String
   def methodDecl: MethodDeclaration
+  def thisNameOpt: Option[String]
+  def thisOpt: Option[Param]
   def paramNames: ISeq[String]
   def params: ISeq[Param]
   def isParam(varname: String): Boolean
@@ -54,26 +59,24 @@ trait MethodSymbolTable {
 }
 
 object JawaCompilationUnitSymbolTableBuilder {
-  def apply(cus : ISeq[CompilationUnit],
-            stpConstructor : Unit => CompilationUnitSymbolTableProducer,
-            parallel : Boolean) =
+  def apply[P <: CompilationUnitSymbolTableProducer](cus: ISeq[CompilationUnit],
+            stpConstructor: Unit => P,
+            parallel: Boolean) =
     buildSymbolTable(cus, stpConstructor, parallel)
 
   def apply[P <: CompilationUnitSymbolTableProducer] //
-  (stp : CompilationUnitSymbolTableProducer, stCUs : ISeq[CompilationUnit],
-   changedOrDeletedCUFiles : Set[FileResourceUri],
-   changedOrAddedCUs : ISeq[CompilationUnit],
-   stpConstructor : Unit => P,
-   parallel : Boolean) : Unit =
-    fixSymbolTable(stp, stCUs, changedOrDeletedCUFiles,
-      changedOrAddedCUs, stpConstructor, parallel)
+  (rcu: RichCompilationUnits,
+   delta: JawaDelta,
+   stpConstructor: Unit => P,
+   parallel: Boolean): CompilationUnitSymbolTable =
+    fixSymbolTable(rcu, delta, stpConstructor, parallel)
 
   def mineCompilationUnitElements[P <: CompilationUnitSymbolTableProducer] //
-  (cus : ISeq[CompilationUnit], stpConstructor : Unit => P,
-   parallel : Boolean) : CompilationUnitSymbolTableProducer = {
+  (cus: ISeq[CompilationUnit], stpConstructor: Unit => P,
+   parallel: Boolean): CompilationUnitSymbolTableProducer = {
     if (cus.isEmpty) return stpConstructor()
 
-    val ms : GenSeq[CompilationUnit] = if (parallel) cus.par else cus
+    val ms: GenSeq[CompilationUnit] = if (parallel) cus.par else cus
     ms.map { cu =>
       val stp = stpConstructor()
       new CompilationUnitElementMiner(stp).mine(cu)
@@ -87,33 +90,28 @@ object JawaCompilationUnitSymbolTableBuilder {
     }.toIterable.reduce(SymbolTableHelper.combine)
   }
 
-  def buildSymbolTable(cus : ISeq[CompilationUnit],
-                       stpConstructor : Unit => CompilationUnitSymbolTableProducer,
-                       parallel : Boolean) = {
+  def buildSymbolTable(cus: ISeq[CompilationUnit],
+                       stpConstructor: Unit => CompilationUnitSymbolTableProducer,
+                       parallel: Boolean) = {
     val stp = mineCompilationUnitElements(cus, stpConstructor, parallel)
     stp.toCompilationUnitSymbolTable
   }
 
-  def fixSymbolTable[P <: CompilationUnitSymbolTableProducer] //
-  (stp : CompilationUnitSymbolTableProducer, stCUs : ISeq[CompilationUnit],
-   changedOrDeletedCUFiles : Set[FileResourceUri],
-   changedOrAddedCUs : ISeq[CompilationUnit],
-   stpConstructor : Unit => P,
-   parallel : Boolean) : Unit = {
+  def fixSymbolTable //
+  (rcu: RichCompilationUnits,
+   delta: JawaDelta,
+   stpConstructor: Unit => CompilationUnitSymbolTableProducer,
+   parallel: Boolean): CompilationUnitSymbolTable = {
 
-    val cus = mlistEmpty[CompilationUnit]
-    stCUs.foreach { m =>
-      m.firstToken.fileUriOpt match {
-        case Some(uri) =>
-          if (changedOrDeletedCUFiles.contains(uri))
-            SymbolTableHelper.tearDown(stp.tables, m)
-          else
-            cus += m
-        case _ =>
-      }
+    delta.changedOrDeletedCUFiles.foreach{
+      fileUri =>
+        val cu = rcu.getCompilationUnits(fileUri)
+        SymbolTableHelper.tearDown(rcu.getSymbolTable.asInstanceOf[CompilationUnitSymbolTableProducer].tables, cu)
     }
-    SymbolTableHelper.combine(stp, mineCompilationUnitElements(changedOrAddedCUs, stpConstructor, parallel))
-    cus ++= changedOrAddedCUs
+
+    SymbolTableHelper.combine(rcu.getSymbolTable.asInstanceOf[CompilationUnitSymbolTableProducer], mineCompilationUnitElements(delta.changedOrAddedCUs, stpConstructor, parallel))
+    rcu.addCompilationUnits(delta.changedOrAddedCUs.toSeq)
+    rcu.getSymbolTable
   }
 }
 
@@ -158,7 +156,7 @@ trait MethodSymbolTableProducer {
 }
 
 sealed case class CompilationUnitSymbolTableData //
-(declaredSymbols : MMap[FileResourceUri, MSet[ResourceUri]] = mmapEmpty,
+(declaredSymbols: MMap[FileResourceUri, MSet[ResourceUri]] = mmapEmpty,
  /**
   * Holds the map of class fully-qualified names to their
   * {@link TypeDeclaration}.
