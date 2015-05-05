@@ -654,7 +654,7 @@ object ReachingFactsAnalysisHelper {
                     if(v.isInstanceOf[UnknownInstance]){
                       UnknownInstance(ins.typ, v.defSite.copy)
                     } else {
-                      val clazz = Center.getClass(v.typ.name)
+                      val clazz = Center.resolveClass(v.typ.name, Center.ResolveLevel.HIERARCHY)
                       if(clazz.isChildOf(ins.typ.name)) v
                       else UnknownInstance(ins.typ, v.defSite.copy)
                     }
