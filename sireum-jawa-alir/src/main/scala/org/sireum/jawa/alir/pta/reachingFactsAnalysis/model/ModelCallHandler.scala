@@ -35,6 +35,8 @@ trait ModelCallHandler {
 	  HashtableModel.isHashtable(r) ||
 	  HashMapModel.isHashMap(r) ||
 	  ClassModel.isClass(r) ||
+    ConstructorModel.isConstructor(calleeProc) ||
+    ObjectModel.isObject(r) ||
 	  NativeCallModel.isNativeCall(calleeProc) ||
     UnknownCallModel.isUnknownCall(calleeProc)
   }
@@ -60,6 +62,8 @@ trait ModelCallHandler {
 	  else if(HashtableModel.isHashtable(r)) HashtableModel.doHashtableCall(s, calleeProc, args, retVars, currentContext)
 	  else if(HashMapModel.isHashMap(r)) HashMapModel.doHashMapCall(s, calleeProc, args, retVars, currentContext)
 	  else if(ClassModel.isClass(r)) ClassModel.doClassCall(s, calleeProc, args, retVars, currentContext)
+    else if(ConstructorModel.isConstructor(calleeProc)) ConstructorModel.doConstructorCall(s, calleeProc, args, retVars, currentContext)
+    else if(ObjectModel.isObject(r)) ObjectModel.doObjectCall(s, calleeProc, args, retVars, currentContext)
 	  else if(NativeCallModel.isNativeCall(calleeProc)) NativeCallModel.doNativeCall(s, calleeProc, args, retVars, currentContext)
     else if(UnknownCallModel.isUnknownCall(calleeProc)) UnknownCallModel.doUnknownCall(s, calleeProc, args, retVars, currentContext)
 	  else throw new RuntimeException("given callee is not a model call: " + calleeProc)

@@ -287,7 +287,7 @@ class JawaMethod extends ResolveLevel with PropertyProvider {
     val sb : StringBuffer = new StringBuffer
     if(this.declaringClass != null){
 	    val dc = this.declaringClass
-	    sb.append(StringFormConverter.formatTypeToSigForm(dc.getName))
+	    sb.append(StringFormConverter.formatTypeToSigForm(dc.getName.replace("*", "")))
 	    sb.append("." + generateSubSignature)
 	    sb.toString().intern()
     } else throw new RuntimeException("not declared: " + this.name)

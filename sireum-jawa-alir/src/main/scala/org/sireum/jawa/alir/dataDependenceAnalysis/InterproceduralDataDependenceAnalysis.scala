@@ -76,8 +76,11 @@ object InterproceduralDataDependenceAnalysis {
 	  iddg.initGraph(icfg)
 	  iddg.nodes.foreach{
 	    node =>
-//        if(node.getContext.toString().contains("L02725e")) println("L02725e: " + ptaresult.getPTSMap(node.getContext))
-//        if(node.getContext.toString().contains("L0271c4")) println("L0271c4: " + ptaresult.getPTSMap(node.getContext))
+//        if(node.getContext.toString().contains("L026f28")){
+//          println("L151: " + ptaresult.getPTSMap(node.getContext))
+//          println(node.asInstanceOf[IDDGInvokeNode].getCalleeSet)
+//        }
+//        if(node.getContext.toString().contains("L047114")) println("L047114: " + ptaresult.getPTSMap(node.getContext))
 //        if(node.getContext.toString().contains("L026f42")) println("42: " + ptaresult.getPTSMap(node.getContext))
 	      val targetNodes : MSet[Node] = msetEmpty
 	      if(node != iddg.entryNode){

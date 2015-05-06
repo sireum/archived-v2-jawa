@@ -18,5 +18,14 @@ trait ScopeManager {
 	 * return true if given record needs to be bypassed
 	 */
   def shouldBypass(rec : JawaClass) : Boolean
-  
+}
+
+class DefaultScopeManager extends ScopeManager {
+  def shouldBypass(rec : JawaClass) : Boolean = false
+}
+
+object ScopeManager{
+  private var currentScopeManager: ScopeManager = new DefaultScopeManager
+  def setScopeManager(manager: ScopeManager) = this.currentScopeManager = manager
+  def getCurrentScopeManager: ScopeManager = this.currentScopeManager
 }

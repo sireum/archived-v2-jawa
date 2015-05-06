@@ -197,7 +197,7 @@ object StringFormConverter {
   
   def getSigFromOwnerAndMethodSubSig(className: String, subSig : String) : String = {
 //      if(!isValidType(className)) throw new RuntimeException("given type is not a valid form: " + className)
-    val recSig =  formatTypeToSigForm(className)
+    val recSig =  formatTypeToSigForm(className.replace("*", ""))
 	  val sb = new StringBuffer
 	  sb.append(recSig + "." + subSig)
 	  sb.toString().intern()

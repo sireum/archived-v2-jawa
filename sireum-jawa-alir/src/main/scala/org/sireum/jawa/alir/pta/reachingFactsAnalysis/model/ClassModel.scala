@@ -21,9 +21,9 @@ import org.sireum.jawa.alir.pta._
  */ 
 object ClassModel {
   val TITLE = "ClassModel"
-	def isClass(r : JawaClass) : Boolean = r.getName == "java.lang.Class"
+	def isClass(r: JawaClass): Boolean = r.getName == "java.lang.Class"
 	  
-	def doClassCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def doClassCall(s: PTAResult, p: JawaMethod, args: List[String], retVars: Seq[String], currentContext: Context): (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
@@ -139,7 +139,7 @@ object ClassModel {
 	/**
    * Ljava/lang/Class;.asSubclass:(Ljava/lang/Class;)Ljava/lang/Class;
    */
-  private def classAsSubClass(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
+  private def classAsSubClass(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
     require(args.size >1)
     val thisSlot = VarSlot(args(0))
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
@@ -155,7 +155,7 @@ object ClassModel {
   /**
    * Ljava/lang/Class;.asSubclass:(Ljava/lang/Class;)Ljava/lang/Class;
    */
-  private def classCast(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
+  private def classCast(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
     require(args.size >1)
     val paramSlot = VarSlot(args(1))
 	  val paramValue = s.pointsToSet(paramSlot, currentContext)
@@ -171,7 +171,7 @@ object ClassModel {
   /**
 	 * Ljava/lang/Class;.forName:(Ljava/lang/String;)Ljava/lang/Class;   static
 	 */
-	private def classForName(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
+	private def classForName(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
 	  // algo:thisValue.foreach.{ cIns => get value of (cIns.name") and create fact (retVar, value)}
     require(args.size > 0)
     val clazzNameSlot = VarSlot(args(0))
@@ -202,7 +202,7 @@ object ClassModel {
 	/**
 	 * Ljava/lang/Class;.getName:()Ljava/lang/String;
 	 */
-	private def classGetName(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
+	private def classGetName(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
 	  // algo:thisValue.foreach.{ cIns => get value of (cIns.name") and create fact (retVar, value)}
     require(args.size > 0)
     val thisSlot = VarSlot(args(0))
