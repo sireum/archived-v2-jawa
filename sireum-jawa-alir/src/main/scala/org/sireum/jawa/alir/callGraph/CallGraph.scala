@@ -57,7 +57,7 @@ class CallGraph {
   }
   
   private def addNode(header: String, tg: TinkerGraph, node: CGNode): Vertex = {
-    val h = if(header != null)"" else if(!header.isEmpty()) header + ":" else ""
+    val h = if(header == null)"" else if(!header.isEmpty()) header + ":" else ""
     var v = tg.getVertex(h + node.hashCode())
     if(v == null){
       v = tg.addVertex(node.hashCode())
