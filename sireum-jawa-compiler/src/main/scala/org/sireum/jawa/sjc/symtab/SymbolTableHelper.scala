@@ -100,21 +100,23 @@ object SymbolTableHelper {
        methodDeclaration.paramClause.paramlist foreach {
          paramSymbol(classOrInterfaceNameID, methodSig, _)
        }
-       methodDeclaration.body.locals foreach {
-         localVarSymbol(classOrInterfaceNameID, methodSig, _)
+       methodDeclaration.body match {
+         case rbody: ResolvedBody =>
+           rbody.locals foreach {
+             localVarSymbol(classOrInterfaceNameID, methodSig, _)
+           }
+           val bodyTable = MethodBodySymbolTableData()
+           tables.classOrInterfaceAbsTable(classOrInterfaceNameID.text).methodAbsTable(methodSig).bodyTables = Some(bodyTable)
+           rbody.locations foreach {
+             locationSymbol(bodyTable, _)
+           }
+           rbody.catchClauses foreach {
+             catchSymbol(bodyTable, _, rbody.locations)
+           }
+         case ubody: UnresolvedBody =>
+           tables.classOrInterfaceAbsTable(classOrInterfaceNameID.text).methodAbsTable(methodSig).bodyTables = None
        }
-       if(methodDeclaration.body.isEmptyBody){
-         tables.classOrInterfaceAbsTable(classOrInterfaceNameID.text).methodAbsTable(methodSig).bodyTables = None
-       } else {
-         val bodyTable = MethodBodySymbolTableData()
-         tables.classOrInterfaceAbsTable(classOrInterfaceNameID.text).methodAbsTable(methodSig).bodyTables = Some(bodyTable)
-         methodDeclaration.body.locations foreach {
-           locationSymbol(bodyTable, _)
-         }
-         methodDeclaration.body.catchClauses foreach {
-           catchSymbol(bodyTable, _, methodDeclaration.body.locations)
-         }
-       }
+       
      }
      
      private def methodSymbol(classOrInterfaceNameID: Token, methodDeclaration: MethodDeclaration) = {

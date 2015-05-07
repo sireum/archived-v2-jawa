@@ -10,7 +10,6 @@ package org.sireum.jawa.sjc.interactive
 import org.sireum.util._
 import scala.collection.GenMap
 import scala.collection.Parallel
-import org.sireum.jawa.sjc.Transform
 import org.sireum.jawa.sjc.ResolveLevel
 import org.sireum.jawa.sjc.Signature
 import org.sireum.jawa.sjc.JavaKnowledge
@@ -25,7 +24,10 @@ import scala.collection.GenIterable
 import org.sireum.jawa.sjc.parser._
 import org.sireum.jawa.sjc.JawaType
 import org.sireum.jawa.sjc.symtab.MethodSymbolTable
-import org.sireum.jawa.sjc.symtab.MethodSymbolTable
+import org.sireum.jawa.sjc.symtab.JawaCompilationUnitSymbolTable
+import org.sireum.jawa.sjc.symtab.JawaCompilationUnitSymbolTableBuilder
+import org.sireum.jawa.sjc.lexer.Token
+import org.sireum.jawa.sjc.symtab.MethodBodySymbolTableData
 
 /**
  * this object collects info from the symbol table and builds Global, JawaClass, and JawaMethod
@@ -37,8 +39,34 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
   val DEBUG: Boolean = false
   private final val TITLE: String = "JawaResolver"
   
+  import scala.reflect.runtime.{ universe => ru }
+  var fst = { _: Unit => new JawaCompilationUnitSymbolTable }
+  
+  private def parseCode[T <: ParsableAstNode : ru.TypeTag](source: (Option[FileResourceUri], String), resolveBody: Boolean): T = {
+    val (paopt, err) = JawaParser.parse[T](source._1, source._2, resolveBody) 
+    paopt match{case Some(pa) => pa; case None => throw new RuntimeException(err + "\n" + source._1)}
+  }
+  
+  private def parseBodyTokens(fileUriOpt: Option[FileResourceUri], bodyTokens: IList[Token]): ResolvedBody = {
+    val (paopt, err) = JawaParser.parse[Body](fileUriOpt, bodyTokens, true) 
+    paopt match{case Some(pa) => pa.asInstanceOf[ResolvedBody]; case None => throw new RuntimeException(err + "\n" + bodyTokens)}
+  }
+    
+  def getCompilationUnitSymbolResult(rcu: RichCompilationUnits, sources: ISeq[(Option[FileResourceUri], String)], desiredLevel: ResolveLevel.Value): CompilationUnitSymbolTable = {
+    val changedOrDelatedFiles: ISet[FileResourceUri] = sources.filter(_._1.isDefined).map(_._1.get).toSet
+    val resolveBody: Boolean = desiredLevel match{case ResolveLevel.BODY => true; case _ => false}
+    val newCUs: ISeq[CompilationUnit] = sources.map(s => parseCode[CompilationUnit](s, resolveBody))
+    val delta: JawaDelta = JawaDelta(changedOrDelatedFiles, newCUs)
+    JawaCompilationUnitSymbolTableBuilder(rcu, delta, fst, true)
+  }
+  
+//  def getMethodSymbolResult(rcu: RichCompilationUnits, tokens: IList[Token]): MethodSymbolTable = {
+//    val changedOrDelatedFiles: ISet[FileResourceUri] = tokens.filter(_.fileUriOpt.isDefined).map(_.fileUriOpt,get).toSet
+//    
+//  }
+  
   /**
-   * resolve the given method code. Normally only for dummyMain i.e. environment method
+   * resolve the given method code. Normally only for environment method
    */
 //  def resolveMethodCode(signature: Signature, code: String): JawaMethod = {
 //    val st = Transform.getSymbolResolveResult(Set(code))
@@ -49,9 +77,10 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
   /**
    * resolve the given method's body to body level. 
    */
-//  def resolveMethodBody(signature: Signature): MethodSymbolTable = {
-//    val code = JawaCodeSource.getMethodCodeWithoutFailing(signature)
-//    val st = Transform.getSymbolResolveResult(Set(code))
+  def resolveMethodBody(mst: MethodSymbolTable, md: MethodDeclaration): MethodSymbolTable = {
+    mst.ciSymbolTable.cuSymbolTable
+    val body = parseBodyTokens(md.firstToken.fileUriOpt, md.body.tokens)
+//    val st = getCompilationUnitSymbolResult(this, List((md.firstToken.fileUriOpt, code)), ResolveLevel.BODY)
 //    st.methodSymbolTables.foreach{
 //      pst =>
 //        val sig = 
@@ -62,8 +91,8 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
 //			    }
 //        if(signature == sig) return pst.asInstanceOf[MethodBody]
 //    }
-//    throw new RuntimeException("Doing " + TITLE + ": Can not resolve procedure body for " + signature)
-//  }
+    throw new RuntimeException("Doing " + TITLE + ": Can not resolve procedure body for " + md.signature)
+  }
     
   /**
    * resolve the given classes to desired level. 
@@ -128,7 +157,7 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
       resolveArrayClass(typ)
     } else {
 	    val code = JawaCodeSource.getClassCode(typ, ResolveLevel.HIERARCHY)
-	    val st = Transform.getCompilationUnitSymbolResult(this, List((Some(code._1), code._2)))
+	    val st = getCompilationUnitSymbolResult(this, List((Some(code._1), code._2)), ResolveLevel.HIERARCHY)
 	    tryRemoveClass(typ)
 	    resolveFromST(st, ResolveLevel.HIERARCHY, true)
     }
@@ -164,7 +193,7 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
       resolveArrayClass(typ)
     } else {
 	    val code = JawaCodeSource.getClassCode(typ, ResolveLevel.BODY)
-	    val st = Transform.getCompilationUnitSymbolResult(this, List((Some(code._1), code._2)))
+	    val st = getCompilationUnitSymbolResult(this, List((Some(code._1), code._2)), ResolveLevel.BODY)
 	    tryRemoveClass(typ)
 	    resolveFromST(st, ResolveLevel.BODY, true)
     }

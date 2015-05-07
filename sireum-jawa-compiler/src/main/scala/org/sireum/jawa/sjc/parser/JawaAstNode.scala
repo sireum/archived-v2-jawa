@@ -194,7 +194,7 @@ case class MethodDeclaration(
     paramClause: ParamClause,
     annotations: IList[Annotation],
     body: Body) extends Declaration with ParsableAstNode {
-  lazy val tokens = flatten(dclToken, returnType, nameID, paramClause)
+  lazy val tokens = flatten(dclToken, returnType, nameID, paramClause, annotations, body)
   def owner: String = annotations.find { a => a.key == "owner" }.get.value
   def signature: String = annotations.find { a => a.key == "signature" }.get.value
 }
@@ -222,14 +222,19 @@ case class Param(
   def name: String = nameID.text
 }
 
-case class Body(
+sealed trait Body extends ParsableAstNode
+
+case class UnresolvedBody(bodytokens: IList[Token]) extends Body {
+  lazy val tokens = flatten(bodytokens)
+}
+
+case class ResolvedBody(
     lbrace: Token, 
     locals: IList[LocalVarDeclaration], 
     locations: IList[Location], 
     catchClauses: IList[CatchClause], 
-    rbrace: Token) extends JawaAstNode {
+    rbrace: Token) extends Body {
   lazy val tokens = flatten(lbrace, locals, locations, catchClauses, rbrace)
-  def isEmptyBody: Boolean = locations.isEmpty || catchClauses.isEmpty
 }
 
 case class LocalVarDeclaration(

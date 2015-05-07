@@ -3,7 +3,6 @@ package org.sireum.jawa.sjc.interactive
 import org.sireum.util._
 import org.sireum.jawa.sjc.ResolveLevel
 import org.sireum.jawa.sjc.JavaKnowledge
-import org.sireum.jawa.sjc.Transform
 import org.sireum.jawa.sjc.ObjectType
 
 trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveLevel { self: Global =>
@@ -115,7 +114,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
       }
       worklist ++= tmpList
       if(!codes.isEmpty) {
-        val st = Transform.getCompilationUnitSymbolResult(this, codes.toList)
+        val st = getCompilationUnitSymbolResult(this, codes.toList, ResolveLevel.HIERARCHY)
         resolveFromST(st, ResolveLevel.HIERARCHY, true)
       }
       codes.clear()

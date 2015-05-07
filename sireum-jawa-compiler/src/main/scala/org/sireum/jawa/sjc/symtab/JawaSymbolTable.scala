@@ -111,7 +111,7 @@ class JawaMethodSymbolTable(val methodSig: String, clst: JawaClassOrInterfaceSym
   def local(localName: String): LocalVarDeclaration = tables.localVarTable(localName)
   def locations: ISeq[JawaLocation] = 
     tables.bodyTables match {
-      case Some(bt) => methodDecl.body.locations
+      case Some(bt) => methodDecl.body.asInstanceOf[ResolvedBody].locations
       case _        => ivectorEmpty
     }
   def location(locationUri : String): JawaLocation =

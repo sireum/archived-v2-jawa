@@ -139,6 +139,6 @@ record `b.a.a.a`  @type class @AccessFlag PUBLIC_FINAL extends  `java.io.Externa
   
   private def parser(s: String) = new JawaParser(JawaLexer.tokenise(s, None).toArray)
   private def parseLocation(s: String) = parser(s).location
-  private def parseCompilationUnit(s: String) = parser(s).compilationUnit()
+  private def parseCompilationUnit(s: String) = parser(s).compilationUnit(true)
 
 }

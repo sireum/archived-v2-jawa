@@ -8,6 +8,14 @@ import org.sireum.jawa.sjc.symtab.SymbolTableHelper.CompilationUnitElementMiner
 import org.sireum.jawa.sjc.interactive.JawaDelta
 import org.sireum.jawa.sjc.interactive.RichCompilationUnits
 
+trait CompilationUnitsSymbolTable {
+  def compilationUnits: Iterable[CompilationUnit]
+  def fileCompilationUnit(fileUri: FileResourceUri): CompilationUnit
+  def tempCompilationUnits: Iterable[CompilationUnit]
+  def compilationUnitSymbolTables: Iterable[CompilationUnitSymbolTable]
+  def fileCompilationUnitSymbolTable(fileUri: FileResourceUri): CompilationUnitSymbolTable
+  def tempCompilationUnitSymbolTables: Iterable[CompilationUnitSymbolTable]
+}
 
 trait CompilationUnitSymbolTable {
   def classOrInterfaceNames: Iterable[String]
@@ -135,6 +143,11 @@ trait SymbolTableReporter {
   def reportWarning(
     fileUri: Option[String], line: Int, column: Int,
     offset: Int, length: Int, message: String): Unit
+}
+
+trait CompilationUnitsSymbolTableProducer extends SymbolTableReporter {
+  def fileCompilationUnitSymbolTableProducer(fileUri: FileResourceUri): CompilationUnitSymbolTableProducer
+  def toCompilationUnitsSymbolTable: CompilationUnitsSymbolTable
 }
 
 trait CompilationUnitSymbolTableProducer extends SymbolTableReporter {

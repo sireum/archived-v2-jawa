@@ -48,7 +48,7 @@ case class JawaMethod(declaringClass: JawaClass,
           this.thisOpt != null &&
           this.params != null &&
           this.returnType != null &&
-          this.accessFlags != null) // NON-NIL
+          this.accessFlags >= 0) // NON-NIL
   
   require(!this.name.isEmpty())
   require(!(isStatic || isNative) && this.thisOpt.isDefined)
@@ -152,13 +152,11 @@ case class JawaMethod(declaringClass: JawaClass,
   /**
    * exception handlers
    */
-  
   protected val exceptionHandlers: MList[ExceptionHandler] = mlistEmpty
   
   /**
    * represents if the method is unknown.
    */
-  
   protected var unknown: Boolean = false
   
   /**
@@ -170,7 +168,6 @@ case class JawaMethod(declaringClass: JawaClass,
 	/**
 	 * get access flag string
 	 */
-	
 	def getAccessFlagString = AccessFlag.toString(getAccessFlags)
 	
 		
@@ -183,7 +180,6 @@ case class JawaMethod(declaringClass: JawaClass,
 	/**
 	 * retrieve code belong to this method
 	 */
-	
 	def retrieveCode = if(!isUnknown) JawaCodeSource.getMethodCode(getSignature) else throw new RuntimeException("Trying to retreive body code for a unknown method: " + this)
 	
   /**
