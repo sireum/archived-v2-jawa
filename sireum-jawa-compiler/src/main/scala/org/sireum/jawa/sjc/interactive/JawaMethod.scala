@@ -296,79 +296,66 @@ case class JawaMethod(declaringClass: JawaClass,
   /**
    * return true if this method is abstract
    */
-  
   def isAbstract: Boolean = AccessFlag.isAbstract(this.accessFlags)
   
   /**
    * return true if this method is native
    */
-  
   def isNative: Boolean = AccessFlag.isNative(this.accessFlags)
   
   /**
    * return true if this method is static
    */
-  
   def isStatic: Boolean = AccessFlag.isStatic(this.accessFlags)
   
   /**
    * return true if this method is private
    */
-  
   def isPrivate: Boolean = AccessFlag.isPrivate(this.accessFlags)
   
   /**
    * return true if this method is public
    */
-  
   def isPublic: Boolean = AccessFlag.isPublic(this.accessFlags)
   
   /**
    * return true if this method is protected
    */
-  
   def isProtected: Boolean = AccessFlag.isProtected(this.accessFlags)
   
   /**
    * return true if this method is final
    */
-  
   def isFinal: Boolean = AccessFlag.isFinal(this.accessFlags)
   
   /**
    * return true if this method is synchronized
    */
-  
   def isSynchronized: Boolean = AccessFlag.isSynchronized(this.accessFlags)
   
   /**
    * return true if this method is synthetic
    */
-  
   def isSynthetic: Boolean = AccessFlag.isSynthetic(this.accessFlags)
   
   /**
    * return true if this method is constructor
    */
-  
   def isConstructor: Boolean = AccessFlag.isConstructor(this.accessFlags)
   
   /**
    * return true if this method is declared_synchronized
    */
-  
   def isDeclaredSynchronized: Boolean = AccessFlag.isDeclaredSynchronized(this.accessFlags)
   
   /**
    * return true if this method is main method
    */
-  
   def isMain: Boolean = isPublic && isStatic && getSubSignature == "main:([Ljava/lang/string;)V"
     
   /**
    * return false if this method is a special one with empty body. e.g. A.class
    */
-    
   def isUnknown: Boolean = this.unknown
   
   /**

@@ -58,7 +58,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
   def resolveClassesRelationWholeProgram: Unit = {
     if(!isDirty) return
     val worklist: MList[JawaClass] = mlistEmpty
-    val codes: MList[(Option[FileResourceUri], String)] = mlistEmpty
+    val codes: MList[(FileResourceUri, String)] = mlistEmpty
     worklist ++= needToResolveExtends.keySet ++ needToResolveOuterClass.keySet
     do{
       val tmpList: MList[JawaClass] = mlistEmpty
@@ -75,7 +75,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
               case None =>
                 if(JawaCodeSource.containsClass(o)){
                   val code = JawaCodeSource.getClassCode(o, ResolveLevel.HIERARCHY)
-                  codes += ((Some(code._1), code._2))
+                  codes += code
                   tmpList += clazz
                 } else {
                   this.needToResolveOuterClass -= clazz
@@ -98,7 +98,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
               case None =>
                 if(JawaCodeSource.containsClass(parType)){
                   val code = JawaCodeSource.getClassCode(parType, ResolveLevel.HIERARCHY)
-                  codes += ((Some(code._1), code._2))
+                  codes += code
                   tmpList += clazz
                 } else {
                   resolved += parType
@@ -114,8 +114,8 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
       }
       worklist ++= tmpList
       if(!codes.isEmpty) {
-        val st = getCompilationUnitSymbolResult(this, codes.toList, ResolveLevel.HIERARCHY)
-        resolveFromST(st, ResolveLevel.HIERARCHY, true)
+        val st = getCompilationUnitsSymbolResult(this, codes.toList, ResolveLevel.HIERARCHY)
+        st.compilationUnitSymbolTables foreach (resolveFromST(_, ResolveLevel.HIERARCHY, true))
       }
       codes.clear()
     } while(!codes.isEmpty)

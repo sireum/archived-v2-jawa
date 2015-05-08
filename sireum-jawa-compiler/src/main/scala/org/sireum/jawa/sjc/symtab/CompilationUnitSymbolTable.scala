@@ -7,28 +7,32 @@ import org.sireum.jawa.sjc.lexer.Token
 import org.sireum.jawa.sjc.symtab.SymbolTableHelper.CompilationUnitElementMiner
 import org.sireum.jawa.sjc.interactive.JawaDelta
 import org.sireum.jawa.sjc.interactive.RichCompilationUnits
+import org.sireum.jawa.sjc.Signature
+import org.sireum.jawa.sjc.ObjectType
 
 trait CompilationUnitsSymbolTable {
+  def fileUris: Iterable[FileResourceUri]
   def compilationUnits: Iterable[CompilationUnit]
-  def fileCompilationUnit(fileUri: FileResourceUri): CompilationUnit
-  def tempCompilationUnits: Iterable[CompilationUnit]
+  def compilationUnit(fileUri: FileResourceUri): CompilationUnit
   def compilationUnitSymbolTables: Iterable[CompilationUnitSymbolTable]
-  def fileCompilationUnitSymbolTable(fileUri: FileResourceUri): CompilationUnitSymbolTable
-  def tempCompilationUnitSymbolTables: Iterable[CompilationUnitSymbolTable]
+  def compilationUnitSymbolTable(fileUri: FileResourceUri): CompilationUnitSymbolTable
 }
 
 trait CompilationUnitSymbolTable {
-  def classOrInterfaceNames: Iterable[String]
+  def cusSymbolTable: CompilationUnitsSymbolTable
+  
+  def fileUri: FileResourceUri
+  def classOrInterfaceTypes: Iterable[ObjectType]
   def classOrInterfaces: Iterable[ClassOrInterfaceDeclaration]
-  def classOrInterface(classOrInterfaceName: String): ClassOrInterfaceDeclaration
+  def classOrInterface(classOrInterfaceType: ObjectType): ClassOrInterfaceDeclaration
   def classOrInterfaceSymbolTables: Iterable[ClassOrInterfaceSymbolTable]
-  def classOrInterfaceSymbolTable(classOrInterfaceName: String): ClassOrInterfaceSymbolTable 
+  def classOrInterfaceSymbolTable(classOrInterfaceType: ObjectType): ClassOrInterfaceSymbolTable 
 }
 
 trait ClassOrInterfaceSymbolTable {
   def cuSymbolTable: CompilationUnitSymbolTable
   
-  def classOrInterfaceName: String
+  def classOrInterfaceType: ObjectType
   def classOrInterfaceDecl: ClassOrInterfaceDeclaration
   def fieldNames: Iterable[String]
   def fieldDecls: Iterable[Field with Declaration]
@@ -38,17 +42,17 @@ trait ClassOrInterfaceSymbolTable {
   def instanceFieldNames: Iterable[String]
   def instanceFieldDecls: Iterable[InstanceFieldDeclaration]
   def methodNames: Iterable[String]
-  def methodSigs: Iterable[String]
+  def methodSigs: Iterable[Signature]
   def methodDecls: Iterable[MethodDeclaration]
-  def methodDecl(methodSig: String): MethodDeclaration
+  def methodDecl(methodSig: Signature): MethodDeclaration
   def methodSymbolTables: Iterable[MethodSymbolTable]
-  def methodSymbolTable(methodSig: String): MethodSymbolTable
+  def methodSymbolTable(methodSig: Signature): MethodSymbolTable
 }
 
 trait MethodSymbolTable {
   def ciSymbolTable: ClassOrInterfaceSymbolTable
 
-  def methodSig: String
+  def methodSig: Signature
   def methodName: String
   def methodDecl: MethodDeclaration
   def thisNameOpt: Option[String]
@@ -66,99 +70,104 @@ trait MethodSymbolTable {
   def catchClauses(locationIndex: Int): Iterable[CatchClause]
 }
 
-object JawaCompilationUnitSymbolTableBuilder {
-  def apply[P <: CompilationUnitSymbolTableProducer](cus: ISeq[CompilationUnit],
+object JawaCompilationUnitsSymbolTableBuilder {
+  def apply[P <: CompilationUnitsSymbolTableProducer](cus: ISeq[CompilationUnit],
             stpConstructor: Unit => P,
             parallel: Boolean) =
     buildSymbolTable(cus, stpConstructor, parallel)
 
-  def apply[P <: CompilationUnitSymbolTableProducer] //
+  def apply[P <: CompilationUnitsSymbolTableProducer] //
   (rcu: RichCompilationUnits,
    delta: JawaDelta,
    stpConstructor: Unit => P,
-   parallel: Boolean): CompilationUnitSymbolTable =
+   parallel: Boolean): CompilationUnitsSymbolTable =
     fixSymbolTable(rcu, delta, stpConstructor, parallel)
+    
+  def apply[P <: CompilationUnitsSymbolTableProducer] //
+  (mst: MethodSymbolTable, resolvedBody: ResolvedBody): CompilationUnitsSymbolTable =
+    fixSymbolTable(mst, resolvedBody)
 
-  def mineCompilationUnitElements[P <: CompilationUnitSymbolTableProducer] //
+  def mineCompilationUnitElements[P <: CompilationUnitsSymbolTableProducer] //
   (cus: ISeq[CompilationUnit], stpConstructor: Unit => P,
-   parallel: Boolean): CompilationUnitSymbolTableProducer = {
+   parallel: Boolean): CompilationUnitsSymbolTableProducer = {
     if (cus.isEmpty) return stpConstructor()
 
     val ms: GenSeq[CompilationUnit] = if (parallel) cus.par else cus
-    ms.map { cu =>
-      val stp = stpConstructor()
+    val stp = stpConstructor()
+    ms.foreach { cu =>
       new CompilationUnitElementMiner(stp).mine(cu)
-      val tables = stp.tables
-      cu.firstToken.fileUriOpt.foreach { fileUri =>
-        val set = msetEmpty[ResourceUri]
-        set ++= tables.classOrInterfaceTable.keys
-        tables.declaredSymbols(fileUri) = set
-      }
-      stp
-    }.toIterable.reduce(SymbolTableHelper.combine)
+    }
+    stp
   }
 
   def buildSymbolTable(cus: ISeq[CompilationUnit],
-                       stpConstructor: Unit => CompilationUnitSymbolTableProducer,
+                       stpConstructor: Unit => CompilationUnitsSymbolTableProducer,
                        parallel: Boolean) = {
     val stp = mineCompilationUnitElements(cus, stpConstructor, parallel)
-    stp.toCompilationUnitSymbolTable
+    stp.toCompilationUnitsSymbolTable
   }
 
   def fixSymbolTable //
   (rcu: RichCompilationUnits,
    delta: JawaDelta,
-   stpConstructor: Unit => CompilationUnitSymbolTableProducer,
-   parallel: Boolean): CompilationUnitSymbolTable = {
+   stpConstructor: Unit => CompilationUnitsSymbolTableProducer,
+   parallel: Boolean): CompilationUnitsSymbolTable = {
 
     delta.changedOrDeletedCUFiles.foreach{
       fileUri =>
-        val cu = rcu.getCompilationUnits(fileUri)
-        SymbolTableHelper.tearDown(rcu.getSymbolTable.asInstanceOf[CompilationUnitSymbolTableProducer].tables, cu)
+        SymbolTableHelper.tearDown(rcu.getSymbolTable.asInstanceOf[CompilationUnitsSymbolTableProducer].tables, fileUri)
     }
 
-    SymbolTableHelper.combine(rcu.getSymbolTable.asInstanceOf[CompilationUnitSymbolTableProducer], mineCompilationUnitElements(delta.changedOrAddedCUs, stpConstructor, parallel))
+    SymbolTableHelper.combine(rcu.getSymbolTable.asInstanceOf[CompilationUnitsSymbolTableProducer], mineCompilationUnitElements(delta.changedOrAddedCUs, stpConstructor, parallel))
     rcu.addCompilationUnits(delta.changedOrAddedCUs.toSeq)
     rcu.getSymbolTable
+  }
+  
+  def fixSymbolTable //
+  (mst: MethodSymbolTable, resolvedBody: ResolvedBody): CompilationUnitsSymbolTable = {
+    new CompilationUnitElementMiner(mst.ciSymbolTable.cuSymbolTable.cusSymbolTable.asInstanceOf[CompilationUnitsSymbolTableProducer]) 
+    .bodySymbol(mst.ciSymbolTable.cuSymbolTable.fileUri, mst.ciSymbolTable.classOrInterfaceType, mst.methodSig, resolvedBody)
+    mst.ciSymbolTable.cuSymbolTable.cusSymbolTable
   }
 }
 
 trait SymbolTableReporter {
-  def reportRedeclaration(fileUri: Option[String], t: Token, template: String, other: JawaAstNode) {
+  def reportRedeclaration(fileUri: String, t: Token, template: String, other: JawaAstNode) {
     reportError(fileUri, t, template, other)
   }
 
-  def reportNotFound(fileUri: Option[String], t: Token, template: String) {
+  def reportNotFound(fileUri: String, t: Token, template: String) {
     reportError(fileUri, t.line, t.column, t.offset, t.length, template.format(t.text, t.line, t.column))
   }
   
-  def reportError(fileUri: Option[String], t: Token, template: String, other: JawaAstNode) {
+  def reportError(fileUri: String, t: Token, template: String, other: JawaAstNode) {
     reportError(fileUri, t.line, t.column, t.offset, t.length, template.format(t.text, other.firstToken.line, other.firstToken.column))
   }
   
   def reportError(
-    fileUri: Option[String], line: Int, column: Int,
+    fileUri: String, line: Int, column: Int,
     offset: Int, length: Int, message: String): Unit
 
   def reportWarning(
-    fileUri: Option[String], line: Int, column: Int,
+    fileUri: String, line: Int, column: Int,
     offset: Int, length: Int, message: String): Unit
 }
 
 trait CompilationUnitsSymbolTableProducer extends SymbolTableReporter {
-  def fileCompilationUnitSymbolTableProducer(fileUri: FileResourceUri): CompilationUnitSymbolTableProducer
+  def tables: CompilationUnitsSymbolTableData
+  def compilationUnitSymbolTableProducer(fileUri: FileResourceUri): CompilationUnitSymbolTableProducer
   def toCompilationUnitsSymbolTable: CompilationUnitsSymbolTable
 }
 
-trait CompilationUnitSymbolTableProducer extends SymbolTableReporter {
+trait CompilationUnitSymbolTableProducer {
   def tables: CompilationUnitSymbolTableData
-  def classOrInterfaceSymbolTableProducer(classOrInterfaceName: String): ClassOrInterfaceSymbolTableProducer
+  def classOrInterfaceSymbolTableProducer(classOrInterfaceType: ObjectType): ClassOrInterfaceSymbolTableProducer
   def toCompilationUnitSymbolTable: CompilationUnitSymbolTable
 }
 
 trait ClassOrInterfaceSymbolTableProducer {
   def tables: ClassOrInterfaceSymbolTableData
-  def methodSymbolTableProducer(methodSig: String): MethodSymbolTableProducer
+  def methodSymbolTableProducer(methodSig: Signature): MethodSymbolTableProducer
   def cuSymbolTableProducer: CompilationUnitSymbolTableProducer
 }
 
@@ -168,18 +177,29 @@ trait MethodSymbolTableProducer {
   def ciSymbolTableProducer: ClassOrInterfaceSymbolTableProducer
 }
 
+sealed case class CompilationUnitsSymbolTableData //
+(/**
+  * Holds the map of file names to their
+  * {@link CompilationUnit}.
+  */
+ compilationUnitTable: MMap[FileResourceUri, CompilationUnit] = mmapEmpty,
+ /**
+  * Holds the map of file names to their
+  * {@link CompilationUnitSymbolTableData}.
+  */
+ compilationUnitAbsTable: MMap[FileResourceUri, CompilationUnitSymbolTableData] = mmapEmpty)
+
 sealed case class CompilationUnitSymbolTableData //
-(declaredSymbols: MMap[FileResourceUri, MSet[ResourceUri]] = mmapEmpty,
+(/**
+  * Holds the map of class fully-qualified names to their
+  * {@link ClassOrInterfaceDeclaration}.
+  */
+ classOrInterfaceTable: MMap[ObjectType, ClassOrInterfaceDeclaration] = mmapEmpty,
  /**
   * Holds the map of class fully-qualified names to their
-  * {@link TypeDeclaration}.
+  * {@link ClassOrInterfaceSymbolTableData}.
   */
- classOrInterfaceTable: MMap[String, ClassOrInterfaceDeclaration] = mmapEmpty,
- /**
-  * Holds the map of class fully-qualified names to their
-  * {@link classOrInterfaceAbsTable}.
-  */
- classOrInterfaceAbsTable: MMap[String, ClassOrInterfaceSymbolTableData] = mmapEmpty)
+ classOrInterfaceAbsTable: MMap[ObjectType, ClassOrInterfaceSymbolTableData] = mmapEmpty)
  
 sealed case class ClassOrInterfaceSymbolTableData
 (/**
@@ -191,12 +211,12 @@ sealed case class ClassOrInterfaceSymbolTableData
   * Holds the map of method signature to it's
   * {@link MethodDeclaration}.
   */
- methodTable: MMap[String, MethodDeclaration] = mmapEmpty,
+ methodTable: MMap[Signature, MethodDeclaration] = mmapEmpty,
  /**
   * Holds the map of method signature to it's
   * {@link JawaMethodSymbolTableData}.
   */
- methodAbsTable: MMap[String, MethodSymbolTableData] = mmapEmpty
+ methodAbsTable: MMap[Signature, MethodSymbolTableData] = mmapEmpty
  )
  
 sealed case class MethodSymbolTableData //

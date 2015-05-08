@@ -16,7 +16,7 @@ import org.sireum.util.FileResourceUri
  *
  * @param rawText -- the text associated with the token
  */
-case class Token(tokenType: TokenType, fileUriOpt: Option[FileResourceUri], line: Int, column: Int, offset: Int, text: String) {
+case class Token(tokenType: TokenType, fileUri: FileResourceUri, line: Int, column: Int, offset: Int, text: String) {
 
   private[lexer] var associatedWhitespaceAndComments_ : HiddenTokens = null
 
@@ -40,7 +40,7 @@ case class Token(tokenType: TokenType, fileUriOpt: Option[FileResourceUri], line
     else {
       txt = "<no text>"
     }
-    return "["+txt+"',<"+tokenType+">"+","+line+":"+column+","+offset+"]";
+    return "["+txt+"',<"+tokenType+">"+","+line+":"+column+","+offset+"]"+"@"+fileUri;
   }
 
 }

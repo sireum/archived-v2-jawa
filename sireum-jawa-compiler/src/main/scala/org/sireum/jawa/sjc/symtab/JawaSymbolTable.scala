@@ -3,10 +3,13 @@ package org.sireum.jawa.sjc.symtab
 import org.sireum.util._
 import org.sireum.jawa.sjc.parser._
 import org.sireum.jawa.sjc.parser.{Location => JawaLocation}
+import org.sireum.jawa.sjc.ObjectType
+import org.sireum.jawa.sjc.Signature
 
-class JawaCompilationUnitSymbolTable extends CompilationUnitSymbolTable with CompilationUnitSymbolTableProducer {
+class JawaCompilationUnitsSymbolTable extends CompilationUnitsSymbolTable with CompilationUnitsSymbolTableProducer {
   st =>
-  val tables = CompilationUnitSymbolTableData()
+    
+  val tables = CompilationUnitsSymbolTableData()
   val tags = marrayEmpty[LocationTag]
   var hasErrors = false
 
@@ -26,50 +29,71 @@ class JawaCompilationUnitSymbolTable extends CompilationUnitSymbolTable with Com
     MarkerTagPriority.Normal,
     ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
 
-  def reportError(source : Option[FileResourceUri], line : Int,
-                    column : Int, message : String) : Unit = {
-      tags += Tag.toTag(source, line, column, message, ERROR_TAG_TYPE)
+  def reportError(source: FileResourceUri, line: Int,
+                    column: Int, message: String): Unit = {
+      tags += Tag.toTag(Some(source), line, column, message, ERROR_TAG_TYPE)
       hasErrors = true
     }
 
-  def reportWarning(fileUri : Option[String], line : Int,
-                    column : Int, message : String) : Unit =
-    tags += Tag.toTag(fileUri, line, column, message, WARNING_TAG_TYPE)
+  def reportWarning(fileUri: String, line: Int,
+                    column: Int, message: String): Unit =
+    tags += Tag.toTag(Some(fileUri), line, column, message, WARNING_TAG_TYPE)
 
-  def reportError(source : Option[FileResourceUri], line : Int,
-                  column : Int, offset : Int, length : Int,
-                  message : String) : Unit = {
-    tags += Tag.toTag(source, line, column, offset, length, message,
+  def reportError(source: FileResourceUri, line: Int,
+                  column: Int, offset: Int, length: Int,
+                  message: String): Unit = {
+    tags += Tag.toTag(Some(source), line, column, offset, length, message,
       ERROR_TAG_TYPE)
     hasErrors = true
   }
 
-  def reportWarning(fileUri : Option[String], line : Int,
-                    column : Int, offset : Int, length : Int,
-                    message : String) : Unit =
-    tags += Tag.toTag(fileUri, line, column, offset, length, message,
+  def reportWarning(fileUri: String, line: Int,
+                    column: Int, offset: Int, length: Int,
+                    message: String): Unit =
+    tags += Tag.toTag(Some(fileUri), line, column, offset, length, message,
       WARNING_TAG_TYPE)
+      
+  
 
-  val ciMap = mmapEmpty[ResourceUri, JawaClassOrInterfaceSymbolTable]
-  def classOrInterfaceNames: Iterable[String] = tables.classOrInterfaceTable.keys
+  val cuMap = mmapEmpty[FileResourceUri, JawaCompilationUnitSymbolTable]
+  def fileUris: Iterable[FileResourceUri] = tables.compilationUnitTable.keys
+  def compilationUnits: Iterable[CompilationUnit] = tables.compilationUnitTable.values
+  def compilationUnit(fileUri: FileResourceUri): CompilationUnit = tables.compilationUnitTable(fileUri)
+  def compilationUnitSymbolTables: Iterable[CompilationUnitSymbolTable] = cuMap.values
+  def compilationUnitSymbolTable(fileUri: FileResourceUri): CompilationUnitSymbolTable = cuMap(fileUri)
+  def compilationUnitSymbolTableProducer(fileUri: FileResourceUri) = {
+    assert(tables.compilationUnitAbsTable.contains(fileUri))
+    cuMap.getOrElseUpdate(fileUri, new JawaCompilationUnitSymbolTable(fileUri, st))
+  }
+  def toCompilationUnitsSymbolTable: CompilationUnitsSymbolTable = this
+}
+
+class JawaCompilationUnitSymbolTable(val fileUri: FileResourceUri, cusst: CompilationUnitsSymbolTable) extends CompilationUnitSymbolTable with CompilationUnitSymbolTableProducer {
+  st =>
+  val tables = CompilationUnitSymbolTableData()
+  def cusSymbolTable: CompilationUnitsSymbolTable = cusst
+  def cusSymbolTableProducer: CompilationUnitsSymbolTableProducer = cusst.asInstanceOf[CompilationUnitsSymbolTableProducer]
+
+  val ciMap = mmapEmpty[ObjectType, JawaClassOrInterfaceSymbolTable]
+  def classOrInterfaceTypes: Iterable[ObjectType] = tables.classOrInterfaceTable.keys
   def classOrInterfaces: Iterable[ClassOrInterfaceDeclaration] = tables.classOrInterfaceTable.values
-  def classOrInterface(classOrInterfaceName: String): ClassOrInterfaceDeclaration = tables.classOrInterfaceTable(classOrInterfaceName)
-  def classOrInterfaceSymbolTables : Iterable[ClassOrInterfaceSymbolTable] = ciMap.values
-  def classOrInterfaceSymbolTable(classOrInterfaceName: String): ClassOrInterfaceSymbolTable = classOrInterfaceSymbolTableProducer(classOrInterfaceName)
-  def classOrInterfaceSymbolTableProducer(classOrInterfaceName: String) = {
-    assert(tables.classOrInterfaceAbsTable.contains(classOrInterfaceName))
-    ciMap.getOrElseUpdate(classOrInterfaceName, new JawaClassOrInterfaceSymbolTable(classOrInterfaceName, st))
+  def classOrInterface(classOrInterfaceType: ObjectType): ClassOrInterfaceDeclaration = tables.classOrInterfaceTable(classOrInterfaceType)
+  def classOrInterfaceSymbolTables: Iterable[ClassOrInterfaceSymbolTable] = ciMap.values
+  def classOrInterfaceSymbolTable(classOrInterfaceType: ObjectType): ClassOrInterfaceSymbolTable = classOrInterfaceSymbolTableProducer(classOrInterfaceType)
+  def classOrInterfaceSymbolTableProducer(classOrInterfaceType: ObjectType) = {
+    assert(tables.classOrInterfaceAbsTable.contains(classOrInterfaceType))
+    ciMap.getOrElseUpdate(classOrInterfaceType, new JawaClassOrInterfaceSymbolTable(classOrInterfaceType, st))
   }
   def toCompilationUnitSymbolTable: CompilationUnitSymbolTable = this
 }
 
-class JawaClassOrInterfaceSymbolTable(val classOrInterfaceName : String, cust : CompilationUnitSymbolTable) extends ClassOrInterfaceSymbolTable with ClassOrInterfaceSymbolTableProducer {
+class JawaClassOrInterfaceSymbolTable(val classOrInterfaceType: ObjectType, cust: CompilationUnitSymbolTable) extends ClassOrInterfaceSymbolTable with ClassOrInterfaceSymbolTableProducer {
   st =>
   val tables = ClassOrInterfaceSymbolTableData()
   def cuSymbolTable: CompilationUnitSymbolTable = cust
   def cuSymbolTableProducer: CompilationUnitSymbolTableProducer = cust.asInstanceOf[CompilationUnitSymbolTableProducer]
 
-  def classOrInterfaceDecl: ClassOrInterfaceDeclaration = cuSymbolTable.classOrInterface(classOrInterfaceName)
+  def classOrInterfaceDecl: ClassOrInterfaceDeclaration = cuSymbolTable.classOrInterface(classOrInterfaceType)
   def fieldNames: Iterable[String] = tables.fieldTable.keys
   def fieldDecls: Iterable[Field with Declaration] = tables.fieldTable.values
   def fieldDecl(fieldSig: String): Field with Declaration = tables.fieldTable(fieldSig)
@@ -78,19 +102,19 @@ class JawaClassOrInterfaceSymbolTable(val classOrInterfaceName : String, cust : 
   def instanceFieldNames: Iterable[String] = tables.fieldTable.filter{case (name, fd) => !fd.isStatic}.keys
   def instanceFieldDecls: Iterable[InstanceFieldDeclaration] = tables.fieldTable.filter{case (name, fd) => !fd.isStatic}.values.map(_.asInstanceOf[InstanceFieldDeclaration])
   def methodNames: Iterable[String] = tables.methodTable.values.map(_.nameID.text)
-  def methodSigs: Iterable[String] = tables.methodTable.keys
+  def methodSigs: Iterable[Signature] = tables.methodTable.keys
   def methodDecls: Iterable[MethodDeclaration] = tables.methodTable.values
-  def methodDecl(methodSig: String): MethodDeclaration = tables.methodTable(methodSig)
-  val mtMap = mmapEmpty[ResourceUri, JawaMethodSymbolTable]
+  def methodDecl(methodSig: Signature): MethodDeclaration = tables.methodTable(methodSig)
+  val mtMap = mmapEmpty[Signature, JawaMethodSymbolTable]
   def methodSymbolTables: Iterable[MethodSymbolTable] = mtMap.values
-  def methodSymbolTable(methodSig: String): MethodSymbolTable = methodSymbolTableProducer(methodSig)
-  def methodSymbolTableProducer(methodSig: String) = {
+  def methodSymbolTable(methodSig: Signature): MethodSymbolTable = methodSymbolTableProducer(methodSig)
+  def methodSymbolTableProducer(methodSig: Signature) = {
     assert(tables.methodAbsTable.contains(methodSig))
-    mtMap.getOrElseUpdate(classOrInterfaceName, new JawaMethodSymbolTable(methodSig, st))
+    mtMap.getOrElseUpdate(methodSig, new JawaMethodSymbolTable(methodSig, st))
   }
 }
 
-class JawaMethodSymbolTable(val methodSig: String, clst: JawaClassOrInterfaceSymbolTable) extends MethodSymbolTable with MethodSymbolTableProducer {
+class JawaMethodSymbolTable(val methodSig: Signature, clst: JawaClassOrInterfaceSymbolTable) extends MethodSymbolTable with MethodSymbolTableProducer {
   def tables: MethodSymbolTableData = MethodSymbolTableData()
 
   def ciSymbolTable: ClassOrInterfaceSymbolTable = clst
@@ -114,10 +138,10 @@ class JawaMethodSymbolTable(val methodSig: String, clst: JawaClassOrInterfaceSym
       case Some(bt) => methodDecl.body.asInstanceOf[ResolvedBody].locations
       case _        => ivectorEmpty
     }
-  def location(locationUri : String): JawaLocation =
+  def location(locationUri: String): JawaLocation =
     tables.bodyTables.get.locationTable(locationUri)
   def location(locationIndex: Int): JawaLocation = locations(locationIndex)
-  def catchClauses(locationIndex : Int) : Iterable[CatchClause] =
+  def catchClauses(locationIndex: Int): Iterable[CatchClause] =
     tables.bodyTables.get.catchTable.getOrElse(locationIndex,
-      Array.empty[CatchClause] : Iterable[CatchClause])
+      Array.empty[CatchClause]: Iterable[CatchClause])
 }

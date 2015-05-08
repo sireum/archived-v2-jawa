@@ -14,6 +14,8 @@ import org.sireum.jawa.sjc.util.CaseClassReflector
 import org.sireum.util._
 import org.sireum.jawa.sjc.JawaType
 import org.sireum.jawa.sjc.JavaKnowledge
+import org.sireum.jawa.sjc.Signature
+import org.sireum.jawa.sjc.ObjectType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -111,6 +113,7 @@ case class ClassOrInterfaceDeclaration(
   }
   def parents: IList[String] = extendsAndImplimentsClausesOpt match {case Some(e) => e.parents; case None => ilistEmpty}
   def instanceFields: IList[InstanceFieldDeclaration] = instanceFieldDeclarationBlock.instanceFields
+  def typ: ObjectType = getTypeFromName(nameID.text).asInstanceOf[ObjectType]
 }
 
 case class Annotation(
@@ -196,7 +199,7 @@ case class MethodDeclaration(
     body: Body) extends Declaration with ParsableAstNode {
   lazy val tokens = flatten(dclToken, returnType, nameID, paramClause, annotations, body)
   def owner: String = annotations.find { a => a.key == "owner" }.get.value
-  def signature: String = annotations.find { a => a.key == "signature" }.get.value
+  def signature: Signature = Signature(annotations.find { a => a.key == "signature" }.get.value)
 }
 
 case class ParamClause(
@@ -249,7 +252,10 @@ case class Location(
     statement: Statement, 
     semiOpt: Option[Token]) extends ParsableAstNode {
   lazy val tokens = flatten(locationID, statement, semiOpt)
-  def locationUri: String = locationID.text.substring(1, locationID.length - 1)
+  def locationUri: String = {
+    if(locationID.length <= 1) ""
+    else locationID.text.substring(1, locationID.length - 1)
+  }
   var locationIndex: Int = 0
 }
 

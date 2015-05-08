@@ -650,8 +650,8 @@ object JawaParser {
    * Safe parse the given source as a compilation unit
    * @return None if there is a parse error.
    */
-  def safeParse[T <: ParsableAstNode : ru.TypeTag](fileUriOpt: Option[ResourceUri], code: String, resolveBody: Boolean): Option[T] = {
-    val parser = new JawaParser(JawaLexer.tokenise(code, fileUriOpt).toArray)
+  def safeParse[T <: ParsableAstNode : ru.TypeTag](fileUri: FileResourceUri, code: String, resolveBody: Boolean): Option[T] = {
+    val parser = new JawaParser(JawaLexer.tokenise(code, fileUri).toArray)
     (ru.typeOf[T] match {
         case t if t =:= COMPILATION_UNIT_TYPE =>
           parser.safeParse(parser.compilationUnit(resolveBody))
@@ -667,12 +667,12 @@ object JawaParser {
   /**
    * parse the given source as a parsable ast node
    */
-  def parse[T <: ParsableAstNode : ru.TypeTag](fileUriOpt: Option[ResourceUri], code: String, resolveBody: Boolean): (Option[T], String) = {
-    val tokens = JawaLexer.tokenise(code, fileUriOpt)
-    parse(fileUriOpt, tokens, resolveBody)
+  def parse[T <: ParsableAstNode : ru.TypeTag](fileUri: FileResourceUri, code: String, resolveBody: Boolean): (Option[T], String) = {
+    val tokens = JawaLexer.tokenise(code, fileUri)
+    parse(tokens, resolveBody)
   }
   
-  def parse[T <: ParsableAstNode : ru.TypeTag](fileUriOpt: Option[ResourceUri], tokens: IList[Token], resolveBody: Boolean): (Option[T], String) = {
+  def parse[T <: ParsableAstNode : ru.TypeTag](tokens: IList[Token], resolveBody: Boolean): (Option[T], String) = {
     val parser = new JawaParser(tokens.toArray)
     try{
       val pasable: T =

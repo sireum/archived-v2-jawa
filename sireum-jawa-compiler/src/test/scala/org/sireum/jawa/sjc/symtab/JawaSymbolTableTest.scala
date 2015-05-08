@@ -106,10 +106,10 @@ record `b.a.a.a`  @type class @AccessFlag PUBLIC_FINAL extends  `java.io.Externa
     """)
   }
 
-  val dirUri = FileUtil.toUri("/Users/fgwei/Developer/playground/androidlib/5.0")
-  val filelist = FileUtil.listFiles(dirUri, "pilar", true)
-  
-  
+//  val dirUri = FileUtil.toUri("/Users/fgwei/Developer/playground/androidlib/5.0")
+//  val filelist = FileUtil.listFiles(dirUri, "pilar", true)
+//  
+//  
 //  "Symbol Resolver" should "not throw an exception on those files" in {
 //    filelist.foreach{
 //      fileUri =>
@@ -119,11 +119,11 @@ record `b.a.a.a`  @type class @AccessFlag PUBLIC_FINAL extends  `java.io.Externa
 //  }
   
   private def resolveSymbol(s: String) = {
-    val parser = new JawaParser(JawaLexer.tokenise(s, None).toArray)
+    val parser = new JawaParser(JawaLexer.tokenise(s, "temp").toArray)
     val cu = parser.compilationUnit(true)
-    var fst = { _ : Unit => new JawaCompilationUnitSymbolTable }
-    val st = JawaCompilationUnitSymbolTableBuilder(List(cu), fst, true)
-    val jst = st.asInstanceOf[JawaCompilationUnitSymbolTable]
+    var fst = { _ : Unit => new JawaCompilationUnitsSymbolTable }
+    val st = JawaCompilationUnitsSymbolTableBuilder(List(cu), fst, true)
+    val jst = st.asInstanceOf[JawaCompilationUnitsSymbolTable]
     if(jst.hasErrors){
       jst.tags.foreach{
         System.err.println(_)

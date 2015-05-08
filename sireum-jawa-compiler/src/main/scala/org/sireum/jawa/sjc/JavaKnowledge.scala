@@ -5,9 +5,9 @@ import org.sireum.jawa.sjc.interactive.JawaMethod
 import org.sireum.jawa.sjc.interactive.JawaClass
 
 trait JavaKnowledge {
-  val JAVA_TOPLEVEL_OBJECT: String = "java.lang.Object"
-  val JAVA_TOPLEVEL_OBJECT_TYPE: ObjectType = new ObjectType(JAVA_TOPLEVEL_OBJECT)
-  val JAVA_PRIMITIVES = Set("byte", "short", "int", "long", "float", "double", "boolean", "char")
+  def JAVA_TOPLEVEL_OBJECT: String = "java.lang.Object"
+  def JAVA_TOPLEVEL_OBJECT_TYPE: ObjectType = ObjectType(JAVA_TOPLEVEL_OBJECT, 0)
+  def JAVA_PRIMITIVES = Set("byte", "short", "int", "long", "float", "double", "boolean", "char")
   /**
    * return whether given type is java primitive type
    */

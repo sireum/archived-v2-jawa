@@ -15,7 +15,7 @@ import org.sireum.jawa.sjc.lexer.Tokens._
 import java.net.URI
 import org.sireum.pilar.parser.Antlr4PilarLexer
 
-class JawaLexer(aplexer: Antlr4PilarLexer, fileUriOpt: Option[FileResourceUri]) extends Iterator[Token] {
+class JawaLexer(aplexer: Antlr4PilarLexer, fileUri: FileResourceUri) extends Iterator[Token] {
   
   private var eofTokenEmitted = false
   protected var builtToken: Token = _
@@ -177,7 +177,7 @@ import org.sireum.pilar.parser.Antlr4PilarLexer._
    * Mark the end of a token of the given type.
    */
   protected def token(tokenType: TokenType, tokenLine: Int, tokenColumn: Int, tokenOffset: Int, rawText: String) {
-    builtToken = Token(tokenType, fileUriOpt, tokenLine, tokenColumn, tokenOffset, rawText)
+    builtToken = Token(tokenType, fileUri, tokenLine, tokenColumn, tokenOffset, rawText)
   }
   
   private[lexer] def text = aplexer.getText()
@@ -202,23 +202,23 @@ object JawaLexer {
    * will be of type EOF.
    */
   @throws(classOf[JawaLexerException])
-  def rawTokenise(code: String, fileUriOpt: Option[ResourceUri]): List[Token] =
-    createRawLexer(code, fileUriOpt).toList
+  def rawTokenise(code: String, fileUri: ResourceUri): List[Token] =
+    createRawLexer(code, fileUri).toList
 
   /**
    * Create a lexer for "raw" tokens.
    *
    * @see rawTokenise
    */
-  def createRawLexer(code: String, fileUriOpt: Option[ResourceUri]): JawaLexer = {
+  def createRawLexer(code: String, fileUri: ResourceUri): JawaLexer = {
     val reader = new StringReader(code)
     val input = new ANTLRInputStream(reader)
     val aplexer = new Antlr4PilarLexer(input)
-    makeRawLexer(aplexer, fileUriOpt)
+    makeRawLexer(aplexer, fileUri)
   }
     
-  def makeRawLexer(aplexer: Antlr4PilarLexer, fileUriOpt: Option[FileResourceUri]): JawaLexer =
-    new JawaLexer(aplexer, fileUriOpt)
+  def makeRawLexer(aplexer: Antlr4PilarLexer, fileUri: FileResourceUri): JawaLexer =
+    new JawaLexer(aplexer, fileUri)
 
   /**
    * Convert the given Pilar source code into a list of tokens.
@@ -231,8 +231,8 @@ object JawaLexer {
    *   interpretation of certain tokens (for example, floating point literals).
    */
   @throws(classOf[JawaLexerException])
-  def tokenise(code: String, fileUriOpt: Option[ResourceUri]): List[Token] = {
-    val rawLexer = createRawLexer(code, fileUriOpt)
+  def tokenise(code: String, fileUri: ResourceUri): List[Token] = {
+    val rawLexer = createRawLexer(code, fileUri)
     val lexer = new WhitespaceAndCommentsGrouper(rawLexer)
     lexer.toList
   }

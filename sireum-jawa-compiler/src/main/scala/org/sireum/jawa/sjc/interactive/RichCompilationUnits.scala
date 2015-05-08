@@ -2,24 +2,19 @@ package org.sireum.jawa.sjc.interactive
 
 import org.sireum.util._
 import org.sireum.jawa.sjc.parser.CompilationUnit
-import org.sireum.jawa.sjc.symtab.JawaCompilationUnitSymbolTable
-import org.sireum.jawa.sjc.symtab.CompilationUnitSymbolTable
+import org.sireum.jawa.sjc.symtab.CompilationUnitsSymbolTable
+import org.sireum.jawa.sjc.symtab.JawaCompilationUnitsSymbolTable
 
 trait RichCompilationUnits { self: Global =>
   private val compilationUnits: MMap[FileResourceUri, CompilationUnit] = mmapEmpty
-  private val symbolTable: CompilationUnitSymbolTable = new JawaCompilationUnitSymbolTable
+  private val symbolTable: CompilationUnitsSymbolTable = new JawaCompilationUnitsSymbolTable
   
   def addCompilationUnit(fileUri: FileResourceUri, cu: CompilationUnit) = this.compilationUnits(fileUri) = cu
   def addCompilationUnits(cus: ISeq[CompilationUnit]) = {
-    cus.foreach{
-      cu =>
-        cu.firstToken.fileUriOpt match {
-          case Some(f) => addCompilationUnit(f, cu)
-        }
-    }
+    cus.foreach(cu => addCompilationUnit(cu.firstToken.fileUri, cu))
   }
   def removeCompilationUnit(fileUri: FileResourceUri) = this.compilationUnits -= fileUri
   def getCompilationUnits: IMap[FileResourceUri, CompilationUnit] = this.compilationUnits.toMap
   def getCompilationUnit(fileUri: FileResourceUri): Option[CompilationUnit] = this.compilationUnits.get(fileUri)
-  def getSymbolTable: CompilationUnitSymbolTable = this.symbolTable
+  def getSymbolTable: CompilationUnitsSymbolTable = this.symbolTable
 }
