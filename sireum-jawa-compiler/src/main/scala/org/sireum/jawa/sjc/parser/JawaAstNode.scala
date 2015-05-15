@@ -16,6 +16,8 @@ import org.sireum.jawa.sjc.JawaType
 import org.sireum.jawa.sjc.JavaKnowledge
 import org.sireum.jawa.sjc.Signature
 import org.sireum.jawa.sjc.ObjectType
+import org.sireum.jawa.sjc.lexer.TokenType
+import org.sireum.jawa.sjc.lexer.Tokens
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -67,6 +69,33 @@ sealed trait JawaAstNode extends CaseClassReflector with JavaKnowledge {
     case true | false | Nil | None ⇒ Nil
   }
 
+  def toCode: String = {
+    val sb: StringBuilder = new StringBuilder
+    val (startline, startcolumn) = firstTokenOption match {
+      case Some(ft) => (ft.line, ft.column)
+      case None => (0, 0)
+    }
+    var prevline: Int = 0
+    var prevcolumn: Int = 0
+    tokens.foreach {
+      token =>
+        val line = token.line - startline
+        val column = if(token.line == 0) token.column - startcolumn else token.column
+        if(line != prevline) prevcolumn = 0
+        val text = token.rawtext
+        for(i <- 1 to line - prevline){
+          sb.append("\n")
+        }
+        for(i <- 1 to column - prevcolumn){
+          sb.append(" ")
+        }
+        prevline = line
+        prevcolumn = column + token.length
+        sb.append(text)
+    }
+    sb.toString.trim
+  }
+  
   /**
    * Returns range of tokens in the node, or None if there are no tokens in the node
    */
@@ -74,7 +103,7 @@ sealed trait JawaAstNode extends CaseClassReflector with JavaKnowledge {
     if (tokens.isEmpty)
       None
     else {
-      val firstIndex = tokens.head.offset
+      val firstIndex = tokens.head.pos.start
       val lastIndex = tokens.last.lastCharacterOffset
       Some(Range(firstIndex, lastIndex - firstIndex + 1))
     }
@@ -441,12 +470,14 @@ case class CmpExpression(
 
 case class CatchClause(
     catchToken: Token,
-    typ: Type,
+    typOrAny: Either[Type, Token],
     range: CatchRange,
     goto: Token,
     targetLocation: Token,
     semi: Token) extends JawaAstNode {
-  lazy val tokens = flatten(catchToken, typ, range, goto, targetLocation, semi)
+  lazy val tokens = flatten(catchToken, typOrAny, range, goto, targetLocation, semi)
+  def from: String = range.fromLocation.text
+  def to: String = range.toLocation.text
 }
 
 case class CatchRange(

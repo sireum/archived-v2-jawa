@@ -3,8 +3,9 @@ package org.sireum.jawa.sjc.lexer
 import org.sireum.jawa._
 import org.sireum.jawa.sjc.lexer.Tokens._
 import org.scalatest._
-
 import java.io._
+import org.sireum.jawa.sjc.util.NoSourceFile
+import org.sireum.jawa.sjc.DefaultReporter
 
 class JawaLexerTest extends FlatSpec with ShouldMatchers {
 
@@ -123,7 +124,8 @@ println("foo")""" producesTokens (ID, LPAREN, STRING_LITERAL, RPAREN, WS, ID, LP
   "-5f.max(2)" producesTokens (FLOATING_POINT_LITERAL, DOT, ID, LPAREN, INTEGER_LITERAL, RPAREN)
   
   "Lexer" should "throw a lexer exception" in {
-    evaluating { JawaLexer.rawTokenise("\"\"\"", "temp") } should produce[JawaLexerException]
+    val reporter = new DefaultReporter
+    evaluating { JawaLexer.rawTokenise(Left("\"\"\""), reporter) } should produce[JawaLexerException]
   }
 
 """
@@ -167,11 +169,13 @@ record `com.ksu.passwordPassTest.MainActivity`  @type class @AccessFlag PUBLIC  
 
     private def check(s: String, expectedTokens: List[TokenType]) {
       it should ("tokenise >>>" + s + "<<< as >>>" + expectedTokens + "<<<") in {
-        val actualTokens: List[Token] = JawaLexer.rawTokenise(s, "temp")
+        val reporter = new DefaultReporter
+        val actualTokens: List[Token] = JawaLexer.rawTokenise(Left(s), reporter)
         val actualTokenTypes = actualTokens.map(_.tokenType)
         require(actualTokenTypes.last == EOF, "Last token must be EOF, but was " + actualTokens.last.tokenType)
         require(actualTokenTypes.count(_ == EOF) == 1, "There must only be one EOF token")
-        val reconstitutedSource = actualTokens.init.map(_.text).mkString
+        val reconstitutedSource = actualTokens.init.map(_.rawtext).mkString
+        require(!reporter.hasErrors, reporter.problems)
         require(actualTokenTypes.init == expectedTokens, "Tokens do not match. Expected " + expectedTokens + ", but was " + actualTokenTypes.init)
         require(s == reconstitutedSource, "tokens do not partition text correctly: " + s + " vs " + reconstitutedSource)
       }

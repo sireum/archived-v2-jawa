@@ -5,76 +5,42 @@ import org.sireum.jawa.sjc.parser._
 import org.sireum.jawa.sjc.parser.{Location => JawaLocation}
 import org.sireum.jawa.sjc.ObjectType
 import org.sireum.jawa.sjc.Signature
+import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.sjc.interactive.Problem
+import org.sireum.jawa.sjc.util.Position
+import org.sireum.jawa.sjc.ReporterImpl
 
 class JawaCompilationUnitsSymbolTable extends CompilationUnitsSymbolTable with CompilationUnitsSymbolTableProducer {
   st =>
     
   val tables = CompilationUnitsSymbolTableData()
-  val tags = marrayEmpty[LocationTag]
-  var hasErrors = false
+  val problems = mmapEmpty[AbstractFile, MSet[Problem]]
 
-  val ERROR_TAG_TYPE = MarkerType(
-    "org.sireum.jawa.sjc.tag.error.symtab",
-    None,
-    "Jawa Symbol Resolution Error",
-    MarkerTagSeverity.Error,
-    MarkerTagPriority.Normal,
-    ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
-
-  val WARNING_TAG_TYPE = MarkerType(
-    "org.sireum.jawa.sjc.tag.error.symtab",
-    None,
-    "Jawa Symbol Resolution Warning",
-    MarkerTagSeverity.Warning,
-    MarkerTagPriority.Normal,
-    ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
-
-  def reportError(source: FileResourceUri, line: Int,
-                    column: Int, message: String): Unit = {
-      tags += Tag.toTag(Some(source), line, column, message, ERROR_TAG_TYPE)
-      hasErrors = true
-    }
-
-  def reportWarning(fileUri: String, line: Int,
-                    column: Int, message: String): Unit =
-    tags += Tag.toTag(Some(fileUri), line, column, message, WARNING_TAG_TYPE)
-
-  def reportError(source: FileResourceUri, line: Int,
-                  column: Int, offset: Int, length: Int,
-                  message: String): Unit = {
-    tags += Tag.toTag(Some(source), line, column, offset, length, message,
-      ERROR_TAG_TYPE)
-    hasErrors = true
-  }
-
-  def reportWarning(fileUri: String, line: Int,
-                    column: Int, offset: Int, length: Int,
-                    message: String): Unit =
-    tags += Tag.toTag(Some(fileUri), line, column, offset, length, message,
-      WARNING_TAG_TYPE)
-      
-  
-
-  val cuMap = mmapEmpty[FileResourceUri, JawaCompilationUnitSymbolTable]
-  def fileUris: Iterable[FileResourceUri] = tables.compilationUnitTable.keys
+  val cuMap = mmapEmpty[AbstractFile, JawaCompilationUnitSymbolTable]
+  def files: Iterable[AbstractFile] = tables.compilationUnitTable.keys
   def compilationUnits: Iterable[CompilationUnit] = tables.compilationUnitTable.values
-  def compilationUnit(fileUri: FileResourceUri): CompilationUnit = tables.compilationUnitTable(fileUri)
+  def compilationUnit(file: AbstractFile): CompilationUnit = tables.compilationUnitTable(file)
   def compilationUnitSymbolTables: Iterable[CompilationUnitSymbolTable] = cuMap.values
-  def compilationUnitSymbolTable(fileUri: FileResourceUri): CompilationUnitSymbolTable = cuMap(fileUri)
-  def compilationUnitSymbolTableProducer(fileUri: FileResourceUri) = {
-    assert(tables.compilationUnitAbsTable.contains(fileUri))
-    cuMap.getOrElseUpdate(fileUri, new JawaCompilationUnitSymbolTable(fileUri, st))
+  def compilationUnitSymbolTable(file: AbstractFile): CompilationUnitSymbolTable = cuMap(file)
+  def compilationUnitSymbolTableProducer(file: AbstractFile) = {
+    assert(tables.compilationUnitAbsTable.contains(file))
+    cuMap.getOrElseUpdate(file, new JawaCompilationUnitSymbolTable(file, st))
   }
   def toCompilationUnitsSymbolTable: CompilationUnitsSymbolTable = this
+
+  def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
+    problems.getOrElseUpdate(pos.source.file, msetEmpty) += Problem(pos, msg, severity.id)
+  }
 }
 
-class JawaCompilationUnitSymbolTable(val fileUri: FileResourceUri, cusst: CompilationUnitsSymbolTable) extends CompilationUnitSymbolTable with CompilationUnitSymbolTableProducer {
+class JawaCompilationUnitSymbolTable(val file: AbstractFile, cusst: CompilationUnitsSymbolTable) extends CompilationUnitSymbolTable with CompilationUnitSymbolTableProducer {
   st =>
   val tables = CompilationUnitSymbolTableData()
   def cusSymbolTable: CompilationUnitsSymbolTable = cusst
   def cusSymbolTableProducer: CompilationUnitsSymbolTableProducer = cusst.asInstanceOf[CompilationUnitsSymbolTableProducer]
 
   val ciMap = mmapEmpty[ObjectType, JawaClassOrInterfaceSymbolTable]
+  def unit: CompilationUnit = cusSymbolTable.compilationUnit(file)
   def classOrInterfaceTypes: Iterable[ObjectType] = tables.classOrInterfaceTable.keys
   def classOrInterfaces: Iterable[ClassOrInterfaceDeclaration] = tables.classOrInterfaceTable.values
   def classOrInterface(classOrInterfaceType: ObjectType): ClassOrInterfaceDeclaration = tables.classOrInterfaceTable(classOrInterfaceType)

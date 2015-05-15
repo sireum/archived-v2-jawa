@@ -8,5 +8,6 @@ http://www.eclipse.org/legal/epl-v10.html
 package org.sireum.jawa.sjc.lexer
 
 import org.sireum.jawa.sjc.parser.JawaParserException
+import org.sireum.jawa.sjc.util.Position
 
-class JawaLexerException(message: String) extends JawaParserException(message)
+class JawaLexerException(pos: Position, message: String) extends JawaParserException(pos, message)

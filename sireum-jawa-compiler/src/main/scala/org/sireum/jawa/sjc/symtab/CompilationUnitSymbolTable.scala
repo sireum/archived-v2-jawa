@@ -9,19 +9,24 @@ import org.sireum.jawa.sjc.interactive.JawaDelta
 import org.sireum.jawa.sjc.interactive.RichCompilationUnits
 import org.sireum.jawa.sjc.Signature
 import org.sireum.jawa.sjc.ObjectType
+import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.sjc.ReporterImpl
+import org.sireum.jawa.sjc.util.Position
+import org.sireum.jawa.sjc.interactive.Problem
 
 trait CompilationUnitsSymbolTable {
-  def fileUris: Iterable[FileResourceUri]
+  def files: Iterable[AbstractFile]
   def compilationUnits: Iterable[CompilationUnit]
-  def compilationUnit(fileUri: FileResourceUri): CompilationUnit
+  def compilationUnit(file: AbstractFile): CompilationUnit
   def compilationUnitSymbolTables: Iterable[CompilationUnitSymbolTable]
-  def compilationUnitSymbolTable(fileUri: FileResourceUri): CompilationUnitSymbolTable
+  def compilationUnitSymbolTable(file: AbstractFile): CompilationUnitSymbolTable
 }
 
 trait CompilationUnitSymbolTable {
   def cusSymbolTable: CompilationUnitsSymbolTable
   
-  def fileUri: FileResourceUri
+  def file: AbstractFile
+  def unit: CompilationUnit
   def classOrInterfaceTypes: Iterable[ObjectType]
   def classOrInterfaces: Iterable[ClassOrInterfaceDeclaration]
   def classOrInterface(classOrInterfaceType: ObjectType): ClassOrInterfaceDeclaration
@@ -108,54 +113,54 @@ object JawaCompilationUnitsSymbolTableBuilder {
   }
 
   def fixSymbolTable //
-  (rcu: RichCompilationUnits,
+  (rcus: RichCompilationUnits,
    delta: JawaDelta,
    stpConstructor: Unit => CompilationUnitsSymbolTableProducer,
    parallel: Boolean): CompilationUnitsSymbolTable = {
 
     delta.changedOrDeletedCUFiles.foreach{
-      fileUri =>
-        SymbolTableHelper.tearDown(rcu.getSymbolTable.asInstanceOf[CompilationUnitsSymbolTableProducer].tables, fileUri)
+      file =>
+        SymbolTableHelper.tearDown(rcus.getSymbolTable.asInstanceOf[CompilationUnitsSymbolTableProducer].tables, file)
     }
 
-    SymbolTableHelper.combine(rcu.getSymbolTable.asInstanceOf[CompilationUnitsSymbolTableProducer], mineCompilationUnitElements(delta.changedOrAddedCUs, stpConstructor, parallel))
-    rcu.addCompilationUnits(delta.changedOrAddedCUs.toSeq)
-    rcu.getSymbolTable
+    SymbolTableHelper.combine(rcus.getSymbolTable.asInstanceOf[CompilationUnitsSymbolTableProducer], mineCompilationUnitElements(delta.changedOrAddedCUs, stpConstructor, parallel))
+    delta.changedOrAddedCUs.foreach{
+      cu =>
+        val file = cu.firstToken.file.file
+        val problems: ISet[Problem] = rcus.getSymbolTable.problems.getOrElse(file, msetEmpty).toSet
+        val rcu = rcus.RichCompilationUnit(cu, rcus.getSymbolTable.compilationUnitSymbolTable(file))
+        rcu.problems ++= problems
+        rcus.addCompilationUnit(file, rcu)
+    }
+    rcus.getSymbolTable
   }
   
   def fixSymbolTable //
   (mst: MethodSymbolTable, resolvedBody: ResolvedBody): CompilationUnitsSymbolTable = {
     new CompilationUnitElementMiner(mst.ciSymbolTable.cuSymbolTable.cusSymbolTable.asInstanceOf[CompilationUnitsSymbolTableProducer]) 
-    .bodySymbol(mst.ciSymbolTable.cuSymbolTable.fileUri, mst.ciSymbolTable.classOrInterfaceType, mst.methodSig, resolvedBody)
+    .bodySymbol(mst.ciSymbolTable.cuSymbolTable.file, mst.ciSymbolTable.classOrInterfaceType, mst.methodSig, resolvedBody)
     mst.ciSymbolTable.cuSymbolTable.cusSymbolTable
   }
 }
 
-trait SymbolTableReporter {
+trait SymbolTableReporter extends ReporterImpl {
   def reportRedeclaration(fileUri: String, t: Token, template: String, other: JawaAstNode) {
     reportError(fileUri, t, template, other)
   }
 
   def reportNotFound(fileUri: String, t: Token, template: String) {
-    reportError(fileUri, t.line, t.column, t.offset, t.length, template.format(t.text, t.line, t.column))
+    error(t.pos, template.format(t.text, t.line, t.column))
   }
   
   def reportError(fileUri: String, t: Token, template: String, other: JawaAstNode) {
-    reportError(fileUri, t.line, t.column, t.offset, t.length, template.format(t.text, other.firstToken.line, other.firstToken.column))
+    error(t.pos, template.format(t.text, other.firstToken.line, other.firstToken.column))
   }
   
-  def reportError(
-    fileUri: String, line: Int, column: Int,
-    offset: Int, length: Int, message: String): Unit
-
-  def reportWarning(
-    fileUri: String, line: Int, column: Int,
-    offset: Int, length: Int, message: String): Unit
 }
 
 trait CompilationUnitsSymbolTableProducer extends SymbolTableReporter {
   def tables: CompilationUnitsSymbolTableData
-  def compilationUnitSymbolTableProducer(fileUri: FileResourceUri): CompilationUnitSymbolTableProducer
+  def compilationUnitSymbolTableProducer(file: AbstractFile): CompilationUnitSymbolTableProducer
   def toCompilationUnitsSymbolTable: CompilationUnitsSymbolTable
 }
 
@@ -182,12 +187,12 @@ sealed case class CompilationUnitsSymbolTableData //
   * Holds the map of file names to their
   * {@link CompilationUnit}.
   */
- compilationUnitTable: MMap[FileResourceUri, CompilationUnit] = mmapEmpty,
+ compilationUnitTable: MMap[AbstractFile, CompilationUnit] = mmapEmpty,
  /**
   * Holds the map of file names to their
   * {@link CompilationUnitSymbolTableData}.
   */
- compilationUnitAbsTable: MMap[FileResourceUri, CompilationUnitSymbolTableData] = mmapEmpty)
+ compilationUnitAbsTable: MMap[AbstractFile, CompilationUnitSymbolTableData] = mmapEmpty)
 
 sealed case class CompilationUnitSymbolTableData //
 (/**

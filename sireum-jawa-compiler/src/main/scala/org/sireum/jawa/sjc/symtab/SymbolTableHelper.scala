@@ -6,6 +6,8 @@ import org.sireum.jawa.sjc.parser.{Location => JawaLocation}
 import org.sireum.jawa.sjc.lexer.Token
 import org.sireum.jawa.sjc.ObjectType
 import org.sireum.jawa.sjc.Signature
+import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.sjc.util.Position
 
 object SymbolTableHelper {
   val DUPLICATE_CU = // 
@@ -38,122 +40,124 @@ object SymbolTableHelper {
     def tables: CompilationUnitsSymbolTableData = stp.tables
 
     def compilationUnitSymbolTableProducer
-    (fileUri: FileResourceUri): CompilationUnitSymbolTableProducer =
-      stp.compilationUnitSymbolTableProducer(fileUri)
+    (file: AbstractFile): CompilationUnitSymbolTableProducer =
+      stp.compilationUnitSymbolTableProducer(file)
 
     def toCompilationUnitsSymbolTable: CompilationUnitsSymbolTable = stp.toCompilationUnitsSymbolTable
 
-    def reportError(fileUri: String, line: Int, column: Int,
-                    offset: Int, length: Int, message: String): Unit =
-      stp.reportError(fileUri, line, column, offset, length, message)
+    def reportError(pos: Position, message: String): Unit =
+      error(pos, message)
 
-    def reportWarning(fileUri: String, line: Int, column: Int,
-                      offset: Int, length: Int, message: String): Unit =
-      stp.reportWarning(fileUri, line, column, offset, length, message)
+    def reportWarning(pos: Position, message: String): Unit =
+      warning(pos, message)
+
+    def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
+      stp.info(pos, msg, force)
+    }
   }
   
   class CompilationUnitElementMiner(stp: CompilationUnitsSymbolTableProducer)
       extends StpWrapper(stp) {
     def mine(cu: CompilationUnit) = {
-      val fileUri = cu.firstToken.fileUri
+      val file = cu.firstToken.file.file
       val cut = tables.compilationUnitTable
-      cut.get(fileUri) match {
+      cut.get(file) match {
         case Some(other) =>
-          reportRedeclaration(fileUri, cu.firstToken, DUPLICATE_CU, other)
+          reportRedeclaration(file.toString(), cu.firstToken, DUPLICATE_CU, other)
         case _ =>
-          cut(fileUri) = cu
-          tables.compilationUnitAbsTable(fileUri) = CompilationUnitSymbolTableData()
+          cut(file) = cu
+          tables.compilationUnitAbsTable(file) = CompilationUnitSymbolTableData()
       }
-      compilationUnit(fileUri, cu)
+      compilationUnit(file, cu)
     }
     
-    private def compilationUnit(fileUri: FileResourceUri, cu: CompilationUnit) {
+    private def compilationUnit(file: AbstractFile, cu: CompilationUnit) {
       cu.topDecls.foreach{
-        classOrInterfaceDeclaration(fileUri, _)
+        classOrInterfaceDeclaration(file, _)
       }
     }
     
-    private def classOrInterfaceDeclaration(fileUri: FileResourceUri, cd: ClassOrInterfaceDeclaration) {
-      classOrInterfaceSymbol(fileUri, cd)
+    private def classOrInterfaceDeclaration(file: AbstractFile, cd: ClassOrInterfaceDeclaration) {
+      classOrInterfaceSymbol(file, cd)
       val classOrInterfaceType = cd.typ
       cd.instanceFields.foreach{
-        fieldSymbol(fileUri, classOrInterfaceType, _)
+        fieldSymbol(file, classOrInterfaceType, _)
       }
       cd.staticFields.foreach {
-        fieldSymbol(fileUri, classOrInterfaceType, _)
+        fieldSymbol(file, classOrInterfaceType, _)
       }
       cd.methods.foreach {
-        methodDeclaration(fileUri, classOrInterfaceType, _)
+        methodDeclaration(file, classOrInterfaceType, _)
       }
     }
     
-    private def classOrInterfaceSymbol(fileUri: FileResourceUri, classOrInterfaceDeclaration: ClassOrInterfaceDeclaration) = {
+    private def classOrInterfaceSymbol(file: AbstractFile, classOrInterfaceDeclaration: ClassOrInterfaceDeclaration) = {
       val typ = classOrInterfaceDeclaration.typ
-      val ct = tables.compilationUnitAbsTable(fileUri).classOrInterfaceTable
+      val ct = tables.compilationUnitAbsTable(file).classOrInterfaceTable
       ct.get(typ) match {
         case Some(other) =>
-          reportRedeclaration(fileUri, classOrInterfaceDeclaration.nameID, DUPLICATE_CLASS, other)
+          reportRedeclaration(file.toString(), classOrInterfaceDeclaration.nameID, DUPLICATE_CLASS, other)
         case _ =>
           ct(typ) = classOrInterfaceDeclaration
-          tables.compilationUnitAbsTable(fileUri).classOrInterfaceAbsTable(typ) = ClassOrInterfaceSymbolTableData()
+          tables.compilationUnitAbsTable(file).classOrInterfaceAbsTable(typ) = ClassOrInterfaceSymbolTableData()
       }
     }
     
-    private def fieldSymbol(fileUri: FileResourceUri, classOrInterfaceType: ObjectType, fieldDeclaration: Field with Declaration) = {
+    private def fieldSymbol(file: AbstractFile, classOrInterfaceType: ObjectType, fieldDeclaration: Field with Declaration) = {
       val nameID = fieldDeclaration.nameID
-      val ct = tables.compilationUnitAbsTable(fileUri).classOrInterfaceAbsTable(classOrInterfaceType)
+      val ct = tables.compilationUnitAbsTable(file).classOrInterfaceAbsTable(classOrInterfaceType)
       val ft = ct.fieldTable
       ft.get(nameID.text) match {
         case Some(other) =>
-          reportRedeclaration(fileUri, nameID, DUPLICATE_FIELD, other)
+          reportRedeclaration(file.toString(), nameID, DUPLICATE_FIELD, other)
         case _ =>
           ft(nameID.text.intern()) = fieldDeclaration
       }
     }
     
-    private def methodDeclaration(fileUri: FileResourceUri, classOrInterfaceType: ObjectType, methodDeclaration: MethodDeclaration) = {
-      methodSymbol(fileUri, classOrInterfaceType, methodDeclaration)
+    private def methodDeclaration(file: AbstractFile, classOrInterfaceType: ObjectType, methodDeclaration: MethodDeclaration) = {
+      methodSymbol(file, classOrInterfaceType, methodDeclaration)
       val methodSig = methodDeclaration.signature
       methodDeclaration.paramClause.paramlist foreach {
-        paramSymbol(fileUri, classOrInterfaceType, methodSig, _)
+        paramSymbol(file, classOrInterfaceType, methodSig, _)
       }
-      bodySymbol(fileUri, classOrInterfaceType, methodSig, methodDeclaration.body)
+      bodySymbol(file, classOrInterfaceType, methodSig, methodDeclaration.body)
     }
      
-    private def methodSymbol(fileUri: FileResourceUri, classOrInterfaceType: ObjectType, methodDeclaration: MethodDeclaration) = {
+    private def methodSymbol(file: AbstractFile, classOrInterfaceType: ObjectType, methodDeclaration: MethodDeclaration) = {
       val methodSig = methodDeclaration.signature
-      val ct = tables.compilationUnitAbsTable(fileUri).classOrInterfaceAbsTable(classOrInterfaceType)
+      val ct = tables.compilationUnitAbsTable(file).classOrInterfaceAbsTable(classOrInterfaceType)
       val mt = ct.methodTable
       mt.get(methodSig) match {
         case Some(other) =>
-          reportRedeclaration(methodDeclaration.nameID.fileUri, methodDeclaration.nameID, DUPLICATE_METHOD, other)
+          reportRedeclaration(methodDeclaration.nameID.file.toString(), methodDeclaration.nameID, DUPLICATE_METHOD, other)
         case None =>
           mt(methodSig) = methodDeclaration
           ct.methodAbsTable(methodSig) = MethodSymbolTableData()
       }
     }
      
-    private def paramSymbol(fileUri: FileResourceUri, classOrInterfaceType: ObjectType, methodSig: Signature, param: Param) = {
+    private def paramSymbol(file: AbstractFile, classOrInterfaceType: ObjectType, methodSig: Signature, param: Param) = {
       val nameID = param.nameID
-      val ct = tables.compilationUnitAbsTable(fileUri).classOrInterfaceAbsTable(classOrInterfaceType)
+      val ct = tables.compilationUnitAbsTable(file).classOrInterfaceAbsTable(classOrInterfaceType)
       val mt = ct.methodAbsTable(methodSig)
       val pl = mt.params
       pl.find(p => p.nameID.text == nameID.text) match {
         case Some(other) => 
-          reportRedeclaration(nameID.fileUri, nameID, DUPLICATE_PARAM, other)
+          reportRedeclaration(nameID.file.toString(), nameID, DUPLICATE_PARAM, other)
         case _ =>
           pl += param
       }
     }
     
-    def bodySymbol(fileUri: FileResourceUri, classOrInterfaceType: ObjectType, methodSig: Signature, body: Body) = {
+    def bodySymbol(file: AbstractFile, classOrInterfaceType: ObjectType, methodSig: Signature, body: Body) = {
       body match {
         case rbody: ResolvedBody =>
           rbody.locals foreach {
-            localVarSymbol(fileUri, classOrInterfaceType, methodSig, _)
+            localVarSymbol(file, classOrInterfaceType, methodSig, _)
           }
           val bodyTable = MethodBodySymbolTableData()
-          tables.compilationUnitAbsTable(fileUri).classOrInterfaceAbsTable(classOrInterfaceType).methodAbsTable(methodSig).bodyTables = Some(bodyTable)
+          tables.compilationUnitAbsTable(file).classOrInterfaceAbsTable(classOrInterfaceType).methodAbsTable(methodSig).bodyTables = Some(bodyTable)
           rbody.locations foreach {
             locationSymbol(bodyTable, _)
           }
@@ -161,18 +165,18 @@ object SymbolTableHelper {
             catchSymbol(bodyTable, _, rbody.locations)
           }
         case ubody: UnresolvedBody =>
-          tables.compilationUnitAbsTable(fileUri).classOrInterfaceAbsTable(classOrInterfaceType).methodAbsTable(methodSig).bodyTables = None
+          tables.compilationUnitAbsTable(file).classOrInterfaceAbsTable(classOrInterfaceType).methodAbsTable(methodSig).bodyTables = None
       }
     }
      
-    private def localVarSymbol(fileUri: FileResourceUri, classOrInterfaceType: ObjectType, methodSig: Signature, localVarDeclaration: LocalVarDeclaration) = {
+    private def localVarSymbol(file: AbstractFile, classOrInterfaceType: ObjectType, methodSig: Signature, localVarDeclaration: LocalVarDeclaration) = {
       val nameID = localVarDeclaration.nameID
-      val ct = tables.compilationUnitAbsTable(fileUri).classOrInterfaceAbsTable(classOrInterfaceType)
+      val ct = tables.compilationUnitAbsTable(file).classOrInterfaceAbsTable(classOrInterfaceType)
       val mt = ct.methodAbsTable(methodSig)
       val lt = mt.localVarTable
       lt.get(nameID.text) match {
         case Some(other) =>
-          reportRedeclaration(nameID.fileUri, nameID, DUPLICATE_LOCAL_VAR, other)
+          reportRedeclaration(nameID.file.toString(), nameID, DUPLICATE_LOCAL_VAR, other)
         case _ =>
           lt(nameID.text) = localVarDeclaration
       }
@@ -183,7 +187,7 @@ object SymbolTableHelper {
       val lt = bodyTable.locationTable
       lt.get(locationUri) match {
         case Some(other) =>
-          reportRedeclaration(location.locationID.fileUri, location.locationID, DUPLICATE_LOCATION, other)
+          reportRedeclaration(location.locationID.file.toString(), location.locationID, DUPLICATE_LOCATION, other)
         case _ =>
           lt(locationUri.intern()) = location
       }
@@ -193,9 +197,7 @@ object SymbolTableHelper {
       val start = bodyTable.locationTable(catchClause.range.fromLocation.text).locationIndex
       val end = bodyTable.locationTable(catchClause.range.toLocation.text).locationIndex
       if (end == -1) {
-        reportError(catchClause.firstToken.fileUri, catchClause.range.toLocation.line,
-          catchClause.range.toLocation.column, catchClause.range.toLocation.offset,
-          catchClause.range.toLocation.length,
+        reportError(catchClause.firstToken.pos,
           CATCH_TABLE_END_BEFORE_START.
           format(catchClause.range.toLocation.text,
           catchClause.range.fromLocation.text,
@@ -209,8 +211,8 @@ object SymbolTableHelper {
   }
 
   private def combineTable[T<: JawaAstNode](str: SymbolTableReporter,
-                      m1: MMap[String, T],
-                      m2: MMap[String, T],
+                      m1: MMap[AbstractFile, T],
+                      m2: MMap[AbstractFile, T],
                       f: T => Token,
                       message: String) =
     m2.foreach { p =>
@@ -220,8 +222,8 @@ object SymbolTableHelper {
         case Some(ce) =>
           val ceName = f(ce)
           val otherName = f(value)
-          str.reportError(ceName.fileUri, ceName, message.format(otherName.text, ceName.line,
-              ceName.column, ceName.fileUri), value)
+          str.reportError(ceName.file.toString(), ceName, message.format(otherName.text, ceName.line,
+              ceName.column, ceName.file), value)
         case _ =>
           m1(key) = value
       }
@@ -240,8 +242,8 @@ object SymbolTableHelper {
     stp1
   }
   
-  def tearDown(tables: CompilationUnitsSymbolTableData, fileUri: FileResourceUri) = {
-    tables.compilationUnitTable -= fileUri
-    tables.compilationUnitAbsTable -= fileUri
+  def tearDown(tables: CompilationUnitsSymbolTableData, file: AbstractFile) = {
+    tables.compilationUnitTable -= file
+    tables.compilationUnitAbsTable -= file
   }
 }

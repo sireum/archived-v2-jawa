@@ -10,8 +10,10 @@ package org.sireum.jawa.sjc.parser
 import org.sireum.jawa.sjc.lexer._
 import org.sireum.jawa.sjc.lexer.Tokens._
 import org.sireum.util._
+import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.sjc.Reporter
 
-class JawaParser(tokens: Array[Token]) {
+class JawaParser(tokens: Array[Token], reporter: Reporter) {
   private val logging: Boolean = false
 
   import JawaParser._
@@ -176,7 +178,7 @@ class JawaParser(tokens: Array[Token]) {
     val typ_ : Type = typ(withinit = false)
     val nameID: Token = accept(ID)
     val annotations_ = annotations()
-    Param(typ_, nameID, annotations)
+    Param(typ_, nameID, annotations_)
   }
   
   def body(resolveBody: Boolean): Body = body0(resolveBody)
@@ -325,7 +327,7 @@ class JawaParser(tokens: Array[Token]) {
         currentTokenType match {
           case OP =>
             val bar: Token = accept(OP)
-            if(bar.text != "|") throw new JawaParserException("Expected op token " + "'|'" + " but got " + currentToken)
+            if(bar.text != "|") throw new JawaParserException(currentToken.pos, "Expected op token " + "'|'" + " but got " + currentToken)
             val constant: Token = accept(INTEGER_LITERAL)
             val arrow: Token = accept(ARROW)
             val goto: Token = accept(GOTO)
@@ -398,13 +400,13 @@ class JawaParser(tokens: Array[Token]) {
           case OP => binaryExpression()
           case _ => nameExpression()
         }
-      case _ => throw new JawaParserException("Unexpected expression start: " + currentToken)
+      case _ => throw new JawaParserException(currentToken.pos, "Unexpected expression start: " + currentToken)
     }
   }
   
   private def nameExpression(): NameExpression = {
     if(currentTokenType != ID && currentTokenType != STATIC_ID)
-      throw new JawaParserException("expected 'ID' or 'STATIC_ID' but " + currentToken + " found")
+      throw new JawaParserException(currentToken.pos, "expected 'ID' or 'STATIC_ID' but " + currentToken + " found")
     val nameID: Token = nextToken()
     val annotations_ : IList[Annotation] = annotations()
     NameExpression(nameID, annotations_)
@@ -444,7 +446,7 @@ class JawaParser(tokens: Array[Token]) {
     val lparen: Token = accept(LPAREN)
     val constants: MList[(Token, Option[Token])] = mlistEmpty
     while(currentTokenType != RPAREN) {
-      if(!isLiteral) throw new JawaParserException("expected literal but found " + currentToken)
+      if(!isLiteral) throw new JawaParserException(currentToken.pos, "expected literal but found " + currentToken)
       val cons: Token = nextToken()
       val commaOpt: Option[Token] = 
         currentTokenType match {
@@ -472,7 +474,7 @@ class JawaParser(tokens: Array[Token]) {
   }
   
   private def literalExpression(): LiteralExpression = {
-    if(!isLiteral) throw new JawaParserException("expected literal but found " + currentToken)
+    if(!isLiteral) throw new JawaParserException(currentToken.pos, "expected literal but found " + currentToken)
     val constant: Token = nextToken()
     LiteralExpression(constant)
   }
@@ -487,13 +489,13 @@ class JawaParser(tokens: Array[Token]) {
     if(currentTokenType != ID && 
        currentTokenType != INTEGER_LITERAL &&
        currentTokenType != FLOATING_POINT_LITERAL)
-      throw new JawaParserException("expected 'ID' or 'INTEGER_LITERAL' or 'FLOATING_POINT_LITERAL' but " + currentToken + " found")
+      throw new JawaParserException(currentToken.pos, "expected 'ID' or 'INTEGER_LITERAL' or 'FLOATING_POINT_LITERAL' but " + currentToken + " found")
     val left: Token = nextToken()
     val op: Token = accept(OP) // need to check is it binary op
     if(currentTokenType != ID && 
        currentTokenType != INTEGER_LITERAL &&
        currentTokenType != FLOATING_POINT_LITERAL)
-      throw new JawaParserException("expected 'ID' or 'INTEGER_LITERAL' or 'FLOATING_POINT_LITERAL' but " + currentToken + " found")
+      throw new JawaParserException(currentToken.pos, "expected 'ID' or 'INTEGER_LITERAL' or 'FLOATING_POINT_LITERAL' but " + currentToken + " found")
     val right: Token = nextToken()
     BinaryExpression(left, op, right)
   }
@@ -524,12 +526,15 @@ class JawaParser(tokens: Array[Token]) {
   
   private def catchClause(): CatchClause = {
     val catchToken: Token = accept(CATCH)
-    val typ_ : Type = typ(withinit = false)
+    val typOrToken: Either[Type, Token] = currentTokenType match {
+      case ANY => Right(accept(ANY))
+      case _ => Left(typ(withinit = false))
+    }
     val range: CatchRange = catchRange()
     val goto: Token = accept(GOTO)
     val targetLocation: Token = accept(ID)
     val semi: Token = accept(SEMI)
-    CatchClause(catchToken, typ_, range, goto, targetLocation, semi)
+    CatchClause(catchToken, typOrToken, range, goto, targetLocation, semi)
   }
   
   private def catchRange(): CatchRange = {
@@ -599,7 +604,7 @@ class JawaParser(tokens: Array[Token]) {
     if (currentTokenType == tokenType)
       nextToken()
     else
-      throw new JawaParserException("Expected token " + tokenType + " but got " + currentToken)
+      throw new JawaParserException(currentToken.pos, "Expected token " + tokenType + " but got " + currentToken)
 
   private var tokensArray: Array[Token] = tokens.toArray
 
@@ -647,33 +652,15 @@ object JawaParser {
   final val LOCATION_TYPE = ru.typeOf[Location]
   
   /**
-   * Safe parse the given source as a compilation unit
-   * @return None if there is a parse error.
-   */
-  def safeParse[T <: ParsableAstNode : ru.TypeTag](fileUri: FileResourceUri, code: String, resolveBody: Boolean): Option[T] = {
-    val parser = new JawaParser(JawaLexer.tokenise(code, fileUri).toArray)
-    (ru.typeOf[T] match {
-        case t if t =:= COMPILATION_UNIT_TYPE =>
-          parser.safeParse(parser.compilationUnit(resolveBody))
-        case t if t =:= CLASS_OR_INTERFACE_DECLARATION_TYPE =>
-          parser.safeParse(parser.classOrInterfaceDeclaration(resolveBody))
-        case t if t =:= METHOD_DECLARATION_TYPE =>
-          parser.safeParse(parser.methodDeclaration(resolveBody))
-        case t if t=:= LOCATION_TYPE =>
-          parser.safeParse(parser.location)
-    }).asInstanceOf[Option[T]]
-  }
-  
-  /**
    * parse the given source as a parsable ast node
    */
-  def parse[T <: ParsableAstNode : ru.TypeTag](fileUri: FileResourceUri, code: String, resolveBody: Boolean): (Option[T], String) = {
-    val tokens = JawaLexer.tokenise(code, fileUri)
-    parse(tokens, resolveBody)
+  def parse[T <: ParsableAstNode : ru.TypeTag](source: Either[String, AbstractFile], resolveBody: Boolean, reporter: Reporter): Option[T] = {
+    val tokens = JawaLexer.tokenise(source, reporter)
+    parse(tokens, resolveBody, reporter)
   }
   
-  def parse[T <: ParsableAstNode : ru.TypeTag](tokens: IList[Token], resolveBody: Boolean): (Option[T], String) = {
-    val parser = new JawaParser(tokens.toArray)
+  def parse[T <: ParsableAstNode : ru.TypeTag](tokens: IList[Token], resolveBody: Boolean, reporter: Reporter): Option[T] = {
+    val parser = new JawaParser(tokens.toArray, reporter)
     try{
       val pasable: T =
         (ru.typeOf[T] match {
@@ -688,10 +675,11 @@ object JawaParser {
             case t if t=:= LOCATION_TYPE =>
               parser.location
         }).asInstanceOf[T]
-      (Some(pasable), "")
+      Some(pasable)
     } catch {
       case e: JawaParserException ⇒
-        (None, e.getMessage)
+        reporter.error(e.pos, e.message)
+        None
     }
   }
 }

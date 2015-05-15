@@ -43,8 +43,8 @@ case class HiddenTokens(tokens: List[HiddenToken]) extends Iterable[HiddenToken]
   
   def rawTokens = tokens.map(_.token)
 
-  def offset = tokens.head.token.offset
+  def offset: Int = tokens.head.token.pos.point
 
-  def lastCharacterOffset = tokens.last.token.lastCharacterOffset
+  def lastCharacterOffset: Int = tokens.last.token.lastCharacterOffset
 
 }

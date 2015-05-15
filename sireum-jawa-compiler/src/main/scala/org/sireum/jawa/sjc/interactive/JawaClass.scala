@@ -14,6 +14,8 @@ import org.sireum.jawa.sjc.ResolveLevel
 import org.sireum.jawa.sjc.JawaType
 import org.sireum.util._
 import org.sireum.jawa.sjc.parser.ClassOrInterfaceDeclaration
+import org.sireum.jawa.sjc.parser.ClassOrInterfaceDeclaration
+import org.sireum.jawa.sjc.util.NoPosition
 
 /**
  * This class is an jawa class representation of a pilar class. A JawaClass corresponds to a class or an interface of the source code. They are usually created by jawa Resolver.
@@ -26,7 +28,6 @@ import org.sireum.jawa.sjc.parser.ClassOrInterfaceDeclaration
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */
 case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends JavaKnowledge with ResolveLevel {
-  import JawaClass._
   
   def this(global: Global, typ: ObjectType, accessStr: String) = {
     this(global, typ, AccessFlag.getAccessFlags(accessStr))
@@ -97,7 +98,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
    * return true if it's a child of given record
    */
   def isChildOf(typ : ObjectType): Boolean = {
-    global.tryGetClass(typ) match {
+    global.getClass(typ) match {
       case Some(c) => isChildOf(c)
       case None => false
     }
@@ -142,7 +143,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
 	      worklist.map{
 	        rec =>
 	          var parents = rec.getInterfaces
-	          if(rec.hasSuperClass) parents += rec.getSuperClass
+	          rec.getSuperClass foreach{parents += _}
 	          val fields =
 		          if(!parents.isEmpty)
 			          parents.map{
@@ -244,69 +245,62 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
 	/**
 	 * get field from this class by the given name
 	 */
-	def getField(name: String): JawaField = {
-    if(!isValidFieldName(name)) throw new RuntimeException("field name is not valid " + name)
+	def getField(name: String): Option[JawaField] = {
+    if(!isValidFieldName(name)){
+      global.reporter.error(NoPosition, "field name is not valid " + name)
+      return None
+    }
 	  val fopt = getFields.find(_.getName == name)
 	  fopt match{
-	    case Some(f) => f
+	    case Some(f) => Some(f)
 	    case None => 
         if(isUnknown){
-          new JawaField(this, name, new ObjectType(JAVA_TOPLEVEL_OBJECT), AccessFlag.getAccessFlags("PUBLIC"))
-        } else throw new RuntimeException("No field " + name + " in class " + getName)
+          Some(new JawaField(this, name, new ObjectType(JAVA_TOPLEVEL_OBJECT), AccessFlag.getAccessFlags("PUBLIC")))
+        } else {
+          global.reporter.error(NoPosition, "No field " + name + " in class " + getName)
+          None
+        }
 	  }
 	}
   
   /**
-   * try get field from this class by the given name
-   */
-  def tryGetField(name: String): Option[JawaField] = {
-    try{Some(getField(name))} catch {case re: RuntimeException => None}
-  }
-  
-  /**
    * get field declared in this class by the given name
    */
-  def getDeclaredField(name: String): JawaField = {
-    if(!isValidFieldName(name)) throw new RuntimeException("field name is not valid " + name)
-    this.fields.get(name) match {
-      case Some(f) => f
-      case None => throw new RuntimeException("No field " + name + " in class " + getName)
+  def getDeclaredField(name: String): Option[JawaField] = {
+    if(!isValidFieldName(name)){
+      global.reporter.error(NoPosition, "field name is not valid " + name)
+      return None
     }
-  }
-  
-  /**
-   * try get field declared in this class by the given name
-   */
-  def tryGetDeclaredField(name: String): Option[JawaField] = {
-    try{Some(getDeclaredField(name))} catch {case re: RuntimeException => None}
+    this.fields.get(name) match {
+      case Some(f) => Some(f)
+      case None => 
+        global.reporter.error(NoPosition, "No field " + name + " in class " + getName)
+        None
+    }
   }
 	
 	/**
 	 * get method from this class by the given subsignature
 	 */
-	def getMethod(subSig: String): JawaMethod = {
-	  tryGetMethod(subSig) match{
-      case Some(p) => p
+	def getMethod(subSig: String): Option[JawaMethod] = {
+	  this.methods.get(subSig) match{
+      case Some(p) => Some(p)
       case None => 
         if(isUnknown){
           val signature = generateSignatureFromOwnerAndMethodSubSignature(this, subSig)
-          generateUnknownJawaMethod(this, signature)
-        } else throw new RuntimeException("No method " + subSig + " in class " + getName)
+          Some(generateUnknownJawaMethod(this, signature))
+        } else None
     }
-	}
-	
-	/**
-	 * try to get method from this class by the given subsignature
-	 */
-	def tryGetMethod(subSig: String): Option[JawaMethod] = {
-	  this.methods.get(subSig)
 	}
 	
 	/**
 	 * get method from this class by the given name
 	 */
-	def getMethodByName(methodName: String): JawaMethod = {
-	  if(!declaresMethodByName(methodName)) throw new RuntimeException("No method " + methodName + " in class " + getName)
+	def getMethodByName(methodName: String): Option[JawaMethod] = {
+	  if(!declaresMethodByName(methodName)){
+      global.reporter.error(NoPosition, "No method " + methodName + " in class " + getName)
+      return None
+    }
 	  var found = false
 	  var foundMethod: JawaMethod = null
 	  getMethods.foreach{
@@ -319,8 +313,11 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
 	        }
 	      }
 	  }
-	  if(found) foundMethod
-	  else throw new RuntimeException("couldn't find method " + methodName + "(*) in " + this)
+	  if(found) Some(foundMethod)
+	  else {
+      global.reporter.error(NoPosition, "couldn't find method " + methodName + "(*) in " + this)
+      None
+    }
 	}
 	
 	/**
@@ -333,7 +330,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
 	/**
 	 * get static initializer of this class
 	 */
-	def getStaticInitializer: JawaMethod = getMethodByName(this.staticInitializerName)
+	def getStaticInitializer: Option[JawaMethod] = getMethodByName(this.staticInitializerName)
 	
 	/**
 	 * whether this method exists in the class or not
@@ -403,17 +400,17 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
 	 * add the given method to this class
 	 */
 	def addMethod(ap: JawaMethod) = {
-	  if(this.methods.contains(ap.getSubSignature)) throw new RuntimeException("The method " + ap.getName + " is already declared in class " + getName)
-	  this.methods(ap.getSubSignature) = ap
+	  if(this.methods.contains(ap.getSubSignature)) global.reporter.error(NoPosition, "The method " + ap.getName + " is already declared in class " + getName)
+    else this.methods(ap.getSubSignature) = ap
 	}
 	
 	/**
 	 * remove the given method from this class
 	 */
 	def removeMethod(ap: JawaMethod) = {
-	  if(ap.getDeclaringClass != this) throw new RuntimeException("Not correct declarer for remove: " + ap.getName)
-	  if(!this.methods.contains(ap.getSubSignature)) throw new RuntimeException("The method " + ap.getName + " is not declared in class " + getName)
-	  this.methods -= ap.getSubSignature
+	  if(ap.getDeclaringClass != this) global.reporter.error(NoPosition, "Not correct declarer for remove: " + ap.getName)
+    else if(!this.methods.contains(ap.getSubSignature)) global.reporter.error(NoPosition, "The method " + ap.getName + " is not declared in class " + getName)
+    else this.methods -= ap.getSubSignature
 	}
 	
 	/**
@@ -437,18 +434,18 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
 	 * add an interface which is directly implemented by this class
 	 */
 	def addInterface(i: JawaClass) = {
-    if(!i.isInterface) throw new RuntimeException("This is not an interface:" + i)
-    if(implementsInterface(i.getName)) throw new RuntimeException(this + " already implements interface " + i)
-	  this.interfaces(i.getName) = i
+    if(!i.isInterface) global.reporter.error(NoPosition, "This is not an interface:" + i)
+    else if(implementsInterface(i.getName)) global.reporter.error(NoPosition, this + " already implements interface " + i)
+    else this.interfaces(i.getName) = i
 	}
 	
 	/**
 	 * remove an interface from this class
 	 */
 	def removeInterface(i: JawaClass) = {
-    if(!i.isInterface) throw new RuntimeException("This is not an interface:" + i)
-	  if(!implementsInterface(i.getName)) throw new RuntimeException(this + " not implements interface " + i.getName)
-	  this.interfaces -= i.getName
+    if(!i.isInterface) global.reporter.error(NoPosition, "This is not an interface:" + i)
+    else if(!implementsInterface(i.getName)) global.reporter.error(NoPosition, this + " not implements interface " + i.getName)
+    else this.interfaces -= i.getName
 	}
 	
 	/**
@@ -459,17 +456,13 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
 	/**
 	 * get the super class
 	 */
-	def getSuperClass: JawaClass = {
-	  if(!hasSuperClass) throw new RuntimeException("no super class for " + getName)
-	  this.superClass
-	}
-	
-	/**
-	 * try to get the super class
-	 */
-	def tryGetSuperClass: Option[JawaClass] = {
-	  if(hasSuperClass) Some(this.superClass)
-	  else None
+	def getSuperClass: Option[JawaClass] = {
+	  if(!hasSuperClass){
+      global.reporter.error(NoPosition, "no super class for " + getName)
+      None
+    } else {
+	    Some(this.superClass)
+    }
 	}
 	
 	/**
@@ -487,16 +480,11 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
 	/**
 	 * get the outer class
 	 */
-	def getOuterClass: JawaClass = {
-	  if(!hasOuterClass) throw new RuntimeException("no outer class for: " + getName)
-	  else this.outerClass
-	}
-	
-	/**
-	 * try to get the outer class
-	 */
-	def tryGetOuterClass: Option[JawaClass] = {
-	  if(!hasOuterClass) None
+	def getOuterClass: Option[JawaClass] = {
+	  if(!hasOuterClass){
+      global.reporter.error(NoPosition, "no outer class for: " + getName)
+      None
+    }
 	  else Some(this.outerClass)
 	}
 	
@@ -605,12 +593,24 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
     getPackage.startsWith("com.sun.") ||
     getPackage.startsWith("org.omg.") ||
     getPackage.startsWith("org.xml.")
-   
+  
+  /**
+   * Jawa AST node for this JawaClass. Unless unknown, it should not be null.
+   */
+  private var classOrInterfaceDecl: ClassOrInterfaceDeclaration = null //NON-NIL
+  
+  def setAST(cid: ClassOrInterfaceDeclaration) = this.classOrInterfaceDecl = cid
+  
+  def getAST: ClassOrInterfaceDeclaration = {
+    if(isUnknown) throw new RuntimeException(getName + " is unknown class, so cannot get the AST")
+    require(this.classOrInterfaceDecl != null)
+    this.classOrInterfaceDecl
+  }
     
   /**
 	 * retrieve code belong to this class
 	 */
-	def retrieveCode = JawaCodeSource.getClassCode(getType, ResolveLevel.BODY)
+	def retrieveCode: String = getAST.toCode
 	
 	/**
 	 * update resolving level for current class
@@ -625,8 +625,8 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
     println("package: " + getPackage)
     println("simpleName: " + getSimpleName)
     println("CanonicalName: " + getCanonicalName)
-    println("superClass: " + tryGetSuperClass)
-    println("outerClass: " + tryGetOuterClass)
+    println("superClass: " + getSuperClass)
+    println("outerClass: " + getOuterClass)
     println("interfaces: " + getInterfaces)
     println("accessFlags: " + getAccessFlagString)
     println("isLoaded: " + isLoaded)

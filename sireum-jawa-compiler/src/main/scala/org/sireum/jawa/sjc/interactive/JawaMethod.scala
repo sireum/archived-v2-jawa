@@ -14,6 +14,10 @@ import org.sireum.jawa.sjc.AccessFlag
 import org.sireum.jawa.sjc.Signature
 import org.sireum.jawa.sjc.ResolveLevel
 import org.sireum.jawa.sjc.ObjectType
+import org.sireum.jawa.sjc.parser.MethodDeclaration
+import org.sireum.jawa.sjc.util.SourceFile
+import org.sireum.jawa.sjc.symtab.MethodSymbolTable
+import org.sireum.jawa.sjc.io.AbstractFile
 
 /**
  * This class is an jawa representation of a pilar method. It can belong to JawaClass.
@@ -159,70 +163,47 @@ case class JawaMethod(declaringClass: JawaClass,
    */
   protected var unknown: Boolean = false
   
-  /**
-   * hold the body symbol table of this method
-   */
-  
-//  protected var methodBody: MethodBody = null
-  
 	/**
 	 * get access flag string
 	 */
 	def getAccessFlagString = AccessFlag.toString(getAccessFlags)
 	
-		
-	/**
-	 * set method body
-	 */
-	
-//	def setMethodBody(pb: MethodBody) = this.methodBody = pb
-	
 	/**
 	 * retrieve code belong to this method
 	 */
-	def retrieveCode = if(!isUnknown) JawaCodeSource.getMethodCode(getSignature) else throw new RuntimeException("Trying to retreive body code for a unknown method: " + this)
+	def retrieveCode: String = getAST.toCode
 	
+  /**
+   * Jawa AST node for this JawaMethod. Unless unknown, it should not be null.
+   */
+  private var methodDeclaration: MethodDeclaration = null //NON-NIL
+  
+  def setAST(md: MethodDeclaration) = this.methodDeclaration = md
+  
+  def getAST: MethodDeclaration = {
+    if(isUnknown) throw new RuntimeException(getSignature + " is unknown method, so cannot get the AST")
+    require(this.methodDeclaration != null)
+    this.methodDeclaration
+  }
+  
   /**
    * resolve current method to body level
    */
-//  def resolveBody = {
-//    if(getDeclaringClass.resolvingLevel >= ResolveLevel.BODY) throw new RuntimeException(getSignature +" is already resolved to " + this.resolvingLevel)
-//    if(isUnknown) throw new RuntimeException(getSignature + " is a unknown method so cannot be resolved to body.")
-//    val pb = JawaResolver.resolveMethodBody(getSignature)
-//    setMethodBody(pb)
-//    setResolvingLevel(Center.ResolveLevel.BODY)
-//    getDeclaringClass.updateResolvingLevel
-//  }
+  def resolveBody = {
+    if(getDeclaringClass.getResolvingLevel >= ResolveLevel.BODY) throw new RuntimeException(getSignature +" is already resolved to " + this.resolvingLevel)
+    if(isUnknown) throw new RuntimeException(getSignature + " is an unknown method so cannot be resolved to body.")
+    val global = getDeclaringClass.global
+    val md: MethodDeclaration = getAST
+    val file: AbstractFile = md.firstToken.file.file
+    val mst: MethodSymbolTable = global.getSymbolTable.compilationUnitSymbolTable(file).classOrInterfaceSymbolTable(getDeclaringClass.getType).methodSymbolTable(getSignature)
+    val pb = getDeclaringClass.global.resolveMethodBody(mst)
+    val newmd = pb.ciSymbolTable.methodDecl(getSignature)
+    setAST(newmd)
+    setResolvingLevel(ResolveLevel.BODY)
+    getDeclaringClass.updateResolvingLevel
+  }
   
-  /**
-   * resolve current method to body level
-   */
-  
-//  def tryResolveBody = {
-//    if(isUnknown) throw new RuntimeException("Trying to get the body for a unknown method: " + this)
-//    if(!checkLevel(Center.ResolveLevel.BODY)) resolveBody
-//  }
-  
-	/**
-	 * get method body
-	 */
-	
-//	def getMethodBody = {
-//	  tryResolveBody
-//	  this.methodBody
-//	}
-  
-  /**
-   * check method body available or not
-   */
-  
-//  def hasMethodBody = this.methodBody != null
-  
-  /**
-   * clear method body
-   */
-  
-//  def clearMethodBody = this.methodBody = null
+
   
   /**
    * Adds exception which can be thrown by this method

@@ -10,6 +10,12 @@ package org.sireum.jawa.sjc.parser
 import org.scalatest._
 import org.sireum.jawa.sjc.lexer.JawaLexer
 import org.sireum.util.FileUtil
+import org.sireum.jawa.sjc.io.PlainFile
+import java.io.BufferedReader
+import java.io.StringReader
+import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.sjc.util.FgSourceFile
+import org.sireum.jawa.sjc.DefaultReporter
 
 class JawaParserTest extends FlatSpec with ShouldMatchers {
 
@@ -132,13 +138,36 @@ record `b.a.a.a`  @type class @AccessFlag PUBLIC_FINAL extends  `java.io.Externa
 //  "Parser" should "not throw an exception on those files" in {
 //    filelist.foreach{
 //      fileUri =>
-//        val str = FileUtil.readFile(fileUri)._1
-//        parseCompilationUnit(str)
+//        val jf = new FgSourceFile(new PlainFile(FileUtil.toFile(fileUri)))
+//        val cu = parseCompilationUnit(jf.file)
+//        val oText = jf.file.text
+//        val newText = cu.toCode
+//        val reader1 = new BufferedReader(new StringReader(oText));
+//        val reader2 = new BufferedReader(new StringReader(newText));
+//        var line1 = reader1.readLine()
+//        var line2 = reader2.readLine()
+//				while(line1 != null && line2 != null){
+//          if(!line1.startsWith(line2)){
+//            throw new RuntimeException
+//          }
+//          line1 = reader1.readLine()
+//          line2 = reader2.readLine()
+//        }
 //    }
 //  }
-  
-  private def parser(s: String) = new JawaParser(JawaLexer.tokenise(s, "temp").toArray)
-  private def parseLocation(s: String) = parser(s).location
-  private def parseCompilationUnit(s: String) = parser(s).compilationUnit(true)
+  val reporter = new DefaultReporter
+  private def parser(s: Either[String, AbstractFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
+  private def parseLocation(s: String) = {
+    parser(Left(s)).location
+    if(reporter.hasErrors) throw new RuntimeException(reporter.problems.toString())
+  }
+  private def parseCompilationUnit(s: AbstractFile) = {
+    parser(Right(s)).compilationUnit(true)
+    if(reporter.hasErrors) throw new RuntimeException(reporter.problems.toString())
+  }
+  private def parseCompilationUnit(s: String) = {
+    parser(Left(s)).compilationUnit(true)
+    if(reporter.hasErrors) throw new RuntimeException(reporter.problems.toString())
+  }
 
 }

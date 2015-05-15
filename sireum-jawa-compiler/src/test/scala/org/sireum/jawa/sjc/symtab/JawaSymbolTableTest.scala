@@ -11,11 +11,14 @@ import org.scalatest._
 import org.sireum.jawa.sjc.lexer.JawaLexer
 import org.sireum.util.FileUtil
 import org.sireum.jawa.sjc.parser.JawaParser
+import org.sireum.jawa.sjc.io.PlainFile
+import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.sjc.DefaultReporter
 
 class JawaSymbolTableTest extends FlatSpec with ShouldMatchers {
   
   "Symbol Resolver" should "not throw an exception on big program" in {
-    resolveSymbol("""
+    resolveSymbol(Left("""
 record `b.a.a.a`  @type class @AccessFlag PUBLIC_FINAL extends  `java.io.Externalizable`, `java.lang.Cloneable` {
       `java.lang.String` `b.a.a.a.f`    @AccessFlag PRIVATE;
       `java.lang.Class` `b.a.a.a.g`    @AccessFlag PRIVATE;
@@ -103,29 +106,33 @@ record `b.a.a.a`  @type class @AccessFlag PUBLIC_FINAL extends  `java.io.Externa
 #L013b94.   return @void ;
 
    }
-    """)
+    """))
   }
 
-//  val dirUri = FileUtil.toUri("/Users/fgwei/Developer/playground/androidlib/5.0")
-//  val filelist = FileUtil.listFiles(dirUri, "pilar", true)
-//  
-//  
-//  "Symbol Resolver" should "not throw an exception on those files" in {
-//    filelist.foreach{
-//      fileUri =>
-//        val str = FileUtil.readFile(fileUri)._1
-//        resolveSymbol(str)
-//    }
-//  }
+  val dirUri = FileUtil.toUri("/Users/fgwei/Developer/playground/androidlib/5.0")
+  val filelist = FileUtil.listFiles(dirUri, "pilar", true)
   
-  private def resolveSymbol(s: String) = {
-    val parser = new JawaParser(JawaLexer.tokenise(s, "temp").toArray)
+  
+  "Symbol Resolver" should "not throw an exception on those files" in {
+    filelist.foreach{
+      fileUri =>
+        val file = new PlainFile(FileUtil.toFile(fileUri))
+        resolveSymbol(Right(file))
+    }
+  }
+  
+  private def resolveSymbol(s: Either[String, AbstractFile]) = {
+    val reporter = new DefaultReporter
+    val parser = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
     val cu = parser.compilationUnit(true)
     var fst = { _ : Unit => new JawaCompilationUnitsSymbolTable }
     val st = JawaCompilationUnitsSymbolTableBuilder(List(cu), fst, true)
     val jst = st.asInstanceOf[JawaCompilationUnitsSymbolTable]
-    if(jst.hasErrors){
-      jst.tags.foreach{
+    if(reporter.hasErrors || jst.hasErrors){
+      jst.problems.foreach{
+        System.err.println(_)
+      }
+      jst.problems.foreach{
         System.err.println(_)
       }
       throw new RuntimeException

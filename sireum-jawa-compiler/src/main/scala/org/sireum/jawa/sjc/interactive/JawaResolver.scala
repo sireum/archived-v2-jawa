@@ -30,6 +30,8 @@ import org.sireum.jawa.sjc.symtab.JawaCompilationUnitsSymbolTableBuilder
 import org.sireum.jawa.sjc.symtab.CompilationUnitsSymbolTable
 import org.sireum.jawa.sjc.symtab.MethodSymbolTableProducer
 import org.sireum.jawa.sjc.symtab.SymbolTableHelper
+import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.sjc.util.NoPosition
 
 /**
  * this object collects info from the symbol table and builds Global, JawaClass, and JawaMethod
@@ -44,44 +46,49 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
   import scala.reflect.runtime.{ universe => ru }
   var fst = { _: Unit => new JawaCompilationUnitsSymbolTable }
   
-  private def parseCode[T <: ParsableAstNode : ru.TypeTag](source: (FileResourceUri, String), resolveBody: Boolean): T = {
-    val (paopt, err) = JawaParser.parse[T](source._1, source._2, resolveBody) 
-    paopt match{case Some(pa) => pa; case None => throw new RuntimeException(err + "\n" + source._1)}
+  private def parseCode[T <: ParsableAstNode : ru.TypeTag](source: AbstractFile, resolveBody: Boolean): Option[T] = {
+    val paopt = JawaParser.parse[T](Right(source), resolveBody, reporter) 
+    paopt
   }
   
-  private def parseBodyTokens(bodyTokens: IList[Token]): ResolvedBody = {
-    val (paopt, err) = JawaParser.parse[Body](bodyTokens, true) 
-    paopt match{case Some(pa) => pa.asInstanceOf[ResolvedBody]; case None => throw new RuntimeException(err + "\n" + bodyTokens)}
+  private def parseBodyTokens(bodyTokens: IList[Token]): Option[ResolvedBody] = {
+    val paopt = JawaParser.parse[Body](bodyTokens, true, reporter) 
+    paopt map{pa => pa.asInstanceOf[ResolvedBody]}
   }
     
-  def getCompilationUnitsSymbolResult(rcu: RichCompilationUnits, sources: ISeq[(FileResourceUri, String)], desiredLevel: ResolveLevel.Value): CompilationUnitsSymbolTable = {
-    val changedOrDelatedFiles: ISet[FileResourceUri] = sources.map(_._1).toSet
+  def getCompilationUnitsSymbolResult(rcu: RichCompilationUnits, sources: ISeq[AbstractFile], desiredLevel: ResolveLevel.Value): CompilationUnitsSymbolTable = {
+    val changedOrDelatedFiles: ISet[AbstractFile] = sources.toSet
     val resolveBody: Boolean = desiredLevel match{case ResolveLevel.BODY => true; case _ => false}
-    val newCUs: ISeq[CompilationUnit] = sources.map(s => parseCode[CompilationUnit](s, resolveBody))
-    val delta: JawaDelta = JawaDelta(changedOrDelatedFiles, newCUs)
+    val newCUs: MList[CompilationUnit] = mlistEmpty
+    sources.foreach(s => parseCode[CompilationUnit](s, resolveBody).foreach(newCUs += _))
+    val delta: JawaDelta = JawaDelta(changedOrDelatedFiles, newCUs.toList)
     JawaCompilationUnitsSymbolTableBuilder(rcu, delta, fst, true)
   }
   
-  def getCompilationUnitSymbolResult(rcu: RichCompilationUnits, source: (FileResourceUri, String), desiredLevel: ResolveLevel.Value): CompilationUnitSymbolTable = {
+  def getCompilationUnitSymbolResult(rcu: RichCompilationUnits, source: AbstractFile, desiredLevel: ResolveLevel.Value): CompilationUnitSymbolTable = {
     val cst = getCompilationUnitsSymbolResult(rcu, List(source), desiredLevel)
-    cst.compilationUnitSymbolTable(source._1)
+    cst.compilationUnitSymbolTable(source)
+  }
+  
+  def getCompilationUnitSymbolResult(source: AbstractFile, desiredLevel: ResolveLevel.Value): Option[CompilationUnitSymbolTable] = {
+    val resolveBody = desiredLevel match {
+      case ResolveLevel.BODY => true
+      case _ => false
+    }
+    JawaParser.parse[CompilationUnit](Right(source), resolveBody, reporter) map{
+      cu => 
+        JawaCompilationUnitsSymbolTableBuilder(List(cu), fst, true).compilationUnitSymbolTable(source)
+    }
   }
   
   /**
-   * resolve the given method code. Normally only for environment method
-   */
-//  def resolveMethodCode(signature: Signature, code: String): JawaMethod = {
-//    val st = Transform.getSymbolResolveResult(Set(code))
-//    resolveFromST(st, ResolveLevel.BODY, true)
-//    getMethodWithoutFailing(signature)
-//  }
-  
-  /**
-   * resolve the given method's body to body level. 
+   * resolve the given method's body to BODY level. 
    */
   def resolveMethodBody(mst: MethodSymbolTable): MethodSymbolTable = {
-    val body = parseBodyTokens(mst.methodDecl.body.tokens)
-    val cuss = JawaCompilationUnitsSymbolTableBuilder(mst, body)
+    parseBodyTokens(mst.methodDecl.body.tokens) map {
+      body => JawaCompilationUnitsSymbolTableBuilder(mst, body)
+    }
+    if(reporter.hasErrors) reporter.error(NoPosition, "Fail to resolve method body for " + mst.methodSig)
     mst
   }
     
@@ -89,7 +96,7 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
    * resolve the given classes to desired level. 
    */
   def tryResolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): Option[JawaClass] = {
-    if(JawaCodeSource.containsClass(typ)){
+    if(JawaClasspathManager.containsClass(typ)){
 	    val r = desiredLevel match{
 	      case ResolveLevel.BODY => resolveToBody(typ)
 	      case ResolveLevel.HIERARCHY => resolveToHierarchy(typ)
@@ -104,16 +111,16 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
    * resolve the given classes to desired level. 
    */
   def resolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): JawaClass = {
-    if(!typ.isArray && !JawaCodeSource.containsClass(typ)){
-      if(!containsClass(typ) || getClass(typ).getResolvingLevel < desiredLevel){
+    if(!typ.isArray && !JawaClasspathManager.containsClass(typ)){
+      if(!containsClass(typ) || getClass(typ).get.getResolvingLevel < desiredLevel){
 	      val rec = JawaClass(this, typ, 0)
 	      rec.setUnknown
 	      rec.setResolvingLevel(desiredLevel)
-	      tryRemoveClass(typ)
+	      removeClass(typ)
 	      addClass(rec)
 //	      msg_detail(TITLE, "add phantom class " + rec)
 	      rec
-      } else getClass(typ)
+      } else getClass(typ).get
     } else {
 	    desiredLevel match{
 	      case ResolveLevel.BODY => resolveToBody(typ)
@@ -136,8 +143,8 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
    * resolve the given class to hierarchy level
    */
   def resolveToHierarchy(typ: ObjectType): JawaClass = {
-    if(!containsClass(typ) || getClass(typ).getResolvingLevel < ResolveLevel.HIERARCHY) forceResolveToHierarchy(typ)
-    getClass(typ)
+    if(!containsClass(typ) || getClass(typ).get.getResolvingLevel < ResolveLevel.HIERARCHY) forceResolveToHierarchy(typ)
+    getClass(typ).get
   }
   
   /**
@@ -147,12 +154,12 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
     if(typ.isArray){
       resolveArrayClass(typ)
     } else {
-	    val code = JawaCodeSource.getClassCode(typ, ResolveLevel.HIERARCHY)
-	    val st = getCompilationUnitSymbolResult(this, code, ResolveLevel.HIERARCHY)
-	    tryRemoveClass(typ)
+	    val file = JawaClasspathManager.getClassFile(typ)
+	    val st = getCompilationUnitSymbolResult(this, file, ResolveLevel.HIERARCHY)
+	    removeClass(typ)
 	    resolveFromST(st, ResolveLevel.HIERARCHY, true)
     }
-    getClass(typ)
+    getClass(typ).get
   }
   
   /**
@@ -160,8 +167,8 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
    */
   def resolveToBody(typ: ObjectType): JawaClass = {
     if(!containsClass(typ)) forceResolveToBody(typ)
-    else if(getClass(typ).getResolvingLevel < ResolveLevel.BODY) escalateReolvingLevel(getClass(typ), ResolveLevel.BODY)
-    else getClass(typ)
+    else if(getClass(typ).get.getResolvingLevel < ResolveLevel.BODY) escalateReolvingLevel(getClass(typ).get, ResolveLevel.BODY)
+    else getClass(typ).get
   }
   
   /**
@@ -183,12 +190,12 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
     if(typ.isArray){
       resolveArrayClass(typ)
     } else {
-	    val code = JawaCodeSource.getClassCode(typ, ResolveLevel.BODY)
-	    val st = getCompilationUnitSymbolResult(this, code, ResolveLevel.BODY)
-	    tryRemoveClass(typ)
+	    val file = JawaClasspathManager.getClassFile(typ)
+	    val st = getCompilationUnitSymbolResult(this, file, ResolveLevel.BODY)
+	    removeClass(typ)
 	    resolveFromST(st, ResolveLevel.BODY, true)
     }
-    getClass(typ)
+    getClass(typ).get
   }
   
   /**
@@ -238,6 +245,7 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
 	      val exs = cid.parents.map(getTypeFromName(_).asInstanceOf[ObjectType]).toSet
 	      if(!exs.isEmpty) addNeedToResolveExtends(clazz, exs)
 	      if(isInnerClass(clazz.getType)) addNeedToResolveOuterClass(clazz, getOuterTypeFrom(clazz.getType))
+        clazz.setAST(cid)
 	      resolveFields(clazz, cit.fieldDecls, par)
         resolveMethods(clazz, cit.methodSymbolTables, level, par)
 	      clazz.setResolvingLevel(level)
@@ -288,19 +296,17 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
         val returnType: JawaType = md.returnType.typ
 	      val method: JawaMethod = JawaMethod(declaringClass, methodName, thisOpt, params, returnType, accessFlags)
 	      method.setResolvingLevel(level)
+        method.setAST(md)
 	      if(level >= ResolveLevel.BODY){
-//	      	proc.setMethodBody(stp.procedureSymbolTableProducer(uri).asInstanceOf[MethodBody])
-//		      if(pd.body.isInstanceOf[ImplementedBody]){
-//		        val body = pd.body.asInstanceOf[ImplementedBody]
-//		        val catchclauses = body.catchClauses
-//		        catchclauses.foreach{
-//		          catchclause =>
-//		            require(catchclause.typeSpec.isDefined)
-//		            require(catchclause.typeSpec.get.isInstanceOf[NamedTypeSpec])
-//		            val excName = catchclause.typeSpec.get.asInstanceOf[NamedTypeSpec].name.name
-//			          proc.addExceptionHandler(excName, catchclause.fromTarget.name, catchclause.toTarget.name, catchclause.jump.target.name)
-//		        }
-//		      }
+	      	if(md.body.isInstanceOf[ResolvedBody]){
+		        val body = md.body.asInstanceOf[ResolvedBody]
+		        val catchclauses = body.catchClauses
+		        catchclauses.foreach{
+		          catchclause =>
+		            val excName = catchclause.typOrAny.fold(_.typ.asInstanceOf[ObjectType].name, _.text)
+			          method.addExceptionHandler(excName, catchclause.from, catchclause.to, catchclause.goto.text)
+		        }
+		      }
 	      }
 	  }
 	}

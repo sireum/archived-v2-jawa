@@ -10,13 +10,16 @@ package org.sireum.jawa.sjc.lexer
 import org.sireum.jawa.sjc.lexer.Tokens._
 import org.sireum.jawa.sjc.util.Range
 import org.sireum.util.FileResourceUri
+import org.sireum.jawa.sjc.util.RangePosition
+import org.sireum.jawa.sjc.util.SourceFile
+import org.sireum.jawa.sjc.io.AbstractFile
 
 /**
  * A token of Pilar source.
  *
  * @param rawText -- the text associated with the token
  */
-case class Token(tokenType: TokenType, fileUri: FileResourceUri, line: Int, column: Int, offset: Int, text: String) {
+case class Token(tokenType: TokenType, pos: RangePosition, rawtext: String) {
 
   private[lexer] var associatedWhitespaceAndComments_ : HiddenTokens = null
 
@@ -24,11 +27,25 @@ case class Token(tokenType: TokenType, fileUri: FileResourceUri, line: Int, colu
 
   def associatedWhitespaceAndComments: HiddenTokens = associatedWhitespaceAndComments_
   
-  def length = text.length
+  def line: Int = pos.line
+  
+  def column: Int = pos.column
+  
+  def offset: Int = pos.point
+  
+  def length: Int = rawtext.length
 
-  def range = Range(offset, length)
-
-  def lastCharacterOffset = offset + length - 1
+  def lastCharacterOffset: Int = pos.point + length - 1
+  
+  def file: SourceFile = pos.source
+  
+  def text: String = {
+    tokenType match {
+      case ID =>
+        rawtext.replace("`", "")
+      case _ => rawtext
+    }
+  }
   
   override def toString(): String = {
     var txt = text
@@ -40,7 +57,7 @@ case class Token(tokenType: TokenType, fileUri: FileResourceUri, line: Int, colu
     else {
       txt = "<no text>"
     }
-    return "["+txt+"',<"+tokenType+">"+","+line+":"+column+","+offset+"]"+"@"+fileUri;
+    return "["+txt+"',<"+tokenType+">"+"@"+pos+"]";
   }
 
 }

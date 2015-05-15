@@ -58,6 +58,7 @@ object Tokens {
   val ASSIGN_OP = TokenType("ASSIGN_OP")
   
   val CMP = TokenType("CMP")
+  val ANY = TokenType("ANY")
   
 //  val NEWLINE = TokenType("NEWLINE")
 //  val NEWLINES = TokenType("NEWLINES")
@@ -69,6 +70,7 @@ object Tokens {
  
   val OP = TokenType("OP")
   
+  val UNKNOWN = TokenType("UNKNOWN")
   
   val KEYWORDS = Set(
     CLASS_OR_INTERFACE, METHOD, EXTENDS_AND_IMPLEMENTS, IF, THEN, NEW,
