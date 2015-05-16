@@ -125,7 +125,12 @@ println("foo")""" producesTokens (ID, LPAREN, STRING_LITERAL, RPAREN, WS, ID, LP
   
   "Lexer" should "throw a lexer exception" in {
     val reporter = new DefaultReporter
-    evaluating { JawaLexer.rawTokenise(Left("\"\"\""), reporter) } should produce[JawaLexerException]
+    evaluating { 
+      JawaLexer.rawTokenise(Left("\"\"\""), reporter)
+      if(reporter.hasErrors){
+        reporter.problems.foreach(p => println(p.toString()))
+        throw new RuntimeException
+      }} should produce[RuntimeException] 
   }
 
 """

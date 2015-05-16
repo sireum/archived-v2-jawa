@@ -76,20 +76,20 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) {
     currentTokenType match {
       case EXTENDS_AND_IMPLEMENTS =>
         val extendsAndImplementsToken: Token = accept(EXTENDS_AND_IMPLEMENTS)
-        val firstParentID: Token = accept(ID)
-        val restparentIDs: MList[(Token, Token)] = mlistEmpty
+        val firstParent: Type = typ(withinit = false)
+        val restparents: MList[(Token, Type)] = mlistEmpty
         def loop() {
           currentTokenType match {
             case COMMA =>
-              val comma = nextToken()
-              val parentID = accept(ID)
-              restparentIDs += ((comma, parentID))
+              val comma: Token = nextToken()
+              val parent: Type = typ(withinit = false)
+              restparents += ((comma, parent))
               loop()
             case _ =>
           }
         }
         loop()
-        Some(ExtendsAndImplimentsClauses(extendsAndImplementsToken, firstParentID, restparentIDs.toList))
+        Some(ExtendsAndImplimentsClauses(extendsAndImplementsToken, firstParent, restparents.toList))
       case _ => None
     }
   }

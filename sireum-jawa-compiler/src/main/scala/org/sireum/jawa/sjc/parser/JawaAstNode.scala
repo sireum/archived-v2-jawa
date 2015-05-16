@@ -18,6 +18,7 @@ import org.sireum.jawa.sjc.Signature
 import org.sireum.jawa.sjc.ObjectType
 import org.sireum.jawa.sjc.lexer.TokenType
 import org.sireum.jawa.sjc.lexer.Tokens
+import org.sireum.jawa.sjc.util.Range
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -140,7 +141,7 @@ case class ClassOrInterfaceDeclaration(
   def isInterface: Boolean = {
     annotations.exists { a => a.key == "type" && a.value == "interface" }
   }
-  def parents: IList[String] = extendsAndImplimentsClausesOpt match {case Some(e) => e.parents; case None => ilistEmpty}
+  def parents: IList[ObjectType] = extendsAndImplimentsClausesOpt match {case Some(e) => e.parents; case None => ilistEmpty}
   def instanceFields: IList[InstanceFieldDeclaration] = instanceFieldDeclarationBlock.instanceFields
   def typ: ObjectType = getTypeFromName(nameID.text).asInstanceOf[ObjectType]
 }
@@ -160,10 +161,10 @@ case class Annotation(
 
 case class ExtendsAndImplimentsClauses(
     extendsAndImplementsToken: Token,
-    firstParentID: Token,
-    restParentIDs: IList[(Token, Token)]) extends JawaAstNode {
-  lazy val tokens = flatten(extendsAndImplementsToken, firstParentID, restParentIDs)
-  def parents: IList[String] = firstParentID.text :: restParentIDs.map(_._2.text)
+    firstParent: Type,
+    restParents: IList[(Token, Type)]) extends JawaAstNode {
+  lazy val tokens = flatten(extendsAndImplementsToken, firstParent, restParents)
+  def parents: IList[ObjectType] = firstParent.typ.asInstanceOf[ObjectType] :: restParents.map(_._2.typ.asInstanceOf[ObjectType])
 }
 
 sealed trait Field extends JawaAstNode {

@@ -242,8 +242,8 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
 	      val classType = cit.classOrInterfaceType
 	      val recAccessFlag =	cid.accessModifier				// It can be PUBLIC ... or empty (which means no access flag class)
 	      val clazz: JawaClass = new JawaClass(this, classType, recAccessFlag)
-	      val exs = cid.parents.map(getTypeFromName(_).asInstanceOf[ObjectType]).toSet
-	      if(!exs.isEmpty) addNeedToResolveExtends(clazz, exs)
+	      val exs = cid.parents
+	      if(!exs.isEmpty) addNeedToResolveExtends(clazz, exs.toSet)
 	      if(isInnerClass(clazz.getType)) addNeedToResolveOuterClass(clazz, getOuterTypeFrom(clazz.getType))
         clazz.setAST(cid)
 	      resolveFields(clazz, cit.fieldDecls, par)

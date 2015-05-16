@@ -75,7 +75,7 @@ class RangePosition(sourceIn: SourceFile, startIn: Int, length: Int, lineIn: Int
   }
   override def isRange = true
   override def start   = startIn
-  override def end     = startIn + length
+  override def end     = startIn + length - 1
 }
 
 case object NoPosition extends UndefinedPosition
@@ -136,7 +136,7 @@ private[util] trait InternalPositionImpl {
   def withPoint(point: Int): Position          = if (isRange) copyRange(start = point) else Position.offset(source, point)
   def withEnd(end: Int): Position              = copyRange(end = end)
   def withSource(source: SourceFile): Position = copyRange(source = source)
-  def withShift(shift: Int): Position          = Position.range(source, start + shift, end - start)
+  def withShift(shift: Int): Position          = Position.range(source, start + shift, end - start + 1)
 
   /** Convert a range position to a simple offset.
    */

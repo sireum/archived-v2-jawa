@@ -72,6 +72,7 @@ trait ReporterImpl extends Reporter {
 class DefaultReporter extends ReporterImpl {
   val problems = mmapEmpty[AbstractFile, MSet[Problem]]
   def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
+    severity.count += 1
     problems.getOrElseUpdate(pos.source.file, msetEmpty) += Problem(pos, msg, severity.id)
   }
 }

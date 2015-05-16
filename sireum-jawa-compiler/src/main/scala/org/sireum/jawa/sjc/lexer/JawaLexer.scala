@@ -110,7 +110,7 @@ class JawaLexer(aplexer: Antlr4PilarLexer, file: AbstractFile, reporter: Reporte
         case ID =>
           if(aptoken.getText == "cmp" || aptoken.getText == "cmpl" || aptoken.getText == "cmpg")
             Tokens.CMP
-          else if(aptoken.getText == "any")
+          else if(aptoken.getText == "`any`")
             Tokens.ANY
           else Tokens.ID
         case LID =>

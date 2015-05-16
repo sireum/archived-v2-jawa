@@ -120,6 +120,18 @@ trait CompilerControl { self: Global =>
   def askToDoFirst(source: SourceFile) =
     postWorkItem(new AskToDoFirstItem(source))
 
+  /** If source if not yet loaded, get an outline view with askParseEntered.
+   *  If source is loaded, return it.
+   *  In both cases, set response to parsed tree.
+   *  @param keepSrcLoaded If set to `true`, source file will be kept as a loaded unit afterwards.
+   */
+  def askStructure(keepSrcLoaded: Boolean)(source: SourceFile, response: Response[CompilationUnit]) = {
+    getCompilationUnit(source.file) match {
+      case Some(rcu) => respond(response) {rcu.cu}
+      case None => askParsedEntered(source, keepSrcLoaded, response)
+    }
+  }
+    
   /** Set sync var `response` to the parse tree of `source` with all top-level symbols entered.
    *  @param source       The source file to be analyzed
    *  @param keepLoaded   If set to `true`, source file will be kept as a loaded unit afterwards.
