@@ -28,3 +28,5 @@ object Comment {
 case class SingleLineComment(override val token: Token) extends Comment(token)
 
 case class MultiLineComment(override val token: Token) extends Comment(token)
+
+case class DocComment(override val token: Token) extends Comment(token)

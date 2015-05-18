@@ -122,7 +122,8 @@ class JawaLexer(aplexer: Antlr4PilarLexer, file: AbstractFile, reporter: Reporte
         case WS =>
           Tokens.WS
         case COMMENT =>
-          Tokens.MULTILINE_COMMENT
+          if(rawText != "/**/" && rawText.startsWith("/**")) Tokens.DOC_COMMENT
+          else Tokens.MULTILINE_COMMENT
         case LINE_COMMENT =>
           Tokens.LINE_COMMENT
         case HEX

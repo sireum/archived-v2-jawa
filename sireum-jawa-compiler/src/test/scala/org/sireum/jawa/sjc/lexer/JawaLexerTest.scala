@@ -50,6 +50,10 @@ class JawaLexerTest extends FlatSpec with ShouldMatchers {
   "/* bar var */" producesTokens (MULTILINE_COMMENT)
 
   "/**/" producesTokens (MULTILINE_COMMENT)
+  
+  "/***/" producesTokens(DOC_COMMENT)
+  
+  "/** asdf */" producesTokens(DOC_COMMENT)
 
   "`yield`" producesTokens (ID)
 

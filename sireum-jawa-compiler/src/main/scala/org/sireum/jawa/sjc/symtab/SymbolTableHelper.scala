@@ -96,7 +96,7 @@ object SymbolTableHelper {
       val ct = tables.compilationUnitAbsTable(file).classOrInterfaceTable
       ct.get(typ) match {
         case Some(other) =>
-          reportRedeclaration(file.toString(), classOrInterfaceDeclaration.nameID, DUPLICATE_CLASS, other)
+          reportRedeclaration(file.toString(), classOrInterfaceDeclaration.cityp.firstToken, DUPLICATE_CLASS, other)
         case _ =>
           ct(typ) = classOrInterfaceDeclaration
           tables.compilationUnitAbsTable(file).classOrInterfaceAbsTable(typ) = ClassOrInterfaceSymbolTableData()

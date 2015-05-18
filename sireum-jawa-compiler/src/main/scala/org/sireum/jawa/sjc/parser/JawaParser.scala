@@ -41,13 +41,13 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) {
   
   private def classOrInterfaceDeclaration0(resolveBody: Boolean): ClassOrInterfaceDeclaration = {
     val dclToken: Token = accept(CLASS_OR_INTERFACE)
-    val nameID: Token = accept(ID)
+    val cityp: Type = typ(withinit = false)
     val annotations_ : IList[Annotation] = annotations()
     val extendsAndImplimentsClausesOpt_ : Option[ExtendsAndImplimentsClauses] = extendsAndImplimentsClausesOpt()
     val instanceFieldDeclarationBlock_ : InstanceFieldDeclarationBlock = instanceFieldDeclarationBlock()
     val staticFields: IList[StaticFieldDeclaration] = staticFieldDeclarations()
     val methods: IList[MethodDeclaration] = methodDeclarations(resolveBody)
-    ClassOrInterfaceDeclaration(dclToken, nameID, annotations_, extendsAndImplimentsClausesOpt_, instanceFieldDeclarationBlock_, staticFields, methods)
+    ClassOrInterfaceDeclaration(dclToken, cityp, annotations_, extendsAndImplimentsClausesOpt_, instanceFieldDeclarationBlock_, staticFields, methods)
   }
   
   private def annotations(): IList[Annotation] = {
@@ -76,20 +76,20 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) {
     currentTokenType match {
       case EXTENDS_AND_IMPLEMENTS =>
         val extendsAndImplementsToken: Token = accept(EXTENDS_AND_IMPLEMENTS)
-        val firstParent: Type = typ(withinit = false)
-        val restparents: MList[(Token, Type)] = mlistEmpty
+        val parents: MList[(Type, Option[Token])] = mlistEmpty
         def loop() {
+          val parent : Type = typ(withinit = false)
           currentTokenType match {
             case COMMA =>
               val comma: Token = nextToken()
-              val parent: Type = typ(withinit = false)
-              restparents += ((comma, parent))
+              parents += ((parent, Some(comma)))
               loop()
             case _ =>
+              parents += ((parent, None))
           }
         }
         loop()
-        Some(ExtendsAndImplimentsClauses(extendsAndImplementsToken, firstParent, restparents.toList))
+        Some(ExtendsAndImplimentsClauses(extendsAndImplementsToken, parents.toList))
       case _ => None
     }
   }

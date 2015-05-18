@@ -37,6 +37,8 @@ class Global(val projectName: String, val reporter: Reporter) extends {
   with JawaClassLoadManager 
   with ResolveLevel {
   
+  def logError(msg: String, t: Throwable): Unit = ()
+  def inform(msg: String): Unit = ()
   
   val debugIDE: Boolean = true
   val verboseIDE: Boolean = true

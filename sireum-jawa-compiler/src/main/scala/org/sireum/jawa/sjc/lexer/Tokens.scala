@@ -62,6 +62,7 @@ object Tokens {
   
   val LINE_COMMENT = TokenType("LINE_COMMENT")
   val MULTILINE_COMMENT = TokenType("MULTILINE_COMMENT")
+  val DOC_COMMENT = TokenType("DOC_COMMENT")
   
   val WS = TokenType("WS")
  
@@ -74,7 +75,7 @@ object Tokens {
     RETURN, THROW, CALL, SWITCH, ELSE, GOTO, CATCH, ANY,
     TRUE, FALSE, NULL)
 
-  val COMMENTS = Set(LINE_COMMENT, MULTILINE_COMMENT)
+  val COMMENTS = Set(LINE_COMMENT, MULTILINE_COMMENT, DOC_COMMENT)
 
   val IDS = Set(ID, LOCATION_ID, STATIC_ID)
 

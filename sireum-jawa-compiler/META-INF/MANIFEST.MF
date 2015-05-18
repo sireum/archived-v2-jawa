@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Jawa Compiler
+Bundle-SymbolicName: sireum-jawa-compiler;singleton:=true
+Bundle-Version: 1.0
+Export-Package: org.sireum.jawa.sjc,
+ org.sireum.jawa.sjc.codegen,
+ org.sireum.jawa.sjc.interactive,
+ org.sireum.jawa.sjc.io,
+ org.sireum.jawa.sjc.lexer,
+ org.sireum.jawa.sjc.parser,
+ org.sireum.jawa.sjc.symtab,
+ org.sireum.jawa.sjc.util
+Bundle-Vendor: sireum.org
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.sireum;bundle-version="2.0.0"

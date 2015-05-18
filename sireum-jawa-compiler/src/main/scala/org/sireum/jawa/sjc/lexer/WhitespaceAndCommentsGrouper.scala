@@ -45,13 +45,14 @@ class WhitespaceAndCommentsGrouper(lexer: JawaLexer) extends Iterator[Token] {
   }
 
   private def isCommentOrWhitespace(token: Token) = token.tokenType match {
-    case WS | LINE_COMMENT | MULTILINE_COMMENT ⇒ true
-    case _                                     ⇒ false
+    case WS | LINE_COMMENT | MULTILINE_COMMENT | DOC_COMMENT ⇒ true
+    case _                                                   ⇒ false
   }
 
   private def makeHiddenToken(token: Token) = token.tokenType match {
     case LINE_COMMENT ⇒ SingleLineComment(token)
     case MULTILINE_COMMENT ⇒ MultiLineComment(token)
+    case DOC_COMMENT => DocComment(token)
     case WS ⇒ Whitespace(token)
   }
 

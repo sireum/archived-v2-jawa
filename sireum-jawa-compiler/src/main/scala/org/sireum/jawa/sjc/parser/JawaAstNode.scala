@@ -131,19 +131,19 @@ sealed trait Declaration extends JawaAstNode {
 
 case class ClassOrInterfaceDeclaration(
     dclToken: Token, 
-    nameID: Token, 
+    cityp: Type, 
     annotations: IList[Annotation], 
     extendsAndImplimentsClausesOpt: Option[ExtendsAndImplimentsClauses],
     instanceFieldDeclarationBlock: InstanceFieldDeclarationBlock,
     staticFields: IList[StaticFieldDeclaration],
     methods: IList[MethodDeclaration]) extends Declaration with ParsableAstNode {
-  lazy val tokens = flatten(dclToken, nameID, annotations, extendsAndImplimentsClausesOpt, instanceFieldDeclarationBlock, staticFields, methods)
+  lazy val tokens = flatten(dclToken, cityp, annotations, extendsAndImplimentsClausesOpt, instanceFieldDeclarationBlock, staticFields, methods)
   def isInterface: Boolean = {
     annotations.exists { a => a.key == "type" && a.value == "interface" }
   }
   def parents: IList[ObjectType] = extendsAndImplimentsClausesOpt match {case Some(e) => e.parents; case None => ilistEmpty}
   def instanceFields: IList[InstanceFieldDeclaration] = instanceFieldDeclarationBlock.instanceFields
-  def typ: ObjectType = getTypeFromName(nameID.text).asInstanceOf[ObjectType]
+  def typ: ObjectType = cityp.typ.asInstanceOf[ObjectType]
 }
 
 case class Annotation(
@@ -161,10 +161,9 @@ case class Annotation(
 
 case class ExtendsAndImplimentsClauses(
     extendsAndImplementsToken: Token,
-    firstParent: Type,
-    restParents: IList[(Token, Type)]) extends JawaAstNode {
-  lazy val tokens = flatten(extendsAndImplementsToken, firstParent, restParents)
-  def parents: IList[ObjectType] = firstParent.typ.asInstanceOf[ObjectType] :: restParents.map(_._2.typ.asInstanceOf[ObjectType])
+    parentTyps: IList[(Type, Option[Token])]) extends JawaAstNode {
+  lazy val tokens = flatten(extendsAndImplementsToken, parentTyps)
+  def parents: IList[ObjectType] = parentTyps.map(_._1.typ.asInstanceOf[ObjectType])
 }
 
 sealed trait Field extends JawaAstNode {
@@ -184,7 +183,7 @@ case class InstanceFieldDeclarationBlock(
 
 case class InstanceFieldDeclaration(
     typ: Type, 
-    nameID: Token, 
+    nameID: Token,
     annotations: IList[Annotation], 
     semi: Token) extends Field with Declaration {
   lazy val tokens = flatten(typ, nameID, annotations, semi)
@@ -300,7 +299,7 @@ case class CallStatement(
     annotations: IList[Annotation]) extends Statement {
   lazy val tokens = flatten(callToken, lhs, assignOP, invokeID, argClause, annotations)
   def typ: String = annotations.find { a => a.key == "type" }.get.value
-  def signature: String = annotations.find { a => a.key == "signature" }.get.value
+  def signature: Signature = Signature(annotations.find { a => a.key == "signature" }.get.value)
   def classDescriptor: String = annotations.find { a => a.key == "classDescriptor" }.get.value
   def isStatic: Boolean = typ == "static"
   def isVirtual: Boolean = typ == "virtual"
@@ -393,7 +392,8 @@ case class NameExpression(
     annotations: IList[Annotation]) extends Expression {
   lazy val tokens = flatten(nameID, annotations)
   def name: String = nameID.text
-  def isStatic: Boolean = name.contains("@@")
+  import org.sireum.jawa.sjc.lexer.Tokens._
+  def isStatic: Boolean = nameID.tokenType == STATIC_ID
 }
 
 case class IndexingExpression(

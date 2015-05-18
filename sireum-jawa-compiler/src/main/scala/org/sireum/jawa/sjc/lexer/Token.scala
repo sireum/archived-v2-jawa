@@ -39,6 +39,8 @@ case class Token(tokenType: TokenType, pos: RangePosition, rawtext: String) {
   
   def file: SourceFile = pos.source
   
+  def range: Range = Range(pos.start, pos.end - pos.start + 1)
+  
   def text: String = {
     tokenType match {
       case ID =>
