@@ -25,6 +25,7 @@ import org.sireum.jawa.util.StringFormConverter
 import org.sireum.jawa.util.SignatureParser
 import com.tinkerpop.blueprints.Vertex
 import org.sireum.jawa.alir.interProcedural.Callee
+import com.tinkerpop.blueprints.Edge
 
 class CallGraph {
   /**
@@ -74,6 +75,16 @@ class CallGraph {
     v
   }
   
+  private def addEdge(header: String, tg: TinkerGraph, source: Vertex, target: Vertex, typ: String): Edge = {
+    var e = tg.getEdge((source, target).hashCode())
+    if(e == null){
+      e = tg.addEdge((source, target).hashCode(), source, target, typ)
+      if(header != null && !header.isEmpty())
+        e.setProperty("header", header)
+    }
+    e
+  }
+  
   def toSimpleCallGraph(header: String, outpath: String, format: String) = {
     val fm = format match {
       case "GraphML" => TinkerGraph.FileType.GRAPHML
@@ -94,9 +105,7 @@ class CallGraph {
             calleeContext.setContext(callee, callee)
             val calleeNode = CGSimpleCallNode(calleeContext)
             val calleeV = addNode(header, scg, calleeNode)
-            val e = scg.addEdge((callerV, calleeV).hashCode(), callerV, calleeV, "calls")
-            if(header != null && !header.isEmpty())
-              e.setProperty("header", header)
+            addEdge(header, scg, callerV, calleeV, "calls")
         }
     }
     scg.shutdown()
@@ -160,23 +169,17 @@ class CallGraph {
                   case sen: ICFGEntryNode =>
                     val target = CGEntryNode(sen.context)
                     val targetV = addNode(header, dcg, target)
-                    val e = dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "calls")
-                    if(header != null && !header.isEmpty())
-                      e.setProperty("header", header)
+                    addEdge(header, dcg, sourceV, targetV, "calls")
                   case sen: ICFGExitNode =>
                     val target = CGExitNode(sen.context)
                     val targetV = addNode(header, dcg, target)
-                    val e = dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "leadsto")
-                    if(header != null && !header.isEmpty())
-                      e.setProperty("header", header)
+                    addEdge(header, dcg, sourceV, targetV, "leadsto")
                   case scn: ICFGCallNode =>
                     val callees: ISet[Callee] = scn.getCalleeSet
                     val calleesig: String = scn.getCalleeSig
                     val target = CGDetailCallNode(calleesig, callees, scn.context)
                     val targetV = addNode(header, dcg, target)
-                    val e = dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "leadsto")
-                    if(header != null && !header.isEmpty())
-                      e.setProperty("header", header)
+                    addEdge(header, dcg, sourceV, targetV, "leadsto")
                   case _ => throw new RuntimeException(s + " cannot be successor of " + cn + "!")
                 }
             }
@@ -190,17 +193,13 @@ class CallGraph {
                   case sen: ICFGExitNode =>
                     val target = CGExitNode(sen.context)
                     val targetV = addNode(header, dcg, target)
-                    val e = dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "leadsto")
-                    if(header != null && !header.isEmpty())
-                      e.setProperty("header", header)
+                    addEdge(header, dcg, sourceV, targetV, "leadsto")
                   case scn: ICFGCallNode =>
                     val callees: ISet[Callee] = scn.getCalleeSet
                     val calleesig: String = scn.getCalleeSig
                     val target = CGDetailCallNode(calleesig, callees, scn.context)
                     val targetV = addNode(header, dcg, target)
-                    val e = dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "leadsto")
-                    if(header != null && !header.isEmpty())
-                      e.setProperty("header", header)
+                    addEdge(header, dcg, sourceV, targetV, "leadsto")
                   case _ => throw new RuntimeException(s + " cannot be successor of " + en + "!")
                 }
             }
@@ -215,9 +214,7 @@ class CallGraph {
                     val calleesig: String = cn.getCalleeSig
                     val target = CGDetailCallNode(calleesig, callees, cn.context)
                     val targetV = addNode(header, dcg, target)
-                    val e = dcg.addEdge((sourceV, targetV).hashCode, sourceV, targetV, "return")
-                    if(header != null && !header.isEmpty())
-                      e.setProperty("header", header)
+                    addEdge(header, dcg, sourceV, targetV, "return")
                   case _ => throw new RuntimeException(s + " cannot be successor of " + en + "!")
                 }
                 

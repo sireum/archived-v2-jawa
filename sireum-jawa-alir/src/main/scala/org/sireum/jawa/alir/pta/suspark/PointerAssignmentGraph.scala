@@ -158,7 +158,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
   extends InterProceduralGraph[Node]
   with PAGConstraint{
   self=>
-    
+  private final val TITLE = "PointerAssignmentGraph"
   val pointsToMap = new PointsToMap
   
   private val processed: MMap[(JawaMethod, Context), Point with Method] = new HashMap[(JawaMethod, Context), Point with Method] with SynchronizedMap[(JawaMethod, Context), Point with Method]
@@ -522,8 +522,14 @@ class PointerAssignmentGraph[Node <: PtaNode]
   }
   
   def getDirectCallee(diff: ISet[Instance], pi: Point with Invoke): ISet[InstanceCallee] = {
-    val calleemethod = CallHandler.getDirectCalleeMethod(pi.sig)
-    diff.map(InstanceCallee(calleemethod, _))
+    try{
+      val calleemethod = CallHandler.getDirectCalleeMethod(pi.sig)
+      diff.map(InstanceCallee(calleemethod, _))
+    } catch {
+      case e: Throwable => 
+        err_msg_critical(TITLE, e.getMessage)
+        isetEmpty
+    }
   }
   
   def getStaticCallee(pi: Point with Invoke): StaticCallee = {
@@ -535,8 +541,12 @@ class PointerAssignmentGraph[Node <: PtaNode]
     val calleeSet: MSet[InstanceCallee] = msetEmpty
     diff.foreach{
       d =>
-        val p = CallHandler.getSuperCalleeMethod(pi.sig)
-        calleeSet += InstanceCallee(p, d)
+        try{
+          val p = CallHandler.getSuperCalleeMethod(pi.sig)
+          calleeSet += InstanceCallee(p, d)
+        } catch {
+          case e: Throwable => err_msg_critical(TITLE, e.getMessage)
+        }
     }
     calleeSet.toSet
   }
@@ -547,8 +557,12 @@ class PointerAssignmentGraph[Node <: PtaNode]
     val subSig = Center.getSubSigFromMethodSig(pi.sig)
     diff.foreach{
       d =>
-        val p = CallHandler.getVirtualCalleeMethod(d.typ, subSig)
-        calleeSet += InstanceCallee(p, d)
+        try{
+          val p = CallHandler.getVirtualCalleeMethod(d.typ, subSig)
+          calleeSet += InstanceCallee(p, d)
+        } catch {
+          case e: Throwable => err_msg_critical(TITLE, e.getMessage)
+        }
     }
     calleeSet.toSet
   }
