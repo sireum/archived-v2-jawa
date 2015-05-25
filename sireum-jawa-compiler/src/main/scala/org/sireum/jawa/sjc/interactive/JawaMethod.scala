@@ -18,6 +18,7 @@ import org.sireum.jawa.sjc.parser.MethodDeclaration
 import org.sireum.jawa.sjc.util.SourceFile
 import org.sireum.jawa.sjc.symtab.MethodSymbolTable
 import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.sjc.util.NoPosition
 
 /**
  * This class is an jawa representation of a pilar method. It can belong to JawaClass.
@@ -40,7 +41,7 @@ case class JawaMethod(declaringClass: JawaClass,
                       thisOpt: Option[String],
                       params: ISeq[(String, JawaType)], 
                       returnType: JawaType, 
-                      accessFlags: Int) extends JavaKnowledge with ResolveLevel {
+                      accessFlags: Int) extends JawaElement with JavaKnowledge with ResolveLevel {
   
   import JawaMethod._
   
@@ -125,16 +126,11 @@ case class JawaMethod(declaringClass: JawaClass,
 	 */
 	
 	def getReturnType: JawaType = this.returnType
-	
-	/**
-   * the access flags integer represent for this method
-   */
-  def getAccessFlags: Int = 0
   
   /**
    * exceptions thrown by this method
    */
-  protected val thrownExceptions: MSet[JawaClass] = msetEmpty
+  private[sjc] val thrownExceptions: MSet[JawaClass] = msetEmpty
   
   /**
    * Data structure to store all information about a catch clause
@@ -156,17 +152,7 @@ case class JawaMethod(declaringClass: JawaClass,
   /**
    * exception handlers
    */
-  protected val exceptionHandlers: MList[ExceptionHandler] = mlistEmpty
-  
-  /**
-   * represents if the method is unknown.
-   */
-  protected var unknown: Boolean = false
-  
-	/**
-	 * get access flag string
-	 */
-	def getAccessFlagString = AccessFlag.toString(getAccessFlags)
+  private[sjc] val exceptionHandlers: MList[ExceptionHandler] = mlistEmpty
 	
 	/**
 	 * retrieve code belong to this method
@@ -273,46 +259,6 @@ case class JawaMethod(declaringClass: JawaClass,
    * return true if this method is concrete which means it is not abstract nor native nor unknown
    */
   def isConcrete: Boolean = !isAbstract && !isNative && !isUnknown
-    
-  /**
-   * return true if this method is abstract
-   */
-  def isAbstract: Boolean = AccessFlag.isAbstract(this.accessFlags)
-  
-  /**
-   * return true if this method is native
-   */
-  def isNative: Boolean = AccessFlag.isNative(this.accessFlags)
-  
-  /**
-   * return true if this method is static
-   */
-  def isStatic: Boolean = AccessFlag.isStatic(this.accessFlags)
-  
-  /**
-   * return true if this method is private
-   */
-  def isPrivate: Boolean = AccessFlag.isPrivate(this.accessFlags)
-  
-  /**
-   * return true if this method is public
-   */
-  def isPublic: Boolean = AccessFlag.isPublic(this.accessFlags)
-  
-  /**
-   * return true if this method is protected
-   */
-  def isProtected: Boolean = AccessFlag.isProtected(this.accessFlags)
-  
-  /**
-   * return true if this method is final
-   */
-  def isFinal: Boolean = AccessFlag.isFinal(this.accessFlags)
-  
-  /**
-   * return true if this method is synchronized
-   */
-  def isSynchronized: Boolean = AccessFlag.isSynchronized(this.accessFlags)
   
   /**
    * return true if this method is synthetic
@@ -329,20 +275,55 @@ case class JawaMethod(declaringClass: JawaClass,
    */
   def isDeclaredSynchronized: Boolean = AccessFlag.isDeclaredSynchronized(this.accessFlags)
   
+  private var implements: Option[JawaMethod] = None
+  
+  private var overrides: Option[JawaMethod] = None
+  
+  private def setImplementsOrOverrides(m: JawaMethod) = {
+    if(m.isAbstract) this.implements = Some(m)
+    else this.overrides = Some(m)
+  }
+  
+  def getImplements: Option[JawaMethod] = {
+    if(this.implements.isDefined) this.implements
+    else {
+      computeImplementsOrOverrides(getDeclaringClass)
+      this.implements
+    }
+  }
+  
+  def getOverrides: Option[JawaMethod] = {
+    if(this.overrides.isDefined) this.overrides
+    else {
+      computeImplementsOrOverrides(getDeclaringClass)
+      this.overrides
+    }
+  }
+  
+  private def computeImplementsOrOverrides(clazz: JawaClass): Unit = {
+    clazz.getMethods foreach {
+      m =>
+        if(m.getSubSignature == this.getSubSignature){
+          setImplementsOrOverrides(m)
+          return
+        }
+    }
+    clazz.getSuperClass match{
+      case Some(s) => computeImplementsOrOverrides(s)
+      case None =>
+    }
+  }
+  
+  def isImplements: Boolean = {
+    getImplements.isDefined
+  }
+  
+  def isOverride: Boolean = getOverrides.isDefined
+  
   /**
    * return true if this method is main method
    */
   def isMain: Boolean = isPublic && isStatic && getSubSignature == "main:([Ljava/lang/string;)V"
-    
-  /**
-   * return false if this method is a special one with empty body. e.g. A.class
-   */
-  def isUnknown: Boolean = this.unknown
-  
-  /**
-   * set the reality of the method. e.g. for A.class we set the reality as false
-   */
-  def setUnknown = this.unknown = true
     
   /**
    * return true if this method is a class initializer or main function
@@ -359,7 +340,7 @@ case class JawaMethod(declaringClass: JawaClass,
     println("subSignature: " + getSubSignature)
     println("declaringClass: " + getDeclaringClass)
     println("paramTypes: " + getParamTypes)
-    println("accessFlags: " + getAccessFlagString)
+    println("accessFlags: " + getAccessFlagsStr)
     println("----------------------------")
   }
   

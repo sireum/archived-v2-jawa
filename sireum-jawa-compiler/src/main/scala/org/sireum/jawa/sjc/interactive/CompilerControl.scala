@@ -60,13 +60,11 @@ trait CompilerControl { self: Global =>
    *  Otherwise a new compilation unit is created, but not added to the set of loaded units.
    */
   def onUnitOf[T](source: SourceFile)(op: RichCompilationUnit => T): T = {
-    val rcu: RichCompilationUnit = unitOfFile.get(source.file) match {
+    val rcu: RichCompilationUnit = getCompilationUnit(source.file) match {
       case Some(r) => r
       case None =>
-        getCompilationUnitSymbolResult(source.file, ResolveLevel.BODY) match {
-          case Some(st) => RichCompilationUnit(st.unit, st)
-          case None => throw new RuntimeException() // TODO
-        }
+        val st = getCompilationUnitSymbolResult(source.file, ResolveLevel.BODY)
+        RichCompilationUnit(st.unit, st)
     }
     op(rcu)
   }

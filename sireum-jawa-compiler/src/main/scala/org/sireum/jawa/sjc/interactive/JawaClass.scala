@@ -27,11 +27,13 @@ import org.sireum.jawa.sjc.util.NoPosition
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */
-case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends JavaKnowledge with ResolveLevel {
+case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends JawaElement with JavaKnowledge with ResolveLevel {
   
   def this(global: Global, typ: ObjectType, accessStr: String) = {
     this(global, typ, AccessFlag.getAccessFlags(accessStr))
   }
+  
+  this.global.addClass(this)
   
   def getType: ObjectType = this.typ
   
@@ -83,18 +85,6 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
   protected var outerClass: JawaClass = null
   
   /**
-   * unknown means it's not available in our code repo
-   */
-  protected var unknown: Boolean = false
-  
-  def setUnknown = this.unknown = true
-  
-  /**
-   * return true if this class is unknown class
-   */
-  def isUnknown = this.unknown
-  
-  /**
    * return true if it's a child of given record
    */
   def isChildOf(typ : ObjectType): Boolean = {
@@ -115,16 +105,6 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
    * if the class is array type return true
    */
   def isArray: Boolean = getType.isArray
-	
-	/**
-	 * return the access flags for this class
-	 */
-	def getAccessFlags: Int = this.accessFlags
-	
-	/**
-	 * return the access flags for this class
-	 */
-	def getAccessFlagString: String = AccessFlag.toString(getAccessFlags)
 	
 	/**
 	 * return the number of fields declared in this class
@@ -504,41 +484,11 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
    * return true if this class is an interface
    */
   def isInterface: Boolean = AccessFlag.isInterface(this.accessFlags)
-	
-	/**
-   * return true if this class is abstract
-   */
-  def isAbstract: Boolean = AccessFlag.isAbstract(this.accessFlags)
   
   /**
    * return true if this class is concrete
    */
   def isConcrete: Boolean = !isInterface && !isAbstract
-  
-  /**
-   * return true if this class is public
-   */
-  def isPublic: Boolean = AccessFlag.isPublic(this.accessFlags)
-  
-  /**
-   * return true if this class is private
-   */
-  def isPrivate: Boolean = AccessFlag.isPrivate(this.accessFlags)
-  
-  /**
-   * return true if this class is protected
-   */
-  def isProtected: Boolean = AccessFlag.isProtected(this.accessFlags)
-  
-  /**
-   * return true if this class is final
-   */
-  def isFinal: Boolean = AccessFlag.isFinal(this.accessFlags)
-  
-  /**
-   * return true if this class is static
-   */
-  def isStatic: Boolean = AccessFlag.isStatic(this.accessFlags)
   
   /**
    * is this class an application class
@@ -628,7 +578,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
     println("superClass: " + getSuperClass)
     println("outerClass: " + getOuterClass)
     println("interfaces: " + getInterfaces)
-    println("accessFlags: " + getAccessFlagString)
+    println("accessFlags: " + getAccessFlagsStr)
     println("isLoaded: " + isLoaded)
     println("fields: " + getFields)
     println("methods: " + getMethods)

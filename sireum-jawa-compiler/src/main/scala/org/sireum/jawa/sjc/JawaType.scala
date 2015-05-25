@@ -13,10 +13,12 @@ package org.sireum.jawa.sjc
  */ 
 trait JawaType extends JavaKnowledge {
 	def typ: String
+  def name: String
 }
 
 final case class PrimitiveType(val typ: String) extends JawaType {
   require(isJavaPrimitive(this))
+  def name: String = typ
 }
 
 /**
@@ -52,6 +54,7 @@ final case class ObjectType(val typ: String, val dimensions: Int) extends JawaTy
  */ 
 final case class NullType() extends JawaType {
   def typ = "Null"
+  def name: String = typ
   override def toString: String = {
     val sb = new StringBuilder
     sb.append(typ)

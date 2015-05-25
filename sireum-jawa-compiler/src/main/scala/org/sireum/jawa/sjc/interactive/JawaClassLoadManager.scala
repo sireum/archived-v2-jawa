@@ -7,6 +7,7 @@ import org.sireum.jawa.sjc.ObjectType
 import org.sireum.jawa.sjc.io.AbstractFile
 import org.sireum.jawa.sjc.util.NoPosition
 import org.sireum.jawa.sjc.Signature
+import org.sireum.jawa.sjc.util.SourceFile
 
 trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveLevel { self: Global =>
   
@@ -171,17 +172,17 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
    * add class into Global
    */
   def addClass(ar: JawaClass) = {
-    if(containsClass(ar) && getClass(ar.getType).get.getResolvingLevel >= ar.getResolvingLevel) reporter.error(NoPosition, "duplicate class: " + ar.getName)
+    if(containsClass(ar) && ar.getResolvingLevel >= ar.getResolvingLevel) reporter.error(NoPosition, "duplicate class: " + ar.getName)
     else {
       removeClass(ar.getType)
       this.classes(ar.getType) = ar
       if(ar.isArray){
         ar.setSystemLibraryClass
-      } else if (JawaClasspathManager.containsClass(ar.getType)){
-        JawaClasspathManager.getFileType(ar.getType) match{
-          case JawaClasspathManager.ClassCategory.APPLICATION => ar.setApplicationClass
-          case JawaClasspathManager.ClassCategory.THIRD_PARTY_LIBRARY => ar.setThirdPartyLibraryClass
-          case JawaClasspathManager.ClassCategory.SYSTEM_LIBRARY => ar.setSystemLibraryClass
+      } else if (containsClassFile(ar.getType)){
+        getFileType(ar.getType) match{
+          case ClassCategory.APPLICATION => ar.setApplicationClass
+          case ClassCategory.THIRD_PARTY_LIBRARY => ar.setThirdPartyLibraryClass
+          case ClassCategory.SYSTEM_LIBRARY => ar.setSystemLibraryClass
         }
       } else {
         ar.setSystemLibraryClass
@@ -216,7 +217,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
   /**
    * current Global contains the given class or not
    */
-  def containsClass(ar: JawaClass) = ar.global == this
+  def containsClass(ar: JawaClass) = this.classes.contains(ar.typ)
   
   /**
    * current Global contains the given class or not
@@ -377,11 +378,30 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
   }
   
   /**
+   * resolve given class.
+   */
+  override def resolveClassFromSource(file: SourceFile, desiredLevel: ResolveLevel.Value): ISet[JawaClass] = {
+    this.synchronized{
+      super.resolveClassFromSource(file, desiredLevel)
+    }
+  }
+  
+  /**
+   * resolve given class.
+   */
+  def resolveClassFromSource(typ: ObjectType, file: SourceFile, desiredLevel: ResolveLevel.Value): JawaClass = {
+    this.synchronized{
+      val classes = resolveClassFromSource(file, desiredLevel)
+      classes.find { x => x.typ == typ }.get
+    }
+  }
+  
+  /**
    * softly resolve given class.
    */
   def softlyResolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): Option[JawaClass] = {
     this.synchronized{
-      if(JawaClasspathManager.containsClass(typ))
+      if(containsClass(typ))
         Some(resolveClass(typ, desiredLevel))
       else None
     }
@@ -496,8 +516,8 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
                 clazz.setOuterClass(outer)
                 if(!this.needToResolveOuterClass.contains(outer) || this.needToResolveExtends.contains(outer)) worklist += outer
               case None =>
-                if(JawaClasspathManager.containsClass(o)){
-                  val file = JawaClasspathManager.getClassFile(o)
+                if(containsClassFile(o)){
+                  val file = getClassFile(o)
                   files += file
                   tmpList += clazz
                 } else {
@@ -519,8 +539,8 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
                 else clazz.setSuperClass(parent)
                 if(!this.needToResolveExtends.contains(parent) || this.needToResolveOuterClass.contains(parent)) worklist += parent
               case None =>
-                if(JawaClasspathManager.containsClass(parType)){
-                  val file = JawaClasspathManager.getClassFile(parType)
+                if(containsClassFile(parType)){
+                  val file = getClassFile(parType)
                   files += file
                   tmpList += clazz
                 } else {
@@ -537,7 +557,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
       }
       worklist ++= tmpList
       if(!files.isEmpty) {
-        val st = getCompilationUnitsSymbolResult(this, files.toList, ResolveLevel.HIERARCHY)
+        val st = getCompilationUnitsSymbolResult(files.toList, ResolveLevel.HIERARCHY)
         st.compilationUnitSymbolTables foreach (resolveFromST(_, ResolveLevel.HIERARCHY, true))
       }
       files.clear()

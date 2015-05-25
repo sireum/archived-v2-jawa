@@ -20,10 +20,15 @@ class JawaCompilationUnitsSymbolTable extends CompilationUnitsSymbolTable with C
   def files: Iterable[AbstractFile] = tables.compilationUnitTable.keys
   def compilationUnits: Iterable[CompilationUnit] = tables.compilationUnitTable.values
   def compilationUnit(file: AbstractFile): CompilationUnit = tables.compilationUnitTable(file)
-  def compilationUnitSymbolTables: Iterable[CompilationUnitSymbolTable] = cuMap.values
-  def compilationUnitSymbolTable(file: AbstractFile): CompilationUnitSymbolTable = cuMap(file)
+  def compilationUnitSymbolTables: Iterable[CompilationUnitSymbolTable] = {
+    files foreach {
+      file => compilationUnitSymbolTable(file)
+    }
+    cuMap.values
+  }
+  def compilationUnitSymbolTable(file: AbstractFile): CompilationUnitSymbolTable = compilationUnitSymbolTableProducer(file)
   def compilationUnitSymbolTableProducer(file: AbstractFile) = {
-    assert(tables.compilationUnitAbsTable.contains(file))
+//    assume(tables.compilationUnitAbsTable.contains(file))
     cuMap.getOrElseUpdate(file, new JawaCompilationUnitSymbolTable(file, st))
   }
   def toCompilationUnitsSymbolTable: CompilationUnitsSymbolTable = this
@@ -44,10 +49,15 @@ class JawaCompilationUnitSymbolTable(val file: AbstractFile, cusst: CompilationU
   def classOrInterfaceTypes: Iterable[ObjectType] = tables.classOrInterfaceTable.keys
   def classOrInterfaces: Iterable[ClassOrInterfaceDeclaration] = tables.classOrInterfaceTable.values
   def classOrInterface(classOrInterfaceType: ObjectType): ClassOrInterfaceDeclaration = tables.classOrInterfaceTable(classOrInterfaceType)
-  def classOrInterfaceSymbolTables: Iterable[ClassOrInterfaceSymbolTable] = ciMap.values
+  def classOrInterfaceSymbolTables: Iterable[ClassOrInterfaceSymbolTable] = {
+    unit.topDecls foreach {
+      ci => classOrInterfaceSymbolTable(ci.typ)
+    }
+    ciMap.values
+  }
   def classOrInterfaceSymbolTable(classOrInterfaceType: ObjectType): ClassOrInterfaceSymbolTable = classOrInterfaceSymbolTableProducer(classOrInterfaceType)
   def classOrInterfaceSymbolTableProducer(classOrInterfaceType: ObjectType) = {
-    assert(tables.classOrInterfaceAbsTable.contains(classOrInterfaceType))
+//    assert(tables.classOrInterfaceAbsTable.contains(classOrInterfaceType))
     ciMap.getOrElseUpdate(classOrInterfaceType, new JawaClassOrInterfaceSymbolTable(classOrInterfaceType, st))
   }
   def toCompilationUnitSymbolTable: CompilationUnitSymbolTable = this
@@ -72,10 +82,15 @@ class JawaClassOrInterfaceSymbolTable(val classOrInterfaceType: ObjectType, cust
   def methodDecls: Iterable[MethodDeclaration] = tables.methodTable.values
   def methodDecl(methodSig: Signature): MethodDeclaration = tables.methodTable(methodSig)
   val mtMap = mmapEmpty[Signature, JawaMethodSymbolTable]
-  def methodSymbolTables: Iterable[MethodSymbolTable] = mtMap.values
+  def methodSymbolTables: Iterable[MethodSymbolTable] = {
+    classOrInterfaceDecl.methods foreach {
+      m => methodSymbolTable(m.signature)
+    }
+    mtMap.values
+  }
   def methodSymbolTable(methodSig: Signature): MethodSymbolTable = methodSymbolTableProducer(methodSig)
   def methodSymbolTableProducer(methodSig: Signature) = {
-    assert(tables.methodAbsTable.contains(methodSig))
+//    assert(tables.methodAbsTable.contains(methodSig))
     mtMap.getOrElseUpdate(methodSig, new JawaMethodSymbolTable(methodSig, st))
   }
 }

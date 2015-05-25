@@ -71,8 +71,11 @@ class Global(val projectName: String, val reporter: Reporter) extends {
         getParsedEnteredNow(source, response)
       case None =>
         try {
-          if (keepLoaded || isOutOfDate && onSameThread)
-            getCompilationUnitSymbolResult(this, source.file, ResolveLevel.BODY)
+          if (keepLoaded || isOutOfDate && onSameThread){
+            respond(response){
+              getCompilationUnitSymbolResult(source.file, ResolveLevel.BODY).unit
+            }
+          }
         } finally {
           if (keepLoaded || !isOutOfDate || onSameThread)
             getParsedEnteredNow(source, response)
@@ -158,7 +161,7 @@ class Global(val projectName: String, val reporter: Reporter) extends {
 
   private[interactive] def reloadSource(source: SourceFile) {
     removeCompilationUnit(source.file)
-    getCompilationUnitSymbolResult(this, source.file, ResolveLevel.BODY)
+    getCompilationUnitSymbolResult(source.file, ResolveLevel.BODY)
   }
 
   /** Make sure a set of compilation units is loaded and parsed */

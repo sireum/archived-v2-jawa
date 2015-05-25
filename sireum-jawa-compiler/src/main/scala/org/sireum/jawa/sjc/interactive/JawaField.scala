@@ -22,7 +22,7 @@ import org.sireum.jawa.sjc.JawaType
  * @param accessFlags access flags of this field
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-case class JawaField(declaringClass: JawaClass, name: String, typ: JawaType, accessFlags: Int) extends JavaKnowledge {
+case class JawaField(declaringClass: JawaClass, name: String, typ: JawaType, accessFlags: Int) extends JawaElement with JavaKnowledge {
   import JawaField._
 	
   /**
@@ -51,42 +51,12 @@ case class JawaField(declaringClass: JawaClass, name: String, typ: JawaType, acc
    */
   def getType: JawaType = typ
 	
-  def getAccessFlags: Int = this.accessFlags
-  
-	/**
-	 * get field access flags in text form
-	 */
-	def getAccessFlagsStr: String = AccessFlag.toString(this.accessFlags)
-	
-	/**
-	 * return true if the field is public
-	 */
-	def isPublic: Boolean = AccessFlag.isPublic(this.accessFlags)
-	
-	/**
-	 * return true if the field is protected
-	 */
-	def isProtected: Boolean = AccessFlag.isProtected(this.accessFlags)
-	
-	/**
-	 * return true if the field is private
-	 */
-	def isPrivate: Boolean = AccessFlag.isPrivate(this.accessFlags)
-	
-	/**
-	 * return true if the field is static
-	 */
-	def isStatic: Boolean = AccessFlag.isStatic(this.accessFlags)
-	
-	/**
-	 * return true if the field is final
-	 */
-	def isFinal: Boolean = AccessFlag.isFinal(this.accessFlags)
-	
 	/**
 	 * return true if the field is object type
 	 */
 	def isObject: Boolean = !isJavaPrimitive(typ)
+  
+  def isConcrete: Boolean = true
 	
 	override def toString(): String = FQN
 	

@@ -32,13 +32,14 @@ import org.sireum.jawa.sjc.symtab.MethodSymbolTableProducer
 import org.sireum.jawa.sjc.symtab.SymbolTableHelper
 import org.sireum.jawa.sjc.io.AbstractFile
 import org.sireum.jawa.sjc.util.NoPosition
+import org.sireum.jawa.sjc.util.SourceFile
 
 /**
  * this object collects info from the symbol table and builds Global, JawaClass, and JawaMethod
  *
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
+trait JawaResolver extends JawaClasspathManager with JavaKnowledge with ResolveLevel {self: Global =>
   
   val DEBUG: Boolean = false
   private final val TITLE: String = "JawaResolver"
@@ -56,30 +57,30 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
     paopt map{pa => pa.asInstanceOf[ResolvedBody]}
   }
     
-  def getCompilationUnitsSymbolResult(rcu: RichCompilationUnits, sources: ISeq[AbstractFile], desiredLevel: ResolveLevel.Value): CompilationUnitsSymbolTable = {
+  def getCompilationUnitsSymbolResult(sources: ISeq[AbstractFile], desiredLevel: ResolveLevel.Value): CompilationUnitsSymbolTable = {
     val changedOrDelatedFiles: ISet[AbstractFile] = sources.toSet
     val resolveBody: Boolean = desiredLevel match{case ResolveLevel.BODY => true; case _ => false}
     val newCUs: MList[CompilationUnit] = mlistEmpty
     sources.foreach(s => parseCode[CompilationUnit](s, resolveBody).foreach(newCUs += _))
     val delta: JawaDelta = JawaDelta(changedOrDelatedFiles, newCUs.toList)
-    JawaCompilationUnitsSymbolTableBuilder(rcu, delta, fst, true)
+    JawaCompilationUnitsSymbolTableBuilder(this, delta, fst, true)
   }
   
-  def getCompilationUnitSymbolResult(rcu: RichCompilationUnits, source: AbstractFile, desiredLevel: ResolveLevel.Value): CompilationUnitSymbolTable = {
-    val cst = getCompilationUnitsSymbolResult(rcu, List(source), desiredLevel)
+  def getCompilationUnitSymbolResult(source: AbstractFile, desiredLevel: ResolveLevel.Value): CompilationUnitSymbolTable = {
+    val cst = getCompilationUnitsSymbolResult(List(source), desiredLevel)
     cst.compilationUnitSymbolTable(source)
   }
   
-  def getCompilationUnitSymbolResult(source: AbstractFile, desiredLevel: ResolveLevel.Value): Option[CompilationUnitSymbolTable] = {
-    val resolveBody = desiredLevel match {
-      case ResolveLevel.BODY => true
-      case _ => false
-    }
-    JawaParser.parse[CompilationUnit](Right(source), resolveBody, reporter) map{
-      cu => 
-        JawaCompilationUnitsSymbolTableBuilder(List(cu), fst, true).compilationUnitSymbolTable(source)
-    }
-  }
+//  def getCompilationUnitSymbolResult(source: AbstractFile, desiredLevel: ResolveLevel.Value): Option[CompilationUnitSymbolTable] = {
+//    val resolveBody = desiredLevel match {
+//      case ResolveLevel.BODY => true
+//      case _ => false
+//    }
+//    JawaParser.parse[CompilationUnit](Right(source), resolveBody, reporter) map{
+//      cu => 
+//        JawaCompilationUnitsSymbolTableBuilder(List(cu), fst, true).compilationUnitSymbolTable(source)
+//    }
+//  }
   
   /**
    * resolve the given method's body to BODY level. 
@@ -96,7 +97,7 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
    * resolve the given classes to desired level. 
    */
   def tryResolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): Option[JawaClass] = {
-    if(JawaClasspathManager.containsClass(typ)){
+    if(containsClassFile(typ)){
 	    val r = desiredLevel match{
 	      case ResolveLevel.BODY => resolveToBody(typ)
 	      case ResolveLevel.HIERARCHY => resolveToHierarchy(typ)
@@ -111,14 +112,11 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
    * resolve the given classes to desired level. 
    */
   def resolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): JawaClass = {
-    if(!typ.isArray && !JawaClasspathManager.containsClass(typ)){
+    if(!typ.isArray && !containsClassFile(typ)){
       if(!containsClass(typ) || getClass(typ).get.getResolvingLevel < desiredLevel){
 	      val rec = JawaClass(this, typ, 0)
 	      rec.setUnknown
 	      rec.setResolvingLevel(desiredLevel)
-	      removeClass(typ)
-	      addClass(rec)
-//	      msg_detail(TITLE, "add phantom class " + rec)
 	      rec
       } else getClass(typ).get
     } else {
@@ -127,6 +125,17 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
 	      case ResolveLevel.HIERARCHY => resolveToHierarchy(typ)
 	    }
     }
+  }
+  
+  /**
+   * resolve the given classes to desired level. 
+   */
+  def resolveClassFromSource(source: SourceFile, desiredLevel: ResolveLevel.Value): ISet[JawaClass] = {
+    val st = getCompilationUnitSymbolResult(source.file, desiredLevel)
+    val tpes = source.getClassTypes(reporter)
+    tpes foreach{removeClass(_)}
+    resolveFromST(st, desiredLevel, true)
+    tpes map{tpe => getClass(tpe).get}
   }
   
   /**
@@ -154,8 +163,8 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
     if(typ.isArray){
       resolveArrayClass(typ)
     } else {
-	    val file = JawaClasspathManager.getClassFile(typ)
-	    val st = getCompilationUnitSymbolResult(this, file, ResolveLevel.HIERARCHY)
+	    val file = getClassFile(typ)
+	    val st = getCompilationUnitSymbolResult(file, ResolveLevel.HIERARCHY)
 	    removeClass(typ)
 	    resolveFromST(st, ResolveLevel.HIERARCHY, true)
     }
@@ -167,14 +176,14 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
    */
   def resolveToBody(typ: ObjectType): JawaClass = {
     if(!containsClass(typ)) forceResolveToBody(typ)
-    else if(getClass(typ).get.getResolvingLevel < ResolveLevel.BODY) escalateReolvingLevel(getClass(typ).get, ResolveLevel.BODY)
+    else if(getClass(typ).get.getResolvingLevel < ResolveLevel.BODY) escalateResolvingLevel(getClass(typ).get, ResolveLevel.BODY)
     else getClass(typ).get
   }
   
   /**
    * escalate resolving level
    */
-  private def escalateReolvingLevel(rec: JawaClass, desiredLevel: ResolveLevel.Value): JawaClass = {
+  private def escalateResolvingLevel(rec: JawaClass, desiredLevel: ResolveLevel.Value): JawaClass = {
     require(rec.getResolvingLevel < desiredLevel)
     if(desiredLevel == ResolveLevel.BODY){
 //      rec.getMethods.foreach(_.tryResolveBody)
@@ -190,8 +199,8 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
     if(typ.isArray){
       resolveArrayClass(typ)
     } else {
-	    val file = JawaClasspathManager.getClassFile(typ)
-	    val st = getCompilationUnitSymbolResult(this, file, ResolveLevel.BODY)
+	    val file = getClassFile(typ)
+	    val st = getCompilationUnitSymbolResult(file, ResolveLevel.BODY)
 	    removeClass(typ)
 	    resolveFromST(st, ResolveLevel.BODY, true)
     }
@@ -207,7 +216,7 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
       	"FINAL_PUBLIC"
 	    } else {
 	      val base = resolveClass(new ObjectType(typ.typ), ResolveLevel.HIERARCHY)
-	      val baseaf = base.getAccessFlagString
+	      val baseaf = base.getAccessFlagsStr
 	      if(baseaf.contains("FINAL")) baseaf else "FINAL_" + baseaf
 	    }
     val clazz: JawaClass = JawaClass(this, typ, AccessFlag.getAccessFlags(classAccessFlag))
@@ -251,7 +260,6 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
 	      clazz.setResolvingLevel(level)
 	      clazz
 	  }.toSet
-	  classes.foreach(addClass(_))
 	  resolveClassesRelationWholeProgram
 	  // now we generate a special Jawa Method for each class; this proc would represent the const-class operation
 	  classes.foreach{
@@ -310,5 +318,5 @@ trait JawaResolver extends JavaKnowledge with ResolveLevel {self: Global =>
 	      }
 	  }
 	}
-	
+  
 }

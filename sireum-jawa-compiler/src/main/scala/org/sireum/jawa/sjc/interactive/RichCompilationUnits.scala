@@ -11,7 +11,7 @@ import org.sireum.jawa.sjc.io.AbstractFile
 import org.sireum.jawa.sjc.symtab.CompilationUnitSymbolTable
 
 trait RichCompilationUnits { self: Global =>
-  val unitOfFile = new LinkedHashMap[AbstractFile, RichCompilationUnit] with
+  private val unitOfFile = new LinkedHashMap[AbstractFile, RichCompilationUnit] with
                        SynchronizedMap[AbstractFile, RichCompilationUnit] {
     override def put(key: AbstractFile, value: RichCompilationUnit) = {
       val r = super.put(key, value)
@@ -31,6 +31,8 @@ trait RichCompilationUnits { self: Global =>
   def removeCompilationUnit(file: AbstractFile) = this.unitOfFile.remove(file)
   def getCompilationUnits: IMap[AbstractFile, RichCompilationUnit] = this.unitOfFile.toMap
   def getCompilationUnit(file: AbstractFile): Option[RichCompilationUnit] = this.unitOfFile.get(file)
+  def hasCompilationUnit(file: AbstractFile): Boolean = this.unitOfFile.contains(file)
+  def managedFiles: ISet[AbstractFile] = this.unitOfFile.keySet.toSet
   def getSymbolTable: JawaCompilationUnitsSymbolTable = this.symbolTable
   
   case class RichCompilationUnit(cu: CompilationUnit, cust: CompilationUnitSymbolTable) {

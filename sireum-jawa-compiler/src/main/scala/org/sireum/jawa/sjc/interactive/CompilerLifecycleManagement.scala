@@ -13,6 +13,7 @@ import scala.annotation.elidable
 import org.sireum.jawa.sjc.parser.CompilationUnit
 import org.sireum.jawa.sjc.ResolveLevel
 import scala.collection.mutable
+import org.sireum.jawa.sjc.util.DefaultLibraryAPISummary
 
 trait CompilerLifecycleManagement {global: Global =>
   private final val SleepTime = 10
@@ -140,7 +141,7 @@ trait CompilerLifecycleManagement {global: Global =>
         nodeWithWork() match {
           case Some(WorkEvent(id, _)) =>
             debugLog("some work at node "+id+" current = "+nodesSeen)
-          moreWorkAtNode = id
+            moreWorkAtNode = id
           case None =>
         }
 
@@ -245,11 +246,11 @@ trait CompilerLifecycleManagement {global: Global =>
     reporter.reset()
 
     // remove any files in first that are no longer maintained by presentation compiler (i.e. closed)
-    allSources = allSources filter (s => unitOfFile contains (s.file))
+    allSources = allSources filter (s => hasCompilationUnit(s.file))
 
     // ensure all loaded units are parsed
     for (s <- allSources) {
-      getCompilationUnitSymbolResult(this, s.file, ResolveLevel.BODY)
+      getCompilationUnitSymbolResult(s.file, ResolveLevel.BODY)
       serviceParsedEntered()
     }
 
@@ -288,5 +289,21 @@ trait CompilerLifecycleManagement {global: Global =>
   def moveToFront(fs: List[SourceFile]) {
     allSources = fs ::: (allSources diff fs)
   }
+  
+  /** Start the compiler background thread and turn on thread confinement checks */
+  private def finishInitialization(): Unit = {
+    // this flag turns on `assertCorrectThread checks`
+    initializing = false
+
+    // Only start the thread if initialization was successful. A crash while forcing symbols (for example
+    // if the Scala library is not on the classpath) can leave running threads behind. See Scala IDE #1002016
+    compileRunner.start()
+  }
+
+  /** The compiler has been initialized. Constructors are evaluated in textual order,
+   *  if we reached here, all super constructors and the primary constructor
+   *  have been executed.
+   */
+  finishInitialization()
 
 }

@@ -7,7 +7,7 @@ import org.sireum.jawa.sjc.util.NoPosition
  *
  */
 final class PresentationCompilerThread(var compiler: Global, name: String = "")
-  extends Thread("Scala Presentation Compiler [" + name + "]") {
+  extends Thread("Jawa Presentation Compiler [" + name + "]") {
 
   /** The presentation compiler loop.
    */

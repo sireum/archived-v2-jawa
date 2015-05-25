@@ -60,12 +60,13 @@ object SymbolTableHelper {
       extends StpWrapper(stp) {
     def mine(cu: CompilationUnit) = {
       val file = cu.firstToken.file.file
+      stp.compilationUnitSymbolTableProducer(file)
       val cut = tables.compilationUnitTable
       cut.get(file) match {
         case Some(other) =>
           reportRedeclaration(file.toString(), cu.firstToken, DUPLICATE_CU, other)
         case _ =>
-          cut(file) = cu
+          cut(file) = cu          
           tables.compilationUnitAbsTable(file) = CompilationUnitSymbolTableData()
       }
       compilationUnit(file, cu)
@@ -93,6 +94,7 @@ object SymbolTableHelper {
     
     private def classOrInterfaceSymbol(file: AbstractFile, classOrInterfaceDeclaration: ClassOrInterfaceDeclaration) = {
       val typ = classOrInterfaceDeclaration.typ
+      stp.compilationUnitSymbolTableProducer(file).classOrInterfaceSymbolTableProducer(typ)
       val ct = tables.compilationUnitAbsTable(file).classOrInterfaceTable
       ct.get(typ) match {
         case Some(other) =>
@@ -127,6 +129,7 @@ object SymbolTableHelper {
     private def methodSymbol(file: AbstractFile, classOrInterfaceType: ObjectType, methodDeclaration: MethodDeclaration) = {
       val methodSig = methodDeclaration.signature
       val ct = tables.compilationUnitAbsTable(file).classOrInterfaceAbsTable(classOrInterfaceType)
+      stp.compilationUnitSymbolTableProducer(file).classOrInterfaceSymbolTableProducer(classOrInterfaceType).methodSymbolTableProducer(methodSig)
       val mt = ct.methodTable
       mt.get(methodSig) match {
         case Some(other) =>
@@ -239,6 +242,7 @@ object SymbolTableHelper {
       { x: CompilationUnit => x.firstToken }, DUPLICATE_CU + OF_FILE)
 
     tables1.compilationUnitAbsTable ++= tables2.compilationUnitAbsTable
+    tables1.asInstanceOf[JawaCompilationUnitsSymbolTable].cuMap ++= tables2.asInstanceOf[JawaCompilationUnitsSymbolTable].cuMap
     stp1
   }
   

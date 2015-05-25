@@ -22,9 +22,9 @@ import org.sireum.jawa.sjc.io.PlainDirectory
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-object JawaClasspathManager extends JavaKnowledge with ResolveLevel {
+trait JawaClasspathManager extends JavaKnowledge with ResolveLevel {
   
-  final val TITLE = "JawaClasspathManager"
+  private final val TITLE = "JawaClasspathManager"
   
   object ClassCategory extends Enumeration {
     val APPLICATION, THIRD_PARTY_LIBRARY, SYSTEM_LIBRARY = Value
@@ -187,7 +187,7 @@ object JawaClasspathManager extends JavaKnowledge with ResolveLevel {
 	/**
 	 * contains given record or not?
 	 */
-	def containsClass(typ: ObjectType): Boolean = this.applicationClassFiles.contains(typ) || this.thirdPartyLibraryClassFiles.contains(typ) || this.systemLibraryClassFiles.contains(typ)
+	def containsClassFile(typ: ObjectType): Boolean = this.applicationClassFiles.contains(typ) || this.thirdPartyLibraryClassFiles.contains(typ) || this.systemLibraryClassFiles.contains(typ)
 	
 	/**
 	 * print all content

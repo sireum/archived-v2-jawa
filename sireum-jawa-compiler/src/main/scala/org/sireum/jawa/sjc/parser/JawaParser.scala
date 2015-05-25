@@ -194,13 +194,12 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) {
     } else {
       val bodytokens: MList[Token] = mlistEmpty
       var stop: Boolean = false
-      do{
-        bodytokens += nextToken
-        val ahead = lookahead(1)
-        stop = ahead == EOF || ahead == METHOD || ahead == CLASS_OR_INTERFACE
+      do {
+        bodytokens += nextToken()
+        stop = currentTokenType == EOF || currentTokenType == METHOD || currentTokenType == CLASS_OR_INTERFACE
       } while (!stop)
       UnresolvedBody(bodytokens.toList)
-    }
+    } 
   }
   
   private def localVarDeclarations(): IList[LocalVarDeclaration] = {

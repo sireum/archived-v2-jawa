@@ -171,6 +171,15 @@ trait JavaKnowledge {
    * get class name from field signature. e.g. java.lang.Throwable.stackState -> java.lang.Throwable
    * [Ljava.lang.String;.length -> [Ljava.lang.String;
    */
+  def getClassTypeFromFieldFQN(fqn: String): ObjectType = {
+    val cn = getClassNameFromFieldFQN(fqn)
+    getTypeFromName(cn).asInstanceOf[ObjectType]
+  }
+  
+  /**
+   * get class name from field signature. e.g. java.lang.Throwable.stackState -> java.lang.Throwable
+   * [Ljava.lang.String;.length -> [Ljava.lang.String;
+   */
   def getClassNameFromFieldFQN(fqn: String): String = {
     if(!isValidFieldFQN(fqn)) throw new RuntimeException("given field signature is not a valid form: " + fqn)
     fqn.substring(0, fqn.lastIndexOf('.'))
@@ -228,4 +237,5 @@ trait JavaKnowledge {
   
   def constructorName: String = "<init>"
   def staticInitializerName: String = "<clinit>"
+  def isJawaConstructor(name: String) = name == constructorName || name == staticInitializerName
 }
