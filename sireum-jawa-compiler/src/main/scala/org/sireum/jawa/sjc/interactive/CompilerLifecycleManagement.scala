@@ -119,7 +119,7 @@ trait CompilerLifecycleManagement {global: Global =>
   /** Called from runner thread and signalDone:
    *  Poll for interrupts and execute them immediately.
    *  Then, poll for exceptions and execute them.
-   *  Then, poll for work reload/typedTreeAt/doFirst commands during background checking.
+   *  Then, poll for work reload/doFirst commands during background checking.
    *  @param pos   The position of the tree if polling while typechecking, NoPosition otherwise
    *
    */

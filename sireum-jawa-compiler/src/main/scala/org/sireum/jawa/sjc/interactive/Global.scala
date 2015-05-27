@@ -161,7 +161,7 @@ class Global(val projectName: String, val reporter: Reporter) extends {
   private[interactive] def reloadSource(source: SourceFile) {
     removeCompilationUnit(source.file)
     val cu = parseCode[CompilationUnit](source.file, true).get
-    
+    addCompilationUnit(source.file, RichCompilationUnit(cu))
   }
 
   /** Make sure a set of compilation units is loaded and parsed */
