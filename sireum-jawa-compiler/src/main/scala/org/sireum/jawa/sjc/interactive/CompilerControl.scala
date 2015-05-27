@@ -63,8 +63,8 @@ trait CompilerControl { self: Global =>
     val rcu: RichCompilationUnit = getCompilationUnit(source.file) match {
       case Some(r) => r
       case None =>
-        val st = getCompilationUnitSymbolResult(source.file, ResolveLevel.BODY)
-        RichCompilationUnit(st.unit, st)
+        val cu = parseCode[CompilationUnit](source.file, false).get
+        RichCompilationUnit(cu)
     }
     op(rcu)
   }

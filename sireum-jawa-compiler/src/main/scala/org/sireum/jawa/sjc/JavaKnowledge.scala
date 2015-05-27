@@ -7,7 +7,7 @@ import org.sireum.jawa.sjc.interactive.JawaClass
 trait JavaKnowledge {
   def JAVA_TOPLEVEL_OBJECT: String = "java.lang.Object"
   def JAVA_TOPLEVEL_OBJECT_TYPE: ObjectType = ObjectType(JAVA_TOPLEVEL_OBJECT, 0)
-  def JAVA_PRIMITIVES = Set("byte", "short", "int", "long", "float", "double", "boolean", "char")
+  def JAVA_PRIMITIVES = Set("byte", "short", "int", "long", "float", "double", "boolean", "char", "void")
   /**
    * return whether given type is java primitive type
    */
@@ -31,7 +31,8 @@ trait JavaKnowledge {
       case "boolean" => assign("Z", d, "[", true)
       case "void" =>    "V"
       case _ =>
-        assign("L" + typ.typ + ";", d, "[", true)
+        if(d <= 0) typ.typ
+        else assign("L" + typ.typ + ";", d, "[", true)
     }
   }
   
@@ -213,6 +214,7 @@ trait JavaKnowledge {
         sb.append(method.formatTypeToSignature(pt))
       }
     }
+    sb.append(")")
     sb.append(method.formatTypeToSignature(rt))
     sb.toString().intern()
   }

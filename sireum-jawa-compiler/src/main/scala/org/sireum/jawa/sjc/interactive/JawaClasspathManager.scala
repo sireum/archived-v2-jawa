@@ -22,7 +22,7 @@ import org.sireum.jawa.sjc.io.PlainDirectory
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-trait JawaClasspathManager extends JavaKnowledge with ResolveLevel {
+trait JawaClasspathManager extends JavaKnowledge {
   
   private final val TITLE = "JawaClasspathManager"
   

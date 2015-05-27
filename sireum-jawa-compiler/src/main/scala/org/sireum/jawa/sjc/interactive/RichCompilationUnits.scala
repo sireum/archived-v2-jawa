@@ -2,13 +2,10 @@ package org.sireum.jawa.sjc.interactive
 
 import org.sireum.util._
 import org.sireum.jawa.sjc.parser.CompilationUnit
-import org.sireum.jawa.sjc.symtab.CompilationUnitsSymbolTable
-import org.sireum.jawa.sjc.symtab.JawaCompilationUnitsSymbolTable
 import scala.collection.mutable.LinkedHashMap
 import scala.collection.mutable.SynchronizedMap
 import org.sireum.jawa.sjc.util.SourceFile
 import org.sireum.jawa.sjc.io.AbstractFile
-import org.sireum.jawa.sjc.symtab.CompilationUnitSymbolTable
 
 trait RichCompilationUnits { self: Global =>
   private val unitOfFile = new LinkedHashMap[AbstractFile, RichCompilationUnit] with
@@ -22,7 +19,6 @@ trait RichCompilationUnits { self: Global =>
       r
     }
   }
-  private val symbolTable: JawaCompilationUnitsSymbolTable = new JawaCompilationUnitsSymbolTable
   
   def addCompilationUnit(file: AbstractFile, rcu: RichCompilationUnit) = this.unitOfFile.put(file, rcu)
   def addCompilationUnits(rcus: ISeq[RichCompilationUnit]) = {
@@ -33,9 +29,8 @@ trait RichCompilationUnits { self: Global =>
   def getCompilationUnit(file: AbstractFile): Option[RichCompilationUnit] = this.unitOfFile.get(file)
   def hasCompilationUnit(file: AbstractFile): Boolean = this.unitOfFile.contains(file)
   def managedFiles: ISet[AbstractFile] = this.unitOfFile.keySet.toSet
-  def getSymbolTable: JawaCompilationUnitsSymbolTable = this.symbolTable
   
-  case class RichCompilationUnit(cu: CompilationUnit, cust: CompilationUnitSymbolTable) {
+  case class RichCompilationUnit(cu: CompilationUnit) {
     /** The problems reported for this unit */
     val problems: MList[Problem] = mlistEmpty
   }

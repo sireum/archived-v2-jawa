@@ -39,9 +39,7 @@ trait ResolveLevel {
   /**
    * set resolving level
    */
-  def setResolvingLevel(level: ResolveLevel.Value) = {
-    this.resolvingLevel = level
-  }
+  def setResolvingLevel(level: ResolveLevel.Value)
 }
 
 /**

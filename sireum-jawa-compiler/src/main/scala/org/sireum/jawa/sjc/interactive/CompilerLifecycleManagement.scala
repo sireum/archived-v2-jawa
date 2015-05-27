@@ -250,7 +250,6 @@ trait CompilerLifecycleManagement {global: Global =>
 
     // ensure all loaded units are parsed
     for (s <- allSources) {
-      getCompilationUnitSymbolResult(s.file, ResolveLevel.BODY)
       serviceParsedEntered()
     }
 

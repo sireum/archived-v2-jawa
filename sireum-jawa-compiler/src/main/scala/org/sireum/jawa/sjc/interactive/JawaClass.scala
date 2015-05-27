@@ -79,6 +79,8 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
    */
   protected var superClass: JawaClass = null
   
+  protected val unknownParents: MMap[String, JawaClass] = mmapEmpty
+  
   /**
    * outer class of this class
    */
@@ -200,8 +202,8 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
 	 */
 	def addField(field: JawaField) = {
     val fieldName = field.getName
-	  if(declaresField(fieldName)) throw new RuntimeException("already declared: " + field.getName)
-	  this.fields(fieldName) = field
+	  if(declaresField(fieldName)) global.reporter.error(NoPosition, "Field " + fieldName + " in class " + getName)
+    else this.fields(fieldName) = field
 	}
 	
   /**
@@ -235,7 +237,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
 	    case Some(f) => Some(f)
 	    case None => 
         if(isUnknown){
-          Some(new JawaField(this, name, new ObjectType(JAVA_TOPLEVEL_OBJECT), AccessFlag.getAccessFlags("PUBLIC")))
+          Some(JawaField(this, name, new ObjectType(JAVA_TOPLEVEL_OBJECT), AccessFlag.getAccessFlags("PUBLIC")))
         } else {
           global.reporter.error(NoPosition, "No field " + name + " in class " + getName)
           None
@@ -451,6 +453,13 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
 	def setSuperClass(sc: JawaClass) = {
 	  this.superClass = sc
 	}
+  
+  def addUnknownParent(up: JawaClass) = {
+    if(up.isLoaded) global.reporter.error(NoPosition, "The parent class is loaded, so there are no reason to be unknown:" + up)
+    else this.unknownParents(up.getName) = up
+  }
+  
+  def getUnknownParents: ISet[JawaClass] = this.unknownParents.map(_._2).toSet
 	
 	/**
 	 * whether the current class has an outer class or not
@@ -562,6 +571,13 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
 	 */
 	def retrieveCode: String = getAST.toCode
 	
+  /**
+   * set resolving level. Don't set by yourself.
+   */
+  def setResolvingLevel(level: ResolveLevel.Value) = {
+    this.resolvingLevel = level
+  }
+  
 	/**
 	 * update resolving level for current class
 	 */

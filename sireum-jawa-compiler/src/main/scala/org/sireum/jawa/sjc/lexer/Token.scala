@@ -43,7 +43,7 @@ case class Token(tokenType: TokenType, pos: RangePosition, rawtext: String) {
   
   def text: String = {
     tokenType match {
-      case ID =>
+      case STATIC_ID | ID =>
         rawtext.replace("`", "")
       case _ => rawtext
     }

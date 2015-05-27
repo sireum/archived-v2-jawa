@@ -16,7 +16,6 @@ import org.sireum.jawa.sjc.ResolveLevel
 import org.sireum.jawa.sjc.ObjectType
 import org.sireum.jawa.sjc.parser.MethodDeclaration
 import org.sireum.jawa.sjc.util.SourceFile
-import org.sireum.jawa.sjc.symtab.MethodSymbolTable
 import org.sireum.jawa.sjc.io.AbstractFile
 import org.sireum.jawa.sjc.util.NoPosition
 
@@ -58,6 +57,8 @@ case class JawaMethod(declaringClass: JawaClass,
   require(!this.name.isEmpty())
   require(!(isStatic || isNative) && this.thisOpt.isDefined)
   
+  private val signature: Signature = generateSignature(this)
+  
   def getDeclaringClass: JawaClass = this.declaringClass
   
   getDeclaringClass.addMethod(this)
@@ -66,8 +67,28 @@ case class JawaMethod(declaringClass: JawaClass,
 	 * name of the method. e.g. equals
 	 */
 	def getName: String = name
-	
-  private val signature: Signature = generateSignature(this)
+  
+  /**
+   * display this method. e.g. isInteresting(IClassFile)
+   */
+  def getDisplay: String = {
+    val sb = new StringBuilder
+    sb.append(getName)
+    sb.append("(")
+    var i = 0
+    getParamTypes foreach {
+      tpe =>
+        if(i == 0){
+          sb.append(tpe.simpleName)
+        } else {sb.append(", " + tpe.simpleName)}
+        i += 1
+    }
+    sb.append(") : ")
+    sb.append(getReturnType.simpleName)
+    sb.toString().intern()
+  }
+  
+  def getFullName: String = getDeclaringClass.getType.name + "." + getName
   
 	/**
 	 * signature of the method. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
@@ -181,14 +202,19 @@ case class JawaMethod(declaringClass: JawaClass,
     val global = getDeclaringClass.global
     val md: MethodDeclaration = getAST
     val file: AbstractFile = md.firstToken.file.file
-    val mst: MethodSymbolTable = global.getSymbolTable.compilationUnitSymbolTable(file).classOrInterfaceSymbolTable(getDeclaringClass.getType).methodSymbolTable(getSignature)
-    val pb = getDeclaringClass.global.resolveMethodBody(mst)
-    val newmd = pb.ciSymbolTable.methodDecl(getSignature)
-    setAST(newmd)
+    val pb = getDeclaringClass.global.resolveMethodBody(md)
+    setAST(pb)
     setResolvingLevel(ResolveLevel.BODY)
     getDeclaringClass.updateResolvingLevel
   }
   
+  /**
+   * set resolving level
+   */
+  def setResolvingLevel(level: ResolveLevel.Value) = {
+    this.resolvingLevel = level
+    getDeclaringClass.updateResolvingLevel
+  }
 
   
   /**
@@ -212,7 +238,11 @@ case class JawaMethod(declaringClass: JawaClass,
    */
   def addExceptionHandler(excName: String, fromTarget: String, toTarget: String, jumpTo: String) = {
     val recType: ObjectType = if(excName == "any") JAVA_TOPLEVEL_OBJECT_TYPE else getTypeFromName(excName).asInstanceOf[ObjectType]
-    val exc = getDeclaringClass.global.resolveClass(recType, ResolveLevel.HIERARCHY)
+    val exc: JawaClass = getDeclaringClass.global.getClass(recType) match {
+      case Some(c) => c
+      case None =>
+        JawaClass(getDeclaringClass.global, recType, 0)
+    }
     val handler = ExceptionHandler(exc, fromTarget, toTarget, jumpTo)
     if(DEBUG) println("Adding Exception Handler: " + handler)
     if(this.exceptionHandlers.contains(handler)) throw new RuntimeException("already have exception handler: " + handler)

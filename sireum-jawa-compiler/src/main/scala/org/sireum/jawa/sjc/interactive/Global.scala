@@ -34,8 +34,7 @@ class Global(val projectName: String, val reporter: Reporter) extends {
 } with RichCompilationUnits
   with CompilerLifecycleManagement
   with CompilerControl
-  with JawaClassLoadManager 
-  with ResolveLevel {
+  with JawaClassLoadManager {
   
   def logError(msg: String, t: Throwable): Unit = ()
   def inform(msg: String): Unit = ()
@@ -73,7 +72,7 @@ class Global(val projectName: String, val reporter: Reporter) extends {
         try {
           if (keepLoaded || isOutOfDate && onSameThread){
             respond(response){
-              getCompilationUnitSymbolResult(source.file, ResolveLevel.BODY).unit
+              parseCode[CompilationUnit](source.file, true).get
             }
           }
         } finally {
@@ -161,7 +160,8 @@ class Global(val projectName: String, val reporter: Reporter) extends {
 
   private[interactive] def reloadSource(source: SourceFile) {
     removeCompilationUnit(source.file)
-    getCompilationUnitSymbolResult(source.file, ResolveLevel.BODY)
+    val cu = parseCode[CompilationUnit](source.file, true).get
+    
   }
 
   /** Make sure a set of compilation units is loaded and parsed */

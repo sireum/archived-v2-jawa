@@ -9,7 +9,7 @@ import org.sireum.jawa.sjc.util.NoPosition
 import org.sireum.jawa.sjc.Signature
 import org.sireum.jawa.sjc.util.SourceFile
 
-trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveLevel { self: Global =>
+trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Global =>
   
   /**
    * set of classes contained by the current Global
@@ -187,7 +187,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
       } else {
         ar.setSystemLibraryClass
       }
-      modifyHierarchy
+//      modifyHierarchy
     }
   }
   
@@ -205,14 +205,14 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
       if(ar.isSystemLibraryClass) this.systemLibraryClasses -= ar.getType
       else if(ar.isThirdPartyLibraryClass) this.thirdPartyLibraryClasses -= ar.getType
       else if(ar.isApplicationClass) this.applicationClasses -= ar.getType
-      modifyHierarchy
+//      modifyHierarchy
     }
   }
   
-  def modifyHierarchy = {
-    if(isDirty) resolveClassesRelationWholeProgram
-    this.hierarchy.build(this)
-  }
+//  def modifyHierarchy = {
+//    if(isDirty) resolveClassesRelationWholeProgram
+//    this.hierarchy.build(this)
+//  }
   
   /**
    * current Global contains the given class or not
@@ -257,25 +257,25 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
     r.getMethod(subSig)
   }
   
-  def getMethodDeclarations(signature: Signature): Set[JawaMethod] = {
-    val result: MSet[JawaMethod] = msetEmpty
-    val rType = signature.getClassType
-    val subSig = signature.getSubSignature
-    if(!containsClass(rType)) resolveClass(rType, ResolveLevel.HIERARCHY)
-    val r = getClass(rType).get
-    val worklist: MList[JawaClass] = mlistEmpty
-    worklist += r
-    while(!worklist.isEmpty){
-      val rec = worklist.remove(0)
-      rec.getMethod(subSig) match{
-        case Some(proc) => result += proc
-        case None =>
-          if(rec.hasSuperClass) rec.getSuperClass foreach(worklist += _)
-          worklist ++= rec.getInterfaces
-      }
-    }
-    result.toSet
-  }
+//  def getMethodDeclarations(signature: Signature): Set[JawaMethod] = {
+//    val result: MSet[JawaMethod] = msetEmpty
+//    val rType = signature.getClassType
+//    val subSig = signature.getSubSignature
+//    if(!containsClass(rType)) resolveClass(rType, ResolveLevel.HIERARCHY)
+//    val r = getClass(rType).get
+//    val worklist: MList[JawaClass] = mlistEmpty
+//    worklist += r
+//    while(!worklist.isEmpty){
+//      val rec = worklist.remove(0)
+//      rec.getMethod(subSig) match{
+//        case Some(proc) => result += proc
+//        case None =>
+//          if(rec.hasSuperClass) rec.getSuperClass foreach(worklist += _)
+//          worklist ++= rec.getInterfaces
+//      }
+//    }
+//    result.toSet
+//  }
   
   /**
    * return true if contains the given procedure. Input example is Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
@@ -285,32 +285,32 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
   /**
    * find field from Global. Input: stackState
    */
-  def findField(baseType: ObjectType, fieldName: String): Option[JawaField] = {
-    tryLoadClass(baseType, ResolveLevel.HIERARCHY)
-    if(!containsClass(baseType)) return None
-    val r = getClass(baseType).get
-    r.getField(fieldName)
-  }
+//  def findField(baseType: ObjectType, fieldName: String): Option[JawaField] = {
+//    tryLoadClass(baseType, ResolveLevel.HIERARCHY)
+//    if(!containsClass(baseType)) return None
+//    val r = getClass(baseType).get
+//    r.getField(fieldName)
+//  }
   
   /**
    * find field from Global. Input: @@java.lang.Throwable.stackState
    */
-  def findStaticField(fieldFQN: String): Option[JawaField] = {
-    val rName = getClassNameFromFieldFQN(fieldFQN)
-    val rType = getTypeFromName(rName).asInstanceOf[ObjectType]
-    val fieldName = getFieldNameFromFieldFQN(fieldFQN)
-    val classOpt = tryLoadClass(rType, ResolveLevel.HIERARCHY)
-    if(!classOpt.isDefined) return None
-    val r = classOpt.get
-    r.getField(fieldName) match {
-      case Some(f) =>  
-        if(f.isStatic)
-          Some(f)
-        else None
-      case None => None
-    }
-    
-  }
+//  def findStaticField(fieldFQN: String): Option[JawaField] = {
+//    val rName = getClassNameFromFieldFQN(fieldFQN)
+//    val rType = getTypeFromName(rName).asInstanceOf[ObjectType]
+//    val fieldName = getFieldNameFromFieldFQN(fieldFQN)
+//    val classOpt = tryLoadClass(rType, ResolveLevel.HIERARCHY)
+//    if(!classOpt.isDefined) return None
+//    val r = classOpt.get
+//    r.getField(fieldName) match {
+//      case Some(f) =>  
+//        if(f.isStatic)
+//          Some(f)
+//        else None
+//      case None => None
+//    }
+//    
+//  }
   
   /**
    * get entry points
@@ -353,29 +353,29 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
   /**
    * try to resolve given class and load all of the required support based on your desired resolve level.
    */
-  def tryLoadClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): Option[JawaClass] = {
-    this.synchronized{
-      tryResolveClass(typ, desiredLevel)
-    }
-  }
+//  def tryLoadClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): Option[JawaClass] = {
+//    this.synchronized{
+//      tryResolveClass(typ, desiredLevel)
+//    }
+//  }
   
   /**
    * resolve given class and load all of the required support.
    */
-  def loadClassAndSupport(typ: ObjectType): JawaClass = {
-    this.synchronized{
-      resolveClass(typ, ResolveLevel.BODY)
-    }
-  }
+//  def loadClassAndSupport(typ: ObjectType): JawaClass = {
+//    this.synchronized{
+//      resolveClass(typ, ResolveLevel.BODY)
+//    }
+//  }
   
   /**
    * resolve given class.
    */
-  override def resolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): JawaClass = {
-    this.synchronized{
-      super.resolveClass(typ, desiredLevel)
-    }
-  }
+//  override def resolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): JawaClass = {
+//    this.synchronized{
+//      super.resolveClass(typ, desiredLevel)
+//    }
+//  }
   
   /**
    * resolve given class.
@@ -399,22 +399,22 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
   /**
    * softly resolve given class.
    */
-  def softlyResolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): Option[JawaClass] = {
-    this.synchronized{
-      if(containsClass(typ))
-        Some(resolveClass(typ, desiredLevel))
-      else None
-    }
-  }
+//  def softlyResolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): Option[JawaClass] = {
+//    this.synchronized{
+//      if(containsClass(typ))
+//        Some(resolveClass(typ, desiredLevel))
+//      else None
+//    }
+//  }
   
   /**
    * force resolve given class to given level
    */
-  override def forceResolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): JawaClass = {
-    this.synchronized{
-      super.forceResolveClass(typ, desiredLevel)
-    }
-  }
+//  override def forceResolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): JawaClass = {
+//    this.synchronized{
+//      super.forceResolveClass(typ, desiredLevel)
+//    }
+//  }
   
   /**
    * reset the current Global
@@ -452,12 +452,12 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
   /**
    * didn't resolve this extends-relation list. It's a set of record names.
    */
-  private val needToResolveExtends: MMap[JawaClass, MSet[ObjectType]] = mmapEmpty
+//  private val needToResolveExtends: MMap[JawaClass, MSet[ObjectType]] = mmapEmpty
   
   /**
    * didn't resolve this outer class name. 
    */
-  private val needToResolveOuterClass: MMap[JawaClass, ObjectType] = mmapEmpty
+//  private val needToResolveOuterClass: MMap[JawaClass, ObjectType] = mmapEmpty
 
   private val classesNeedUpdateInHierarchy: MSet[JawaClass] = msetEmpty
   
@@ -473,20 +473,20 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
   
   def isDirty: Boolean = this.dirty
   
-  def addNeedToResolveOuterClass(innerclass: JawaClass, outerType: ObjectType) = {
-    this.dirty = true
-    needToResolveOuterClass(innerclass) = outerType
-  }
-  
-  def addNeedToResolveExtend(childClass: JawaClass, parent: ObjectType) = {
-    this.dirty = true
-    needToResolveExtends.getOrElseUpdate(childClass, msetEmpty) += parent
-  }
-  
-  def addNeedToResolveExtends(childClass: JawaClass, parents: ISet[ObjectType]) = {
-    this.dirty = true
-    needToResolveExtends.getOrElseUpdate(childClass, msetEmpty) ++= parents
-  }
+//  def addNeedToResolveOuterClass(innerclass: JawaClass, outerType: ObjectType) = {
+//    this.dirty = true
+//    needToResolveOuterClass(innerclass) = outerType
+//  }
+//  
+//  def addNeedToResolveExtend(childClass: JawaClass, parent: ObjectType) = {
+//    this.dirty = true
+//    needToResolveExtends.getOrElseUpdate(childClass, msetEmpty) += parent
+//  }
+//  
+//  def addNeedToResolveExtends(childClass: JawaClass, parents: ISet[ObjectType]) = {
+//    this.dirty = true
+//    needToResolveExtends.getOrElseUpdate(childClass, msetEmpty) ++= parents
+//  }
   
   def addClassesNeedUpdateInHierarchy(clazz: JawaClass) = this.classesNeedUpdateInHierarchy += clazz
   def getClassesNeedUpdateInHierarchy: ISet[JawaClass] = this.classesNeedUpdateInHierarchy.toSet
@@ -498,83 +498,83 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver with ResolveL
   /**
    * resolve classes relation of the whole program
    */
-  def resolveClassesRelationWholeProgram: Unit = {
-    if(!isDirty) return
-    val worklist: MList[JawaClass] = mlistEmpty
-    val files: MList[AbstractFile] = mlistEmpty
-    worklist ++= needToResolveExtends.keySet ++ needToResolveOuterClass.keySet
-    do{
-      val tmpList: MList[JawaClass] = mlistEmpty
-      while(!worklist.isEmpty){
-        val clazz = worklist.remove(0)
-        addClassesNeedUpdateInHierarchy(clazz)
-        this.needToResolveOuterClass.get(clazz) match{
-          case Some(o) =>
-            getClass(o) match{
-              case Some(outer) =>
-                this.needToResolveOuterClass -= clazz
-                clazz.setOuterClass(outer)
-                if(!this.needToResolveOuterClass.contains(outer) || this.needToResolveExtends.contains(outer)) worklist += outer
-              case None =>
-                if(containsClassFile(o)){
-                  val file = getClassFile(o)
-                  files += file
-                  tmpList += clazz
-                } else {
-                  this.needToResolveOuterClass -= clazz
-                  val unknownOut = resolveClass(o, ResolveLevel.HIERARCHY)
-                  addClassNotFound(o)
-                  clazz.setOuterClass(unknownOut)
-                }
-            }
-          case None =>
-        }
-        val resolved: MSet[ObjectType] = msetEmpty
-        this.needToResolveExtends.getOrElse(clazz, msetEmpty).foreach{
-          parType =>
-            getClass(parType) match{
-              case Some(parent) =>
-                resolved += parType
-                if(parent.isInterface) clazz.addInterface(parent)
-                else clazz.setSuperClass(parent)
-                if(!this.needToResolveExtends.contains(parent) || this.needToResolveOuterClass.contains(parent)) worklist += parent
-              case None =>
-                if(containsClassFile(parType)){
-                  val file = getClassFile(parType)
-                  files += file
-                  tmpList += clazz
-                } else {
-                  resolved += parType
-                  val unknownSu = resolveClass(parType, ResolveLevel.HIERARCHY)
-                  addClassNotFound(parType)
-                  clazz.setSuperClass(unknownSu)
-                }
-            }
-        }
-        val nre = this.needToResolveExtends(clazz)
-        nre --= resolved
-        if(nre.isEmpty) this.needToResolveExtends -= clazz
-      }
-      worklist ++= tmpList
-      if(!files.isEmpty) {
-        val st = getCompilationUnitsSymbolResult(files.toList, ResolveLevel.HIERARCHY)
-        st.compilationUnitSymbolTables foreach (resolveFromST(_, ResolveLevel.HIERARCHY, true))
-      }
-      files.clear()
-    } while(!files.isEmpty)
-      
-    getClasses.foreach{
-      rec =>
-        if(!rec.hasSuperClass && rec.getName != JAVA_TOPLEVEL_OBJECT){
-          if(!hasClass(JAVA_TOPLEVEL_OBJECT_TYPE)) resolveClass(JAVA_TOPLEVEL_OBJECT_TYPE, ResolveLevel.HIERARCHY)
-          rec.setSuperClass(getClass(JAVA_TOPLEVEL_OBJECT_TYPE).get)
-        }
-    }
-    this.dirty = !checkClassLoadingStatus
-    if(isDirty) throw new RuntimeException("Class loading must have problem, since it should already finish.")
-  }
+//  def resolveClassesRelationWholeProgram: Unit = {
+//    if(!isDirty) return
+//    val worklist: MList[JawaClass] = mlistEmpty
+//    val files: MList[AbstractFile] = mlistEmpty
+//    worklist ++= needToResolveExtends.keySet ++ needToResolveOuterClass.keySet
+//    do{
+//      val tmpList: MList[JawaClass] = mlistEmpty
+//      while(!worklist.isEmpty){
+//        val clazz = worklist.remove(0)
+//        addClassesNeedUpdateInHierarchy(clazz)
+//        this.needToResolveOuterClass.get(clazz) match{
+//          case Some(o) =>
+//            getClass(o) match{
+//              case Some(outer) =>
+//                this.needToResolveOuterClass -= clazz
+//                clazz.setOuterClass(outer)
+//                if(!this.needToResolveOuterClass.contains(outer) || this.needToResolveExtends.contains(outer)) worklist += outer
+//              case None =>
+//                if(containsClassFile(o)){
+//                  val file = getClassFile(o)
+//                  files += file
+//                  tmpList += clazz
+//                } else {
+//                  this.needToResolveOuterClass -= clazz
+//                  val unknownOut = resolveClass(o, ResolveLevel.HIERARCHY)
+//                  addClassNotFound(o)
+//                  clazz.setOuterClass(unknownOut)
+//                }
+//            }
+//          case None =>
+//        }
+//        val resolved: MSet[ObjectType] = msetEmpty
+//        this.needToResolveExtends.getOrElse(clazz, msetEmpty).foreach{
+//          parType =>
+//            getClass(parType) match{
+//              case Some(parent) =>
+//                resolved += parType
+//                if(parent.isInterface) clazz.addInterface(parent)
+//                else clazz.setSuperClass(parent)
+//                if(!this.needToResolveExtends.contains(parent) || this.needToResolveOuterClass.contains(parent)) worklist += parent
+//              case None =>
+//                if(containsClassFile(parType)){
+//                  val file = getClassFile(parType)
+//                  files += file
+//                  tmpList += clazz
+//                } else {
+//                  resolved += parType
+//                  val unknownSu = resolveClass(parType, ResolveLevel.HIERARCHY)
+//                  addClassNotFound(parType)
+//                  clazz.setSuperClass(unknownSu)
+//                }
+//            }
+//        }
+//        val nre = this.needToResolveExtends(clazz)
+//        nre --= resolved
+//        if(nre.isEmpty) this.needToResolveExtends -= clazz
+//      }
+//      worklist ++= tmpList
+//      if(!files.isEmpty) {
+//        val st = getCompilationUnitsSymbolResult(files.toList, ResolveLevel.HIERARCHY)
+//        st.compilationUnitSymbolTables foreach (resolveFromST(_, ResolveLevel.HIERARCHY, true))
+//      }
+//      files.clear()
+//    } while(!files.isEmpty)
+//      
+//    getClasses.foreach{
+//      rec =>
+//        if(!rec.hasSuperClass && rec.getName != JAVA_TOPLEVEL_OBJECT){
+//          if(!hasClass(JAVA_TOPLEVEL_OBJECT_TYPE)) resolveClass(JAVA_TOPLEVEL_OBJECT_TYPE, ResolveLevel.HIERARCHY)
+//          rec.setSuperClass(getClass(JAVA_TOPLEVEL_OBJECT_TYPE).get)
+//        }
+//    }
+//    this.dirty = !checkClassLoadingStatus
+//    if(isDirty) throw new RuntimeException("Class loading must have problem, since it should already finish.")
+//  }
   
-  def checkClassLoadingStatus: Boolean = {
-    this.needToResolveExtends.isEmpty && this.needToResolveOuterClass.isEmpty
-  }
+//  def checkClassLoadingStatus: Boolean = {
+//    this.needToResolveExtends.isEmpty && this.needToResolveOuterClass.isEmpty
+//  }
 }

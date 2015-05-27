@@ -142,6 +142,7 @@ case class ClassOrInterfaceDeclaration(
     annotations.exists { a => a.key == "type" && a.value == "interface" }
   }
   def parents: IList[ObjectType] = extendsAndImplimentsClausesOpt match {case Some(e) => e.parents; case None => ilistEmpty}
+  def fields: IList[Field with Declaration] = instanceFieldDeclarationBlock.instanceFields ++ staticFields
   def instanceFields: IList[InstanceFieldDeclaration] = instanceFieldDeclarationBlock.instanceFields
   def typ: ObjectType = cityp.typ.asInstanceOf[ObjectType]
 }
@@ -225,9 +226,10 @@ case class MethodDeclaration(
     nameID: Token,
     paramClause: ParamClause,
     annotations: IList[Annotation],
-    body: Body) extends Declaration with ParsableAstNode {
+    var body: Body) extends Declaration with ParsableAstNode {
   lazy val tokens = flatten(dclToken, returnType, nameID, paramClause, annotations, body)
   def isConstructor: Boolean = isJawaConstructor(nameID.text)
+  def name: String = nameID.text.substring(nameID.text.lastIndexOf(".") + 1)
   def owner: String = annotations.find { a => a.key == "owner" }.get.value
   def signature: Signature = Signature(annotations.find { a => a.key == "signature" }.get.value)
 }
@@ -237,6 +239,7 @@ case class ParamClause(
     params: IList[(Param, Option[Token])], 
     rparen: Token) extends JawaAstNode {
   lazy val tokens = flatten(lparen, params, rparen)
+  def thisParam: Option[Param] = paramlist.find { x => x.isThis }
   def param(i: Int): Param =
     i match {
       case n if (n >= 0 && n < params.size) => params(n)._1
