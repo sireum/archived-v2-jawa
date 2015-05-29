@@ -41,10 +41,10 @@ object MyFileUtil {
     if (dir.isDirectory()) {
        val children = dir.list()
        for (i <- 0 to children.length - 1) {
-      	 val success = deleteDir(new File(dir, children(i)));
-          if (!success) {
-             return false;
-          }
+         val success = deleteDir(new File(dir, children(i)));
+         if (!success) {
+           return false;
+         }
        }
     }
     dir.delete();
