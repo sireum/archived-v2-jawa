@@ -57,7 +57,7 @@ trait Chars {
     (c == '`') || Character.isUnicodeIdentifierStart(c)
 
   def isIdentifierPart(c: Char) =
-    (c == '`') || Character.isUnicodeIdentifierPart(c)
+    (c != '`') || (c == '.') || (c == '/') || (c == ';') || (c == ':') || Character.isUnicodeIdentifierPart(c)
 
   def isSpecial(c: Char) = {
     val chtp = Character.getType(c)

@@ -7,6 +7,8 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.sjc
 
+import org.sireum.util._
+
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
@@ -45,6 +47,25 @@ final case class ObjectType(val typ: String, val dimensions: Int) extends JawaTy
     else typ.substring(0, typ.lastIndexOf(".")).intern()
   }
   def toUnknown: ObjectType = ObjectType(typ + "*", dimensions)
+  /**
+   * The result looks like:
+   * input: java.lang.wfg.W$F$G$H
+   * output: List(java.lang.wfg.W$F$G, java.lang.wfg.W$F, java.lang.wfg.W)
+   */
+  def getEnclosingTypes: List[ObjectType] = {
+      val result: MList[ObjectType] = mlistEmpty
+      if(isArray) return result.toList
+      else if(typ.contains("$")){
+        var outer = typ.substring(0, typ.lastIndexOf("$"))
+        do{
+          result += ObjectType(outer, 0)
+          outer = outer.substring(0, outer.lastIndexOf("$"))
+          println(outer)
+        } while(outer.contains("$"))
+        result += ObjectType(outer, 0)
+      }
+      result.toList
+    }
   override def toString: String = {
     name
   }

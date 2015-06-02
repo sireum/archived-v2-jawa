@@ -112,6 +112,9 @@ class JawaLexer(aplexer: Antlr4PilarLexer, file: AbstractFile, reporter: Reporte
             Tokens.CMP
           else if(aptoken.getText == "`any`")
             Tokens.ANY
+//          else if(aptoken.getText.startsWith("`") && aptoken.getText.endsWith("`"))
+//            Tokens.ID
+//          else Tokens.TEXT
           else Tokens.ID
         case LID =>
           Tokens.LOCATION_ID

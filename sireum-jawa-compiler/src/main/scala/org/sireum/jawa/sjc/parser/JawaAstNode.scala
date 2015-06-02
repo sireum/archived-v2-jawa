@@ -34,9 +34,30 @@ sealed trait JawaAstNode extends CaseClassReflector with JavaKnowledge {
   def firstToken = firstTokenOption.get
 
   lazy val lastToken = lastTokenOption.get
+  
+  //for CompilationUnit it will be null
+  var enclosingTopLevelClass: ObjectType = null
 
   protected trait Flattenable {
     def tokens: IList[Token]
+  }
+  
+  def getAllChildrenInclude: IList[JawaAstNode] = {
+    this :: getAllChildren
+  }
+  
+  def getAllChildren: IList[JawaAstNode] = {
+    val allAsts: MList[JawaAstNode] = mlistEmpty
+    val worklist: MList[JawaAstNode] = mlistEmpty
+    allAsts += this
+    allAsts ++= this.immediateChildren
+    worklist ++= this.immediateChildren
+    while(!worklist.isEmpty){
+      val node = worklist.remove(0)
+      allAsts ++= node.immediateChildren
+      worklist ++= node.immediateChildren
+    }
+    allAsts.toList
   }
 
   def isEmpty = tokens.isEmpty

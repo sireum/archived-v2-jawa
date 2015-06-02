@@ -15,6 +15,7 @@ import java.net.URLDecoder
 import java.io.FileReader
 import java.io.LineNumberReader
 import java.net.URI
+import java.io.IOException
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -100,5 +101,22 @@ object MyFileUtil {
       } 
         
       throw new UnsupportedOperationException("Cannot list files for URL "+dirURL);
+  }
+  
+  def listFilesAndDir(dir: File): IList[File] = {
+    val result: MList[File] = mlistEmpty
+    try {
+      val files = dir.listFiles()
+      for (file <- files) {
+        result += file
+        if (file.isDirectory()) { 
+          result ++= listFilesAndDir(file)
+        }
+      }
+    } catch {
+      case e: IOException =>
+        e.printStackTrace()
+    }
+    result.toList
   }
 }
