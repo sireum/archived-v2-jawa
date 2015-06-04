@@ -8,5 +8,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/sireum-lib"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sireum-parser"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sireum-pilar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/sireum-util"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
