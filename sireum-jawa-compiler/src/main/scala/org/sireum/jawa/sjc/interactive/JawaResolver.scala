@@ -276,7 +276,7 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
 	      val methodName: String = md.name
 	      val accessFlags: Int = AccessFlag.getAccessFlags(md.accessModifier)
         val thisOpt: Option[String] = md.paramClause.thisParam.map(_.name)
-        val params: ISeq[(String, JawaType)] = md.paramClause.paramlist.map{p => (p.name, p.typ.typ)}
+        val params: ISeq[(String, JawaType)] = md.paramlist.map{p => (p.name, p.typ.typ)}
         val returnType: JawaType = md.returnType.typ
 	      val method: JawaMethod = JawaMethod(declaringClass, methodName, thisOpt, params, returnType, accessFlags)
 	      method.setResolvingLevel(level)

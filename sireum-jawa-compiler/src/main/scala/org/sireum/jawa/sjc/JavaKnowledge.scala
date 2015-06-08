@@ -36,6 +36,23 @@ trait JavaKnowledge {
     }
   }
   
+  def formatTypeToTypeSignature(typ: JawaType): String = {
+    val d = typ match{case ot: ObjectType => ot.dimensions; case _ => 0}
+    typ.typ match{
+      case "byte" =>    assign("B", d, "[", true)
+      case "char" =>    assign("C", d, "[", true)
+      case "double" =>  assign("D", d, "[", true)
+      case "float" =>   assign("F", d, "[", true)
+      case "int" =>     assign("I", d, "[", true)
+      case "long" =>    assign("J", d, "[", true)
+      case "short" =>   assign("S", d, "[", true)
+      case "boolean" => assign("Z", d, "[", true)
+      case "void" =>    "V"
+      case _ =>
+        assign("L" + typ.typ + ";", d, "[", true)
+    }
+  }
+  
   def formatTypeToSignature(typ: JawaType): String = {
     val d = typ match{case ot: ObjectType => ot.dimensions; case _ => 0}
     typ.typ match{
@@ -209,10 +226,8 @@ trait JavaKnowledge {
     val pts = method.getParamTypes
     sb.append(method.getName + ":(")
     for(i <- 0 to pts.size - 1){
-      if(i != 0){
-        val pt = pts(i) 
-        sb.append(method.formatTypeToSignature(pt))
-      }
+      val pt = pts(i) 
+      sb.append(method.formatTypeToSignature(pt))
     }
     sb.append(")")
     sb.append(method.formatTypeToSignature(rt))
@@ -235,9 +250,31 @@ trait JavaKnowledge {
     method.setUnknown
     method
   }
+  
+  /**
+   * e.g. java.lang.Throwable.run
+   */
+  def isValidMethodFullName(mfn: String): Boolean = mfn.lastIndexOf('.') > 0
+  
+  def getClassNameFromMethodFullName(mfn: String): String = {
+    if(!isValidMethodFullName(mfn)) throw new RuntimeException("given method full name is not a valid form: " + mfn)
+    else mfn.substring(mfn.lastIndexOf('.') + 1)
+  }
+  
+  def getClassTypeFromMethodFullName(mfn: String): ObjectType = {
+    val cn = getClassNameFromMethodFullName(mfn)
+    getTypeFromName(cn).asInstanceOf[ObjectType]
+  }
+  
+  def getMethodNameFromMethodFullName(mfn: String): String = {
+    if(!isValidMethodFullName(mfn)) throw new RuntimeException("given method full name is not a valid form: " + mfn)
+    else mfn.substring(mfn.lastIndexOf('.') + 1)
+  }
   /********************** JawaMethod related op end **************************/
   
   def constructorName: String = "<init>"
   def staticInitializerName: String = "<clinit>"
   def isJawaConstructor(name: String) = name == constructorName || name == staticInitializerName
 }
+
+object JavaKnowledge extends JavaKnowledge

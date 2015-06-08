@@ -19,6 +19,8 @@ import org.sireum.jawa.sjc.ObjectType
 import org.sireum.jawa.sjc.lexer.TokenType
 import org.sireum.jawa.sjc.lexer.Tokens
 import org.sireum.jawa.sjc.util.Range
+import org.sireum.jawa.sjc.util.Position
+import org.sireum.jawa.sjc.util.NoPosition
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -36,7 +38,7 @@ sealed trait JawaAstNode extends CaseClassReflector with JavaKnowledge {
   lazy val lastToken = lastTokenOption.get
   
   //for CompilationUnit it will be null
-  var enclosingTopLevelClass: ObjectType = null
+  var enclosingTopLevelClass: TypeDefSymbol = null
 
   protected trait Flattenable {
     def tokens: IList[Token]
@@ -130,6 +132,14 @@ sealed trait JawaAstNode extends CaseClassReflector with JavaKnowledge {
       Some(Range(firstIndex, lastIndex - firstIndex + 1))
     }
 
+  def pos: Position = {
+    if(tokens.isEmpty) NoPosition
+    else {
+      val firstIndex = tokens.head.pos.start
+      val lastIndex = tokens.last.lastCharacterOffset
+      Position.range(firstToken.file, firstIndex, lastIndex - firstIndex + 1)
+    }
+  }
 }
 
 sealed trait ParsableAstNode extends JawaAstNode
@@ -150,9 +160,110 @@ sealed trait Declaration extends JawaAstNode {
   }
 }
 
+sealed trait JawaSymbol extends JawaAstNode {
+  def id: Token
+}
+
+sealed trait DefSymbol extends JawaSymbol
+
+sealed trait RefSymbol extends JawaSymbol
+
+sealed trait ClassSym {
+  def typ: ObjectType
+}
+sealed trait MethodSym {
+  def signature: Signature
+}
+sealed trait FieldSym{
+  def FQN: String
+}
+sealed trait VarSym{
+  def varName: String
+  def owner: MethodDeclaration
+}
+sealed trait LocationSym{
+  def location: String
+  def owner: MethodDeclaration
+}
+
+case class TypeDefSymbol(id: Token) extends DefSymbol with ClassSym {
+  lazy val tokens = flatten(id)
+  def typ: ObjectType = getTypeFromName(id.text).asInstanceOf[ObjectType]
+}
+
+case class TypeSymbol(id: Token) extends RefSymbol with ClassSym {
+  lazy val tokens = flatten(id)
+  def typ: ObjectType = getTypeFromName(id.text).asInstanceOf[ObjectType]
+}
+
+case class MethodDefSymbol(id: Token) extends DefSymbol with MethodSym {
+  lazy val tokens = flatten(id)
+  def baseType: ObjectType = getClassTypeFromMethodFullName(id.text)
+  var signature: Signature = null
+  def methodName: String = getMethodNameFromMethodFullName(id.text)
+}
+
+case class MethodNameSymbol(id: Token) extends RefSymbol with MethodSym {
+  lazy val tokens = flatten(id)
+  def baseType: ObjectType = getClassTypeFromMethodFullName(id.text)
+  var signature: Signature = null
+  def methodName: String = getMethodNameFromMethodFullName(id.text)
+}
+
+case class FieldDefSymbol(id: Token) extends DefSymbol with FieldSym {
+  lazy val tokens = flatten(id)
+  def FQN: String = id.text.replaceAll("@@", "")
+  def baseType: ObjectType = getClassTypeFromFieldFQN(FQN)
+  def fieldName: String = getFieldNameFromFieldFQN(FQN)
+}
+
+case class FieldNameSymbol(id: Token) extends RefSymbol {
+  lazy val tokens = flatten(id)
+  def FQN: String = id.text.replaceAll("@@", "")
+  def baseType: ObjectType = getClassTypeFromFieldFQN(FQN)
+  def fieldName: String = getFieldNameFromFieldFQN(FQN)
+}
+
+case class SignatureSymbol(id: Token) extends RefSymbol with MethodSym {
+  lazy val tokens = flatten(id)
+  def signature: Signature = Signature(id.text)
+//  def FQMN: String = signature.FQMN
+  def methodName: String = signature.methodNamePart
+}
+
+case class VarDefSymbol(id: Token) extends DefSymbol with VarSym {
+  lazy val tokens = flatten(id)
+  def varName: String = id.text
+  var owner: MethodDeclaration = null
+}
+
+case class VarSymbol(id: Token) extends RefSymbol with VarSym {
+  lazy val tokens = flatten(id)
+  def varName: String = id.text
+  var owner: MethodDeclaration = null
+}
+
+/**
+ * LocationSymbol is following form: #L00001.
+ */
+case class LocationDefSymbol(id: Token) extends DefSymbol with LocationSym {
+  lazy val tokens = flatten(id)
+  def location: String = id.text.substring(1, id.text.length() - 1)
+  var owner: MethodDeclaration = null
+}
+
+/**
+ * JumpLocationSymbol is following form: L00001
+ */
+case class LocationSymbol(id: Token) extends RefSymbol with LocationSym {
+  lazy val tokens = flatten(id)
+  def location: String = id.text
+  var owner: MethodDeclaration = null
+}
+
 case class ClassOrInterfaceDeclaration(
     dclToken: Token, 
-    cityp: Type, 
+    cityp: TypeDefSymbol,
     annotations: IList[Annotation], 
     extendsAndImplimentsClausesOpt: Option[ExtendsAndImplimentsClauses],
     instanceFieldDeclarationBlock: InstanceFieldDeclarationBlock,
@@ -163,6 +274,8 @@ case class ClassOrInterfaceDeclaration(
     annotations.exists { a => a.key == "type" && a.value == "interface" }
   }
   def parents: IList[ObjectType] = extendsAndImplimentsClausesOpt match {case Some(e) => e.parents; case None => ilistEmpty}
+  def superClassOpt: Option[ObjectType] = extendsAndImplimentsClausesOpt match{case Some(e) => e.superClassOpt; case None => None}
+  def interfaces: IList[ObjectType] = extendsAndImplimentsClausesOpt match {case Some(e) => e.interfaces; case None => ilistEmpty}
   def fields: IList[Field with Declaration] = instanceFieldDeclarationBlock.instanceFields ++ staticFields
   def instanceFields: IList[InstanceFieldDeclaration] = instanceFieldDeclarationBlock.instanceFields
   def typ: ObjectType = cityp.typ.asInstanceOf[ObjectType]
@@ -171,26 +284,39 @@ case class ClassOrInterfaceDeclaration(
 case class Annotation(
     at: Token, 
     annotationID: Token, 
-    annotationValueOpt: Option[Token]) extends JawaAstNode {
+    annotationValueOpt: Option[Either[JawaSymbol, Token]]) extends JawaAstNode {
   lazy val tokens = flatten(at, annotationID, annotationValueOpt)
   def key: String = annotationID.text
   def value: String = 
     annotationValueOpt match{
-      case Some(a) => a.text 
+      case Some(Left(a)) => a.id.text 
+      case Some(Right(a)) => a.text
       case None => ""
     }
 }
 
 case class ExtendsAndImplimentsClauses(
     extendsAndImplementsToken: Token,
-    parentTyps: IList[(Type, Option[Token])]) extends JawaAstNode {
+    parentTyps: IList[(ExtendAndImpliment, Option[Token])]) extends JawaAstNode {
+  require(parentTyps.filter(_._1.isExtend).size <= 1)
   lazy val tokens = flatten(extendsAndImplementsToken, parentTyps)
   def parents: IList[ObjectType] = parentTyps.map(_._1.typ.asInstanceOf[ObjectType])
+  def superClassOpt: Option[ObjectType] = parentTyps.find(_._1.isExtend).map(_._1.typ)
+  def interfaces: IList[ObjectType] = parentTyps.filter(_._1.isImplement).map(_._1.typ)
+}
+
+case class ExtendAndImpliment(
+    parenttyp: TypeSymbol,
+    annotations: IList[Annotation])extends JawaAstNode {
+  lazy val tokens = flatten(parenttyp, annotations)
+  def typ: ObjectType = parenttyp.typ
+  def isExtend: Boolean = annotations.exists { a => a.key == "type" && a.value == "class" }
+  def isImplement: Boolean = annotations.exists { a => a.key == "type" && a.value == "interface" }
 }
 
 sealed trait Field extends JawaAstNode {
   def typ: Type
-  def nameID: Token
+  def fieldSymbol: FieldDefSymbol
   def FQN: String
   def fieldName: String = getFieldNameFromFieldFQN(FQN)
   def isStatic: Boolean
@@ -205,30 +331,34 @@ case class InstanceFieldDeclarationBlock(
 
 case class InstanceFieldDeclaration(
     typ: Type, 
-    nameID: Token,
+    fieldSymbol: FieldDefSymbol,
     annotations: IList[Annotation], 
     semi: Token) extends Field with Declaration {
-  lazy val tokens = flatten(typ, nameID, annotations, semi)
-  def FQN: String = nameID.text
+  lazy val tokens = flatten(typ, fieldSymbol, annotations, semi)
+  def FQN: String = fieldSymbol.FQN
   def isStatic: Boolean = false
 }
 
 case class StaticFieldDeclaration(
     staticFieldToken: Token, 
     typ: Type, 
-    nameID: Token, 
+    fieldSymbol: FieldDefSymbol,
     annotations: IList[Annotation], 
     semi: Token) extends Field with Declaration {
-  lazy val tokens = flatten(staticFieldToken, typ, nameID, annotations, semi)
-  def FQN: String = nameID.text.replace("@@", "")
+  lazy val tokens = flatten(staticFieldToken, typ, fieldSymbol, annotations, semi)
+  def FQN: String = fieldSymbol.FQN
   def isStatic: Boolean = true
 }
 
-case class Type(baseTypeID: Token, typeFragments: IList[TypeFragment]) extends JawaAstNode {
-  lazy val tokens = flatten(baseTypeID, typeFragments)
+case class Type(base: Either[TypeSymbol, Token], typeFragments: IList[TypeFragment]) extends JawaAstNode {
+  lazy val tokens = flatten(base, typeFragments)
   def dimentions: Int = typeFragments.size
-  def baseTypeName: String = baseTypeID.text
-  def typ: JawaType = getType(baseTypeName, dimentions)
+  def baseType: JawaType = 
+    base match {
+      case Left(ts) => ts.typ
+      case Right(t) => getTypeFromName(t.text)
+    }
+  def typ: JawaType = getType(baseType.typ, dimentions)
 }
 
 sealed trait TypeFragment extends JawaAstNode
@@ -237,22 +367,25 @@ case class RawTypeFragment(lbracket: Token, rbracket: Token) extends TypeFragmen
   lazy val tokens = flatten(lbracket, rbracket)
 }
 
-case class TypeFragmentWithInit(lbracket: Token, varIDs: IList[(Token, Option[Token])], rbracket: Token) extends TypeFragment {
-  lazy val tokens = flatten(lbracket, varIDs, rbracket)
+case class TypeFragmentWithInit(lbracket: Token, varSymbols: IList[(VarSymbol, Option[Token])], rbracket: Token) extends TypeFragment {
+  lazy val tokens = flatten(lbracket, varSymbols, rbracket)
 }
 
 case class MethodDeclaration(
     dclToken: Token,
     returnType: Type,
-    nameID: Token,
+    methodSymbol: MethodDefSymbol,
     paramClause: ParamClause,
     annotations: IList[Annotation],
     var body: Body) extends Declaration with ParsableAstNode {
-  lazy val tokens = flatten(dclToken, returnType, nameID, paramClause, annotations, body)
-  def isConstructor: Boolean = isJawaConstructor(nameID.text)
-  def name: String = nameID.text.substring(nameID.text.lastIndexOf(".") + 1)
+  lazy val tokens = flatten(dclToken, returnType, methodSymbol, paramClause, annotations, body)
+  def isConstructor: Boolean = isJawaConstructor(methodSymbol.id.text)
+  def name: String = methodSymbol.id.text.substring(methodSymbol.id.text.lastIndexOf(".") + 1)
   def owner: String = annotations.find { a => a.key == "owner" }.get.value
   def signature: Signature = Signature(annotations.find { a => a.key == "signature" }.get.value)
+  def thisParam: Option[Param] = paramClause.thisParam
+  def param(i: Int): Param = paramClause.param(i)
+  def paramlist: IList[Param] = paramClause.paramlist
 }
 
 case class ParamClause(
@@ -260,23 +393,23 @@ case class ParamClause(
     params: IList[(Param, Option[Token])], 
     rparen: Token) extends JawaAstNode {
   lazy val tokens = flatten(lparen, params, rparen)
-  def thisParam: Option[Param] = paramlist.find { x => x.isThis }
+  def thisParam: Option[Param] = params.find { x => x._1.isThis }.map(_._1)
   def param(i: Int): Param =
     i match {
-      case n if (n >= 0 && n < params.size) => params(n)._1
-      case _ => throw new IndexOutOfBoundsException("List size " + params.size + " but index " + i)
+      case n if (n >= 0 && n < paramlist.size) => paramlist(n)
+      case _ => throw new IndexOutOfBoundsException("List size " + paramlist.size + " but index " + i)
     }
-  def paramlist: IList[Param] = params.map(_._1)
+  def paramlist: IList[Param] = params.filterNot(_._1.isThis).map(_._1)
 }
 
 case class Param(
     typ: Type, 
-    nameID: Token, 
+    paramSymbol: VarDefSymbol, 
     annotations: IList[Annotation]) extends JawaAstNode {
-  lazy val tokens = flatten(typ, nameID, annotations)
+  lazy val tokens = flatten(typ, paramSymbol, annotations)
   def isThis: Boolean = annotations.exists { a => a.key == "type" && a.value == "this" }
   def isObject: Boolean = annotations.exists { a => a.key == "type" && (a.value == "this" || a.value == "object") }
-  def name: String = nameID.text
+  def name: String = paramSymbol.id.text
 }
 
 sealed trait Body extends ParsableAstNode
@@ -295,20 +428,20 @@ case class ResolvedBody(
 }
 
 case class LocalVarDeclaration(
-    nameID: Token, 
+    varSymbol: VarDefSymbol, 
     annotations: IList[Annotation], 
     semi: Token) extends Declaration {
-  lazy val tokens = flatten(nameID, annotations, semi)
+  lazy val tokens = flatten(varSymbol, annotations, semi)
 }
 
 case class Location(
-    locationID: Token, 
+    locationSymbol: LocationDefSymbol, 
     statement: Statement, 
     semiOpt: Option[Token]) extends ParsableAstNode {
-  lazy val tokens = flatten(locationID, statement, semiOpt)
+  lazy val tokens = flatten(locationSymbol, statement, semiOpt)
   def locationUri: String = {
-    if(locationID.length <= 1) ""
-    else locationID.text.substring(1, locationID.length - 1)
+    if(locationSymbol.id.length <= 1) ""
+    else locationSymbol.location
   }
   var locationIndex: Int = 0
 }
@@ -317,30 +450,39 @@ sealed trait Statement extends JawaAstNode
 
 case class CallStatement(
     callToken: Token, 
-    lhs: Expression, 
+    lhs: VarSymbol, 
     assignOP: Token,
-    invokeID: Token,
+    methodNameSymbol: MethodNameSymbol,
     argClause: ArgClause,
     annotations: IList[Annotation]) extends Statement {
-  lazy val tokens = flatten(callToken, lhs, assignOP, invokeID, argClause, annotations)
-  def typ: String = annotations.find { a => a.key == "type" }.get.value
+  lazy val tokens = flatten(callToken, lhs, assignOP, methodNameSymbol, argClause, annotations)
+  //default is virtual call
+  def typ: String = annotations.find { a => a.key == "type" }.map(_.value).getOrElse("virtual")
   def signature: Signature = Signature(annotations.find { a => a.key == "signature" }.get.value)
   def classDescriptor: String = annotations.find { a => a.key == "classDescriptor" }.get.value
   def isStatic: Boolean = typ == "static"
   def isVirtual: Boolean = typ == "virtual"
   def isSuper: Boolean = typ == "super"
   def isDirect: Boolean = typ == "direct"
+  def recvOpt: Option[String] = if(isStatic) None else Some(argClause.arg(0))
+  def args: IList[String] = if(isStatic) argClause.varSymbols.map(_._1.id.text) else argClause.varSymbols.tail.map(_._1.id.text)
+  def arg(i: Int): String = {
+    i match {
+      case n if (n >= 0 && n < args.size) => args(n)
+      case _ => throw new IndexOutOfBoundsException("List size " + args.size + " but index " + i)
+    }
+  }
 }
 
 case class ArgClause(
     lparen: Token, 
-    varIDs: IList[(Token, Option[Token])], 
+    varSymbols: IList[(VarSymbol, Option[Token])], 
     rparen: Token) extends JawaAstNode {
-  lazy val tokens = flatten(lparen, varIDs, rparen)
+  lazy val tokens = flatten(lparen, varSymbols, rparen)
   def arg(i: Int): String =
     i match {
-      case n if (n >= 0 && n < varIDs.size) => varIDs(n)._1.text
-      case _ => throw new IndexOutOfBoundsException("List size " + varIDs.size + " but index " + i)
+      case n if (n >= 0 && n < varSymbols.size) => varSymbols(n)._1.id.text
+      case _ => throw new IndexOutOfBoundsException("List size " + varSymbols.size + " but index " + i)
     }
 }
 
@@ -354,27 +496,27 @@ case class AssignmentStatement(
 
 case class ThrowStatement(
     throwToken: Token,
-    variableID: Token) extends Statement {
-  lazy val tokens = flatten(throwToken, variableID)
+    varSymbol: VarSymbol) extends Statement {
+  lazy val tokens = flatten(throwToken, varSymbol)
 }
 
 case class IfStatement(
     ifToken: Token,
     exp: Expression,
     thengoto: (Token, Token),
-    targetLocation: Token) extends Statement {
+    targetLocation: LocationSymbol) extends Statement {
   lazy val tokens = flatten(ifToken, exp, thengoto, targetLocation)
 }
 
 case class GotoStatement(
     goto: Token,
-    targetLocation: Token) extends Statement {
+    targetLocation: LocationSymbol) extends Statement {
   lazy val tokens = flatten(goto, targetLocation)
 }
 
 case class SwitchStatement(
     switchToken: Token,
-    condition: Token,
+    condition: VarSymbol,
     cases: IList[SwitchCase],
     defaultCaseOpt: Option[SwitchDefaultCase]) extends Statement {
   lazy val tokens = flatten(switchToken, condition, cases, defaultCaseOpt)
@@ -385,7 +527,7 @@ case class SwitchCase(
     constant: Token,
     arrow: Token,
     goto: Token,
-    targetLocation: Token) extends JawaAstNode {
+    targetLocation: LocationSymbol) extends JawaAstNode {
   lazy val tokens = flatten(bar, constant, arrow, goto, targetLocation)
 }
 
@@ -394,15 +536,15 @@ case class SwitchDefaultCase(
     elseToken: Token,
     arrow: Token,
     goto: Token,
-    targetLocation: Token) extends JawaAstNode {
+    targetLocation: LocationSymbol) extends JawaAstNode {
   lazy val tokens = flatten(bar, elseToken, arrow, goto, targetLocation)
 }
 
 case class ReturnStatement(
     returnToken: Token,
-    expOpt: Option[Expression],
+    varOpt: Option[VarSymbol],
     annotations: IList[Annotation]) extends Statement {
-  lazy val tokens = flatten(returnToken, expOpt, annotations)
+  lazy val tokens = flatten(returnToken, varOpt, annotations)
 }
 
 case class EmptyStatement(
@@ -413,33 +555,36 @@ case class EmptyStatement(
 sealed trait Expression extends JawaAstNode
 
 case class NameExpression(
-    nameID: Token,
+    varSymbol: Either[VarSymbol, FieldNameSymbol], // FieldNameSymbol here is static fields
     annotations: IList[Annotation]) extends Expression {
-  lazy val tokens = flatten(nameID, annotations)
-  def name: String = nameID.text
-  import org.sireum.jawa.sjc.lexer.Tokens._
-  def isStatic: Boolean = nameID.tokenType == STATIC_ID
+  lazy val tokens = flatten(varSymbol, annotations)
+  def name: String = 
+    varSymbol match {
+      case Left(v) => v.varName
+      case Right(f) => f.FQN
+    }
+  def isStatic: Boolean = varSymbol.isRight
 }
 
 case class IndexingExpression(
-    baseID: Token,
+    varSymbol: VarSymbol,
     indices: IList[IndexingSuffix]) extends Expression {
-  lazy val tokens = flatten(baseID, indices)
+  lazy val tokens = flatten(varSymbol, indices)
   def dimentions: Int = indices.size
 }
 
 case class IndexingSuffix(
     lbracket: Token,
-    exp: Expression,
+    index: Either[VarSymbol, Token],
     rbracket: Token) extends JawaAstNode {
-  lazy val tokens = flatten(lbracket, exp, rbracket)
+  lazy val tokens = flatten(lbracket, index, rbracket)
 }
     
 case class AccessExpression(
-    baseID: Token,
+    varSymbol: VarSymbol,
     dot: Token,
     fieldID: Token) extends Expression {
-  lazy val tokens = flatten(baseID, dot, fieldID)
+  lazy val tokens = flatten(varSymbol, dot, fieldID)
 }
 
 case class TupleExpression(
@@ -471,15 +616,15 @@ case class LiteralExpression(
 
 case class UnaryExpression(
   op: Token,
-  exp: Expression)
+  unary: Either[VarSymbol, Token])
     extends Expression {
-  lazy val tokens = flatten(op, exp)
+  lazy val tokens = flatten(op, unary)
 }
 
 case class BinaryExpression(
-  left: Token,
+  left: Either[VarSymbol, Token],
   op: Token,
-  right: Token)
+  right: Either[VarSymbol, Token])
     extends Expression {
   lazy val tokens = flatten(left, op, right)
 }
@@ -487,11 +632,11 @@ case class BinaryExpression(
 case class CmpExpression(
     cmp: Token,
     lparen: Token,
-    var1ID: Token,
+    var1Symbol: VarSymbol,
     comma: Token,
-    var2ID: Token,
+    var2Symbol: VarSymbol,
     rparen: Token) extends Expression {
-  lazy val tokens = flatten(cmp, lparen, var1ID, comma, var2ID, rparen)
+  lazy val tokens = flatten(cmp, lparen, var1Symbol, comma, var2Symbol, rparen)
 }
 
 case class CatchClause(
@@ -499,19 +644,19 @@ case class CatchClause(
     typOrAny: Either[Type, Token],
     range: CatchRange,
     goto: Token,
-    targetLocation: Token,
+    targetLocation: LocationSymbol,
     semi: Token) extends JawaAstNode {
   lazy val tokens = flatten(catchToken, typOrAny, range, goto, targetLocation, semi)
-  def from: String = range.fromLocation.text
-  def to: String = range.toLocation.text
+  def from: String = range.fromLocation.location
+  def to: String = range.toLocation.location
 }
 
 case class CatchRange(
     at: Token,
     lbracket: Token,
-    fromLocation: Token,
+    fromLocation: LocationSymbol,
     range: Token,
-    toLocation: Token,
+    toLocation: LocationSymbol,
     rbracket: Token) extends JawaAstNode {
   lazy val tokens = flatten(at, lbracket, fromLocation, range, toLocation, rbracket)
 }

@@ -13,6 +13,8 @@ import org.sireum.jawa.sjc.util.EmptyAction
 import org.sireum.jawa.sjc.parser.CompilationUnit
 import org.sireum.jawa.sjc.parser.JawaParser
 import org.sireum.jawa.sjc.lexer.{Token => JawaToken}
+import org.sireum.jawa.sjc.parser.JawaSymbol
+import org.sireum.jawa.sjc.util.Locator
 
 
 /** Interface of interactive compiler to a client such as an IDE
@@ -109,8 +111,8 @@ trait CompilerControl { self: Global =>
    *  Note: This operation does not automatically load `source`. If `source`
    *  is unloaded, it stays that way.
    */
-  def askLinkPos(token: JawaToken, response: Response[Position]) =
-    postWorkItem(new AskLinkPosItem(token, response))
+  def askLinkPos(sym: JawaSymbol, response: Response[Position]) =
+    postWorkItem(new AskLinkPosItem(sym, response))
 
   /** Asks to do unit corresponding to given source file on present and subsequent type checking passes.
    *  If the file is in the 'crashedFiles' ignore list it is removed and typechecked normally.
@@ -118,6 +120,12 @@ trait CompilerControl { self: Global =>
   def askToDoFirst(source: SourceFile) =
     postWorkItem(new AskToDoFirstItem(source))
 
+  /** Sets sync var `response` to the smallest fully attributed tree that encloses position `pos`.
+   *  Note: Unlike for most other ask... operations, the source file belonging to `pos` needs not be loaded.
+   */
+  def askTypeAt(pos: Position, response: Response[Option[JawaSymbol]]) =
+    postWorkItem(new AskTypeAtItem(pos, response))
+    
   /** If source if not yet loaded, get an outline view with askParseEntered.
    *  If source is loaded, return it.
    *  In both cases, set response to parsed tree.
@@ -208,10 +216,18 @@ trait CompilerControl { self: Global =>
 
     def raiseMissing() = ()
   }
+  
+  case class AskTypeAtItem(pos: Position, response: Response[Option[JawaSymbol]]) extends WorkItem {
+    def apply() = self.getTypeAt(pos, response)
+    override def toString = "typeat "+pos.source+" "+pos.show
 
-  case class AskLinkPosItem(token: JawaToken, response: Response[Position]) extends WorkItem {
-    def apply() = self.getLinkPos(token, response)
-    override def toString = "linkpos "+token
+    def raiseMissing() =
+      response raise new MissingResponse
+  }
+
+  case class AskLinkPosItem(sym: JawaSymbol, response: Response[Position]) extends WorkItem {
+    def apply() = self.getLinkPos(sym, response)
+    override def toString = "linkpos "+sym
 
     def raiseMissing() =
       response raise new MissingResponse
@@ -224,6 +240,11 @@ trait CompilerControl { self: Global =>
     def raiseMissing() =
       response raise new MissingResponse
   }
+  
+  /** Locate smallest tree that encloses position
+   *  @pre Position must be loaded
+   */
+  def locateAst(pos: Position): JawaAstNode = onUnitOf(pos.source) { unit => new Locator(pos) locateIn unit.cu }
   
   case class FilesDeletedItem(sources: List[SourceFile], response: Response[Unit]) extends WorkItem {
     def apply() = filesDeleted(sources, response)

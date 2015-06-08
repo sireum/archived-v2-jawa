@@ -54,10 +54,13 @@ trait Chars {
     '0' <= c && c <= '9' || 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z'
 
   def isIdentifierStart(c: Char): Boolean =
-    (c == '`') || Character.isUnicodeIdentifierStart(c)
+    (c == '`') || Character.isJavaIdentifierPart(c)
 
-  def isIdentifierPart(c: Char) =
-    (c != '`') || (c == '.') || (c == '/') || (c == ';') || (c == ':') || Character.isUnicodeIdentifierPart(c)
+  def isIdentifierPart(c: Char, isGraveAccent: Boolean) = {
+    (c != '`' || c != ' ') &&
+    {if(isGraveAccent) {c == '.' || c == '/' || c == ';' || c == ':' || c == '_' || c == '(' || c == ')' || c == '<' || c == '>' || Character.isJavaIdentifierPart(c)} 
+    else Character.isJavaIdentifierPart(c)}
+  }
 
   def isSpecial(c: Char) = {
     val chtp = Character.getType(c)
@@ -69,7 +72,7 @@ trait Chars {
     import JCharacter._
     Set[Byte](LOWERCASE_LETTER, UPPERCASE_LETTER, OTHER_LETTER, TITLECASE_LETTER, LETTER_NUMBER)
   }
-  def isScalaLetter(ch: Char) = letterGroups(JCharacter.getType(ch).toByte) || otherLetters(ch)
+  def isJawaLetter(ch: Char) = letterGroups(JCharacter.getType(ch).toByte) || otherLetters(ch)
 
   def isOperatorPart(c : Char) : Boolean = (c: @switch) match {
     case '+' | '-' | '/' | '\\' | '*' | '%' | '&' | '|' | '?' | '>' | '<' | '=' | '~' | ':' => true

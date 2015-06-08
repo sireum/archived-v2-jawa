@@ -20,6 +20,7 @@ import org.sireum.jawa.sjc.util.SourceFile
 import org.sireum.jawa.sjc.parser.JawaAstNode
 import org.sireum.jawa.sjc.parser.CompilationUnit
 import org.sireum.jawa.sjc.lexer.{Token => JawaToken}
+import org.sireum.jawa.sjc.parser.JawaSymbol
 
 /**
  * This is the interactive compiler of Jawa.
@@ -93,19 +94,64 @@ class Global(val projectName: String, val reporter: Reporter) extends {
     }
   }
   
+  private def withTempUnits[T](sources: List[SourceFile])(f: (SourceFile => RichCompilationUnit) => T): T = {
+    val unitOfSrc: SourceFile => RichCompilationUnit = src => getCompilationUnit(src.file).get
+    sources filterNot (getUnitOf(_).isDefined) match {
+      case Nil =>
+        f(unitOfSrc)
+      case unknown =>
+        reloadSources(unknown)
+        try {
+          f(unitOfSrc)
+        } finally
+          afterRunRemoveUnitsOf(unknown)
+    }
+  }
+
+  private def withTempUnit[T](source: SourceFile)(f: RichCompilationUnit => T): T =
+    withTempUnits(List(source)){ srcToUnit =>
+      f(srcToUnit(source))
+    }
+  
   /** Implements CompilerControl.askLinkPos */
-  private[interactive] def getLinkPos(token: JawaToken, response: Response[Position]) {
-    informIDE("getLinkPos "+token)
+  private[interactive] def getLinkPos(sym: JawaSymbol, response: Response[Position]) {
+    informIDE("getLinkPos "+sym)
     respond(response) {
 //      if (token.owner.isClass) {
 //        withTempUnit(source){ u =>
 //          findMirrorSymbol(sym, u).pos
 //        }
 //      } else {
-        debugLog("link not in class "+token)
+        debugLog("link not in class "+sym)
         NoPosition
 //      }
     }
+  }
+  
+  /** Set sync var `response` to a fully attributed tree located at position `pos`  */
+  private[interactive] def getTypeAt(pos: Position, response: Response[Option[JawaSymbol]]) {
+    respond(response)(typeAt(pos))
+  }
+  
+  /** Arrange for unit to be removed after run, to give a chance to typecheck the unit fully.
+   *  If we do just removeUnit, some problems with default parameters can ensue.
+   *  Calls to this method could probably be replaced by removeUnit once default parameters are handled more robustly.
+   */
+  private def afterRunRemoveUnitsOf(sources: List[SourceFile]) {
+    toBeRemovedAfterRun ++= sources map (_.file)
+  }
+  
+  private[interactive] def typeAt(pos: Position): Option[JawaSymbol] = getUnitOf(pos.source) match {
+    case None =>
+      reloadSources(List(pos.source))
+      try typeAt(pos)
+      finally afterRunRemoveUnitsOf(List(pos.source))
+    case Some(unit) =>
+      informIDE("typeAt " + pos)
+      val ast = locateAst(pos)
+      debugLog("at pos "+pos+" was found: "+ast.getClass+" "+ast.pos.show)
+      if(ast.isInstanceOf[JawaSymbol]) Some(ast.asInstanceOf[JawaSymbol])
+      else None
   }
   
   // ----------------- Implementations of client commands -----------------------
@@ -160,6 +206,8 @@ class Global(val projectName: String, val reporter: Reporter) extends {
 
   private[interactive] def reloadSource(source: SourceFile) {
     removeCompilationUnit(source.file)
+    toBeRemoved -= source.file
+    toBeRemovedAfterRun -= source.file
     val cu = parseCode[CompilationUnit](source.file, true).get
     addCompilationUnit(source.file, RichCompilationUnit(cu))
   }

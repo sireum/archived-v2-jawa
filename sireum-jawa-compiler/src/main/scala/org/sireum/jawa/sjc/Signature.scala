@@ -31,6 +31,27 @@ case class Signature(signature: String) extends JavaKnowledge {
    */
   def methodNamePart: String = signature.substring(signature.indexOf(".") + 1, signature.indexOf(":"))
   
+  def FQMN: String = {
+    val sb = new StringBuilder
+    sb.append(getClassType.canonicalName)
+    sb.append(".")
+    sb.append(methodNamePart)
+    sb.append("(")
+    var i = 0
+    val params = getParameterTypes
+    val size = params.size
+    params foreach {
+      typ =>
+        sb.append(typ.canonicalName)
+        if(i < size - 1)
+          sb.append(",")
+        i += 1
+    }
+    sb.append(")")
+    sb.append(getReturnType().canonicalName)
+    sb.toString().intern()
+  }
+  
   /**
    * param signature part of this signature
    */

@@ -262,6 +262,10 @@ trait CompilerLifecycleManagement {global: Global =>
       }
     }
 
+    
+    // move units removable after this run to the "to-be-removed" buffer
+    toBeRemoved ++= toBeRemovedAfterRun
+    
     // clean out stale waiting responses
     cleanAllResponses()
 
