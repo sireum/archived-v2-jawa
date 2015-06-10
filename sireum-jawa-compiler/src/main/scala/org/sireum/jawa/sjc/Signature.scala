@@ -214,6 +214,10 @@ case class Signature(signature: String) extends JavaKnowledge {
     formatSignatureToType(classSigPart).asInstanceOf[ObjectType]
   }
   
+  def getDescriptor: String = {
+    this.signature.substring(this.signature.indexOf(":") + 1)
+  }
+  
   def getSubSignature: String = {
     this.signature.substring(this.signature.indexOf(";.") + 2)
   }

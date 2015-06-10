@@ -567,8 +567,8 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
   private def accessExpression(): AccessExpression = {
     val baseSymbol: VarSymbol = varSymbol()
     val dot: Token = accept(DOT)
-    val fieldID: Token = accept(ID)
-    val ae = AccessExpression(baseSymbol, dot, fieldID)
+    val fieldSym: FieldNameSymbol = fieldNameSymbol()
+    val ae = AccessExpression(baseSymbol, dot, fieldSym)
     ae
   }
   

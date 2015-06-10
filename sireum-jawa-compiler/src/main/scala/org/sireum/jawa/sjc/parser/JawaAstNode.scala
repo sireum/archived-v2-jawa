@@ -21,6 +21,7 @@ import org.sireum.jawa.sjc.lexer.Tokens
 import org.sireum.jawa.sjc.util.Range
 import org.sireum.jawa.sjc.util.Position
 import org.sireum.jawa.sjc.util.NoPosition
+import org.sireum.jawa.sjc.DefaultReporter
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -176,6 +177,8 @@ sealed trait MethodSym {
 }
 sealed trait FieldSym{
   def FQN: String
+  def baseType: ObjectType
+  def fieldName: String
 }
 sealed trait VarSym{
   def varName: String
@@ -217,7 +220,7 @@ case class FieldDefSymbol(id: Token) extends DefSymbol with FieldSym {
   def fieldName: String = getFieldNameFromFieldFQN(FQN)
 }
 
-case class FieldNameSymbol(id: Token) extends RefSymbol {
+case class FieldNameSymbol(id: Token) extends RefSymbol with FieldSym {
   lazy val tokens = flatten(id)
   def FQN: String = id.text.replaceAll("@@", "")
   def baseType: ObjectType = getClassTypeFromFieldFQN(FQN)
@@ -416,6 +419,7 @@ sealed trait Body extends ParsableAstNode
 
 case class UnresolvedBody(bodytokens: IList[Token]) extends Body {
   lazy val tokens = flatten(bodytokens)
+  def resolve: ResolvedBody = JawaParser.parse[Body](tokens, true, new DefaultReporter).asInstanceOf[ResolvedBody]
 }
 
 case class ResolvedBody(
@@ -464,6 +468,7 @@ case class CallStatement(
   def isVirtual: Boolean = typ == "virtual"
   def isSuper: Boolean = typ == "super"
   def isDirect: Boolean = typ == "direct"
+  def isInterface: Boolean = typ == "interface"
   def recvOpt: Option[String] = if(isStatic) None else Some(argClause.arg(0))
   def args: IList[String] = if(isStatic) argClause.varSymbols.map(_._1.id.text) else argClause.varSymbols.tail.map(_._1.id.text)
   def arg(i: Int): String = {
@@ -492,6 +497,7 @@ case class AssignmentStatement(
     rhs: Expression,
     annotations: IList[Annotation]) extends Statement {
   lazy val tokens = flatten(lhs, assignOP, rhs, annotations)
+  def typ: String = annotations.find { a => a.key == "type" }.map(_.value).getOrElse("")
 }
 
 case class ThrowStatement(
@@ -570,6 +576,7 @@ case class IndexingExpression(
     varSymbol: VarSymbol,
     indices: IList[IndexingSuffix]) extends Expression {
   lazy val tokens = flatten(varSymbol, indices)
+  def base: String = varSymbol.varName
   def dimentions: Int = indices.size
 }
 
@@ -583,8 +590,10 @@ case class IndexingSuffix(
 case class AccessExpression(
     varSymbol: VarSymbol,
     dot: Token,
-    fieldID: Token) extends Expression {
-  lazy val tokens = flatten(varSymbol, dot, fieldID)
+    fieldSym: FieldNameSymbol) extends Expression {
+  lazy val tokens = flatten(varSymbol, dot, fieldSym)
+  def base: String = varSymbol.varName
+  def fieldName: String = fieldSym.fieldName
 }
 
 case class TupleExpression(
