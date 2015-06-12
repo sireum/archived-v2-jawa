@@ -372,6 +372,8 @@ case class RawTypeFragment(lbracket: Token, rbracket: Token) extends TypeFragmen
 
 case class TypeFragmentWithInit(lbracket: Token, varSymbols: IList[(VarSymbol, Option[Token])], rbracket: Token) extends TypeFragment {
   lazy val tokens = flatten(lbracket, varSymbols, rbracket)
+  def varNames: IList[String] = varSymbols.map(_._1.varName)
+  def varName(i: Int): String = varNames(i)
 }
 
 case class MethodDeclaration(
@@ -492,12 +494,12 @@ case class ArgClause(
 }
 
 case class AssignmentStatement(
-    lhs: Expression,
+    lhs: Expression with LHS,
     assignOP: Token,
-    rhs: Expression,
+    rhs: Expression with RHS,
     annotations: IList[Annotation]) extends Statement {
   lazy val tokens = flatten(lhs, assignOP, rhs, annotations)
-  def typ: String = annotations.find { a => a.key == "type" }.map(_.value).getOrElse("")
+  def typ: String = annotations.find { a => a.key == "type" }.map(_.value).getOrElse({if(rhs.isInstanceOf[NewExpression])"object"else""})
 }
 
 case class ThrowStatement(
@@ -508,10 +510,10 @@ case class ThrowStatement(
 
 case class IfStatement(
     ifToken: Token,
-    exp: Expression,
+    cond: BinaryExpression,
     thengoto: (Token, Token),
     targetLocation: LocationSymbol) extends Statement {
-  lazy val tokens = flatten(ifToken, exp, thengoto, targetLocation)
+  lazy val tokens = flatten(ifToken, cond, thengoto, targetLocation)
 }
 
 case class GotoStatement(
@@ -551,6 +553,7 @@ case class ReturnStatement(
     varOpt: Option[VarSymbol],
     annotations: IList[Annotation]) extends Statement {
   lazy val tokens = flatten(returnToken, varOpt, annotations)
+  def typ: String = annotations.find { a => a.key == "type" }.map(_.value).getOrElse("")
 }
 
 case class EmptyStatement(
@@ -560,10 +563,14 @@ case class EmptyStatement(
 
 sealed trait Expression extends JawaAstNode
 
+sealed trait LHS
+
+sealed trait RHS
+
 case class NameExpression(
-    varSymbol: Either[VarSymbol, FieldNameSymbol], // FieldNameSymbol here is static fields
-    annotations: IList[Annotation]) extends Expression {
-  lazy val tokens = flatten(varSymbol, annotations)
+    varSymbol: Either[VarSymbol, FieldNameSymbol] // FieldNameSymbol here is static fields
+    ) extends Expression with LHS with RHS {
+  lazy val tokens = flatten(varSymbol)
   def name: String = 
     varSymbol match {
       case Left(v) => v.varName
@@ -574,7 +581,7 @@ case class NameExpression(
 
 case class IndexingExpression(
     varSymbol: VarSymbol,
-    indices: IList[IndexingSuffix]) extends Expression {
+    indices: IList[IndexingSuffix]) extends Expression with LHS with RHS {
   lazy val tokens = flatten(varSymbol, indices)
   def base: String = varSymbol.varName
   def dimentions: Int = indices.size
@@ -590,7 +597,7 @@ case class IndexingSuffix(
 case class AccessExpression(
     varSymbol: VarSymbol,
     dot: Token,
-    fieldSym: FieldNameSymbol) extends Expression {
+    fieldSym: FieldNameSymbol) extends Expression with LHS with RHS {
   lazy val tokens = flatten(varSymbol, dot, fieldSym)
   def base: String = varSymbol.varName
   def fieldName: String = fieldSym.fieldName
@@ -599,7 +606,7 @@ case class AccessExpression(
 case class TupleExpression(
     lparen: Token,
     constants: IList[(Token, Option[Token])],
-    rparen: Token) extends Expression {
+    rparen: Token) extends Expression with RHS {
   lazy val tokens = flatten(lparen, constants, rparen)
 }
 
@@ -607,34 +614,63 @@ case class CastExpression(
     lparen: Token,
     typ: Type,
     rparen: Token,
-    exp: Expression)
-    extends Expression {
-  lazy val tokens = flatten(lparen, typ, rparen, exp)
+    varSym: VarSymbol) extends Expression with RHS {
+  lazy val tokens = flatten(lparen, typ, rparen, varSym)
+  def varName: String = varSym.varName
 }
 
 case class NewExpression(
     newToken: Token,
-    typ: Type) extends Expression {
+    typ: Type) extends Expression with RHS {
   lazy val tokens = flatten(newToken, typ)
+  def getType: ObjectType = typ.typ.asInstanceOf[ObjectType]
 }
 
 case class LiteralExpression(
-  constant : Token) extends Expression {
+  constant: Token) extends Expression with RHS {
   lazy val tokens = flatten(constant)
+  private def getLiteral: String = {
+    val lit = constant.text
+    import org.sireum.jawa.sjc.lexer.Tokens._
+    constant.tokenType match {
+      case STRING_LITERAL =>
+        lit
+      case FLOATING_POINT_LITERAL =>
+        lit match {
+          case x if x.endsWith("F") => x.substring(0, x.length() - 1)
+          case _ => lit
+        }
+      case INTEGER_LITERAL =>
+        lit match {
+          case x if x.endsWith("I") => x.substring(0, x.length() - 1)
+          case x if x.endsWith("L") => x.substring(0, x.length() - 1)
+          case _ => lit
+        }
+      case CHARACTER_LITERAL =>
+        lit
+      case _ =>
+        "0"
+    }
+  }
+  def getInt: Int = getLiteral.toInt
+  def getLong: Long = getLiteral.toLong
+  def getFloat: Float = getLiteral.toFloat
+  def getDouble: Double = getLiteral.toDouble
+  def getString: String = getLiteral
 }
 
 case class UnaryExpression(
   op: Token,
-  unary: Either[VarSymbol, Token])
-    extends Expression {
+  unary: VarSymbol)
+    extends Expression with RHS {
   lazy val tokens = flatten(op, unary)
 }
 
 case class BinaryExpression(
-  left: Either[VarSymbol, Token],
+  left: VarSymbol,
   op: Token,
   right: Either[VarSymbol, Token])
-    extends Expression {
+    extends Expression with RHS {
   lazy val tokens = flatten(left, op, right)
 }
 
@@ -644,7 +680,7 @@ case class CmpExpression(
     var1Symbol: VarSymbol,
     comma: Token,
     var2Symbol: VarSymbol,
-    rparen: Token) extends Expression {
+    rparen: Token) extends Expression with RHS {
   lazy val tokens = flatten(cmp, lparen, var1Symbol, comma, var2Symbol, rparen)
 }
 

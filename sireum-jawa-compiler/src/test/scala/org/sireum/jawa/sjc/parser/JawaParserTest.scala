@@ -21,11 +21,11 @@ import org.sireum.util._
 class JawaParserTest extends FlatSpec with ShouldMatchers {
 
   "Parser" should "not throw a parse exception" in {
-    parseLocation("#Lx. if v0 then goto Ly; }")
+    parseLocation("#Lx. if v0 != 0 then goto Ly; }")
   }
   
   "Parser" should "throw a parse exception" in {
-    evaluating { parseLocation("if v0 then goto Ly; }") } should produce[JawaParserException]
+    evaluating { parseLocation("if v0 == 0 then goto Ly; }") } should produce[JawaParserException]
   }
   
   "Parser" should "not throw a parse exception on monitor" in {
@@ -132,30 +132,30 @@ record `b.a.a.a`  @type class @AccessFlag PUBLIC_FINAL extends  `java.io.Externa
     """)
   }
 
-//  val dirUri = FileUtil.toUri("/Users/fgwei/Developer/playground/androidlib/5.0")
-//  val filelist = FileUtil.listFiles(dirUri, "pilar", true)
-//  
-//  
-//  "Parser" should "not throw an exception on those files" in {
-//    filelist.foreach{
-//      fileUri =>
-//        val jf = new FgSourceFile(new PlainFile(FileUtil.toFile(fileUri)))
-//        val cu = parseCompilationUnit(jf.file)
-//        val oText = jf.file.text
-//        val newText = cu.toCode
-//        val reader1 = new BufferedReader(new StringReader(oText));
-//        val reader2 = new BufferedReader(new StringReader(newText));
-//        var line1 = reader1.readLine()
-//        var line2 = reader2.readLine()
-//				while(line1 != null && line2 != null){
-//          if(!line1.startsWith(line2)){
-//            throw new RuntimeException
-//          }
-//          line1 = reader1.readLine()
-//          line2 = reader2.readLine()
-//        }
-//    }
-//  }
+  val dirUri = FileUtil.toUri("/Users/fgwei/Developer/playground/androidlib/5.0")
+  val filelist = FileUtil.listFiles(dirUri, "pilar", true)
+  
+  
+  "Parser" should "not throw an exception on those files" in {
+    filelist.foreach{
+      fileUri =>
+        val jf = new FgSourceFile(new PlainFile(FileUtil.toFile(fileUri)))
+        val cu = parseCompilationUnit(jf.file)
+        val oText = jf.file.text
+        val newText = cu.toCode
+        val reader1 = new BufferedReader(new StringReader(oText));
+        val reader2 = new BufferedReader(new StringReader(newText));
+        var line1 = reader1.readLine()
+        var line2 = reader2.readLine()
+				while(line1 != null && line2 != null){
+          if(!line1.startsWith(line2)){
+            throw new RuntimeException
+          }
+          line1 = reader1.readLine()
+          line2 = reader2.readLine()
+        }
+    }
+  }
   val reporter = new DefaultReporter
   private def parser(s: Either[String, AbstractFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
   private def parseLocation(s: String) = {

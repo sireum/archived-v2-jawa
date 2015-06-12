@@ -393,9 +393,9 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
   }
   
   private def assignmentStatement(): AssignmentStatement = {
-    val lhs: Expression = expression()
+    val lhs: Expression with LHS = expression_lhs()
     val assignOP: Token = accept(ASSIGN_OP)
-    val rhs: Expression = expression()
+    val rhs: Expression with RHS = expression_rhs()
     val annotations_ : IList[Annotation] = annotations()
     val as = AssignmentStatement(lhs, assignOP, rhs, annotations_)
     as
@@ -410,10 +410,10 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
   
   private def ifStatement(): IfStatement = {
     val ifToken: Token = accept(IF)
-    val exp: Expression = expression()
+    val cond: BinaryExpression = binaryExpression()
     val thengoto: (Token, Token) = (accept(THEN), accept(GOTO))
     val targetLocation: LocationSymbol = locationSymbol()
-    val is = IfStatement(ifToken, exp, thengoto, targetLocation)
+    val is = IfStatement(ifToken, cond, thengoto, targetLocation)
     is
   }
   
@@ -491,16 +491,22 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
     es
   }
   
-  private def expressionOpt(): Option[Expression] = {
-    try{
-      Some(expression())
-    } catch {
-      case jpe: JawaParserException => None
-      case e: Throwable => throw e
+  private def expression_lhs(): Expression with LHS = {
+    currentTokenType match {
+      case STATIC_ID =>
+        nameExpression()
+      case ID =>
+        val next: TokenType = lookahead(1)
+        next match {
+          case DOT => accessExpression()
+          case LBRACKET => indexingExpression()
+          case _ => nameExpression()
+        }
+      case _ =>  throw new JawaParserException(currentToken.pos, "Unexpected expression start: " + currentToken)
     }
   }
   
-  private def expression(): Expression = {
+  private def expression_rhs(): Expression with RHS = {
     currentTokenType match {
       case NEW => newExpression()
       case CMP => cmpExpression()
@@ -533,9 +539,7 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
         case STATIC_ID => Right(staticFieldNameSymbol())
         case _ => throw new JawaParserException(currentToken.pos, "expected 'ID' or 'STATIC_ID' but " + currentToken + " found")
       }
-      
-    val annotations_ : IList[Annotation] = annotations()
-    val ne = NameExpression(varSymbol_, annotations_)
+    val ne = NameExpression(varSymbol_)
     ne
   }
   
@@ -594,8 +598,8 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
     val lparen: Token = accept(LPAREN)
     val typ_ : Type = typ(withinit = false)
     val rparen: Token = accept(RPAREN)
-    val exp: Expression = expression()
-    val ce = CastExpression(lparen, typ_, rparen, exp)
+    val varSym: VarSymbol = varSymbol()
+    val ce = CastExpression(lparen, typ_, rparen, varSym)
     ce
   }
   
@@ -622,7 +626,7 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
   
   private def unaryExpression(): UnaryExpression = {
     val op: Token = accept(OP) // need to check is it unary op
-    val unary: Either[VarSymbol, Token] = getVarOrLit()
+    val unary: VarSymbol = varSymbol
     val ue = UnaryExpression(op, unary)
     ue
   }
@@ -632,7 +636,7 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
        currentTokenType != INTEGER_LITERAL &&
        currentTokenType != FLOATING_POINT_LITERAL)
       throw new JawaParserException(currentToken.pos, "expected 'ID' or 'INTEGER_LITERAL' or 'FLOATING_POINT_LITERAL' but " + currentToken + " found")
-    val left: Either[VarSymbol, Token] = getVarOrLit()
+    val left: VarSymbol = varSymbol
     val op: Token = accept(OP) // need to check is it binary op
     if(currentTokenType != ID && 
        currentTokenType != INTEGER_LITERAL &&
