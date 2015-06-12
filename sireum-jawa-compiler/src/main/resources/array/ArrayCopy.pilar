@@ -1,0 +1,23 @@
+record `com.fgwei.ArrayCopy`  @type class @AccessFlag PUBLIC {
+   }
+    procedure `java.lang.String` `com.fgwei.ArrayCopy.main` () @owner `com.fgwei.ArrayCopy` @signature `Lcom/fgwei/ArrayCopy;.main:()Ljava/lang/String;` @Access `PUBLIC_STATIC` {
+      temp ;
+        v0;
+        v1;
+        v2;
+        v3;
+        v4;
+        v5;
+        v6;
+      
+#L000548.   v6:= 1I  @type const4;
+#L00054a.   v5:= 0I  @type const4;
+#L00055c.   v4:= "phone" @type object;
+#L000574.   v0:= new `java.lang.String`[v6];
+#L000578.   v0[v5]:= v4  @type object;
+#L00057c.   v1:= new `java.lang.String`[v6];
+#L000580.   call temp:=  `java.lang.System.arraycopy`(v0, v5, v1, v5, v6) @signature `Ljava/lang/System;.arraycopy:(Ljava/lang/Object;ILjava/lang/Object;II)V` @classDescriptor `java.lang.System` @type static;
+#L000586.   v4:= v1[v5] @type object;
+#L000594.   return v4 @type object;
+
+   }

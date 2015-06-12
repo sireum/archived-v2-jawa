@@ -23,6 +23,7 @@ import java.io.File
 import java.io.PrintWriter
 import scala.tools.asm.ClassReader
 import scala.tools.asm.util.TraceClassVisitor
+import java.lang.reflect.InvocationTargetException
 
 class JawaCodegenTest extends FlatSpec with ShouldMatchers {
   
@@ -76,6 +77,23 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
     genCode(jf.file)
   }
   
+  "Generate code" should "not throw an exception on Exceptions2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/exception/Exceptions2.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on Exceptions3" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/exception/Exceptions3.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "throw an exception on Exceptions4" in {
+    evaluating {
+      val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/exception/Exceptions4.pilar")))
+      genCode(jf.file)
+    } should produce[RuntimeException]
+  }
+  
   val reporter = new DefaultReporter
   private def parser(s: Either[String, AbstractFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
   private def parseLocation(s: String) = {
@@ -114,10 +132,14 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
       case (name, bytecodes) => 
         val pw = new PrintWriter(System.out)
         JavaByteCodeGenerator.outputByteCodes(pw, bytecodes)
-        
-        val c = ccl.loadClass(name, bytecodes)
-        val r = c.getMethod("main").invoke(null)
-        println("result: " + r)
+        try{
+          val c = ccl.loadClass(name, bytecodes)
+          val r = c.getMethod("main").invoke(null)
+          println("result: " + r)
+        } catch {
+          case ite: InvocationTargetException =>
+            throw ite.getTargetException
+        }
     }
   }
 
