@@ -19,6 +19,7 @@ object Tokens {
   val ID = TokenType("ID")
   val LOCATION_ID = TokenType("LOCATION_ID")
   val STATIC_ID = TokenType("STATIC_ID")
+  val EXCEPTION = TokenType("EXCEPTION")
     
   val NEW = TokenType("NEW")
   val THROW = TokenType("THROW")

@@ -579,6 +579,11 @@ case class NameExpression(
   def isStatic: Boolean = varSymbol.isRight
 }
 
+case class ExceptionExpression(
+    exception: Token) extends Expression with RHS {
+  lazy val tokens = flatten(exception)
+}
+
 case class IndexingExpression(
     varSymbol: VarSymbol,
     indices: IList[IndexingSuffix]) extends Expression with LHS with RHS {

@@ -45,6 +45,7 @@ import org.sireum.jawa.sjc.parser.TypeFragmentWithInit
 import java.io.PrintWriter
 import scala.tools.asm.ClassReader
 import scala.tools.asm.util.TraceClassVisitor
+import org.sireum.jawa.sjc.parser.ExceptionExpression
 
 object JavaByteCodeGenerator {
   def outputByteCodes(pw: PrintWriter, bytecodes: Array[Byte]) = {
@@ -149,15 +150,26 @@ class JavaByteCodeGenerator {
         locals(local.varSymbol.varName) = LocalIndex(local.varSymbol.varName, JavaKnowledge.formatTypeToSignature(JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE), i)
         i += 1
     }
-    val initLabel = new Label()
-    mv.visitCode()
-    mv.visitLabel(initLabel)
-    
     body.locations foreach {
       location =>
         val locLabel = new Label()
         this.locations(location.locationUri) = locLabel
     }
+    body.catchClauses foreach {
+      catchClause =>
+        val from: Label = this.locations(catchClause.range.fromLocation.location)
+        val to: Label = this.locations(catchClause.range.toLocation.location)
+        val target: Label = this.locations(catchClause.targetLocation.location)
+        val typ: String = catchClause.typOrAny match {
+          case Left(t) => getClassName(t.typ.name)
+          case Right(a) => null
+        }
+        mv.visitTryCatchBlock(from, to, target, typ)
+    }
+    val initLabel = new Label()
+    mv.visitCode()
+    mv.visitLabel(initLabel)
+    
     body.locations foreach {
       location =>
         val locLabel = this.locations(location.locationUri)
@@ -185,17 +197,44 @@ class JavaByteCodeGenerator {
         val typ: String = as.typ
         visitAssignmentStatement(mv, as, typ)
       case ts: ThrowStatement =>
+        visitThrowStatement(mv, ts)
       case is: IfStatement =>
         visitIfStatement(mv, is)
       case gs: GotoStatement =>
         visitGotoStatement(mv, gs)
       case ss: SwitchStatement =>
+        visitSwitchStatement(mv, ss)
       case rs: ReturnStatement =>
         val typ: String = rs.typ
         visitReturnStatement(mv, rs, typ)
       case es: EmptyStatement =>
+        /*TODO*/
       case _ =>
     }
+  }
+  
+  private def visitThrowStatement(mv: MethodVisitor, ts: ThrowStatement): Unit = {
+    visitVarLoad(mv, ts.varSymbol.varName, "object")
+    mv.visitInsn(Opcodes.ATHROW)
+  }
+  
+  private def visitSwitchStatement(mv: MethodVisitor, ss: SwitchStatement): Unit = {
+    val dflt: Label = ss.defaultCaseOpt match {
+      case Some(dc) => locations(dc.targetLocation.location)
+      case None => locations(ss.cases.last.targetLocation.location)
+    }
+    val key = ss.condition.varName
+    visitVarLoad(mv, key, "int")
+    val size = ss.cases.size
+    val keys: MList[Int] = mlistEmpty
+    val labels: MList[Label] = mlistEmpty
+    
+    for(i <- 0 to size - 1){
+      val ca = ss.cases(i)
+      keys += ca.constant.text.toInt
+      labels += locations(ca.targetLocation.location)
+    }
+    mv.visitLookupSwitchInsn(dflt, keys.toArray, labels.toArray)
   }
   
   private def visitGotoStatement(mv: MethodVisitor, gs: GotoStatement): Unit = {
@@ -337,6 +376,7 @@ class JavaByteCodeGenerator {
           val t = JavaKnowledge.getTypeFromName(typ)
           mv.visitFieldInsn(Opcodes.GETSTATIC, fnSym.baseType.name.replaceAll("\\.", "/"), fnSym.fieldName, JavaKnowledge.formatTypeToSignature(t))
       }
+    case ee: ExceptionExpression =>
     case ie: IndexingExpression =>
       visitIndexLoad(mv, ie, typ)
     case ae: AccessExpression =>
@@ -630,6 +670,7 @@ class JavaByteCodeGenerator {
       mv.visitVarInsn(Opcodes.ILOAD, this.locals(ce.varName).index)
       mv.visitInsn(Opcodes.I2S)
     case "object" => 
+      mv.visitTypeInsn(Opcodes.CHECKCAST, getClassName(ce.typ.typ.name))
       mv.visitVarInsn(Opcodes.ALOAD, this.locals(ce.varName).index)
     case _ => println("visitCastExpression problem: " + ce + " " + typ)
   }

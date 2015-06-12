@@ -61,6 +61,21 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
     genCode(jf.file)
   }
   
+  "Generate code" should "not throw an exception on SwitchJump1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/jump/SwitchJump1.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on SwitchJump2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/jump/SwitchJump2.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on Exceptions1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/exception/Exceptions1.pilar")))
+    genCode(jf.file)
+  }
+  
   val reporter = new DefaultReporter
   private def parser(s: Either[String, AbstractFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
   private def parseLocation(s: String) = {

@@ -510,6 +510,7 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
     currentTokenType match {
       case NEW => newExpression()
       case CMP => cmpExpression()
+      case EXCEPTION => exceptionExpression()
       case LPAREN => 
         val next: TokenType = lookahead(1)
         next match {
@@ -530,6 +531,11 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
         }
       case _ => throw new JawaParserException(currentToken.pos, "Unexpected expression start: " + currentToken)
     }
+  }
+  
+  private def exceptionExpression(): ExceptionExpression = {
+    val exception: Token = accept(EXCEPTION)
+    ExceptionExpression(exception)
   }
   
   private def nameExpression(): NameExpression = {
