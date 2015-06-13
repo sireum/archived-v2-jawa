@@ -107,7 +107,7 @@ class JawaLexerTest extends FlatSpec with ShouldMatchers {
 
   "#L0001. tokenTextBuffer:= new StringBuilder" producesTokens (LOCATION_ID, WS, ID, ASSIGN_OP, WS, NEW, WS, ID)
 
-  "#Lx. cmp(v0, v1);" producesTokens (LOCATION_ID, WS, CMP, LPAREN, ID, COMMA, WS, ID, RPAREN, SEMI)
+  "#Lx. lcmp(v0, v1);" producesTokens (LOCATION_ID, WS, CMP, LPAREN, ID, COMMA, WS, ID, RPAREN, SEMI)
   
   """println("bob")
 println("foo")""" producesTokens (ID, LPAREN, STRING_LITERAL, RPAREN, WS, ID, LPAREN, STRING_LITERAL, RPAREN)

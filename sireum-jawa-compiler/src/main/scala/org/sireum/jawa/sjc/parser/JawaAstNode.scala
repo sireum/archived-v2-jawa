@@ -274,7 +274,7 @@ case class ClassOrInterfaceDeclaration(
     methods: IList[MethodDeclaration]) extends Declaration with ParsableAstNode {
   lazy val tokens = flatten(dclToken, cityp, annotations, extendsAndImplimentsClausesOpt, instanceFieldDeclarationBlock, staticFields, methods)
   def isInterface: Boolean = {
-    annotations.exists { a => a.key == "type" && a.value == "interface" }
+    annotations.exists { a => a.key == "kind" && a.value == "interface" }
   }
   def parents: IList[ObjectType] = extendsAndImplimentsClausesOpt match {case Some(e) => e.parents; case None => ilistEmpty}
   def superClassOpt: Option[ObjectType] = extendsAndImplimentsClausesOpt match{case Some(e) => e.superClassOpt; case None => None}
@@ -287,15 +287,32 @@ case class ClassOrInterfaceDeclaration(
 case class Annotation(
     at: Token, 
     annotationID: Token, 
-    annotationValueOpt: Option[Either[JawaSymbol, Token]]) extends JawaAstNode {
+    annotationValueOpt: Option[AnnotationValue]) extends JawaAstNode {
   lazy val tokens = flatten(at, annotationID, annotationValueOpt)
   def key: String = annotationID.text
-  def value: String = 
-    annotationValueOpt match{
-      case Some(Left(a)) => a.id.text 
-      case Some(Right(a)) => a.text
-      case None => ""
-    }
+  def value: String = annotationValueOpt.map(_.value).getOrElse("")
+}
+
+sealed trait AnnotationValue extends JawaAstNode {
+  def value: String
+}
+
+case class TypeValue(
+    typ: Type) extends AnnotationValue {
+  lazy val tokens = flatten(typ)
+  def value: String = typ.typ.name
+}
+
+case class SymbolValue(
+    sym: JawaSymbol) extends AnnotationValue {
+  lazy val tokens = flatten(sym)
+  def value: String = sym.id.text
+}
+
+case class TokenValue(
+    token: Token) extends AnnotationValue {
+  lazy val tokens = flatten(token)
+  def value: String = token.text
 }
 
 case class ExtendsAndImplimentsClauses(
@@ -313,8 +330,8 @@ case class ExtendAndImpliment(
     annotations: IList[Annotation])extends JawaAstNode {
   lazy val tokens = flatten(parenttyp, annotations)
   def typ: ObjectType = parenttyp.typ
-  def isExtend: Boolean = annotations.exists { a => a.key == "type" && a.value == "class" }
-  def isImplement: Boolean = annotations.exists { a => a.key == "type" && a.value == "interface" }
+  def isExtend: Boolean = annotations.exists { a => a.key == "kind" && a.value == "class" }
+  def isImplement: Boolean = annotations.exists { a => a.key == "kind" && a.value == "interface" }
 }
 
 sealed trait Field extends JawaAstNode {
@@ -412,8 +429,8 @@ case class Param(
     paramSymbol: VarDefSymbol, 
     annotations: IList[Annotation]) extends JawaAstNode {
   lazy val tokens = flatten(typ, paramSymbol, annotations)
-  def isThis: Boolean = annotations.exists { a => a.key == "type" && a.value == "this" }
-  def isObject: Boolean = annotations.exists { a => a.key == "type" && (a.value == "this" || a.value == "object") }
+  def isThis: Boolean = annotations.exists { a => a.key == "kind" && a.value == "this" }
+  def isObject: Boolean = annotations.exists { a => a.key == "kind" && (a.value == "this" || a.value == "object") }
   def name: String = paramSymbol.id.text
 }
 
@@ -463,14 +480,14 @@ case class CallStatement(
     annotations: IList[Annotation]) extends Statement {
   lazy val tokens = flatten(callToken, lhs, assignOP, methodNameSymbol, argClause, annotations)
   //default is virtual call
-  def typ: String = annotations.find { a => a.key == "type" }.map(_.value).getOrElse("virtual")
+  def kind: String = annotations.find { a => a.key == "kind" }.map(_.value).getOrElse("virtual")
   def signature: Signature = Signature(annotations.find { a => a.key == "signature" }.get.value)
   def classDescriptor: String = annotations.find { a => a.key == "classDescriptor" }.get.value
-  def isStatic: Boolean = typ == "static"
-  def isVirtual: Boolean = typ == "virtual"
-  def isSuper: Boolean = typ == "super"
-  def isDirect: Boolean = typ == "direct"
-  def isInterface: Boolean = typ == "interface"
+  def isStatic: Boolean = kind == "static"
+  def isVirtual: Boolean = kind == "virtual"
+  def isSuper: Boolean = kind == "super"
+  def isDirect: Boolean = kind == "direct"
+  def isInterface: Boolean = kind == "interface"
   def recvOpt: Option[String] = if(isStatic) None else Some(argClause.arg(0))
   def args: IList[String] = if(isStatic) argClause.varSymbols.map(_._1.id.text) else argClause.varSymbols.tail.map(_._1.id.text)
   def arg(i: Int): String = {
@@ -499,7 +516,8 @@ case class AssignmentStatement(
     rhs: Expression with RHS,
     annotations: IList[Annotation]) extends Statement {
   lazy val tokens = flatten(lhs, assignOP, rhs, annotations)
-  def typ: String = annotations.find { a => a.key == "type" }.map(_.value).getOrElse({if(rhs.isInstanceOf[NewExpression])"object"else""})
+  def kind: String = annotations.find { a => a.key == "kind" }.map(_.value).getOrElse({if(rhs.isInstanceOf[NewExpression])"object"else""})
+  def typOpt: Option[JawaType] = annotations.find { a => a.key == "type" }.map(_.annotationValueOpt.get.asInstanceOf[TypeValue].typ.typ)
 }
 
 case class ThrowStatement(
@@ -553,7 +571,16 @@ case class ReturnStatement(
     varOpt: Option[VarSymbol],
     annotations: IList[Annotation]) extends Statement {
   lazy val tokens = flatten(returnToken, varOpt, annotations)
-  def typ: String = annotations.find { a => a.key == "type" }.map(_.value).getOrElse("")
+  def kind: String = annotations.find { a => a.key == "kind" }.map(_.value).getOrElse("")
+}
+
+case class MonitorStatement(
+    monitor: Token,
+    varSymbol: VarSymbol) extends Statement {
+  lazy val tokens = flatten(monitor, varSymbol)
+  import org.sireum.jawa.sjc.lexer.Tokens._
+  def isEnter: Boolean = monitor.tokenType == MONITOR_ENTER
+  def isExit: Boolean = monitor.tokenType == MONITOR_EXIT
 }
 
 case class EmptyStatement(
@@ -582,6 +609,20 @@ case class NameExpression(
 case class ExceptionExpression(
     exception: Token) extends Expression with RHS {
   lazy val tokens = flatten(exception)
+}
+
+case class ConstClassExpression(
+    typ: Type,
+    dot: Token,
+    const_class: Token) extends Expression with RHS {
+  lazy val tokens = flatten(typ, dot, const_class)
+}
+
+case class LengthExpression(
+    varSymbol: VarSymbol,
+    dot: Token,
+    length: Token) extends Expression with RHS {
+  lazy val tokens = flatten(varSymbol, dot, length)
 }
 
 case class IndexingExpression(
@@ -613,6 +654,7 @@ case class TupleExpression(
     constants: IList[(Token, Option[Token])],
     rparen: Token) extends Expression with RHS {
   lazy val tokens = flatten(lparen, constants, rparen)
+  def integers: IList[Int] = constants.map(_._1.text.toInt)
 }
 
 case class CastExpression(
@@ -629,6 +671,13 @@ case class NewExpression(
     typ: Type) extends Expression with RHS {
   lazy val tokens = flatten(newToken, typ)
   def getType: ObjectType = typ.typ.asInstanceOf[ObjectType]
+}
+
+case class InstanceofExpression(
+    varSymbol: VarSymbol,
+    instanceof: Token,
+    typ: Type) extends Expression with RHS {
+  lazy val tokens = flatten(varSymbol, instanceof, typ)
 }
 
 case class LiteralExpression(

@@ -47,28 +47,58 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
     genCode(jf.file)
   }
   
+  "Generate code" should "not throw an exception on ArrayFill1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/array/ArrayFill1.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on ArrayFill2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/array/ArrayFill2.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on ArrayLength1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/array/ArrayLength1.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on Cmp1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/cmp/Cmp1.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on Cmp2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/cmp/Cmp2.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on ConstClass1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/constclass/ConstClass1.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on ConstClass2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/constclass/ConstClass2.pilar")))
+    genCode(jf.file)
+  }
+  
   "Generate code" should "not throw an exception on FieldAccess1" in {
     val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/field/FieldAccess1.pilar")))
     genCode(jf.file)
   }
   
-  "Generate code" should "not throw an exception on IfJump1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/jump/IfJump1.pilar")))
+  "Generate code" should "not throw an exception on FieldAccess2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/field/FieldAccess2.pilar")))
     genCode(jf.file)
   }
   
-  "Generate code" should "not throw an exception on IfJump2" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/jump/IfJump2.pilar")))
+  "Generate code" should "not throw an exception on Instanceof1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/instance/Instanceof1.pilar")))
     genCode(jf.file)
   }
   
-  "Generate code" should "not throw an exception on SwitchJump1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/jump/SwitchJump1.pilar")))
-    genCode(jf.file)
-  }
-  
-  "Generate code" should "not throw an exception on SwitchJump2" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/jump/SwitchJump2.pilar")))
+  "Generate code" should "not throw an exception on Instanceof2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/instance/Instanceof2.pilar")))
     genCode(jf.file)
   }
   
@@ -92,6 +122,31 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
       val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/exception/Exceptions4.pilar")))
       genCode(jf.file)
     } should produce[RuntimeException]
+  }
+  
+  "Generate code" should "not throw an exception on IfJump1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/jump/IfJump1.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on IfJump2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/jump/IfJump2.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on SwitchJump1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/jump/SwitchJump1.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on SwitchJump2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/jump/SwitchJump2.pilar")))
+    genCode(jf.file)
+  }
+  
+  "Generate code" should "not throw an exception on Monitor1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/monitor/Monitor1.pilar")))
+    genCode(jf.file)
   }
   
   val reporter = new DefaultReporter

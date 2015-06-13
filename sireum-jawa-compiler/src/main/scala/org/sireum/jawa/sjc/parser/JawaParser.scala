@@ -63,16 +63,16 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
     def loop(){
       currentTokenType match {
         case AT =>
-          val at = nextToken()
+          val at = accept(AT)
           val annotationID: Token = accept(ID)
-          val annotationValueOpt: Option[Either[JawaSymbol, Token]] =
+          val annotationValueOpt: Option[AnnotationValue] =
             annotationID.text match {
-              case "owner" | "classDescriptor" => Some(Left(typeSymbol()))
-              case "signature" => Some(Left(signatureSymbol()))
+              case "type" | "owner" | "classDescriptor" => Some(TypeValue(typ(withinit = false)))
+              case "signature" => Some(SymbolValue(signatureSymbol()))
               case _ =>
                 currentTokenType match{
-                  case ID => Some(Right(nextToken()))
-                  case x if isLiteralToken(x) => Some(Right(nextToken()))
+                  case ID => Some(TokenValue(nextToken()))
+                  case x if isLiteralToken(x) => Some(TokenValue(nextToken()))
                   case _ => None
                 }
             }
@@ -358,6 +358,7 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
       case SWITCH => switchStatement()
       case RETURN => returnStatement()
       case GOTO => gotoStatement()
+      case MONITOR_ENTER | MONITOR_EXIT => monitorStatement()
       case AT | SEMI | LOCATION_ID => emptyStatement()
       case _ => assignmentStatement()
     }
@@ -485,6 +486,16 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
     rs
   }
   
+  private def monitorStatement(): MonitorStatement = {
+    val monitor: Token = currentTokenType match {
+      case MONITOR_ENTER => accept(MONITOR_ENTER)
+      case MONITOR_EXIT => accept(MONITOR_EXIT)
+      case _ => throw new JawaParserException(currentToken.pos, "Unexpected expression start: " + currentToken)
+    }
+    val varSymbol_ : VarSymbol = varSymbol()
+    MonitorStatement(monitor, varSymbol_)
+  }
+  
   private def emptyStatement(): EmptyStatement = {
     val annotations_ : IList[Annotation] = annotations()
     val es = EmptyStatement(annotations_)
@@ -523,14 +534,49 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
         nameExpression()
       case ID =>
         val next: TokenType = lookahead(1)
-        next match {
-          case DOT => accessExpression()
-          case LBRACKET => indexingExpression()
-          case OP => binaryExpression()
-          case _ => nameExpression()
+        val further: TokenType = lookahead(2)
+        val isConstClass: Boolean = further match {
+          case CONST_CLASS | RBRACKET => true
+          case _ => false
+        }
+        val isLength: Boolean = further match {
+          case LENGTH => true
+          case _ => false
+        }
+        if(isConstClass) constClassExpression()
+        else if(isLength) lengthExpression()
+        else {
+          next match { 
+            case INSTANCEOF => instanceofExpression()
+            case DOT => accessExpression()
+            case LBRACKET => indexingExpression()
+            case OP => binaryExpression()
+            case _ => nameExpression()
+          }
         }
       case _ => throw new JawaParserException(currentToken.pos, "Unexpected expression start: " + currentToken)
     }
+  }
+  
+  private def constClassExpression(): ConstClassExpression = {
+    val typ_ : Type = typ(withinit = false)
+    val dot: Token = accept(DOT)
+    val const_class: Token = accept(CONST_CLASS)
+    ConstClassExpression(typ_, dot, const_class)
+  }
+  
+  private def lengthExpression():LengthExpression = {
+    val varSymbol_ : VarSymbol = varSymbol()
+    val dot: Token = accept(DOT)
+    val length: Token = accept(LENGTH)
+    LengthExpression(varSymbol_, dot, length)
+  }
+  
+  private def instanceofExpression(): InstanceofExpression = {
+    val varSymbol_ : VarSymbol = varSymbol()
+    val instanceof: Token = accept(INSTANCEOF)
+    val typ_ : Type = typ(withinit = false)
+    InstanceofExpression(varSymbol_, instanceof, typ_)
   }
   
   private def exceptionExpression(): ExceptionExpression = {

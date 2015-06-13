@@ -92,7 +92,7 @@ sealed abstract class DefinedPosition extends Position {
   }
   override def hashCode = Seq[Any](source.file, start, point, end).##
   override def toString = (
-    if (isRange) s"RangePosition($canonicalPath, $start, $point, $end)"
+    if (isRange) s"RangePosition($canonicalPath, $start, $line, $column)"
     else s"source-$canonicalPath,line-$line,$pointMessage$point"
   )
   private def pointMessage  = if (point > source.length) "out-of-bounds-" else "offset="

@@ -108,15 +108,23 @@ class JawaLexer(aplexer: Antlr4PilarLexer, file: AbstractFile, reporter: Reporte
         case GID =>
           Tokens.STATIC_ID
         case ID =>
-          if(aptoken.getText == "cmp" || aptoken.getText == "cmpl" || aptoken.getText == "cmpg")
+          if(aptoken.getText == "fcmpl" || aptoken.getText == "dcmpl" || aptoken.getText == "fcmpg" ||
+             aptoken.getText == "dcmpg" || aptoken.getText == "lcmp")
             Tokens.CMP
+          else if(aptoken.getText == "constclass")
+            Tokens.CONST_CLASS
+          else if(aptoken.getText == "length")
+            Tokens.LENGTH
           else if(aptoken.getText == "Exception")
             Tokens.EXCEPTION
           else if(aptoken.getText == "`any`")
             Tokens.ANY
-//          else if(aptoken.getText.startsWith("`") && aptoken.getText.endsWith("`"))
-//            Tokens.ID
-//          else Tokens.TEXT
+          else if(aptoken.getText == "monitorenter")
+            Tokens.MONITOR_ENTER
+          else if(aptoken.getText == "monitorexit")
+            Tokens.MONITOR_EXIT
+          else if(aptoken.getText == "instanceof")
+            Tokens.INSTANCEOF
           else Tokens.ID
         case LID =>
           Tokens.LOCATION_ID

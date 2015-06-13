@@ -14,12 +14,16 @@ object Tokens {
   val STATIC_FIELD = TokenType("STATIC_FIELD")
   val EXTENDS_AND_IMPLEMENTS = TokenType("EXTENDS_AND_IMPLEMENTS")
 
+  val CONST_CLASS = TokenType("CONST_CLASS")
+  val LENGTH = TokenType("LENGTH")
+  
   val EQUALS = TokenType("EQUALS")
   
   val ID = TokenType("ID")
   val LOCATION_ID = TokenType("LOCATION_ID")
   val STATIC_ID = TokenType("STATIC_ID")
   val EXCEPTION = TokenType("EXCEPTION")
+  val INSTANCEOF = TokenType("INSTANCEOF")
     
   val NEW = TokenType("NEW")
   val THROW = TokenType("THROW")
@@ -31,6 +35,10 @@ object Tokens {
   val ELSE = TokenType("ELSE")
   val RETURN = TokenType("RETURN")
   val CALL = TokenType("CALL")
+  val MONITOR_ENTER = TokenType("MONITOR_ENTER")
+  val MONITOR_EXIT = TokenType("MONITOR_EXIT")
+  
+  
   
   val EOF = TokenType("EOF")
   
@@ -73,8 +81,8 @@ object Tokens {
   
   val KEYWORDS = Set(
     CLASS_OR_INTERFACE, METHOD, STATIC_FIELD, EXTENDS_AND_IMPLEMENTS, IF, THEN, NEW,
-    RETURN, THROW, CALL, SWITCH, ELSE, GOTO, CATCH, ANY,
-    TRUE, FALSE, NULL)
+    RETURN, THROW, CALL, SWITCH, ELSE, GOTO, CATCH, ANY, INSTANCEOF, CONST_CLASS,
+    TRUE, FALSE, NULL, MONITOR_ENTER, MONITOR_EXIT, CMP, LENGTH)
 
   val COMMENTS = Set(LINE_COMMENT, MULTILINE_COMMENT, DOC_COMMENT)
 

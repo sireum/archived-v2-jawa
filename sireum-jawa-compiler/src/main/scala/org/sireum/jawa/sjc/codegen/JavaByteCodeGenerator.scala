@@ -46,6 +46,12 @@ import java.io.PrintWriter
 import scala.tools.asm.ClassReader
 import scala.tools.asm.util.TraceClassVisitor
 import org.sireum.jawa.sjc.parser.ExceptionExpression
+import org.sireum.jawa.sjc.parser.MonitorStatement
+import org.objectweb.asm.Type
+import org.sireum.jawa.sjc.parser.InstanceofExpression
+import org.sireum.jawa.sjc.parser.InstanceofExpression
+import org.sireum.jawa.sjc.parser.ConstClassExpression
+import org.sireum.jawa.sjc.parser.LengthExpression
 
 object JavaByteCodeGenerator {
   def outputByteCodes(pw: PrintWriter, bytecodes: Array[Byte]) = {
@@ -122,6 +128,7 @@ class JavaByteCodeGenerator {
   case class LocalIndex(varname: String, typ: String, index: Int)
   private val locals: MMap[String, LocalIndex] = mmapEmpty
   private val locations: MMap[String, Label] = mmapEmpty
+  private var maxLocals: Int = 0
   
   private def visitMethod(cw: ClassWriter, md: MethodDeclaration): Unit = {
     val af: Int = AccessFlag.getAccessFlags(md.accessModifier)
@@ -148,8 +155,9 @@ class JavaByteCodeGenerator {
     body.locals.foreach{
       local =>
         locals(local.varSymbol.varName) = LocalIndex(local.varSymbol.varName, JavaKnowledge.formatTypeToSignature(JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE), i)
-        i += 1
+        i += 2 // to handle long and double
     }
+    this.maxLocals = this.locals.size
     body.locations foreach {
       location =>
         val locLabel = new Label()
@@ -187,6 +195,7 @@ class JavaByteCodeGenerator {
     mv.visitEnd()
     this.locals.clear()
     this.locations.clear()
+    this.maxLocals = 0
   }
   
   private def visitLocation(mv: MethodVisitor, jl: JawaLocation): Unit = {
@@ -194,8 +203,7 @@ class JavaByteCodeGenerator {
       case cs: CallStatement =>
         visitCallStatement(mv, cs)
       case as: AssignmentStatement =>
-        val typ: String = as.typ
-        visitAssignmentStatement(mv, as, typ)
+        visitAssignmentStatement(mv, as)
       case ts: ThrowStatement =>
         visitThrowStatement(mv, ts)
       case is: IfStatement =>
@@ -205,11 +213,29 @@ class JavaByteCodeGenerator {
       case ss: SwitchStatement =>
         visitSwitchStatement(mv, ss)
       case rs: ReturnStatement =>
-        val typ: String = rs.typ
-        visitReturnStatement(mv, rs, typ)
+        visitReturnStatement(mv, rs)
+      case ms: MonitorStatement =>
+        visitMonitorStatement(mv, ms)
       case es: EmptyStatement =>
-        /*TODO*/
+        
       case _ =>
+    }
+  }
+  
+  private def visitMonitorStatement(mv: MethodVisitor, ms: MonitorStatement): Unit = {
+    import org.sireum.jawa.sjc.lexer.Tokens._  
+    ms.monitor.tokenType match {
+      case MONITOR_ENTER => 
+        visitVarLoad(mv, ms.varSymbol.varName, "object")
+        mv.visitInsn(Opcodes.DUP)
+        this.maxLocals += 1
+        mv.visitVarInsn(Opcodes.ASTORE, this.maxLocals)
+        mv.visitInsn(Opcodes.MONITORENTER)
+      case MONITOR_EXIT => 
+        mv.visitVarInsn(Opcodes.ALOAD, this.maxLocals)
+        this.maxLocals -= 1
+        mv.visitInsn(Opcodes.MONITOREXIT)
+      case _ => println("visitMonitorStatement problem: " + ms)
     }
   }
   
@@ -261,19 +287,20 @@ class JavaByteCodeGenerator {
     }
   }
   
-  private def visitReturnStatement(mv: MethodVisitor, rs: ReturnStatement, typ: String): Unit = {
+  private def visitReturnStatement(mv: MethodVisitor, rs: ReturnStatement): Unit = {
+    val kind: String = rs.kind
     rs.varOpt match {
       case Some(va) => 
-        visitVarLoad(mv, va.varName, typ)
-        typ match {
+        visitVarLoad(mv, va.varName, kind)
+        kind match {
           case "" => mv.visitInsn(Opcodes.IRETURN)
-          case "wide" => mv.visitInsn(Opcodes.DRETURN)
+          case "long" => mv.visitInsn(Opcodes.LRETURN)
           case "object" => mv.visitInsn(Opcodes.ARETURN)
 //          case "double" =>
 //          case "float" =>
 //          case "int" =>
 //          case "long" =>
-          case _ => println("visitReturnStatement problem: " + rs + " " + typ)
+          case _ => println("visitReturnStatement problem: " + rs + " " + kind)
         }
       case None => 
         mv.visitInsn(Opcodes.RETURN)
@@ -315,27 +342,34 @@ class JavaByteCodeGenerator {
     val ret = cs.signature.getReturnType()
     ret.name match {
       case "void" =>
-      case typ => visitVarStore(mv, cs.lhs.varName, typ)
+      case typ => 
+        val kind = typ match{
+          case x if JavaKnowledge.isJavaPrimitive(x) => x
+          case _ => "object"
+        }
+        visitVarStore(mv, cs.lhs.varName, kind)
     }
   }
   
   /**
    * typ could be:
-   * move: "", wide, object
-   * return: "", wide, object, Void
-   * aget: int, wide, object, boolean, byte, char, short
-   * aput: int, wide, object, boolean, byte, char, short
-   * iget: int, wide, object, boolean, byte, char, short, iget_quick, iget_wide_quick, iget_object_quick
-   * iput: int, wide, object, boolean, byte, char, short, iget_quick, iget_wide_quick, iget_object_quick
-   * sget: int, wide, object, boolean, byte, char, short
-   * sput: int, wide, object, boolean, byte, char, short
+   * move: "", long, object
+   * return: "", long, object, Void
+   * aget: int, long, object, boolean, byte, char, short
+   * aput: int, long, object, boolean, byte, char, short
+   * iget: int, long, boolean, byte, char, short, types
+   * iput: int, long, boolean, byte, char, short, types
+   * sget: int, long, boolean, byte, char, short, types
+   * sput: int, long, boolean, byte, char, short, types
    * unop: int, long, float, double
    * biop: int, long, float, double
-   * const: const4, const16, const32, high16, wide16, wide32, wide_high16, wide
-   * lit: lit16, lit8
+   * const: int, long, float, double
+   * lit: int
    * cast: i2l, i2f, i2d, l2i, l2f, l2d, f2i, f2l, f2d, d2i, d2l, d2f, i2b, i2c, i2s, object
    */
-  private def visitAssignmentStatement(mv: MethodVisitor, as: AssignmentStatement, typ: String): Unit = {
+  private def visitAssignmentStatement(mv: MethodVisitor, as: AssignmentStatement): Unit = {
+    val kind: String = as.kind
+    val typOpt: Option[JawaType] = as.typOpt
     val lhs = as.lhs
     val rhs = as.rhs
     
@@ -347,169 +381,245 @@ class JavaByteCodeGenerator {
       case _ =>
     }
     
-    visitRhsExpression(mv, rhs, typ)
-    visitLhsExpression(mv, lhs, typ)
+    rhs match {
+      case te: TupleExpression =>
+        if(lhs.isInstanceOf[NameExpression]){
+          lhs.asInstanceOf[NameExpression].varSymbol match {
+            case Left(varSym) =>
+              visitVarLoad(mv, varSym.varName, kind)
+            case Right(fnSym) =>
+              val t = JavaKnowledge.getTypeFromName(kind)
+              mv.visitFieldInsn(Opcodes.GETSTATIC, fnSym.baseType.name.replaceAll("\\.", "/"), fnSym.fieldName, JavaKnowledge.formatTypeToSignature(t))
+          }
+        }
+      case _ =>
+    }
+    
+    visitRhsExpression(mv, rhs, kind, typOpt)
+    visitLhsExpression(mv, lhs, kind, typOpt)
   }
   
-  private def visitLhsExpression(mv: MethodVisitor, lhs: Expression with LHS, typ: String): Unit = lhs match {
+  private def visitLhsExpression(mv: MethodVisitor, lhs: Expression with LHS, kind: String, typOpt: Option[JawaType]): Unit = lhs match {
     case ne: NameExpression =>
       ne.varSymbol match {
         case Left(varSym) =>
-          visitVarStore(mv, ne.name, typ)
+          visitVarStore(mv, ne.name, kind)
         case Right(fnSym) =>
-          val t = JavaKnowledge.getTypeFromName(typ)
+          val t = JavaKnowledge.getTypeFromName(kind)
           mv.visitFieldInsn(Opcodes.PUTSTATIC, fnSym.baseType.name.replaceAll("\\.", "/"), fnSym.fieldName, JavaKnowledge.formatTypeToSignature(t))
       }
     case ie: IndexingExpression =>
-      visitIndexStore(mv, ie, typ)
+      visitIndexStore(mv, ie, kind)
     case ae: AccessExpression =>
-      visitFieldStore(mv, ae, typ)
-    case _ => println("visitLhsExpression problem: " + lhs + " " + typ)
+      visitFieldStore(mv, ae, typOpt.get)
+    case _ => println("visitLhsExpression problem: " + lhs + " " + kind)
   }
   
-  private def visitRhsExpression(mv: MethodVisitor, rhs: Expression with RHS, typ: String): Unit = rhs match {
+  private def visitRhsExpression(mv: MethodVisitor, rhs: Expression with RHS, kind: String, typOpt: Option[JawaType]): Unit = rhs match {
     case ne: NameExpression =>
       ne.varSymbol match {
         case Left(varSym) =>
-          visitVarLoad(mv, ne.name, typ)
+          visitVarLoad(mv, ne.name, kind)
         case Right(fnSym) =>
-          val t = JavaKnowledge.getTypeFromName(typ)
-          mv.visitFieldInsn(Opcodes.GETSTATIC, fnSym.baseType.name.replaceAll("\\.", "/"), fnSym.fieldName, JavaKnowledge.formatTypeToSignature(t))
+          mv.visitFieldInsn(Opcodes.GETSTATIC, fnSym.baseType.name.replaceAll("\\.", "/"), fnSym.fieldName, JavaKnowledge.formatTypeToSignature(typOpt.get))
       }
     case ee: ExceptionExpression =>
     case ie: IndexingExpression =>
-      visitIndexLoad(mv, ie, typ)
+      visitIndexLoad(mv, ie, kind)
     case ae: AccessExpression =>
-      visitFieldLoad(mv, ae, typ)
+      visitFieldLoad(mv, ae, typOpt.get)
     case te: TupleExpression =>
-      /*TODO*/
+      visitTupleExpression(mv, te)
     case ce: CastExpression =>
-      visitCastExpression(mv, ce, typ)
+      visitCastExpression(mv, ce, kind)
     case ne: NewExpression =>
       visitNewExpression(mv, ne)
     case le: LiteralExpression =>
-      visitLiteralExpression(mv, le, typ)
+      visitLiteralExpression(mv, le, kind)
     case ue: UnaryExpression =>
-      visitUnaryExpression(mv, ue, typ)
+      visitUnaryExpression(mv, ue, kind)
     case be: BinaryExpression =>
-      visitBinaryExpression(mv, be, typ)
+      visitBinaryExpression(mv, be, kind)
     case ce: CmpExpression =>
-      /*TODO*/
-    case _ =>  println("visitRhsExpression problem: " + rhs + " " + typ)
+      visitCmpExpression(mv, ce)
+    case ie: InstanceofExpression =>
+      visitInstanceofExpression(mv, ie)
+    case ce: ConstClassExpression =>
+      visitConstClassExpression(mv, ce)
+    case le: LengthExpression =>
+      visitLengthExpression(mv, le)
+    case _ =>  println("visitRhsExpression problem: " + rhs + " " + kind)
   }
   
-  private def visitBinaryExpression(mv: MethodVisitor, be: BinaryExpression, typ: String): Unit = {
-    visitVarLoad(mv, be.left.varName, typ)
+  private def visitConstClassExpression(mv: MethodVisitor, ce: ConstClassExpression): Unit = {
+    val c = Type.getType(JavaKnowledge.formatTypeToSignature(ce.typ.typ))
+    mv.visitLdcInsn(c)
+  }
+  
+  private def visitLengthExpression(mv: MethodVisitor, le: LengthExpression): Unit = {
+    visitVarLoad(mv, le.varSymbol.varName, "object")
+    mv.visitInsn(Opcodes.ARRAYLENGTH)
+  }
+  
+  private def visitInstanceofExpression(mv: MethodVisitor, ie: InstanceofExpression): Unit = {
+    visitVarLoad(mv, ie.varSymbol.varName, "object")
+    val typ: JawaType = ie.typ.typ
+    mv.visitTypeInsn(Opcodes.INSTANCEOF, getClassName(typ.name))
+  }
+  
+  private def visitCmpExpression(mv: MethodVisitor, ce: CmpExpression): Unit = {
+    val first = ce.var1Symbol.varName
+    val second = ce.var2Symbol.varName
+    ce.cmp.text match {
+      case "fcmpl" => 
+        visitVarLoad(mv, first, "float")
+        visitVarLoad(mv, second, "float")
+        mv.visitInsn(Opcodes.FCMPL)
+      case "dcmpl" =>
+        visitVarLoad(mv, first, "double")
+        visitVarLoad(mv, second, "double")
+        mv.visitInsn(Opcodes.DCMPL)
+      case "fcmpg" => 
+        visitVarLoad(mv, first, "float")
+        visitVarLoad(mv, second, "float")
+        mv.visitInsn(Opcodes.FCMPG)
+      case "dcmpg" =>
+        visitVarLoad(mv, first, "double")
+        visitVarLoad(mv, second, "double")
+        mv.visitInsn(Opcodes.DCMPG)
+      case "lcmp" =>
+        visitVarLoad(mv, first, "long")
+        visitVarLoad(mv, second, "long")
+        mv.visitInsn(Opcodes.LCMP)
+      case _ => println("visitCmpExpression problem: " + ce)
+    }
+  }
+  
+  private def visitTupleExpression(mv: MethodVisitor, te: TupleExpression): Unit = {
+    val integers = te.integers
+    val size = integers.size
+    for(i <- 0 to size - 1){
+      val integer = integers(i)
+      mv.visitInsn(Opcodes.DUP)
+      generateIntConst(mv, i)
+      generateIntConst(mv, integer)
+      mv.visitInsn(Opcodes.IASTORE)
+    }
+  }
+  
+  private def visitBinaryExpression(mv: MethodVisitor, be: BinaryExpression, kind: String): Unit = {
+    visitVarLoad(mv, be.left.varName, kind)
     be.right match {
       case Left(va) =>
-        visitVarLoad(mv, va.varName, typ)
+        visitVarLoad(mv, va.varName, kind)
       case Right(lit) =>
         generateIntConst(mv, lit.text.toInt)
     }
     be.op.text match {
       case "+" => 
-        typ match {
-          case "int" | "lit16" | "lit8" => mv.visitInsn(Opcodes.IADD)
-          case "long" =>                   mv.visitInsn(Opcodes.LADD)
-          case "float" =>                  mv.visitInsn(Opcodes.FADD)
-          case "double" =>                 mv.visitInsn(Opcodes.DADD)
-          case _ =>                        println("visitBinaryExpression problem: " + be)
+        kind match {
+          case "int" =>    mv.visitInsn(Opcodes.IADD)
+          case "long" =>   mv.visitInsn(Opcodes.LADD)
+          case "float" =>  mv.visitInsn(Opcodes.FADD)
+          case "double" => mv.visitInsn(Opcodes.DADD)
+          case _ =>        println("visitBinaryExpression problem: " + be)
         }
       case "-" => 
-        typ match {
-          case "int" | "lit16" | "lit8" => mv.visitInsn(Opcodes.ISUB)
-          case "long" =>                   mv.visitInsn(Opcodes.LSUB)
-          case "float" =>                  mv.visitInsn(Opcodes.FSUB)
-          case "double" =>                 mv.visitInsn(Opcodes.DSUB)
-          case _ =>                        println("visitBinaryExpression problem: " + be)
+        kind match {
+          case "int" =>    mv.visitInsn(Opcodes.ISUB)
+          case "long" =>   mv.visitInsn(Opcodes.LSUB)
+          case "float" =>  mv.visitInsn(Opcodes.FSUB)
+          case "double" => mv.visitInsn(Opcodes.DSUB)
+          case _ =>        println("visitBinaryExpression problem: " + be)
         }
       case "*" =>
-        typ match {
-          case "int" | "lit16" | "lit8" => mv.visitInsn(Opcodes.IMUL)
-          case "long" =>                   mv.visitInsn(Opcodes.LMUL)
-          case "float" =>                  mv.visitInsn(Opcodes.FMUL)
-          case "double" =>                 mv.visitInsn(Opcodes.DMUL)
-          case _ =>                        println("visitBinaryExpression problem: " + be)
+        kind match {
+          case "int"  =>   mv.visitInsn(Opcodes.IMUL)
+          case "long" =>   mv.visitInsn(Opcodes.LMUL)
+          case "float" =>  mv.visitInsn(Opcodes.FMUL)
+          case "double" => mv.visitInsn(Opcodes.DMUL)
+          case _ =>        println("visitBinaryExpression problem: " + be)
         }
       case "/" =>
-        typ match {
-          case "int" | "lit16" | "lit8" => mv.visitInsn(Opcodes.IDIV)
-          case "long" =>                   mv.visitInsn(Opcodes.LDIV)
-          case "float" =>                  mv.visitInsn(Opcodes.FDIV)
-          case "double" =>                 mv.visitInsn(Opcodes.DDIV)
-          case _ =>                        println("visitBinaryExpression problem: " + be)
+        kind match {
+          case "int"  =>   mv.visitInsn(Opcodes.IDIV)
+          case "long" =>   mv.visitInsn(Opcodes.LDIV)
+          case "float" =>  mv.visitInsn(Opcodes.FDIV)
+          case "double" => mv.visitInsn(Opcodes.DDIV)
+          case _ =>        println("visitBinaryExpression problem: " + be)
         }
       case "%%" =>
-        typ match {
-          case "int" | "lit16" | "lit8" => mv.visitInsn(Opcodes.IREM)
-          case "long" =>                   mv.visitInsn(Opcodes.LREM)
-          case "float" =>                  mv.visitInsn(Opcodes.FREM)
-          case "double" =>                 mv.visitInsn(Opcodes.DREM)
-          case _ =>                        println("visitBinaryExpression problem: " + be)
+        kind match {
+          case "int"  =>   mv.visitInsn(Opcodes.IREM)
+          case "long" =>   mv.visitInsn(Opcodes.LREM)
+          case "float" =>  mv.visitInsn(Opcodes.FREM)
+          case "double" => mv.visitInsn(Opcodes.DREM)
+          case _ =>        println("visitBinaryExpression problem: " + be)
         }
       case "^&" =>
-        typ match {
-          case "int" | "lit16" | "lit8" => mv.visitInsn(Opcodes.IAND)
-          case "long" =>                   mv.visitInsn(Opcodes.LAND)
-          case _ =>                        println("visitBinaryExpression problem: " + be)
+        kind match {
+          case "int"  =>   mv.visitInsn(Opcodes.IAND)
+          case "long" =>   mv.visitInsn(Opcodes.LAND)
+          case _ =>        println("visitBinaryExpression problem: " + be)
         }
       case "^|" => 
-        typ match {
-          case "int" | "lit16" | "lit8" => mv.visitInsn(Opcodes.IOR)
-          case "long" =>                   mv.visitInsn(Opcodes.LOR)
-          case _ =>                        println("visitBinaryExpression problem: " + be)
+        kind match {
+          case "int"  =>   mv.visitInsn(Opcodes.IOR)
+          case "long" =>   mv.visitInsn(Opcodes.LOR)
+          case _ =>        println("visitBinaryExpression problem: " + be)
         }
       case "^~" => 
-        typ match {
-          case "int" | "lit16" | "lit8" => mv.visitInsn(Opcodes.IXOR)
-          case "long" =>                   mv.visitInsn(Opcodes.LXOR)
-          case _ =>                        println("visitBinaryExpression problem: " + be)
+        kind match {
+          case "int"  =>   mv.visitInsn(Opcodes.IXOR)
+          case "long" =>   mv.visitInsn(Opcodes.LXOR)
+          case _ =>        println("visitBinaryExpression problem: " + be)
         }
       case "^<" =>
-        typ match {
-          case "int" | "lit16" | "lit8" => mv.visitInsn(Opcodes.ISHL)
-          case "long" =>                   mv.visitInsn(Opcodes.LSHL)
-          case _ =>                        println("visitBinaryExpression problem: " + be)
+        kind match {
+          case "int"  =>   mv.visitInsn(Opcodes.ISHL)
+          case "long" =>   mv.visitInsn(Opcodes.LSHL)
+          case _ =>        println("visitBinaryExpression problem: " + be)
         }
       case "^>" =>
-        typ match {
-          case "int" | "lit16" | "lit8" => mv.visitInsn(Opcodes.ISHR)
-          case "long" =>                   mv.visitInsn(Opcodes.LSHR)
-          case _ =>                        println("visitBinaryExpression problem: " + be)
+        kind match {
+          case "int"  =>   mv.visitInsn(Opcodes.ISHR)
+          case "long" =>   mv.visitInsn(Opcodes.LSHR)
+          case _ =>        println("visitBinaryExpression problem: " + be)
         }
       case "^>>" =>
-        typ match {
-          case "int" | "lit16" | "lit8" => mv.visitInsn(Opcodes.IUSHR)
-          case "long" =>                   mv.visitInsn(Opcodes.LUSHR)
-          case _ =>                        println("visitBinaryExpression problem: " + be)
+        kind match {
+          case "int"  =>   mv.visitInsn(Opcodes.IUSHR)
+          case "long" =>   mv.visitInsn(Opcodes.LUSHR)
+          case _ =>        println("visitBinaryExpression problem: " + be)
         }
-      case _ =>                            println("visitBinaryExpression problem: " + be)
+      case _ =>            println("visitBinaryExpression problem: " + be)
     }
   }
   
-  private def visitUnaryExpression(mv: MethodVisitor, ue: UnaryExpression, typ: String): Unit = ue.op.text match {
+  private def visitUnaryExpression(mv: MethodVisitor, ue: UnaryExpression, kind: String): Unit = ue.op.text match {
     case "-" => // Neg int long float double
-      visitVarLoad(mv, ue.unary.varName, typ)
+      visitVarLoad(mv, ue.unary.varName, kind)
       mv.visitInsn(Opcodes.ICONST_M1)
       mv.visitInsn(Opcodes.IMUL)
     case "~" => // Not int long
-      visitVarLoad(mv, ue.unary.varName, typ)
+      visitVarLoad(mv, ue.unary.varName, kind)
       mv.visitInsn(Opcodes.ICONST_M1)
       mv.visitInsn(Opcodes.IXOR)
     case _ =>   println("visitUnaryExpression problem: " + ue)
   }
   
-  private def visitLiteralExpression(mv: MethodVisitor, le: LiteralExpression, typ: String): Unit = typ match {
-    case "const4" | "const16" | "const32" |
-         "high16" | "wide" => // I
+  private def visitLiteralExpression(mv: MethodVisitor, le: LiteralExpression, kind: String): Unit = kind match {
+    case "int" => // I
       generateIntConst(mv, le.getInt)
-    case "wide16" | "wide_high16" => // L
+    case "long" => // L
       generateLongConst(mv, le.getLong)
-    case "wide32" | "wide" => // F
+    case "float" => // F
       generateFloatConst(mv, le.getFloat)
+    case "double" =>
+      generateDoubleConst(mv, le.getDouble)
     case "object" => // String
       visitStringLiteral(mv, le.getString)
-    case _ => println("visitLiteralExpression problem: " + typ + " " + le)
+    case _ => println("visitLiteralExpression problem: " + kind + " " + le)
   }
   
   private def visitNewExpression(mv: MethodVisitor, ne: NewExpression): Unit = {
@@ -527,9 +637,9 @@ class JavaByteCodeGenerator {
     }
   }
   
-  private def visitIndexLoad(mv: MethodVisitor, ie: IndexingExpression, typ: String): Unit = {
+  private def visitIndexLoad(mv: MethodVisitor, ie: IndexingExpression, kind: String): Unit = {
     visitArrayAccess(mv, ie)
-    typ match {
+    kind match {
       case "object" => mv.visitInsn(Opcodes.AALOAD)
       case "boolean" => mv.visitInsn(Opcodes.BALOAD)
       case "char" => mv.visitInsn(Opcodes.CALOAD)
@@ -538,12 +648,12 @@ class JavaByteCodeGenerator {
       case "int" => mv.visitInsn(Opcodes.IALOAD)
       case "long" => mv.visitInsn(Opcodes.LALOAD)
       case "short" => mv.visitInsn(Opcodes.SALOAD)
-      case _ => println("visitIndexLoad problem: " + typ + " " + ie)
+      case _ => println("visitIndexLoad problem: " + kind + " " + ie)
     }
   }
   
-  private def visitIndexStore(mv: MethodVisitor, ie: IndexingExpression, typ: String): Unit = {
-    typ match {
+  private def visitIndexStore(mv: MethodVisitor, ie: IndexingExpression, kind: String): Unit = {
+    kind match {
       case "object" => mv.visitInsn(Opcodes.AASTORE)
       case "boolean" => mv.visitInsn(Opcodes.BASTORE)
       case "char" => mv.visitInsn(Opcodes.CASTORE)
@@ -552,19 +662,17 @@ class JavaByteCodeGenerator {
       case "int" | "" => mv.visitInsn(Opcodes.IASTORE)
       case "long" => mv.visitInsn(Opcodes.LASTORE)
       case "short" => mv.visitInsn(Opcodes.SASTORE)
-      case _ => println("visitIndexStore problem: " + typ + " " + ie)
+      case _ => println("visitIndexStore problem: " + kind + " " + ie)
     }
   }
   
-  private def visitFieldLoad(mv: MethodVisitor, ae: AccessExpression, typ: String): Unit = {
+  private def visitFieldLoad(mv: MethodVisitor, ae: AccessExpression, typ: JawaType): Unit = {
     visitFieldAccess(mv, ae)
-    val t = JavaKnowledge.getTypeFromName(typ)
-    mv.visitFieldInsn(Opcodes.GETFIELD, ae.fieldSym.baseType.name.replaceAll("\\.", "/"), ae.fieldName, JavaKnowledge.formatTypeToSignature(t))
+    mv.visitFieldInsn(Opcodes.GETFIELD, ae.fieldSym.baseType.name.replaceAll("\\.", "/"), ae.fieldName, JavaKnowledge.formatTypeToSignature(typ))
   }
   
-  private def visitFieldStore(mv: MethodVisitor, ae: AccessExpression, typ: String): Unit = {
-    val t = JavaKnowledge.getTypeFromName(typ)
-    mv.visitFieldInsn(Opcodes.PUTFIELD, ae.fieldSym.baseType.name.replaceAll("\\.", "/"), ae.fieldName, JavaKnowledge.formatTypeToSignature(t))
+  private def visitFieldStore(mv: MethodVisitor, ae: AccessExpression, typ: JawaType): Unit = {
+    mv.visitFieldInsn(Opcodes.PUTFIELD, ae.fieldSym.baseType.name.replaceAll("\\.", "/"), ae.fieldName, JavaKnowledge.formatTypeToSignature(typ))
   }
   
   private def visitArrayAccess(mv: MethodVisitor, ie: IndexingExpression): Unit = {
@@ -591,39 +699,31 @@ class JavaByteCodeGenerator {
     mv.visitVarInsn(Opcodes.ALOAD, this.locals(base).index)
   }
   
-  private def visitVarLoad(mv: MethodVisitor, varName: String, typ: String): Unit = typ match {
-    case "object" => mv.visitVarInsn(Opcodes.ALOAD, this.locals(varName).index)
+  private def visitVarLoad(mv: MethodVisitor, varName: String, kind: String): Unit = kind match {
     case "byte" | "char" | "short" | "int" | "boolean" | "" => 
                      mv.visitVarInsn(Opcodes.ILOAD, this.locals(varName).index)
     case "double" => mv.visitVarInsn(Opcodes.DLOAD, this.locals(varName).index)
     case "float" =>  mv.visitVarInsn(Opcodes.FLOAD, this.locals(varName).index)
     case "long" =>   mv.visitVarInsn(Opcodes.LLOAD, this.locals(varName).index)
-    case "wide" =>   mv.visitVarInsn(Opcodes.DLOAD, this.locals(varName).index)
-    case _ =>        println("visitVarLoad problem: " + varName + " " + typ)
+    case "object" =>        mv.visitVarInsn(Opcodes.ALOAD, this.locals(varName).index)
+    case _ =>        println("visitVarLoad problem: " + varName + " " + kind)
   }
   
-  private def visitVarStore(mv: MethodVisitor, varName: String, typ: String): Unit = typ match {
-    case "object" => mv.visitVarInsn(Opcodes.ASTORE, this.locals(varName).index)
+  private def visitVarStore(mv: MethodVisitor, varName: String, kind: String): Unit = kind match {
     case "byte" | "char" | "short" | "int" | "boolean" | "" => 
                      mv.visitVarInsn(Opcodes.ISTORE, this.locals(varName).index)
     case "double" => mv.visitVarInsn(Opcodes.DSTORE, this.locals(varName).index)
     case "float" =>  mv.visitVarInsn(Opcodes.FSTORE, this.locals(varName).index)
     case "long" =>   mv.visitVarInsn(Opcodes.LSTORE, this.locals(varName).index)
-    case "wide" =>   mv.visitVarInsn(Opcodes.DSTORE, this.locals(varName).index)
-    case "const4" | "const16" | "const32" | "high16" =>
-                     mv.visitVarInsn(Opcodes.ISTORE, this.locals(varName).index)
-    case "wide16" | "wide_high16" =>
-                     mv.visitVarInsn(Opcodes.LSTORE, this.locals(varName).index)
-    case "wide" | "wide32" => 
-                     mv.visitVarInsn(Opcodes.FSTORE, this.locals(varName).index)
-    case _ =>        println("visitVarStore problem: " + varName + " " + typ)
+    case "object" => mv.visitVarInsn(Opcodes.ASTORE, this.locals(varName).index)
+    case _ =>        println("visitVarStore problem: " + varName + " " + kind)
   }
   
   private def visitStringLiteral(mv: MethodVisitor, str: String): Unit = {
     mv.visitLdcInsn(str)
   }
   
-  private def visitCastExpression(mv: MethodVisitor, ce: CastExpression, typ: String): Unit = typ match {
+  private def visitCastExpression(mv: MethodVisitor, ce: CastExpression, kind: String): Unit = kind match {
     case "i2l" => 
       mv.visitVarInsn(Opcodes.ILOAD, this.locals(ce.varName).index)
       mv.visitInsn(Opcodes.I2L)
@@ -672,7 +772,7 @@ class JavaByteCodeGenerator {
     case "object" => 
       mv.visitTypeInsn(Opcodes.CHECKCAST, getClassName(ce.typ.typ.name))
       mv.visitVarInsn(Opcodes.ALOAD, this.locals(ce.varName).index)
-    case _ => println("visitCastExpression problem: " + ce + " " + typ)
+    case _ => println("visitCastExpression problem: " + ce + " " + kind)
   }
   
   private def generateIntConst(mv: MethodVisitor, i: Int) = i match {
@@ -706,5 +806,12 @@ class JavaByteCodeGenerator {
     case 2  => mv.visitInsn(Opcodes.FCONST_2)
     case _  =>
       mv.visitLdcInsn(new java.lang.Float(f))
+  }
+  
+  private def generateDoubleConst(mv: MethodVisitor, d: Double) = d match {
+    case 0  => mv.visitInsn(Opcodes.DCONST_0)
+    case 1  => mv.visitInsn(Opcodes.DCONST_1)
+    case _  =>
+      mv.visitLdcInsn(new java.lang.Double(d))
   }
 }
