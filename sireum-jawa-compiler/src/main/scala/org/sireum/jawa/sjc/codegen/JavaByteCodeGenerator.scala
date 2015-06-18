@@ -52,6 +52,10 @@ import org.sireum.jawa.sjc.parser.InstanceofExpression
 import org.sireum.jawa.sjc.parser.InstanceofExpression
 import org.sireum.jawa.sjc.parser.ConstClassExpression
 import org.sireum.jawa.sjc.parser.LengthExpression
+import java.io.File
+import java.io.FileWriter
+import java.io.DataOutputStream
+import java.io.FileOutputStream
 
 object JavaByteCodeGenerator {
   def outputByteCodes(pw: PrintWriter, bytecodes: Array[Byte]) = {
@@ -60,17 +64,29 @@ object JavaByteCodeGenerator {
     cr.accept(tcv, ClassReader.SKIP_FRAMES)
     pw.flush()
   }
+  
+  def writeClassFile(outputPath: String, pkg: String, className: String, bytecode: Array[Byte]): Unit = {
+    val classfileDirPath: String = outputPath + File.separator + pkg.replaceAll("\\.", File.separator)
+    val classfileDir: File = new File(classfileDirPath)
+    if(!classfileDir.exists()){
+      classfileDir.mkdirs()
+    }
+    val dout=new DataOutputStream(new FileOutputStream(new File(classfileDir, className + ".class")))
+    dout.write(bytecode)
+    dout.flush()
+    dout.close()
+  }
 }
 
 class JavaByteCodeGenerator {
-  private val classes: MMap[String, Array[Byte]] = mmapEmpty
+  private val classes: MMap[ObjectType, Array[Byte]] = mmapEmpty
   
-  def getClasses: IMap[String, Array[Byte]] = classes.toMap
+  def getClasses: IMap[ObjectType, Array[Byte]] = classes.toMap
   
-  def generate(cu: JawaCompilationUnit): IMap[String, Array[Byte]] = {
+  def generate(cu: JawaCompilationUnit): IMap[ObjectType, Array[Byte]] = {
     cu.topDecls foreach {
       cid =>
-        visitClass(cid, Opcodes.V1_8)
+        visitClass(cid, Opcodes.V1_6)
     }
     getClasses
   }
@@ -115,7 +131,8 @@ class JavaByteCodeGenerator {
       md => visitMethod(cw, md)
     }
     cw.visitEnd()
-    this.classes(cid.typ.name) = cw.toByteArray()
+    
+    this.classes(cid.typ) = cw.toByteArray()
   }
   
   private def visitField(cw: ClassWriter, fd: JawaField with JawaDeclaration): Unit = {
@@ -150,12 +167,14 @@ class JavaByteCodeGenerator {
     md.paramlist.foreach{
       param =>
         locals(param.name) = LocalIndex(param.name, JavaKnowledge.formatTypeToSignature(param.typ.typ), i)
-        i += 1
+        if(param.typ.typ.name == "long" || param.typ.typ.name == "double") i += 2
+        else i += 1
     }
     body.locals.foreach{
       local =>
-        locals(local.varSymbol.varName) = LocalIndex(local.varSymbol.varName, JavaKnowledge.formatTypeToSignature(JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE), i)
-        i += 2 // to handle long and double
+        locals(local.varSymbol.varName) = LocalIndex(local.varSymbol.varName, JavaKnowledge.formatTypeToSignature(local.typ), i)
+        if(local.typ.name == "long" || local.typ.name == "double") i += 2
+        else i += 1
     }
     this.maxLocals = this.locals.size
     body.locations foreach {
@@ -168,10 +187,7 @@ class JavaByteCodeGenerator {
         val from: Label = this.locations(catchClause.range.fromLocation.location)
         val to: Label = this.locations(catchClause.range.toLocation.location)
         val target: Label = this.locations(catchClause.targetLocation.location)
-        val typ: String = catchClause.typOrAny match {
-          case Left(t) => getClassName(t.typ.name)
-          case Right(a) => null
-        }
+        val typ: String = getClassName(catchClause.typ.typ.name)
         mv.visitTryCatchBlock(from, to, target, typ)
     }
     val initLabel = new Label()
@@ -347,7 +363,7 @@ class JavaByteCodeGenerator {
           case x if JavaKnowledge.isJavaPrimitive(x) => x
           case _ => "object"
         }
-        visitVarStore(mv, cs.lhs.varName, kind)
+        visitVarStore(mv, cs.lhsOpt.get.lhs.varName, kind)
     }
   }
   
@@ -406,7 +422,7 @@ class JavaByteCodeGenerator {
           visitVarStore(mv, ne.name, kind)
         case Right(fnSym) =>
           val t = JavaKnowledge.getTypeFromName(kind)
-          mv.visitFieldInsn(Opcodes.PUTSTATIC, fnSym.baseType.name.replaceAll("\\.", "/"), fnSym.fieldName, JavaKnowledge.formatTypeToSignature(t))
+          mv.visitFieldInsn(Opcodes.PUTSTATIC, fnSym.baseType.name.replaceAll("\\.", "/"), fnSym.fieldName, JavaKnowledge.formatTypeToSignature(typOpt.get))
       }
     case ie: IndexingExpression =>
       visitIndexStore(mv, ie, kind)
@@ -445,14 +461,14 @@ class JavaByteCodeGenerator {
     case ie: InstanceofExpression =>
       visitInstanceofExpression(mv, ie)
     case ce: ConstClassExpression =>
-      visitConstClassExpression(mv, ce)
+      visitConstClassExpression(mv, ce, typOpt.get)
     case le: LengthExpression =>
       visitLengthExpression(mv, le)
     case _ =>  println("visitRhsExpression problem: " + rhs + " " + kind)
   }
   
-  private def visitConstClassExpression(mv: MethodVisitor, ce: ConstClassExpression): Unit = {
-    val c = Type.getType(JavaKnowledge.formatTypeToSignature(ce.typ.typ))
+  private def visitConstClassExpression(mv: MethodVisitor, ce: ConstClassExpression, typ: JawaType): Unit = {
+    val c = Type.getType(JavaKnowledge.formatTypeToSignature(typ))
     mv.visitLdcInsn(c)
   }
   
@@ -623,17 +639,17 @@ class JavaByteCodeGenerator {
   }
   
   private def visitNewExpression(mv: MethodVisitor, ne: NewExpression): Unit = {
-    if(ne.getType.isArray){
-      ne.typ.typeFragments(0).asInstanceOf[TypeFragmentWithInit].varNames foreach {
+    if(ne.typ.isArray){
+      ne.typeFragmentsWithInit(0).varNames foreach {
         varName =>
           visitVarLoad(mv, varName, "int")
       }
-      JavaKnowledge.isJavaPrimitive(ne.getType.typ) match {
+      JavaKnowledge.isJavaPrimitive(ne.typ.typ) match {
         case true => mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT)
-        case false => mv.visitTypeInsn(Opcodes.ANEWARRAY, getClassName(ne.getType.typ))
+        case false => mv.visitTypeInsn(Opcodes.ANEWARRAY, getClassName(ne.typ.typ))
       }
     } else {
-      mv.visitTypeInsn(Opcodes.NEW, getClassName(ne.getType.name))
+      mv.visitTypeInsn(Opcodes.NEW, getClassName(ne.typ.name))
     }
   }
   
@@ -770,8 +786,8 @@ class JavaByteCodeGenerator {
       mv.visitVarInsn(Opcodes.ILOAD, this.locals(ce.varName).index)
       mv.visitInsn(Opcodes.I2S)
     case "object" => 
-      mv.visitTypeInsn(Opcodes.CHECKCAST, getClassName(ce.typ.typ.name))
       mv.visitVarInsn(Opcodes.ALOAD, this.locals(ce.varName).index)
+      mv.visitTypeInsn(Opcodes.CHECKCAST, getClassName(ce.typ.typ.name))
     case _ => println("visitCastExpression problem: " + ce + " " + kind)
   }
   

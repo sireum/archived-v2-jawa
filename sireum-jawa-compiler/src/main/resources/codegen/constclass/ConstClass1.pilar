@@ -1,0 +1,8 @@
+record `com.fgwei.ConstClass1`  @kind class @AccessFlag PUBLIC {
+   }
+procedure `java.lang.Class` `com.fgwei.ConstClass1.main` () @owner ^`com.fgwei.ConstClass1` @signature `Lcom/fgwei/ConstClass1;.main:()Ljava/lang/Class;` @Access `PUBLIC_STATIC` {
+      `java.lang.Class` Class_v0;
+
+#L026e42.   Class_v0:= constclass @kind object @type ^`com.fgwei.ConstClass1`;
+#L026eb0.   return Class_v0 @kind object;
+}

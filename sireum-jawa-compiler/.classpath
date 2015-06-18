@@ -9,5 +9,10 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/sireum-lib"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sireum-parser"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sireum-pilar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/sireum-alir"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/sireum-jawa-alir"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/sireum-amandroid"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/sireum-amandroid-alir"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/sireum-util"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

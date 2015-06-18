@@ -22,6 +22,7 @@ import org.sireum.jawa.sjc.util.Range
 import org.sireum.jawa.sjc.util.Position
 import org.sireum.jawa.sjc.util.NoPosition
 import org.sireum.jawa.sjc.DefaultReporter
+import org.sireum.jawa.sjc.PrimitiveType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -138,6 +139,7 @@ sealed trait JawaAstNode extends CaseClassReflector with JavaKnowledge {
     else {
       val firstIndex = tokens.head.pos.start
       val lastIndex = tokens.last.lastCharacterOffset
+      println(firstToken.file, firstIndex, lastIndex)
       Position.range(firstToken.file, firstIndex, lastIndex - firstIndex + 1)
     }
   }
@@ -186,6 +188,7 @@ sealed trait VarSym{
 }
 sealed trait LocationSym{
   def location: String
+  var locationIndex: Int = 0
   def owner: MethodDeclaration
 }
 
@@ -297,10 +300,10 @@ sealed trait AnnotationValue extends JawaAstNode {
   def value: String
 }
 
-case class TypeValue(
-    typ: Type) extends AnnotationValue {
-  lazy val tokens = flatten(typ)
-  def value: String = typ.typ.name
+case class TypeExpressionValue(
+    typExp: TypeExpression) extends AnnotationValue {
+  lazy val tokens = flatten(typExp)
+  def value: String = typExp.typ.name
 }
 
 case class SymbolValue(
@@ -370,6 +373,11 @@ case class StaticFieldDeclaration(
   def isStatic: Boolean = true
 }
 
+case class TypeExpression(hat: Token, typ_ : Type) extends JawaAstNode {
+  lazy val tokens = flatten(hat, typ_)
+  def typ: JawaType = typ_.typ
+}
+
 case class Type(base: Either[TypeSymbol, Token], typeFragments: IList[TypeFragment]) extends JawaAstNode {
   lazy val tokens = flatten(base, typeFragments)
   def dimentions: Int = typeFragments.size
@@ -381,16 +389,8 @@ case class Type(base: Either[TypeSymbol, Token], typeFragments: IList[TypeFragme
   def typ: JawaType = getType(baseType.typ, dimentions)
 }
 
-sealed trait TypeFragment extends JawaAstNode
-
-case class RawTypeFragment(lbracket: Token, rbracket: Token) extends TypeFragment {
+case class TypeFragment(lbracket: Token, rbracket: Token) extends JawaAstNode {
   lazy val tokens = flatten(lbracket, rbracket)
-}
-
-case class TypeFragmentWithInit(lbracket: Token, varSymbols: IList[(VarSymbol, Option[Token])], rbracket: Token) extends TypeFragment {
-  lazy val tokens = flatten(lbracket, varSymbols, rbracket)
-  def varNames: IList[String] = varSymbols.map(_._1.varName)
-  def varName(i: Int): String = varNames(i)
 }
 
 case class MethodDeclaration(
@@ -448,13 +448,24 @@ case class ResolvedBody(
     catchClauses: IList[CatchClause], 
     rbrace: Token) extends Body {
   lazy val tokens = flatten(lbrace, locals, locations, catchClauses, rbrace)
+  def getCatchClauses(index: Int): IList[CatchClause] = {
+    catchClauses.filter{
+      cc =>
+        index > cc.range.fromLocation.locationIndex && index < cc.range.toLocation.locationIndex
+    }
+  }
 }
 
 case class LocalVarDeclaration(
-    varSymbol: VarDefSymbol, 
-    annotations: IList[Annotation], 
+    typOpt: Option[Type],
+    varSymbol: VarDefSymbol,
     semi: Token) extends Declaration {
-  lazy val tokens = flatten(varSymbol, annotations, semi)
+  lazy val tokens = flatten(typOpt, varSymbol, semi)
+  def annotations: IList[Annotation] = ilistEmpty
+  def typ: JawaType = typOpt match {
+    case Some(t) => t.typ
+    case None => JAVA_TOPLEVEL_OBJECT_TYPE
+  }
 }
 
 case class Location(
@@ -466,19 +477,18 @@ case class Location(
     if(locationSymbol.id.length <= 1) ""
     else locationSymbol.location
   }
-  var locationIndex: Int = 0
+  def locationIndex = locationSymbol.locationIndex
 }
 
 sealed trait Statement extends JawaAstNode
 
 case class CallStatement(
     callToken: Token, 
-    lhs: VarSymbol, 
-    assignOP: Token,
+    lhsOpt: Option[CallLhs],
     methodNameSymbol: MethodNameSymbol,
     argClause: ArgClause,
     annotations: IList[Annotation]) extends Statement {
-  lazy val tokens = flatten(callToken, lhs, assignOP, methodNameSymbol, argClause, annotations)
+  lazy val tokens = flatten(callToken, lhsOpt, methodNameSymbol, argClause, annotations)
   //default is virtual call
   def kind: String = annotations.find { a => a.key == "kind" }.map(_.value).getOrElse("virtual")
   def signature: Signature = Signature(annotations.find { a => a.key == "signature" }.get.value)
@@ -497,6 +507,14 @@ case class CallStatement(
     }
   }
 }
+
+case class CallLhs(
+    lhs: VarSymbol,
+    assignOP: Token) extends JawaAstNode {
+  lazy val tokens = flatten(lhs, assignOP)
+}
+
+//case class CallLhs
 
 case class ArgClause(
     lparen: Token, 
@@ -517,7 +535,7 @@ case class AssignmentStatement(
     annotations: IList[Annotation]) extends Statement {
   lazy val tokens = flatten(lhs, assignOP, rhs, annotations)
   def kind: String = annotations.find { a => a.key == "kind" }.map(_.value).getOrElse({if(rhs.isInstanceOf[NewExpression])"object"else""})
-  def typOpt: Option[JawaType] = annotations.find { a => a.key == "type" }.map(_.annotationValueOpt.get.asInstanceOf[TypeValue].typ.typ)
+  def typOpt: Option[JawaType] = annotations.find { a => a.key == "type" }.map(_.annotationValueOpt.get.asInstanceOf[TypeExpressionValue].typExp.typ)
 }
 
 case class ThrowStatement(
@@ -575,9 +593,10 @@ case class ReturnStatement(
 }
 
 case class MonitorStatement(
+    at: Token,
     monitor: Token,
     varSymbol: VarSymbol) extends Statement {
-  lazy val tokens = flatten(monitor, varSymbol)
+  lazy val tokens = flatten(at, monitor, varSymbol)
   import org.sireum.jawa.sjc.lexer.Tokens._
   def isEnter: Boolean = monitor.tokenType == MONITOR_ENTER
   def isExit: Boolean = monitor.tokenType == MONITOR_EXIT
@@ -612,10 +631,8 @@ case class ExceptionExpression(
 }
 
 case class ConstClassExpression(
-    typ: Type,
-    dot: Token,
     const_class: Token) extends Expression with RHS {
-  lazy val tokens = flatten(typ, dot, const_class)
+  lazy val tokens = flatten(const_class)
 }
 
 case class LengthExpression(
@@ -668,9 +685,22 @@ case class CastExpression(
 
 case class NewExpression(
     newToken: Token,
-    typ: Type) extends Expression with RHS {
-  lazy val tokens = flatten(newToken, typ)
-  def getType: ObjectType = typ.typ.asInstanceOf[ObjectType]
+    base: Either[TypeSymbol, Token],
+    typeFragmentsWithInit: IList[TypeFragmentWithInit]) extends Expression with RHS {
+  lazy val tokens = flatten(newToken, base, typeFragmentsWithInit)
+  def dimentions: Int = typeFragmentsWithInit.size
+  def baseType: JawaType = 
+    base match {
+      case Left(ts) => ts.typ
+      case Right(t) => getTypeFromName(t.text)
+    }
+  def typ: ObjectType = getType(baseType.typ, dimentions).asInstanceOf[ObjectType]
+}
+
+case class TypeFragmentWithInit(lbracket: Token, varSymbols: IList[(VarSymbol, Option[Token])], rbracket: Token) extends JawaAstNode {
+  lazy val tokens = flatten(lbracket, varSymbols, rbracket)
+  def varNames: IList[String] = varSymbols.map(_._1.varName)
+  def varName(i: Int): String = varNames(i)
 }
 
 case class InstanceofExpression(
@@ -692,6 +722,7 @@ case class LiteralExpression(
       case FLOATING_POINT_LITERAL =>
         lit match {
           case x if x.endsWith("F") => x.substring(0, x.length() - 1)
+          case x if x.endsWith("D") => x.substring(0, x.length() - 1)
           case _ => lit
         }
       case INTEGER_LITERAL =>
@@ -736,16 +767,23 @@ case class CmpExpression(
     var2Symbol: VarSymbol,
     rparen: Token) extends Expression with RHS {
   lazy val tokens = flatten(cmp, lparen, var1Symbol, comma, var2Symbol, rparen)
+  def paramType: PrimitiveType = {
+    cmp.text match {
+      case "fcmpl" | "fcmpg" => PrimitiveType("float")
+      case "dcmpl" | "dcmpg" => PrimitiveType("double")
+      case "lcmp" => PrimitiveType("long")
+    }
+  }
 }
 
 case class CatchClause(
     catchToken: Token,
-    typOrAny: Either[Type, Token],
+    typ: Type,
     range: CatchRange,
     goto: Token,
     targetLocation: LocationSymbol,
     semi: Token) extends JawaAstNode {
-  lazy val tokens = flatten(catchToken, typOrAny, range, goto, targetLocation, semi)
+  lazy val tokens = flatten(catchToken, typ, range, goto, targetLocation, semi)
   def from: String = range.fromLocation.location
   def to: String = range.toLocation.location
 }

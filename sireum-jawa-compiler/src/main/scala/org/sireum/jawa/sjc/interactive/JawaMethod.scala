@@ -237,7 +237,7 @@ case class JawaMethod(declaringClass: JawaClass,
    * set exception with details
    */
   def addExceptionHandler(excName: String, fromTarget: String, toTarget: String, jumpTo: String) = {
-    val recType: ObjectType = if(excName == "any") JAVA_TOPLEVEL_OBJECT_TYPE else getTypeFromName(excName).asInstanceOf[ObjectType]
+    val recType: ObjectType = getTypeFromName(excName).asInstanceOf[ObjectType]
     val exc: JawaClass = getDeclaringClass.global.getClass(recType) match {
       case Some(c) => c
       case None =>

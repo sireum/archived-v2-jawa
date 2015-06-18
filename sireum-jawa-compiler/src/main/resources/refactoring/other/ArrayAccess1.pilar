@@ -1,0 +1,54 @@
+record `de.ecspride.ArrayAccess1`  @kind class @AccessFlag PUBLIC  extends `android.app.Activity` @kind class {
+   }
+      global `java.lang.String`[] `@@de.ecspride.ArrayAccess1.arrayData`    @AccessFlag PUBLIC_STATIC;
+    procedure `void` `de.ecspride.ArrayAccess1.<init>` (`de.ecspride.ArrayAccess1` v0 @kind this) @owner ^`de.ecspride.ArrayAccess1` @signature `Lde/ecspride/ArrayAccess1;.<init>:()V` @Access PUBLIC_CONSTRUCTOR {
+      temp ;
+      
+#L026e20.   call temp:=  `android.app.Activity.<init>`(v0) @signature `Landroid/app/Activity;.<init>:()V` @classDescriptor ^`android.app.Activity` @kind direct;
+#L026e26.   return  @kind void;
+
+   }
+    procedure `void` `de.ecspride.ArrayAccess1.onCreate` (`de.ecspride.ArrayAccess1` v6 @kind this, `android.os.Bundle` v7 @kind object) @owner ^`de.ecspride.ArrayAccess1` @signature `Lde/ecspride/ArrayAccess1;.onCreate:(Landroid/os/Bundle;)V` @Access PROTECTED {
+      temp ;
+        v0;
+        v1;
+        v2;
+        v3;
+        v4;
+        v5;
+      
+#L026e38.   v5:= 2I  @kind int;
+#L026e3a.   v2:= 0I  @kind int;
+#L026e3c.   call temp:=  `android.app.Activity.onCreate`(v6, v7) @signature `Landroid/app/Activity;.onCreate:(Landroid/os/Bundle;)V` @classDescriptor ^`android.app.Activity` @kind super;
+#L026e42.   v1:= 2130903040I  @kind int;
+#L026e46.   call temp:=  `de.ecspride.ArrayAccess1.setContentView`(v6, v1) @signature `Lde/ecspride/ArrayAccess1;.setContentView:(I)V` @classDescriptor ^`de.ecspride.ArrayAccess1` @kind virtual;
+#L026e4c.   v1:= 3I  @kind int;
+#L026e4e.   v1:= new `java.lang.String`[v1];
+#L026e52.   `@@de.ecspride.ArrayAccess1.arrayData`:= v1  @kind object @type ^`java.lang.String`[];
+#L026e56.   v1:= `@@de.ecspride.ArrayAccess1.arrayData`  @kind object @type ^`java.lang.String`[];
+#L026e5a.   v3:= 0I  @kind int;
+#L026e5c.   v4:= "element 1 is tainted:" @kind object;
+#L026e60.   v1[v3]:= v4  @kind object;
+#L026e64.   v3:= `@@de.ecspride.ArrayAccess1.arrayData`  @kind object @type ^`java.lang.String`[];
+#L026e68.   v4:= 1I  @kind int;
+#L026e6a.   v1:= "phone" @kind object;
+#L026e6e.   call temp:=  `de.ecspride.ArrayAccess1.getSystemService`(v6, v1) @signature `Lde/ecspride/ArrayAccess1;.getSystemService:(Ljava/lang/String;)Ljava/lang/Object;` @classDescriptor ^`de.ecspride.ArrayAccess1` @kind virtual;
+#L026e74.   v1:= temp  @kind object;
+#L026e76.   v1:= (`android.telephony.TelephonyManager`)v1  @kind object;
+#L026e7a.   call temp:=  `android.telephony.TelephonyManager.getDeviceId`(v1) @signature `Landroid/telephony/TelephonyManager;.getDeviceId:()Ljava/lang/String;` @classDescriptor ^`android.telephony.TelephonyManager` @kind virtual;
+#L026e80.   v1:= temp  @kind object;
+#L026e82.   v3[v4]:= v1  @kind object;
+#L026e86.   v1:= `@@de.ecspride.ArrayAccess1.arrayData`  @kind object @type ^`java.lang.String`[];
+#L026e8a.   v3:= "neutral text" @kind object;
+#L026e8e.   v1[v5]:= v3  @kind object;
+#L026e92.   call temp:=  `android.telephony.SmsManager.getDefault`() @signature `Landroid/telephony/SmsManager;.getDefault:()Landroid/telephony/SmsManager;` @classDescriptor ^`android.telephony.SmsManager` @kind static;
+#L026e98.   v0:= temp  @kind object;
+#L026e9a.   v1:= "+49 1234" @kind object;
+#L026e9e.   v3:= `@@de.ecspride.ArrayAccess1.arrayData`  @kind object @type ^`java.lang.String`[];
+#L026ea2.   v3:= v3[v5]  @kind object;
+#L026ea6.   v4:= v2  @kind object;
+#L026ea8.   v5:= v2  @kind object;
+#L026eaa.   call temp:=  `android.telephony.SmsManager.sendTextMessage`(v0, v1, v2, v3, v4, v5) @signature `Landroid/telephony/SmsManager;.sendTextMessage:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/app/PendingIntent;Landroid/app/PendingIntent;)V` @classDescriptor ^`android.telephony.SmsManager` @kind virtual;
+#L026eb0.   return  @kind void;
+
+   }

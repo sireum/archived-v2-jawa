@@ -86,20 +86,20 @@ object JawaAlirInfoProvider {
       	var result = isetEmpty[CatchClause]
       	val thrownExcNames = ExceptionCenter.getExceptionsMayThrow(loc)
       	if(thrownExcNames.forall(_ != ExceptionCenter.ANY_EXCEPTION)){
-	      	val thrownExceptions = thrownExcNames.map(Center.resolveClass(_, Center.ResolveLevel.HIERARCHY))
-	      	thrownExceptions.foreach{
+	      	thrownExcNames.foreach{
 	      	  thrownException=>
-	      	    val ccOpt = 
-		      	    catchclauses.find{
-				          catchclause =>
-				            val excName = if(getExceptionName(catchclause) == ExceptionCenter.ANY_EXCEPTION) Center.DEFAULT_TOPLEVEL_OBJECT else getExceptionName(catchclause)
-				            val exc = Center.resolveClass(excName, Center.ResolveLevel.HIERARCHY)
-				          	thrownException == exc || thrownException.isChildOf(exc)
-		      	    }
-	      	    ccOpt match{
-	      	      case Some(cc) => result += cc
-	      	      case None =>
-	      	    }
+//	      	    val ccOpt = 
+//		      	    catchclauses.find{
+//				          catchclause =>
+//				            val excName = if(getExceptionName(catchclause) == ExceptionCenter.ANY_EXCEPTION) "java.lang.Throwable" else getExceptionName(catchclause)
+////				            val exc = Center.resolveClass(excName, Center.ResolveLevel.HIERARCHY)
+//				          	 
+//		      	    }
+//	      	    ccOpt match{
+//	      	      case Some(cc) => result += cc
+//	      	      case None =>
+//	      	    }
+             result ++= catchclauses
 	      	}
       	} else {
       	  result ++= catchclauses
@@ -108,30 +108,26 @@ object JawaAlirInfoProvider {
       	(result, false)
     } 
   
-  def parseCodes(codes : Set[String]) : List[Model] = {
-	  codes.map{v => ChunkingPilarParser(Left(v), reporter) match{case Some(m) => m; case None => null}}.filter(v => v != null).toList
-	}
-  
   def reporter = {
 	  new org.sireum.pilar.parser.PilarParser.ErrorReporter {
       def report(source : Option[FileResourceUri], line : Int,
                  column : Int, message : String) =
-        System.err.println("source:" + source + ".line:" + line + ".column:" + column + "message" + message)
+        System.err.println("source:" + source + ".line:" + line + ".column:" + column + ".message:" + message)
     }
 	}
   
 	def getIntraMethodResult(code : String) : Map[ResourceUri, TransformIntraMethodResult] = {
-	  val newModels = parseCodes(Set(code))
-	  doGetIntraMethodResult(newModels)
+	  val newModel = Transform.parseCodes(Set(code))
+	  doGetIntraMethodResult(newModel)
 	}
 	
 	def getIntraMethodResult(codes : Set[String]) : Map[ResourceUri, TransformIntraMethodResult] = {
-	  val newModels = parseCodes(codes)
-	  doGetIntraMethodResult(newModels)
+	  val newModel = Transform.parseCodes(codes)
+	  doGetIntraMethodResult(newModel)
 	}
 	
-	private def doGetIntraMethodResult(models : List[Model]) : Map[ResourceUri, TransformIntraMethodResult] = {
-	  val result = JawaSymbolTableBuilder(models, Transform.fst, GlobalConfig.jawaResolverParallel)
+	private def doGetIntraMethodResult(model: Model) : Map[ResourceUri, TransformIntraMethodResult] = {
+	  val result = JawaSymbolTableBuilder(List(model), Transform.fst, GlobalConfig.jawaResolverParallel)
 	  result.procedureSymbolTables.map{
 	    pst=>
 	      val (pool, cfg) = buildCfg(pst)

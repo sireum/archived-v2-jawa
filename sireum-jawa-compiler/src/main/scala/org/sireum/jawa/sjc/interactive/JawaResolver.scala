@@ -287,7 +287,7 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
 		        val catchclauses = body.catchClauses
 		        catchclauses.foreach{
 		          catchclause =>
-		            val excName = catchclause.typOrAny.fold(_.typ.asInstanceOf[ObjectType].name, _.text)
+		            val excName = catchclause.typ.typ.name
 			          method.addExceptionHandler(excName, catchclause.from, catchclause.to, catchclause.goto.text)
 		        }
 		      }

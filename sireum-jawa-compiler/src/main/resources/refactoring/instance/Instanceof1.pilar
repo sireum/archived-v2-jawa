@@ -1,0 +1,12 @@
+record `com.fgwei.Instanceof1`  @kind class @AccessFlag PUBLIC {
+   }
+    procedure `boolean` `com.fgwei.Instanceof1.main` () @owner ^`com.fgwei.Instanceof1` @signature `Lcom/fgwei/Instanceof1;.main:()Z` @Access `PUBLIC_STATIC` {
+      temp ;
+        v0;
+        v1;
+      
+#L026e42.   v0:= "abcd" @kind object;
+#L026e43.   v1:= v0 instanceof `java.lang.String`;
+#L026eb0.   return v1;
+
+   }

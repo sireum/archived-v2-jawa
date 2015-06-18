@@ -9,6 +9,13 @@ package org.sireum.jawa.sjc
 
 import org.sireum.util._
 
+object JawaType {
+  def generateType(typ: String, dimensions: Int): JawaType = {
+    if(dimensions == 0 && JavaKnowledge.isJavaPrimitive(typ)) PrimitiveType(typ)
+    else ObjectType(typ, dimensions)
+  }
+}
+
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
@@ -16,15 +23,19 @@ import org.sireum.util._
 trait JawaType extends JavaKnowledge {
 	def typ: String
   def name: String
+  def jawaName: String
   def simpleName: String
   def canonicalName: String
+  def dimensions: Int
 }
 
 final case class PrimitiveType(val typ: String) extends JawaType {
   require(isJavaPrimitive(this))
   def name: String = typ
   def simpleName: String = name
+  def jawaName: String = name
   def canonicalName: String = name
+  def dimensions: Int = 0
 }
 
 /**
@@ -33,11 +44,15 @@ final case class PrimitiveType(val typ: String) extends JawaType {
  */ 
 final case class ObjectType(val typ: String, val dimensions: Int) extends JawaType {
   def this(typ: String) = this(typ, 0)
-  require(!isJavaPrimitive(this))
+  require(!isJavaPrimitive(typ) || dimensions != 0)
   def isArray = dimensions > 0
   def name: String = formatObjectTypeToObjectName(this)
   def simpleName: String = {
     val base = typ.substring(typ.lastIndexOf(".") + 1)
+    assign(base, dimensions, "[]", false)
+  }
+  def jawaName: String = {
+    val base = typ
     assign(base, dimensions, "[]", false)
   }
   def canonicalName: String = {
@@ -83,6 +98,8 @@ final case class NullType() extends JawaType {
   def name: String = typ
   def simpleName: String = name
   def canonicalName: String = name
+  def jawaName: String = name
+  def dimensions: Int = 0
   override def toString: String = {
     val sb = new StringBuilder
     sb.append(typ)

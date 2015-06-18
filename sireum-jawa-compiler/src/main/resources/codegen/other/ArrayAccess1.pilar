@@ -1,0 +1,54 @@
+record `de.ecspride.ArrayAccess1`  @kind class @AccessFlag PUBLIC  extends `android.app.Activity` @kind class {
+   }
+      global `java.lang.String`[] `@@de.ecspride.ArrayAccess1.arrayData`    @AccessFlag PUBLIC_STATIC;
+procedure `void` `de.ecspride.ArrayAccess1.<init>` (`de.ecspride.ArrayAccess1` this_v0 @kind this) @owner ^`de.ecspride.ArrayAccess1` @signature `Lde/ecspride/ArrayAccess1;.<init>:()V` @Access PUBLIC_CONSTRUCTOR {
+
+#L026e20.   call `android.app.Activity.<init>`(this_v0) @signature `Landroid/app/Activity;.<init>:()V` @classDescriptor ^`android.app.Activity` @kind direct;
+#L026e26.   return  @kind void;
+}
+procedure `void` `de.ecspride.ArrayAccess1.onCreate` (`de.ecspride.ArrayAccess1` this_v6 @kind this, `android.os.Bundle` Bundle_v7 @kind object) @owner ^`de.ecspride.ArrayAccess1` @signature `Lde/ecspride/ArrayAccess1;.onCreate:(Landroid/os/Bundle;)V` @Access PROTECTED {
+      `android.telephony.SmsManager` SmsManager_v0;
+      `java.lang.String` String_v3;
+      `int` int_v2;
+      `int` int_v5;
+      `java.lang.String`[] String_arr1_v1;
+      `android.telephony.TelephonyManager` TelephonyManager_v1;
+      `int` int_v4;
+      `int` int_v1;
+      `java.lang.Object` Object_v1;
+      `java.lang.String`[] String_arr1_v3;
+      `java.lang.String` String_v1;
+      `java.lang.String` String_v4;
+      `int` int_v3;
+
+#L026e38.   int_v5:= 2I  @kind int;
+#L026e3a.   int_v2:= 0I  @kind int;
+#L026e3c.   call `android.app.Activity.onCreate`(this_v6, Bundle_v7) @signature `Landroid/app/Activity;.onCreate:(Landroid/os/Bundle;)V` @classDescriptor ^`android.app.Activity` @kind super;
+#L026e42.   int_v1:= 2130903040I  @kind int;
+#L026e46.   call `de.ecspride.ArrayAccess1.setContentView`(this_v6, int_v1) @signature `Lde/ecspride/ArrayAccess1;.setContentView:(I)V` @classDescriptor ^`de.ecspride.ArrayAccess1` @kind virtual;
+#L026e4c.   int_v1:= 3I  @kind int;
+#L026e4e.   String_arr1_v1:= new `java.lang.String`[int_v1];
+#L026e52.   `@@de.ecspride.ArrayAccess1.arrayData`:= String_arr1_v1  @kind object @type ^`java.lang.String`[];
+#L026e56.   String_arr1_v1:= `@@de.ecspride.ArrayAccess1.arrayData`  @kind object @type ^`java.lang.String`[];
+#L026e5a.   int_v3:= 0I  @kind int;
+#L026e5c.   String_v4:= "element 1 is tainted:" @kind object;
+#L026e60.   String_arr1_v1[int_v3]:= String_v4  @kind object;
+#L026e64.   String_arr1_v3:= `@@de.ecspride.ArrayAccess1.arrayData`  @kind object @type ^`java.lang.String`[];
+#L026e68.   int_v4:= 1I  @kind int;
+#L026e6a.   String_v1:= "phone" @kind object;
+#L026e6e.   call Object_v1:=  `de.ecspride.ArrayAccess1.getSystemService`(this_v6, String_v1) @signature `Lde/ecspride/ArrayAccess1;.getSystemService:(Ljava/lang/String;)Ljava/lang/Object;` @classDescriptor ^`de.ecspride.ArrayAccess1` @kind virtual;
+#L026e76.   TelephonyManager_v1:= (`android.telephony.TelephonyManager`)Object_v1  @kind object;
+#L026e7a.   call String_v1:=  `android.telephony.TelephonyManager.getDeviceId`(TelephonyManager_v1) @signature `Landroid/telephony/TelephonyManager;.getDeviceId:()Ljava/lang/String;` @classDescriptor ^`android.telephony.TelephonyManager` @kind virtual;
+#L026e82.   String_arr1_v3[int_v4]:= String_v1  @kind object;
+#L026e86.   String_arr1_v1:= `@@de.ecspride.ArrayAccess1.arrayData`  @kind object @type ^`java.lang.String`[];
+#L026e8a.   String_v3:= "neutral text" @kind object;
+#L026e8e.   String_arr1_v1[int_v5]:= String_v3  @kind object;
+#L026e92.   call SmsManager_v0:=  `android.telephony.SmsManager.getDefault`() @signature `Landroid/telephony/SmsManager;.getDefault:()Landroid/telephony/SmsManager;` @classDescriptor ^`android.telephony.SmsManager` @kind static;
+#L026e9a.   String_v1:= "+49 1234" @kind object;
+#L026e9e.   String_arr1_v3:= `@@de.ecspride.ArrayAccess1.arrayData`  @kind object @type ^`java.lang.String`[];
+#L026ea2.   String_v3:= String_arr1_v3[int_v5]  @kind object;
+#L026ea6.   int_v4:= int_v2  @kind object;
+#L026ea8.   int_v5:= int_v2  @kind object;
+#L026eaa.   call `android.telephony.SmsManager.sendTextMessage`(SmsManager_v0, String_v1, int_v2, String_v3, int_v4, int_v5) @signature `Landroid/telephony/SmsManager;.sendTextMessage:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/app/PendingIntent;Landroid/app/PendingIntent;)V` @classDescriptor ^`android.telephony.SmsManager` @kind virtual;
+#L026eb0.   return  @kind void;
+}

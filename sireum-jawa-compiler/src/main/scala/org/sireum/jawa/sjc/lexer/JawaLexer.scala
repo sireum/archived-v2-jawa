@@ -117,8 +117,6 @@ class JawaLexer(aplexer: Antlr4PilarLexer, file: AbstractFile, reporter: Reporte
             Tokens.LENGTH
           else if(aptoken.getText == "Exception")
             Tokens.EXCEPTION
-          else if(aptoken.getText == "`any`")
-            Tokens.ANY
           else if(aptoken.getText == "monitorenter")
             Tokens.MONITOR_ENTER
           else if(aptoken.getText == "monitorexit")
@@ -151,6 +149,8 @@ class JawaLexer(aplexer: Antlr4PilarLexer, file: AbstractFile, reporter: Reporte
           Tokens.CHARACTER_LITERAL
         case AssignOP =>
           Tokens.ASSIGN_OP
+        case T__49 =>  // ^
+          Tokens.HAT
         case T__7      // >
            | T__8      // |
            | T__38     // <
@@ -188,7 +188,6 @@ class JawaLexer(aplexer: Antlr4PilarLexer, file: AbstractFile, reporter: Reporte
            | T__41     // const
            | T__42     // -!>
            | T__43     // actiondef
-           | T__49     // ^
            | T__54     // fun
            | ErrorChar
            => 
