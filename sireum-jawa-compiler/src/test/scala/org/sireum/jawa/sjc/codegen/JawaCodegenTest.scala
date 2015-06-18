@@ -24,6 +24,7 @@ import java.io.PrintWriter
 import scala.tools.asm.ClassReader
 import scala.tools.asm.util.TraceClassVisitor
 import java.lang.reflect.InvocationTargetException
+import org.sireum.jawa.sjc.util.ReadClassFile.CustomClassLoader
 
 class JawaCodegenTest extends FlatSpec with ShouldMatchers {
   
@@ -81,6 +82,11 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
 //    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/constclass/ConstClass2.pilar")))
 //    genCode(jf.file)
 //  }
+  
+  "Generate code" should "not throw an exception on DoubleLong1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/doublelong/DoubleLong1.pilar")))
+    genCode(jf.file)
+  }
 //  
 //  "Generate code" should "not throw an exception on Exceptions1" in {
 //    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/exception/Exceptions1.pilar")))
@@ -194,9 +200,9 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
     val cu = parser(Right(s)).compilationUnit(true)
     val css = new JavaByteCodeGenerator().generate(cu)
     val ccl: CustomClassLoader = new CustomClassLoader()
+    val pw = new PrintWriter(System.out)
     css foreach {
       case (typ, bytecodes) => 
-        val pw = new PrintWriter(System.out)
         JavaByteCodeGenerator.outputByteCodes(pw, bytecodes)
         try{
           val c = ccl.loadClass(typ.name, bytecodes)
@@ -206,12 +212,6 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
           case ite: InvocationTargetException =>
             throw ite.getTargetException
         }
-    }
-  }
-
-  class CustomClassLoader extends ClassLoader {
-    def loadClass(name: String, bytecodes: Array[Byte]): Class[_ <: Any] = {
-      return defineClass(name, bytecodes, 0, bytecodes.length)
     }
   }
 }

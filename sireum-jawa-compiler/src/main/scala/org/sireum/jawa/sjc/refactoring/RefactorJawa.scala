@@ -45,9 +45,6 @@ object RefactorJawa {
         println(reporter.problems)
     }
     val finalcode = sb.toString().trim()
-    JawaAlirInfoProvider.getIntraMethodResult(finalcode) // check pilar parser
-    JawaParser.parse[CompilationUnit](Left(finalcode), true, reporter) // check jawa parser
-    if(reporter.hasErrors) throw new RuntimeException(reporter.problems.toString())
     finalcode
   }
   
@@ -57,18 +54,18 @@ object RefactorJawa {
     val recentvars: MMap[String, String] = mmapEmpty // map from var -> newvar
     val pendingTasks: MMap[String, (String, Int, Position, String)] = mmapEmpty
     
-    def handlePendingTask(locCode: String, index: Int, v: String, typ: JawaType): Unit = {
-      pendingTasks.get(v) match {
+    def handlePendingTask(varname: String, typ: JawaType): Unit = {
+      pendingTasks.get(varname) match {
         case Some((l, i, pos, v)) =>
-          var newvar = if(typ.isInstanceOf[ObjectType]) "null_" + v else "int_" + v
+          var newvar = typ.typ.substring(typ.typ.lastIndexOf(".") + 1) + {if(typ.dimensions > 0)"_arr" + typ.dimensions else ""} + "_" + v
           localvars(newvar) = ((typ, false))
           recentvars(v) = newvar
-          var newl = updateCode(locCode, pos, newvar)
-          if(typ.isInstanceOf[ObjectType]) newl = newl.replace("@kind int", "@kind object")
-          locations(index) = newl
+          var newl = updateCode(l, pos, newvar)
+          if(typ.isInstanceOf[ObjectType]) newl = newl.replace("0I  @kind int", "null  @kind object")
+          locations(i) = newl
         case None =>
       }
-      pendingTasks.remove(v)
+      pendingTasks.remove(varname)
     }
     
     
@@ -121,18 +118,27 @@ object RefactorJawa {
           val index: Int = alun.locIndex
           val loc = body.locations(index)
           var locCode = loc.toCode
+          var possibleNull: Boolean = false
           loc.statement match {
             case cs: CallStatement =>
               val paramTypes = cs.signature.getParameterTypes()
-              val args = cs.argClause.varSymbols.map(_._1)
+              val args = cs.argVars
               val size = paramTypes.size
               for(i <- 1 to size) {
                 val arg = args(size - i)
                 val typ = paramTypes(size - i)
-                handlePendingTask(locCode, index, arg.varName, typ)
+                handlePendingTask(arg.varName, typ)
                 val newarg = recentvars(arg.varName)
                 locCode = updateCode(locCode, arg.id.pos, newarg)
 //                  updateEvidence(arg._1.id.pos) = newarg
+              }
+              cs.recvVarOpt match {
+                case Some(recv) =>
+                  val typ = cs.signature.getClassType
+                  handlePendingTask(recv.varName, typ)
+                  val newarg = recentvars(recv.varName)
+                  locCode = updateCode(locCode, recv.id.pos, newarg)
+                case None =>
               }
               cs.lhsOpt match {
                 case Some(lhs) =>
@@ -149,7 +155,6 @@ object RefactorJawa {
               val typOpt: Option[JawaType] = as.typOpt
               val kind: String = as.kind
               var rhsType: JawaType = null
-              var possibleNull: Boolean = false
               as.rhs match {
                 case ne: NameExpression =>
                   ne.varSymbol match {
@@ -163,7 +168,7 @@ object RefactorJawa {
                             case a => JawaType.generateType(a, 0)
                           }
                       }
-                      handlePendingTask(locCode, index, varname, typ)
+                      handlePendingTask(varname, typ)
                       val newarg = recentvars(varname)
                       locCode = updateCode(locCode, v.id.pos, newarg)
 //                      updateEvidence(v.id.pos) = newarg
@@ -179,14 +184,14 @@ object RefactorJawa {
                       indice.index match {
                         case Left(v) =>
                           val varName = v.varName
-                          handlePendingTask(locCode, index, varName, PrimitiveType("int"))
+                          handlePendingTask(varName, PrimitiveType("int"))
                           val newarg = recentvars(varName)
                           locCode = updateCode(locCode, v.id.pos, newarg)
                         case Right(c) =>
                       }
                   }
                   val varname = ie.base
-                  handlePendingTask(locCode, index, varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE) /*TODO need to think whether its possible to refer the type*/
+                  handlePendingTask(varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE) /*TODO need to think whether its possible to refer the type*/
                   val newarg = recentvars(varname)
                   locCode = updateCode(locCode, ie.varSymbol.id.pos, newarg)
 //                  updateEvidence(ie.varSymbol.id.pos) = newarg
@@ -195,7 +200,7 @@ object RefactorJawa {
                   rhsType = JawaType.generateType(typ.typ, typ.dimensions - dimentions)
                 case ae: AccessExpression =>
                   val varname = ae.base
-                  handlePendingTask(locCode, index, varname, typOpt.get)
+                  handlePendingTask(varname, typOpt.get)
                   val newarg = recentvars(varname)
                   locCode = updateCode(locCode, ae.varSymbol.id.pos, newarg)
 //                  updateEvidence(ae.varSymbol.id.pos) = newarg
@@ -204,7 +209,7 @@ object RefactorJawa {
                   rhsType = ObjectType("char", 1) /*TODO*/
                 case ce: CastExpression =>
                   val varname = ce.varName
-                  handlePendingTask(locCode, index, varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
+                  handlePendingTask(varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
                   val newarg = recentvars(varname)
                   locCode = updateCode(locCode, ce.varSym.id.pos, newarg)
 //                  updateEvidence(ce.varSym.id.pos) = newarg
@@ -215,7 +220,7 @@ object RefactorJawa {
                       tf.varSymbols.reverse.foreach{
                         v =>
                           val varname = v._1.varName
-                          handlePendingTask(locCode, index, varname, PrimitiveType("int"))
+                          handlePendingTask(varname, PrimitiveType("int"))
                           val newarg = recentvars(varname)
                           locCode = updateCode(locCode, v._1.id.pos, newarg)
                       }
@@ -238,7 +243,7 @@ object RefactorJawa {
                   }
                 case ue: UnaryExpression =>
                   val varname = ue.unary.varName
-                  handlePendingTask(locCode, index, varname, PrimitiveType(kind))
+                  handlePendingTask(varname, PrimitiveType(kind))
                   val newarg = recentvars(varname)
                   locCode = updateCode(locCode, ue.unary.id.pos, newarg)
 //                  updateEvidence(ue.unary.id.pos) = newarg
@@ -247,14 +252,14 @@ object RefactorJawa {
                   val rightname = be.right match {
                     case Left(v) =>
                       val rightname = v.varName
-                      handlePendingTask(locCode, index, rightname, PrimitiveType(kind))
+                      handlePendingTask(rightname, PrimitiveType(kind))
                       val newright = recentvars(rightname)
                       locCode = updateCode(locCode, v.id.pos, newright)
 //                      updateEvidence(v.id.pos) = newright
                     case Right(s) =>
                   }
                   val leftname = be.left.varName
-                  handlePendingTask(locCode, index, leftname, PrimitiveType(kind))
+                  handlePendingTask(leftname, PrimitiveType(kind))
                   val newleft = recentvars(leftname)
                   locCode = updateCode(locCode, be.left.id.pos, newleft)
 //                  updateEvidence(be.left.id.pos) = newleft
@@ -262,19 +267,19 @@ object RefactorJawa {
                 case ce: CmpExpression =>
                   val var2name = ce.var2Symbol.varName
                   val typ = ce.paramType
-                  handlePendingTask(locCode, index, var2name, typ)
+                  handlePendingTask(var2name, typ)
                   val newvar2name = recentvars(var2name)
                   locCode = updateCode(locCode, ce.var2Symbol.id.pos, newvar2name)
 //                  updateEvidence(ce.var2Symbol.id.pos) = newvar2name
                   val var1name = ce.var1Symbol.varName
-                  handlePendingTask(locCode, index, var1name, typ)
+                  handlePendingTask(var1name, typ)
                   val newvar1name = recentvars(var1name)
                   locCode = updateCode(locCode, ce.var1Symbol.id.pos, newvar1name)
 //                  updateEvidence(ce.var1Symbol.id.pos) = newvar1name
                   rhsType = PrimitiveType("boolean")
                 case ie: InstanceofExpression =>
                   val varname = ie.varSymbol.varName
-                  handlePendingTask(locCode, index, varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
+                  handlePendingTask(varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
                   val newarg = recentvars(varname)
                   locCode = updateCode(locCode, ie.varSymbol.id.pos, newarg)
 //                  updateEvidence(ie.varSymbol.id.pos) = newarg
@@ -283,11 +288,13 @@ object RefactorJawa {
                   rhsType = new ObjectType("java.lang.Class")
                 case le: LengthExpression =>
                   val varname = le.varSymbol.varName
-                  handlePendingTask(locCode, index, varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
+                  handlePendingTask(varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
                   val newarg = recentvars(varname)
                   locCode = updateCode(locCode, le.varSymbol.id.pos, newarg)
 //                  updateEvidence(le.varSymbol.id.pos) = newarg
                   rhsType = PrimitiveType("int")
+                case ne: NullExpression =>
+                  rhsType = JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE
                 case _ =>  println("resolveLocalVarType rhs problem: " + as.rhs)
               }
               
@@ -296,7 +303,8 @@ object RefactorJawa {
                   ne.varSymbol match {
                     case Left(v) =>
                       if(possibleNull){
-                        pendingTasks(ne.name) = ((locCode, index, v.id.pos, ne.name))
+                        val code = locCode
+                        pendingTasks(ne.name) = ((code, index, v.id.pos, ne.name))
                       } else {
                         var newvar = rhsType.typ.substring(rhsType.typ.lastIndexOf(".") + 1) + {if(rhsType.dimensions > 0)"_arr" + rhsType.dimensions else ""} + "_" + ne.name
                         if(localvars.contains(newvar) && localvars(newvar)._1 != rhsType) newvar = "a" + newvar
@@ -313,7 +321,7 @@ object RefactorJawa {
                       indice.index match {
                         case Left(v) =>
                           val varName = v.varName
-                          handlePendingTask(locCode, index, varName, PrimitiveType("int"))
+                          handlePendingTask(varName, PrimitiveType("int"))
                           val newarg = recentvars(varName)
                           locCode = updateCode(locCode, v.id.pos, newarg)
                         case Right(c) =>
@@ -322,13 +330,13 @@ object RefactorJawa {
                   val varname = ie.base
                   val dimentions = ie.dimentions
                   val typ = JawaType.generateType(rhsType.typ, rhsType.dimensions + dimentions)
-                  handlePendingTask(locCode, index, varname, typ)
+                  handlePendingTask(varname, typ)
                   val newarg = recentvars(varname)
                   locCode = updateCode(locCode, ie.varSymbol.id.pos, newarg)
 //                  updateEvidence(ie.varSymbol.id.pos) = newarg
                 case ae: AccessExpression =>
                   val varname = ae.base
-                  handlePendingTask(locCode, index, varname, typOpt.get)
+                  handlePendingTask(varname, typOpt.get)
                   val newarg = recentvars(varname)
                   locCode = updateCode(locCode, ae.varSymbol.id.pos, newarg)
 //                  updateEvidence(ae.varSymbol.id.pos) = newarg
@@ -336,28 +344,28 @@ object RefactorJawa {
               }
             case ts: ThrowStatement => 
               val varname = ts.varSymbol.varName
-              handlePendingTask(locCode, index, varname, new ObjectType("java.lang.Throwable"))
+              handlePendingTask(varname, new ObjectType("java.lang.Throwable"))
               val newarg = recentvars(varname)
               locCode = updateCode(locCode, ts.varSymbol.id.pos, newarg)
 //              updateEvidence(ts.varSymbol.id.pos) = newarg
             case is: IfStatement =>
               is.cond.right match {
                 case Left(v) =>
-                  handlePendingTask(locCode, index, v.varName, PrimitiveType("int"))
+                  handlePendingTask(v.varName, PrimitiveType("int"))
                   val newright = recentvars(v.varName)
                   locCode = updateCode(locCode, v.id.pos, newright)
 //                  updateEvidence(v.id.pos) = newright
                 case Right(c) =>
               }
               val left = is.cond.left.varName
-              handlePendingTask(locCode, index, left, PrimitiveType("int"))
+              handlePendingTask(left, PrimitiveType("int"))
               val newleft = recentvars(left)
               locCode = updateCode(locCode, is.cond.left.id.pos, newleft)
 //              updateEvidence(is.cond.left.id.pos) = newleft
             case gs: GotoStatement =>
             case ss: SwitchStatement =>
               val varname = ss.condition.varName
-              handlePendingTask(locCode, index, varname, PrimitiveType("int"))
+              handlePendingTask(varname, PrimitiveType("int"))
               val newvar = recentvars(varname)
               locCode = updateCode(locCode, ss.condition.id.pos, newvar)
 //              updateEvidence(ss.condition.id.pos) = newvar
@@ -365,7 +373,7 @@ object RefactorJawa {
               rs.varOpt match {
                 case Some(v) =>
                   val varname = v.varName
-                  handlePendingTask(locCode, index, varname, md.signature.getReturnType())
+                  handlePendingTask(varname, md.signature.getReturnType())
                   val newvar = recentvars(varname)
                   locCode = updateCode(locCode, v.id.pos, newvar)
 //                  updateEvidence(v.id.pos) = newvar
@@ -373,14 +381,15 @@ object RefactorJawa {
               }
             case ms: MonitorStatement =>
               val varname = ms.varSymbol.varName
-              handlePendingTask(locCode, index, varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
+              handlePendingTask(varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
               val newvar = recentvars(varname)
               locCode = updateCode(locCode, ms.varSymbol.id.pos, newvar)
 //              updateEvidence(ms.varSymbol.id.pos) = newvar
             case es: EmptyStatement =>
             case _ =>
           }
-          locations(index) = locCode
+          if(!possibleNull)
+            locations(index) = locCode
         case _ =>
       }
     }
@@ -460,8 +469,10 @@ object RefactorJawa {
                 val typ = typs(i)
                 typ.name match {
                   case "double" | "long" =>
-                    val pos = args(j).pos | args(j+1).pos
-                    updateCode(linecode, pos, args(j).varName)
+                    val v1pos = args(j).id.pos
+                    val v2pos = args(j+1).id.pos
+                    val pos = Position.range(v1pos.source, v1pos.start, v2pos.end - v1pos.start + 1, v1pos.line, v1pos.column)
+                    linecode = updateCode(linecode, pos, args(j).varName)
                     j += 1
                   case _ =>
                 }
@@ -471,9 +482,17 @@ object RefactorJawa {
                 case "void" =>
                   linecode = linecode.replaceAll("temp:=  ", "")
                 case _ =>
-                  val varName = body.locations(location.locationIndex + 1).statement.asInstanceOf[AssignmentStatement].lhs.asInstanceOf[NameExpression].varSymbol.left.get.varName
-                  linecode = linecode.replaceFirst("temp:=", varName + ":=")
-                  skip = true
+                  val nextStat = body.locations(location.locationIndex + 1).statement
+                  nextStat match {
+                    case as: AssignmentStatement =>
+                      if(as.rhs.isInstanceOf[NameExpression] && as.rhs.asInstanceOf[NameExpression].name == "temp"){
+                        val varName = as.lhs.asInstanceOf[NameExpression].varSymbol.left.get.varName
+                        linecode = linecode.replaceFirst("temp:=", varName + ":=")
+                        skip = true
+                      }
+                    case _ =>
+                  }
+                  
               }
             case _ =>
           }

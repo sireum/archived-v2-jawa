@@ -56,6 +56,7 @@ import java.io.File
 import java.io.FileWriter
 import java.io.DataOutputStream
 import java.io.FileOutputStream
+import org.sireum.jawa.sjc.parser.NullExpression
 
 object JavaByteCodeGenerator {
   def outputByteCodes(pw: PrintWriter, bytecodes: Array[Byte]) = {
@@ -99,29 +100,53 @@ class JavaByteCodeGenerator {
     var mod: Int = 0
     if(AccessFlag.isPrivate(af))
       mod = mod | Opcodes.ACC_PRIVATE
-    else
+    else if (AccessFlag.isProtected(af))
+      mod = mod | Opcodes.ACC_PROTECTED
+    else if (AccessFlag.isPublic(af))
       mod = mod | Opcodes.ACC_PUBLIC
+      
     if(AccessFlag.isAbstract(af))
       mod = mod | Opcodes.ACC_ABSTRACT
+    if(AccessFlag.isAnnotation(af))
+      mod = mod | Opcodes.ACC_ANNOTATION
+//    if(AccessFlag.isConstructor(af))
+//      mod = mod | Opcodes.ACC_
+    if(AccessFlag.isDeclaredSynchronized(af))
+      mod = mod | Opcodes.ACC_SYNCHRONIZED
+    if(AccessFlag.isEnum(af))
+      mod = mod | Opcodes.ACC_ENUM
     if(AccessFlag.isFinal(af))
       mod = mod | Opcodes.ACC_FINAL
-    if(AccessFlag.isStatic(af))
-      mod = mod | Opcodes.ACC_STATIC
     if(AccessFlag.isInterface(af))
       mod = mod | Opcodes.ACC_INTERFACE
+    if(AccessFlag.isNative(af))
+      mod = mod | Opcodes.ACC_NATIVE
+    if(AccessFlag.isStatic(af))
+      mod = mod | Opcodes.ACC_STATIC
+    if(AccessFlag.isStrictFP(af))
+      mod = mod | Opcodes.ACC_STRICT
+    if(AccessFlag.isSynchronized(af))
+      mod = mod | Opcodes.ACC_SYNCHRONIZED
+    if(AccessFlag.isSynthetic(af))
+      mod = mod | Opcodes.ACC_SYNTHETIC
+    if(AccessFlag.isTransient(af))
+      mod = mod | Opcodes.ACC_TRANSIENT
+    if(AccessFlag.isVolatile(af))
+      mod = mod | Opcodes.ACC_VOLATILE
     mod
   }
   
   private def visitClass(cid: ClassOrInterfaceDeclaration, javaVersion: Int): Unit = {
     val cw: ClassWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS)
     val af: Int = AccessFlag.getAccessFlags(cid.accessModifier)
-    val mod = getJavaFlags(af)
+    var mod = getJavaFlags(af)
     
     val superName: String = cid.superClassOpt match {
       case Some(su) => getClassName(su.name)
       case None => if(cid.typ.name != JavaKnowledge.JAVA_TOPLEVEL_OBJECT) getClassName(JavaKnowledge.JAVA_TOPLEVEL_OBJECT) else null
     }
     val interfaceNames: IList[String] = cid.interfaces map(i => getClassName(i.name))
+    if(superName != null || !interfaceNames.isEmpty) mod = mod | Opcodes.ACC_SUPER
     cw.visit(javaVersion, mod, getClassName(cid.typ.name), null, superName, interfaceNames.toArray)
     cw.visitSource(null, null)
     cid.fields foreach {
@@ -198,6 +223,7 @@ class JavaByteCodeGenerator {
       location =>
         val locLabel = this.locations(location.locationUri)
         mv.visitLabel(locLabel)
+        mv.visitLineNumber(location.firstToken.pos.line, locLabel)
         visitLocation(mv, location)
     }
     
@@ -349,6 +375,7 @@ class JavaByteCodeGenerator {
       else if(cs.isDirect || cs.isSuper) Opcodes.INVOKESPECIAL
       else if(cs.isInterface) Opcodes.INVOKEINTERFACE
       else Opcodes.INVOKEVIRTUAL
+
     val className: String = getClassName(cs.signature.getClassType.name)
     val methodName: String = cs.signature.methodNamePart
     val descriptor: String = cs.signature.getDescriptor
@@ -440,6 +467,8 @@ class JavaByteCodeGenerator {
           mv.visitFieldInsn(Opcodes.GETSTATIC, fnSym.baseType.name.replaceAll("\\.", "/"), fnSym.fieldName, JavaKnowledge.formatTypeToSignature(typOpt.get))
       }
     case ee: ExceptionExpression =>
+    case ne: NullExpression =>
+      mv.visitInsn(Opcodes.ACONST_NULL)
     case ie: IndexingExpression =>
       visitIndexLoad(mv, ie, kind)
     case ae: AccessExpression =>
@@ -634,6 +663,8 @@ class JavaByteCodeGenerator {
     case "double" =>
       generateDoubleConst(mv, le.getDouble)
     case "object" => // String
+      println(le)
+      println(le.getString)
       visitStringLiteral(mv, le.getString)
     case _ => println("visitLiteralExpression problem: " + kind + " " + le)
   }
@@ -726,11 +757,12 @@ class JavaByteCodeGenerator {
   }
   
   private def visitVarStore(mv: MethodVisitor, varName: String, kind: String): Unit = kind match {
-    case "byte" | "char" | "short" | "int" | "boolean" | "" => 
+    case "byte" | "char" | "short" | "int" | "boolean" | "" | "l2i" | "f2i" | "d2i" | "i2b" | "i2c" | "i2s" => 
                      mv.visitVarInsn(Opcodes.ISTORE, this.locals(varName).index)
-    case "double" => mv.visitVarInsn(Opcodes.DSTORE, this.locals(varName).index)
-    case "float" =>  mv.visitVarInsn(Opcodes.FSTORE, this.locals(varName).index)
-    case "long" =>   mv.visitVarInsn(Opcodes.LSTORE, this.locals(varName).index)
+    case "double" | "i2d" | "l2d" | "f2d" => mv.visitVarInsn(Opcodes.DSTORE, this.locals(varName).index)
+    case "float" | "d2f" | "i2f" | "l2f" =>  
+                     mv.visitVarInsn(Opcodes.FSTORE, this.locals(varName).index)
+    case "long" | "i2l" | "f2l" | "d2l" =>   mv.visitVarInsn(Opcodes.LSTORE, this.locals(varName).index)
     case "object" => mv.visitVarInsn(Opcodes.ASTORE, this.locals(varName).index)
     case _ =>        println("visitVarStore problem: " + varName + " " + kind)
   }

@@ -549,6 +549,7 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
       case CMP => cmpExpression()
       case EXCEPTION => exceptionExpression()
       case CONST_CLASS => constClassExpression()
+      case NULL => nullExpression()
       case LPAREN => 
         val next: TokenType = lookahead(1)
         next match {
@@ -578,6 +579,11 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
         }
       case _ => throw new JawaParserException(currentToken.pos, "Unexpected expression start: " + currentToken)
     }
+  }
+  
+  private def nullExpression(): NullExpression = {
+    val nul: Token = accept(NULL)
+    NullExpression(nul)
   }
   
   private def constClassExpression(): ConstClassExpression = {

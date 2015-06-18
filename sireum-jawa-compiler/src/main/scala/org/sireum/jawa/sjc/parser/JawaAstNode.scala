@@ -498,6 +498,14 @@ case class CallStatement(
   def isSuper: Boolean = kind == "super"
   def isDirect: Boolean = kind == "direct"
   def isInterface: Boolean = kind == "interface"
+  def recvVarOpt: Option[VarSymbol] = if(isStatic) None else Some(argClause.varSymbols.head._1)
+  def argVars: IList[VarSymbol] = if(isStatic) argClause.varSymbols.map(_._1) else argClause.varSymbols.tail.map(_._1)
+  def argVar(i: Int): VarSymbol = {
+    i match {
+      case n if (n >= 0 && n < argVars.size) => argVars(n)
+      case _ => throw new IndexOutOfBoundsException("List size " + argVars.size + " but index " + i)
+    }
+  }
   def recvOpt: Option[String] = if(isStatic) None else Some(argClause.arg(0))
   def args: IList[String] = if(isStatic) argClause.varSymbols.map(_._1.id.text) else argClause.varSymbols.tail.map(_._1.id.text)
   def arg(i: Int): String = {
@@ -630,6 +638,11 @@ case class ExceptionExpression(
   lazy val tokens = flatten(exception)
 }
 
+case class NullExpression(
+    nul: Token) extends Expression with RHS {
+  lazy val tokens = flatten(nul)
+}
+
 case class ConstClassExpression(
     const_class: Token) extends Expression with RHS {
   lazy val tokens = flatten(const_class)
@@ -718,7 +731,7 @@ case class LiteralExpression(
     import org.sireum.jawa.sjc.lexer.Tokens._
     constant.tokenType match {
       case STRING_LITERAL =>
-        lit
+        lit.substring(1, lit.length() - 1)
       case FLOATING_POINT_LITERAL =>
         lit match {
           case x if x.endsWith("F") => x.substring(0, x.length() - 1)
