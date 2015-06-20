@@ -48,8 +48,8 @@ final case class ObjectType(val typ: String, val dimensions: Int) extends JawaTy
   def isArray = dimensions > 0
   def name: String = formatObjectTypeToObjectName(this)
   def simpleName: String = {
-    val base = typ.substring(typ.lastIndexOf(".") + 1)
-    assign(base, dimensions, "[]", false)
+    var res = canonicalName.substring(canonicalName.lastIndexOf(".") + 1)
+    res
   }
   def jawaName: String = {
     val base = typ
@@ -74,11 +74,10 @@ final case class ObjectType(val typ: String, val dimensions: Int) extends JawaTy
     if(isArray) return result.toList
     else if(typ.contains("$")){
       var outer = typ.substring(0, typ.lastIndexOf("$"))
-      do{
+      while(outer.contains("$")) {
         result += ObjectType(outer, 0)
         outer = outer.substring(0, outer.lastIndexOf("$"))
-        println(outer)
-      } while(outer.contains("$"))
+      } 
       result += ObjectType(outer, 0)
     }
     result.toList

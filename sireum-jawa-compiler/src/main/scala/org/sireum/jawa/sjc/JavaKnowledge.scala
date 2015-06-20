@@ -119,7 +119,7 @@ trait JavaKnowledge {
       case "Z" =>   getType("boolean", d)
       case "V" =>   getType("void", d)
       case _ =>
-        getType(tmp.substring(1, tmp.length() - 1).replaceAll("\\/", "."), d)
+        getType(tmp.substring(1, tmp.length() - 1).replaceAll("\\/", ".").replaceAll("<\\*>", ""), d)
     }
   }
   

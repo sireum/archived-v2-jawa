@@ -59,7 +59,7 @@ trait Chars {
   def isIdentifierPart(c: Char, isGraveAccent: Boolean) = {
     (c != '`' || c != ' ') &&
     {if(isGraveAccent) {c == '.' || c == '/' || c == ';' || c == ':' || c == '_' || c == '(' || c == ')' || c == '<' || c == '>' || Character.isJavaIdentifierPart(c)} 
-    else Character.isJavaIdentifierPart(c)}
+    else {c != '.' && Character.isJavaIdentifierPart(c)}}
   }
 
   def isSpecial(c: Char) = {
