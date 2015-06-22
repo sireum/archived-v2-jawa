@@ -30,6 +30,7 @@ import org.sireum.jawa.GlobalConfig
 import org.sireum.amandroid.util.AndroidLibraryAPISummary
 import org.sireum.jawa.util.MyFileUtil
 import org.sireum.jawa.alir.JawaAlirInfoProvider
+import org.sireum.jawa.sjc.util.SourceFile
 
 class JawaRefactorTest extends FlatSpec with ShouldMatchers {
   
@@ -180,14 +181,14 @@ class JawaRefactorTest extends FlatSpec with ShouldMatchers {
   }
   
   val reporter = new DefaultReporter
-  private def parser(s: Either[String, AbstractFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
+  private def parser(s: Either[String, SourceFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
   private def parseLocation(s: String) = {
     val loc = parser(Left(s)).location
     if(reporter.hasErrors) throw new RuntimeException(reporter.problems.toString())
     loc
   }
   
-  private def parseCompilationUnit(s: AbstractFile) = {
+  private def parseCompilationUnit(s: SourceFile) = {
     val cu = parser(Right(s)).compilationUnit(true)
     val allAsts = cu.getAllChildrenInclude
     allAsts.foreach {

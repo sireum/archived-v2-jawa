@@ -18,13 +18,13 @@ import org.sireum.jawa.sjc.DefaultReporter
  */
 final class JawaCompiler () {
   val reporter = new DefaultReporter
-  private def parser(s: Either[String, AbstractFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
+  private def parser(s: Either[String, FgSourceFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
   def compile(sources: IList[File], outputDirs: Seq[File], reporter: Reporter, log: Logger, progress: CompileProgress): Unit = {
     sources foreach{
       source =>
         require(source.getPath.endsWith("pilar") || source.getPath.endsWith("plr"), "Wrong file extension to compile " + source)
         val file = new FgSourceFile(new PlainFile(source))
-        val cu = parser(Right(file.file)).compilationUnit(true)
+        val cu = parser(Right(file)).compilationUnit(true)
         val css = new JavaByteCodeGenerator().generate(cu)
         css foreach {
           case (typ, bcs) =>

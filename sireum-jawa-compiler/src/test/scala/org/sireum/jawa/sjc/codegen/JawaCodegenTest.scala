@@ -25,6 +25,7 @@ import scala.tools.asm.ClassReader
 import scala.tools.asm.util.TraceClassVisitor
 import java.lang.reflect.InvocationTargetException
 import org.sireum.jawa.sjc.util.ReadClassFile.CustomClassLoader
+import org.sireum.jawa.sjc.util.SourceFile
 
 class JawaCodegenTest extends FlatSpec with ShouldMatchers {
   
@@ -85,7 +86,7 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
   
   "Generate code" should "not throw an exception on DoubleLong1" in {
     val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/doublelong/DoubleLong1.pilar")))
-    genCode(jf.file)
+    genCode(jf)
   }
 //  
 //  "Generate code" should "not throw an exception on Exceptions1" in {
@@ -163,18 +164,18 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
 //  
   "Generate code" should "not throw an exception on Other" in {
     val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/other/ArrayAccess1.pilar")))
-    genCode(jf.file)
+    genCode(jf)
   }
   
   val reporter = new DefaultReporter
-  private def parser(s: Either[String, AbstractFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
+  private def parser(s: Either[String, SourceFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
   private def parseLocation(s: String) = {
     val loc = parser(Left(s)).location
     if(reporter.hasErrors) throw new RuntimeException(reporter.problems.toString())
     loc
   }
   
-  private def parseCompilationUnit(s: AbstractFile) = {
+  private def parseCompilationUnit(s: SourceFile) = {
     val cu = parser(Right(s)).compilationUnit(true)
     val allAsts = cu.getAllChildrenInclude
     allAsts.foreach {
@@ -196,7 +197,7 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
     cu
   }
   
-  private def genCode(s: AbstractFile) = {    
+  private def genCode(s: SourceFile) = {    
     val cu = parser(Right(s)).compilationUnit(true)
     val css = new JavaByteCodeGenerator().generate(cu)
     val ccl: CustomClassLoader = new CustomClassLoader()

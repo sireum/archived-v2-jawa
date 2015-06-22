@@ -65,7 +65,7 @@ trait CompilerControl { self: Global =>
     val rcu: RichCompilationUnit = getCompilationUnit(source.file) match {
       case Some(r) => r
       case None =>
-        val cu = parseCode[CompilationUnit](source.file, false).get
+        val cu = parseCode[CompilationUnit](source, false).get
         RichCompilationUnit(cu)
     }
     op(rcu)
@@ -163,7 +163,7 @@ trait CompilerControl { self: Global =>
    *  compiler thread.
    */
   def parseCompilationUnit(source: SourceFile): Option[CompilationUnit] = {
-    JawaParser.parse[CompilationUnit](Right(source.file), true, reporter)
+    JawaParser.parse[CompilationUnit](Right(source), true, reporter)
   }
 
   /** Asks for a computation to be done quickly on the presentation compiler thread */

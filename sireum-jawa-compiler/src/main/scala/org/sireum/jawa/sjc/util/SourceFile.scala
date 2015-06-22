@@ -144,7 +144,7 @@ class FgSourceFile(val file : AbstractFile, content0: Array[Char]) extends Sourc
   }
   
   def getClassTypes(reporter: Reporter): ISet[ObjectType] = {
-    val cuOpt = JawaParser.parse[CompilationUnit](Right(file), false, reporter)
+    val cuOpt = JawaParser.parse[CompilationUnit](Right(this), false, reporter)
     cuOpt match {
       case Some(cu) => cu.topDecls.map(_.typ).toSet
       case None => isetEmpty

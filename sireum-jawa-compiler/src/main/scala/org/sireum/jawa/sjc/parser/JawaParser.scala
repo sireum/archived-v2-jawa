@@ -14,6 +14,8 @@ import org.sireum.jawa.sjc.io.AbstractFile
 import org.sireum.jawa.sjc.Reporter
 import org.sireum.jawa.sjc.ObjectType
 import org.sireum.jawa.sjc.JavaKnowledge
+import org.sireum.jawa.sjc.util.FgSourceFile
+import org.sireum.jawa.sjc.util.SourceFile
 
 class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge {
   private val logging: Boolean = false
@@ -904,7 +906,7 @@ object JawaParser {
   /**
    * parse the given source as a parsable ast node
    */
-  def parse[T <: ParsableAstNode : ru.TypeTag](source: Either[String, AbstractFile], resolveBody: Boolean, reporter: Reporter): Option[T] = {
+  def parse[T <: ParsableAstNode : ru.TypeTag](source: Either[String, SourceFile], resolveBody: Boolean, reporter: Reporter): Option[T] = {
     val tokens = JawaLexer.tokenise(source, reporter)
     parse(tokens, resolveBody, reporter)
   }

@@ -23,11 +23,9 @@ import org.sireum.jawa.sjc.util.Position
 import org.sireum.jawa.sjc.util.NoFile
 import org.sireum.jawa.sjc.Reporter
 
-class JawaLexer(aplexer: Antlr4PilarLexer, file: AbstractFile, reporter: Reporter) extends Iterator[Token] {
-  val sourceFile: SourceFile = file match {
-    case NoFile => NoSourceFile
-    case _ => new FgSourceFile(file)
-  }
+class JawaLexer(aplexer: Antlr4PilarLexer, file: SourceFile, reporter: Reporter) extends Iterator[Token] {
+  val sourceFile: SourceFile = file
+
   private var eofTokenEmitted = false
   protected var builtToken: Token = _
   
@@ -230,7 +228,7 @@ object JawaLexer {
    * will be of type EOF.
    */
   @throws(classOf[JawaLexerException])
-  def rawTokenise(source: Either[String, AbstractFile], reporter: Reporter): List[Token] =
+  def rawTokenise(source: Either[String, FgSourceFile], reporter: Reporter): List[Token] =
     createRawLexer(source, reporter).toList
 
   /**
@@ -238,21 +236,21 @@ object JawaLexer {
    *
    * @see rawTokenise
    */
-  def createRawLexer(source: Either[String, AbstractFile], reporter: Reporter): JawaLexer = {
+  def createRawLexer(source: Either[String, SourceFile], reporter: Reporter): JawaLexer = {
     val reader = source match {
       case Left(code) => new StringReader(code)
-      case Right(file) => new StringReader(file.text)
+      case Right(file) => new StringReader(file.code)
     }
     val input = new ANTLRInputStream(reader)
     val aplexer = new Antlr4PilarLexer(input)
-    val file: AbstractFile = source match {
-      case Left(code) => NoFile
+    val file: SourceFile = source match {
+      case Left(code) => new FgSourceFile(NoFile)
       case Right(f) => f
     }
     makeRawLexer(aplexer, file, reporter)
   }
     
-  def makeRawLexer(aplexer: Antlr4PilarLexer, file: AbstractFile, reporter: Reporter): JawaLexer =
+  def makeRawLexer(aplexer: Antlr4PilarLexer, file: SourceFile, reporter: Reporter): JawaLexer =
     new JawaLexer(aplexer, file, reporter)
 
   /**
@@ -266,7 +264,7 @@ object JawaLexer {
    *   interpretation of certain tokens (for example, floating point literals).
    */
   @throws(classOf[JawaLexerException])
-  def tokenise(source: Either[String, AbstractFile], reporter: Reporter): List[Token] = {
+  def tokenise(source: Either[String, SourceFile], reporter: Reporter): List[Token] = {
     val rawLexer = createRawLexer(source, reporter)
     val lexer = new WhitespaceAndCommentsGrouper(rawLexer)
     lexer.toList

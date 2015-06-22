@@ -73,7 +73,7 @@ class Global(val projectName: String, val reporter: Reporter) extends {
         try {
           if (keepLoaded || isOutOfDate && onSameThread){
             respond(response){
-              parseCode[CompilationUnit](source.file, true).get
+              parseCode[CompilationUnit](source, true).get
             }
           }
         } finally {
@@ -208,7 +208,7 @@ class Global(val projectName: String, val reporter: Reporter) extends {
     removeCompilationUnit(source.file)
     toBeRemoved -= source.file
     toBeRemovedAfterRun -= source.file
-    val cu = parseCode[CompilationUnit](source.file, true).get
+    val cu = parseCode[CompilationUnit](source, true).get
     addCompilationUnit(source.file, RichCompilationUnit(cu))
   }
 

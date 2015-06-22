@@ -389,10 +389,10 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * resolve given class.
    */
-  def resolveClassFromSource(typ: ObjectType, file: SourceFile, desiredLevel: ResolveLevel.Value): JawaClass = {
+  def resolveClassFromSource(typ: ObjectType, file: SourceFile, desiredLevel: ResolveLevel.Value): Option[JawaClass] = {
     this.synchronized{
       val classes = resolveClassFromSource(file, desiredLevel)
-      classes.find { x => x.typ == typ }.get
+      classes.find { x => x.typ == typ }
     }
   }
   

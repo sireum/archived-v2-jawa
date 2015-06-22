@@ -37,7 +37,7 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
   
   import scala.reflect.runtime.{ universe => ru }
   
-  def parseCode[T <: ParsableAstNode : ru.TypeTag](source: AbstractFile, resolveBody: Boolean): Option[T] = {
+  def parseCode[T <: ParsableAstNode : ru.TypeTag](source: SourceFile, resolveBody: Boolean): Option[T] = {
     val paopt = JawaParser.parse[T](Right(source), resolveBody, reporter) 
     paopt
   }
@@ -100,7 +100,7 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
       case ResolveLevel.BODY => true
       case _ => false
     }
-    val cu = parseCode[CompilationUnit](source.file, resolveBody).get
+    val cu = parseCode[CompilationUnit](source, resolveBody).get
     val tpes = source.getClassTypes(reporter)
     tpes foreach{removeClass(_)}
     resolveClasses(cu.topDecls, desiredLevel, true)

@@ -17,6 +17,7 @@ import org.sireum.jawa.sjc.io.AbstractFile
 import org.sireum.jawa.sjc.util.FgSourceFile
 import org.sireum.jawa.sjc.DefaultReporter
 import org.sireum.util._
+import org.sireum.jawa.sjc.util.SourceFile
 
 class JawaParserTest extends FlatSpec with ShouldMatchers {
 
@@ -140,7 +141,7 @@ record `b.a.a.a`  @kind class @AccessFlag PUBLIC_FINAL extends  `java.io.Externa
     filelist.foreach{
       fileUri =>
         val jf = new FgSourceFile(new PlainFile(FileUtil.toFile(fileUri)))
-        val cu = parseCompilationUnit(jf.file)
+        val cu = parseCompilationUnit(jf)
         val oText = jf.file.text
         val newText = cu.toCode
         val reader1 = new BufferedReader(new StringReader(oText));
@@ -157,13 +158,13 @@ record `b.a.a.a`  @kind class @AccessFlag PUBLIC_FINAL extends  `java.io.Externa
     }
   }
   val reporter = new DefaultReporter
-  private def parser(s: Either[String, AbstractFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
+  private def parser(s: Either[String, SourceFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)
   private def parseLocation(s: String) = {
     val loc = parser(Left(s)).location
     if(reporter.hasErrors) throw new RuntimeException(reporter.problems.toString())
     loc
   }
-  private def parseCompilationUnit(s: AbstractFile) = {
+  private def parseCompilationUnit(s: SourceFile) = {
     val cu = parser(Right(s)).compilationUnit(true)
     val allAsts = cu.getAllChildrenInclude
     allAsts.foreach {
