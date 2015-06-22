@@ -30,7 +30,7 @@ final class JawaCompiler () {
           case (typ, bcs) =>
             outputDirs.foreach {
               output =>
-                JavaByteCodeGenerator.writeClassFile(output.getAbsolutePath, typ.pkg, typ.simpleName, bcs)
+                JavaByteCodeGenerator.writeClassFile(output.getAbsolutePath, typ.pkg, typ.name.substring(typ.name.lastIndexOf(".") + 1), bcs)
             }
         }
     }
