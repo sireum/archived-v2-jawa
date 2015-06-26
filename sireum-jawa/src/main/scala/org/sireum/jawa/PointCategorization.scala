@@ -84,7 +84,7 @@ trait Invoke{
   def invokeTyp: String
   def argPsCall: IMap[Int, PointArgCall]
   def argPsReturn: IMap[Int, PointArgReturn]
-  def retTyp: Type
+  def retTyp: JawaType
 }
 
 trait Method{
@@ -98,7 +98,7 @@ trait Method{
 trait Param{
   def paramName: String
   def index: Int
-  def paramTyp: Type
+  def paramTyp: JawaType
 }
 
 trait Arg{

@@ -8,11 +8,8 @@ http://www.eclipse.org/legal/epl-v10.html
 package org.sireum.jawa.sjc.interactive
 
 import org.sireum.util._
-import org.sireum.jawa.sjc.ResolveLevel
-import org.sireum.jawa.sjc.JawaType
-import org.sireum.jawa.sjc.Signature
-import org.sireum.jawa.sjc.ObjectType
-import org.sireum.jawa.sjc.Reporter
+import org.sireum.jawa.ResolveLevel
+import org.sireum.jawa.Reporter
 import org.sireum.jawa.sjc.util.NoPosition
 import org.sireum.jawa.sjc.util.Position
 import scala.annotation.elidable

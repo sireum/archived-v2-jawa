@@ -4,8 +4,8 @@ import scala.util.control.Exception._
 import org.sireum.jawa.sjc.lexer._
 import org.sireum.jawa.sjc.parser._
 import org.sireum.jawa.sjc.parser.JawaParserException
-import org.sireum.jawa.sjc.DefaultReporter
-import org.sireum.jawa.sjc.util.Range
+import org.sireum.jawa.DefaultReporter
+import org.sireum.jawa.io.Range
 
 /**
  * @author fgwei

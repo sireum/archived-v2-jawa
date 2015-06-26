@@ -2,16 +2,16 @@ package org.sireum.jawa.sjc.compile
 
 import java.io.File
 import java.net.{URL, URLClassLoader}
-import org.sireum.jawa.sjc.Reporter
+import org.sireum.jawa.Reporter
 import org.sireum.util._
-import org.sireum.jawa.sjc.log.Logger
+import org.sireum.jawa.log.Logger
 import org.sireum.jawa.sjc.codegen.JavaByteCodeGenerator
 import org.sireum.jawa.sjc.util.FgSourceFile
 import org.sireum.jawa.sjc.io.PlainFile
 import org.sireum.jawa.sjc.io.AbstractFile
 import org.sireum.jawa.sjc.parser.JawaParser
 import org.sireum.jawa.sjc.lexer.JawaLexer
-import org.sireum.jawa.sjc.DefaultReporter
+import org.sireum.jawa.DefaultReporter
 
 /**
  * @author fgwei

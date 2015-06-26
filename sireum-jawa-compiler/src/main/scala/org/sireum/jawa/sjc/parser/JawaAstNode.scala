@@ -12,17 +12,17 @@ import org.sireum.pilar._
 import org.sireum.jawa.sjc.lexer.Token
 import org.sireum.jawa.sjc.util.CaseClassReflector
 import org.sireum.util._
-import org.sireum.jawa.sjc.JawaType
-import org.sireum.jawa.sjc.JavaKnowledge
-import org.sireum.jawa.sjc.Signature
-import org.sireum.jawa.sjc.ObjectType
+import org.sireum.jawa.JawaType
+import org.sireum.jawa.JavaKnowledge
+import org.sireum.jawa.sjc.Signe
+import org.sireum.jawa.sjc.ctType
 import org.sireum.jawa.sjc.lexer.TokenType
 import org.sireum.jawa.sjc.lexer.Tokens
-import org.sireum.jawa.sjc.util.Range
+import org.sireum.jawa.io.Range
 import org.sireum.jawa.sjc.util.Position
 import org.sireum.jawa.sjc.util.NoPosition
-import org.sireum.jawa.sjc.DefaultReporter
-import org.sireum.jawa.sjc.PrimitiveType
+import org.sireum.jawa.DefaultReporter
+import org.sireum.jawa.sjc.itiveType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>

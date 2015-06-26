@@ -5,7 +5,7 @@ import org.sireum.jawa.sjc.lexer.Tokens._
 import org.scalatest._
 import java.io._
 import org.sireum.jawa.sjc.util.NoSourceFile
-import org.sireum.jawa.sjc.DefaultReporter
+import org.sireum.jawa.DefaultReporter
 
 class JawaLexerTest extends FlatSpec with ShouldMatchers {
 

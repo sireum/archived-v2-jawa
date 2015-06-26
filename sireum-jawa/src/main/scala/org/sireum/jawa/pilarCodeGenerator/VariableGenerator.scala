@@ -8,13 +8,14 @@ http://www.eclipse.org/legal/epl-v10.html
 package org.sireum.jawa.pilarCodeGenerator
 
 import org.sireum.util._
+import org.sireum.jawa.JawaType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 class VariableGenerator {
 	private var varMap : MMap[String, Int] = mmapEmpty
-	def generate(typ : String) : String = {
+	def generate(typ : JawaType) : String = {
 	  var variable : String = ""
 	  typ match {
 	    case "int" => 

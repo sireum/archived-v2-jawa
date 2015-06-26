@@ -5,7 +5,7 @@ import org.sireum.jawa.sjc.lexer.Tokens._
 import org.scalatest.FlatSpec
 import org.scalatest._
 import java.io._
-import org.sireum.jawa.sjc.DefaultReporter
+import org.sireum.jawa.DefaultReporter
 
 /**
  * Test full tokeniser.

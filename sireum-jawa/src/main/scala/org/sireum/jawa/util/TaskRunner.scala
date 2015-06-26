@@ -1,7 +1,6 @@
 package org.sireum.jawa.util
 
 import scala.util._
-import org.sireum.jawa.MessageCenter._
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,9 +14,9 @@ object TaskRunner {
     }
     f.onComplete {
       case Success(sth) =>
-        msg_critical(TITLE, sth.toString())
+        println(TITLE, sth.toString())
       case Failure(ex) =>
-        err_msg_critical(TITLE, ex.getMessage)
+        System.err.println(TITLE, ex.getMessage)
     }
     try{
       val d = timeoutOpt match {

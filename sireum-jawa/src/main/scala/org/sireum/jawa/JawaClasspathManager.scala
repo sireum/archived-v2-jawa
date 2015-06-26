@@ -5,19 +5,11 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.sjc.interactive
+package org.sireum.jawa
 
 import org.sireum.util._
-import java.io.InputStream
-import org.sireum.jawa.sjc.Signature
-import org.sireum.jawa.sjc.ResolveLevel
-import org.sireum.jawa.sjc.util.MyFileUtil
-import org.sireum.jawa.sjc.util.LibraryAPISummary
-import org.sireum.jawa.sjc.ObjectType
-import org.sireum.jawa.sjc.JavaKnowledge
-import org.sireum.jawa.sjc.io.AbstractFile
-import org.sireum.jawa.sjc.io.Directory
-import org.sireum.jawa.sjc.io.PlainDirectory
+import org.sireum.jawa.io.PlainDirectory
+import org.sireum.jawa.io.AbstractFile
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -135,12 +127,12 @@ trait JawaClasspathManager extends JavaKnowledge {
   }
 	
 	/**
-	 * set app record code
+	 * set app class code
 	 */
 	def addApplicationClassFile(typ: ObjectType, file: AbstractFile) = this.applicationClassFiles(typ) = file
 	
 	/**
-	 * set record code
+	 * set class code
 	 */
 	def setClassFile(typ: ObjectType, file: AbstractFile, determiner: Either[ClassCategory.Value, LibraryAPISummary]) = {
     determiner match{
@@ -151,7 +143,7 @@ trait JawaClasspathManager extends JavaKnowledge {
           case ClassCategory.THIRD_PARTY_LIBRARY => addThirdPartyLibraryClassFile(typ, file)
         }
       case Right(summary) =>
-        summary.isLibraryAPI(typ) match{
+        summary.isLibraryAPI(typ.name) match{
 		      case true => addThirdPartyLibraryClassFile(typ, file)
 		      case false => addApplicationClassFile(typ, file)
 		    }

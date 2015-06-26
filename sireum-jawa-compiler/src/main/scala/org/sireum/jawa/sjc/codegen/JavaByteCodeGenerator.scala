@@ -2,7 +2,7 @@ package org.sireum.jawa.sjc.codegen
 
 import org.sireum.jawa.AccessFlag
 import org.sireum.util._
-import org.sireum.jawa.sjc.JavaKnowledge
+import org.sireum.jawa.JavaKnowledge
 import org.sireum.jawa.sjc.parser.{CompilationUnit => JawaCompilationUnit}
 import org.sireum.jawa.sjc.parser.{ClassOrInterfaceDeclaration => ClassOrInterfaceDeclaration}
 import org.sireum.jawa.sjc.parser.{Declaration => JawaDeclaration}
@@ -11,7 +11,7 @@ import org.sireum.jawa.sjc.parser.{Location => JawaLocation}
 import org.sireum.jawa.sjc.parser.MethodDeclaration
 import org.sireum.jawa.sjc.parser.ResolvedBody
 import org.sireum.jawa.sjc.parser.UnresolvedBody
-import org.sireum.jawa.sjc.JawaType
+import org.sireum.jawa.sjc.Type
 import org.objectweb.asm.Label
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -19,8 +19,8 @@ import org.objectweb.asm.MethodVisitor
 import org.sireum.jawa.sjc.parser.CallStatement
 import org.sireum.jawa.sjc.parser.JawaSymbol
 import org.sireum.jawa.sjc.parser.VarSymbol
-import org.sireum.jawa.sjc.ObjectType
-import org.sireum.jawa.sjc.PrimitiveType
+import org.sireum.jawa.sjc.ctType
+import org.sireum.jawa.sjc.itiveType
 import org.sireum.jawa.sjc.parser.AssignmentStatement
 import org.sireum.jawa.sjc.parser.Expression
 import org.sireum.jawa.sjc.parser.NameExpression

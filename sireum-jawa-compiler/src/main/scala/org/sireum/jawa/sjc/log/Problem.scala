@@ -1,6 +1,6 @@
 package org.sireum.jawa.sjc.log
 
-import org.sireum.jawa.sjc.util.Position
+import org.sireum.jawa.io.Position
 
 trait Problem
 {

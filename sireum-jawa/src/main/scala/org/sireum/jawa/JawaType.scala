@@ -5,7 +5,7 @@ are made available under the terms of the Eclipse Public License v1.0
 which accompanies this distribution, and is available at              
 http://www.eclipse.org/legal/epl-v10.html                             
 */
-package org.sireum.jawa.sjc
+package org.sireum.jawa
 
 import org.sireum.util._
 
@@ -27,6 +27,7 @@ trait JawaType extends JavaKnowledge {
   def simpleName: String
   def canonicalName: String
   def dimensions: Int
+  def isArray: Boolean
 }
 
 final case class PrimitiveType(val typ: String) extends JawaType {
@@ -36,6 +37,7 @@ final case class PrimitiveType(val typ: String) extends JawaType {
   def jawaName: String = name
   def canonicalName: String = name
   def dimensions: Int = 0
+  def isArray: Boolean = false
 }
 
 /**
@@ -99,6 +101,7 @@ final case class NullType() extends JawaType {
   def canonicalName: String = name
   def jawaName: String = name
   def dimensions: Int = 0
+  def isArray: Boolean = false
   override def toString: String = {
     val sb = new StringBuilder
     sb.append(typ)

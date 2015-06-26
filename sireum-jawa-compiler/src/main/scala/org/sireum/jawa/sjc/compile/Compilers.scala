@@ -2,8 +2,8 @@ package org.sireum.jawa.sjc.compile
 
 import org.sireum.util._
 import java.io.File
-import org.sireum.jawa.sjc.Reporter
-import org.sireum.jawa.sjc.log.Logger
+import org.sireum.jawa.Reporter
+import org.sireum.jawa.log.Logger
 
 /**
  * @author fgwei

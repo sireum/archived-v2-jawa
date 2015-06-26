@@ -15,7 +15,7 @@ import java.io.BufferedReader
 import java.io.StringReader
 import org.sireum.jawa.sjc.io.AbstractFile
 import org.sireum.jawa.sjc.util.FgSourceFile
-import org.sireum.jawa.sjc.DefaultReporter
+import org.sireum.jawa.DefaultReporter
 import org.sireum.util._
 import org.sireum.jawa.sjc.util.SourceFile
 

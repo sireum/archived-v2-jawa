@@ -1,21 +1,21 @@
 package org.sireum.jawa.sjc.refactoring
 
 import org.sireum.jawa.alir.JawaAlirInfoProvider
-import org.sireum.jawa.sjc.DefaultReporter
+import org.sireum.jawa.DefaultReporter
 import org.sireum.jawa.Center
 import org.sireum.jawa.alir.TransformIntraMethodResult
 import org.sireum.util._
 import org.sireum.alir.AlirLocationNode
 import org.sireum.jawa.sjc.parser._
-import org.sireum.jawa.sjc.JawaType
+import org.sireum.jawa.JawaType
 import org.sireum.jawa.sjc.util.Position
 import org.sireum.alir.AlirVirtualNode
-import org.sireum.jawa.sjc.ObjectType
-import org.sireum.jawa.sjc.JavaKnowledge
-import org.sireum.jawa.sjc.PrimitiveType
+import org.sireum.jawa.ObjectType
+import org.sireum.jawa.JavaKnowledge
+import org.sireum.jawa.sjc.itiveType
 import org.sireum.jawa.sjc.alir.ControlFlowGraph
 import org.sireum.alir.AlirIntraProceduralGraph
-import org.sireum.jawa.sjc.PrimitiveType
+import org.sireum.jawa.sjc.itiveType
 
 /**
  * @author fgwei

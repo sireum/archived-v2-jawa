@@ -21,7 +21,7 @@ import org.sireum.jawa.sjc.util.SourceFile
 import org.sireum.jawa.sjc.util.NoSourceFile
 import org.sireum.jawa.sjc.util.Position
 import org.sireum.jawa.sjc.util.NoFile
-import org.sireum.jawa.sjc.Reporter
+import org.sireum.jawa.Reporter
 
 class JawaLexer(aplexer: Antlr4PilarLexer, file: SourceFile, reporter: Reporter) extends Iterator[Token] {
   val sourceFile: SourceFile = file

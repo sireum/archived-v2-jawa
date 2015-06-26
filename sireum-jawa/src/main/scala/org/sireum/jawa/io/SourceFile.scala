@@ -1,17 +1,11 @@
-package org.sireum.jawa.sjc.util
+package org.sireum.jawa.io
 
-import org.sireum.jawa.sjc.io.AbstractFile
 import scala.annotation.tailrec
-import org.sireum.jawa.sjc.io.VirtualFile
 import scala.collection.mutable.ArrayBuffer
-import org.sireum.jawa.sjc.lexer.Chars._
 import org.sireum.util._
-import org.sireum.jawa.sjc.ObjectType
-import org.sireum.jawa.sjc.lexer.JawaLexer
-import org.sireum.jawa.sjc.parser.JawaParser
-import org.sireum.jawa.sjc.parser.CompilationUnit
-import org.sireum.jawa.sjc.Signature
-import org.sireum.jawa.sjc.Reporter
+import org.sireum.jawa.ObjectType
+import org.sireum.jawa.Reporter
+import org.sireum.jawa.Chars._
 
 /** abstract base class of a source file used in the compiler */
 abstract class SourceFile {
@@ -26,7 +20,6 @@ abstract class SourceFile {
     Position.offset(this, offset)
   }
   def code: String = new String(content)
-  def getClassTypes(reporter: Reporter): ISet[ObjectType]
   def offsetToLine(offset: Int): Int
   def lineToOffset(index : Int): Int
 
@@ -48,7 +41,6 @@ abstract class SourceFile {
   final def skipWhitespace(offset: Int): Int =
     if (content(offset).isWhitespace) skipWhitespace(offset + 1) else offset
 
-  def identifier(pos: Position): Option[String] = None
 }
 
 /** An object representing a missing source file.
@@ -56,7 +48,6 @@ abstract class SourceFile {
 object NoSourceFile extends SourceFile {
   def content                   = Array()
   def file                      = NoFile
-  def getClassTypes(reporter: Reporter): ISet[ObjectType] = isetEmpty
   def isLineBreak(idx: Int)     = false
   def isEndOfLine(idx: Int)     = false
   def isSelfContained           = true
@@ -87,13 +78,6 @@ class FgSourceFile(val file : AbstractFile, content0: Array[Char]) extends Sourc
   def start = 0
   def isSelfContained = true
 
-  override def identifier(pos: Position) =
-    if (pos.isDefined && pos.source == this && pos.point != -1) {
-      def isOK(c: Char) = isIdentifierPart(c, true) || isOperatorPart(c)
-      Some(new String(content drop pos.point takeWhile isOK))
-    } else {
-      super.identifier(pos)
-    }
 
   private def charAtIsEOL(idx: Int)(p: Char => Boolean) = {
     // don't identify the CR in CR LF as a line break, since LF will do.
@@ -141,14 +125,6 @@ class FgSourceFile(val file : AbstractFile, content0: Array[Char]) extends Sourc
     )
     lastLine = findLine(0, lines.length, lastLine)
     lastLine
-  }
-  
-  def getClassTypes(reporter: Reporter): ISet[ObjectType] = {
-    val cuOpt = JawaParser.parse[CompilationUnit](Right(this), false, reporter)
-    cuOpt match {
-      case Some(cu) => cu.topDecls.map(_.typ).toSet
-      case None => isetEmpty
-    }
   }
 
   override def equals(that : Any) = that match {

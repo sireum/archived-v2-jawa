@@ -1,8 +1,6 @@
-package org.sireum.jawa.sjc
+package org.sireum.jawa
 
 import org.sireum.util._
-import org.sireum.jawa.sjc.interactive.JawaMethod
-import org.sireum.jawa.sjc.interactive.JawaClass
 
 trait JavaKnowledge {
   def JAVA_TOPLEVEL_OBJECT: String = "java.lang.Object"
@@ -33,23 +31,6 @@ trait JavaKnowledge {
       case _ =>
         if(d <= 0) typ.typ
         else assign("L" + typ.typ + ";", d, "[", true)
-    }
-  }
-  
-  def formatTypeToTypeSignature(typ: JawaType): String = {
-    val d = typ match{case ot: ObjectType => ot.dimensions; case _ => 0}
-    typ.typ match{
-      case "byte" =>    assign("B", d, "[", true)
-      case "char" =>    assign("C", d, "[", true)
-      case "double" =>  assign("D", d, "[", true)
-      case "float" =>   assign("F", d, "[", true)
-      case "int" =>     assign("I", d, "[", true)
-      case "long" =>    assign("J", d, "[", true)
-      case "short" =>   assign("S", d, "[", true)
-      case "boolean" => assign("Z", d, "[", true)
-      case "void" =>    "V"
-      case _ =>
-        assign("L" + typ.typ + ";", d, "[", true)
     }
   }
   
@@ -119,7 +100,7 @@ trait JavaKnowledge {
       case "Z" =>   getType("boolean", d)
       case "V" =>   getType("void", d)
       case _ =>
-        getType(tmp.substring(1, tmp.length() - 1).replaceAll("\\/", ".").replaceAll("<\\*>", ""), d)
+        getType(tmp.substring(1, tmp.length() - 1).replaceAll("\\/", "."), d)
     }
   }
   
@@ -151,6 +132,10 @@ trait JavaKnowledge {
     sb.toString().intern()
   }
   
+  def genSignature(classSigPart: String, methodNamePart: String, paramSigPart: String): Signature = {
+    Signature((classSigPart + "." + methodNamePart + ":" + paramSigPart).trim)
+  }
+  
   /********************** JawaField related op **************************/
   
   /**
@@ -173,7 +158,7 @@ trait JavaKnowledge {
   def isValidFieldFQN(fqn: String): Boolean = fqn.lastIndexOf('.') > 0
   
   /**
-   * FQN of the field. e.g. java.lang.Throwable.stackState or @@java:lang:Enum.sharedConstantsCache
+   * FQN of the field. e.g. java.lang.Throwable.stackState or @@java.lang.Enum.sharedConstantsCache
    */
   def isValidFieldName(name: String): Boolean = !name.contains('.')
   
@@ -226,8 +211,10 @@ trait JavaKnowledge {
     val pts = method.getParamTypes
     sb.append(method.getName + ":(")
     for(i <- 0 to pts.size - 1){
-      val pt = pts(i) 
-      sb.append(method.formatTypeToSignature(pt))
+      if(i != 0){
+        val pt = pts(i) 
+        sb.append(method.formatTypeToSignature(pt))
+      }
     }
     sb.append(")")
     sb.append(method.formatTypeToSignature(rt))
@@ -249,26 +236,6 @@ trait JavaKnowledge {
     val method = JawaMethod(declaringClass, name, thisOpt, params, returnType, accessFlags)
     method.setUnknown
     method
-  }
-  
-  /**
-   * e.g. java.lang.Throwable.run
-   */
-  def isValidMethodFullName(mfn: String): Boolean = mfn.lastIndexOf('.') > 0
-  
-  def getClassNameFromMethodFullName(mfn: String): String = {
-    if(!isValidMethodFullName(mfn)) throw new RuntimeException("given method full name is not a valid form: " + mfn)
-    else mfn.substring(mfn.lastIndexOf('.') + 1)
-  }
-  
-  def getClassTypeFromMethodFullName(mfn: String): ObjectType = {
-    val cn = getClassNameFromMethodFullName(mfn)
-    getTypeFromName(cn).asInstanceOf[ObjectType]
-  }
-  
-  def getMethodNameFromMethodFullName(mfn: String): String = {
-    if(!isValidMethodFullName(mfn)) throw new RuntimeException("given method full name is not a valid form: " + mfn)
-    else mfn.substring(mfn.lastIndexOf('.') + 1)
   }
   /********************** JawaMethod related op end **************************/
   

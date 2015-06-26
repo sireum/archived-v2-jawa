@@ -1,4 +1,4 @@
-package org.sireum.jawa.sjc.io
+package org.sireum.jawa.io
 
 import java.net.{ URI, URL }
 import java.io.{ BufferedInputStream, InputStream, PrintStream }

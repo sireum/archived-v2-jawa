@@ -10,20 +10,14 @@ package org.sireum.jawa.sjc.interactive
 import org.sireum.util._
 import scala.collection.GenMap
 import scala.collection.Parallel
-import org.sireum.jawa.sjc.ResolveLevel
-import org.sireum.jawa.sjc.Signature
-import org.sireum.jawa.sjc.JavaKnowledge
-import org.sireum.jawa.sjc.ObjectType
-import org.sireum.jawa.sjc.PrimitiveType
-import org.sireum.jawa.sjc.AccessFlag
+import org.sireum.jawa.ResolveLevel
+import org.sireum.jawa.AccessFlag
 import org.sireum.jawa.sjc.parser.ClassOrInterfaceDeclaration
 import scala.collection.GenIterable
 import org.sireum.jawa.sjc.parser._
-import org.sireum.jawa.sjc.JawaType
 import org.sireum.jawa.sjc.lexer.Token
-import org.sireum.jawa.sjc.io.AbstractFile
-import org.sireum.jawa.sjc.util.NoPosition
-import org.sireum.jawa.sjc.util.SourceFile
+import org.sireum.jawa.JavaKnowledge
+import org.sireum.jawa.io.SourceFile
 
 /**
  * this object collects info from the symbol table and builds Global, JawaClass, and JawaMethod
@@ -57,40 +51,6 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
     if(reporter.hasErrors) reporter.error(NoPosition, "Fail to resolve method body for " + md.signature)
     md
   }
-    
-  /**
-   * resolve the given classes to desired level. 
-   */
-//  def tryResolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): Option[JawaClass] = {
-//    if(containsClassFile(typ)){
-//	    val r = desiredLevel match{
-//	      case ResolveLevel.BODY => resolveToBody(typ)
-//	      case ResolveLevel.HIERARCHY => resolveToHierarchy(typ)
-//	    }
-//	    Some(r)
-//    } else {
-//      None
-//    }
-//  }
-    
-  /**
-   * resolve the given classes to desired level. 
-   */
-//  def resolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): JawaClass = {
-//    if(!typ.isArray && !containsClassFile(typ)){
-//      if(!containsClass(typ) || getClass(typ).get.getResolvingLevel < desiredLevel){
-//	      val rec = JawaClass(this, typ, 0)
-//	      rec.setUnknown
-//	      rec.setResolvingLevel(desiredLevel)
-//	      rec
-//      } else getClass(typ).get
-//    } else {
-//	    desiredLevel match{
-//	      case ResolveLevel.BODY => resolveToBody(typ)
-//	      case ResolveLevel.HIERARCHY => resolveToHierarchy(typ)
-//	    }
-//    }
-//  }
   
   /**
    * resolve the given classes to desired level. 
@@ -106,96 +66,6 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
     resolveClasses(cu.topDecls, desiredLevel, true)
     tpes map{tpe => getClass(tpe).get}
   }
-  
-  /**
-   * resolve the given classes to desired level. 
-   */
-//  def forceResolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): JawaClass = {
-//    desiredLevel match{
-//      case ResolveLevel.BODY => forceResolveToBody(typ)
-//      case ResolveLevel.HIERARCHY => forceResolveToHierarchy(typ)
-//    }
-//  }
-  
-  /**
-   * resolve the given class to hierarchy level
-   */
-//  def resolveToHierarchy(typ: ObjectType): JawaClass = {
-//    if(!containsClass(typ) || getClass(typ).get.getResolvingLevel < ResolveLevel.HIERARCHY) forceResolveToHierarchy(typ)
-//    getClass(typ).get
-//  }
-  
-  /**
-   * force resolve the given class to hierarchy level
-   */
-//  private def forceResolveToHierarchy(typ: ObjectType): JawaClass = {
-//    if(typ.isArray){
-//      resolveArrayClass(typ)
-//    } else {
-//	    val file = getClassFile(typ)
-//	    val cu = parseCode[CompilationUnit](source.file, resolveBody).get
-//	    removeClass(typ)
-//	    resolveFromST(st, ResolveLevel.HIERARCHY, true)
-//    }
-//    getClass(typ).get
-//  }
-  
-  /**
-   * resolve the given class to body level
-   */
-//  def resolveToBody(typ: ObjectType): JawaClass = {
-//    if(!containsClass(typ)) forceResolveToBody(typ)
-//    else if(getClass(typ).get.getResolvingLevel < ResolveLevel.BODY) escalateResolvingLevel(getClass(typ).get, ResolveLevel.BODY)
-//    else getClass(typ).get
-//  }
-  
-  /**
-   * escalate resolving level
-   */
-//  private def escalateResolvingLevel(rec: JawaClass, desiredLevel: ResolveLevel.Value): JawaClass = {
-//    require(rec.getResolvingLevel < desiredLevel)
-//    if(desiredLevel == ResolveLevel.BODY){
-////      rec.getMethods.foreach(_.tryResolveBody)
-//      rec.setResolvingLevel(ResolveLevel.BODY)
-//    }
-//    rec
-//  }
-  
-  /**
-   * force resolve the given class to body level
-   */
-//  private def forceResolveToBody(typ: ObjectType): JawaClass = {
-//    if(typ.isArray){
-//      resolveArrayClass(typ)
-//    } else {
-//	    val file = getClassFile(typ)
-//	    removeClass(typ)
-//	    resolveFromST(st, ResolveLevel.BODY, true)
-//    }
-//    getClass(typ).get
-//  }
-  
-  /**
-   * resolve array class
-   */
-//  private def resolveArrayClass(typ: ObjectType): Unit = {
-//    val classAccessFlag =	
-//      if(isJavaPrimitive(typ.typ)){
-//      	"FINAL_PUBLIC"
-//	    } else {
-//	      val base = resolveClass(new ObjectType(typ.typ), ResolveLevel.HIERARCHY)
-//	      val baseaf = base.getAccessFlagsStr
-//	      if(baseaf.contains("FINAL")) baseaf else "FINAL_" + baseaf
-//	    }
-//    val clazz: JawaClass = JawaClass(this, typ, AccessFlag.getAccessFlags(classAccessFlag))
-//    addNeedToResolveExtend(clazz, JAVA_TOPLEVEL_OBJECT_TYPE)
-//    if(isInnerClass(typ)) addNeedToResolveOuterClass(clazz, getOuterTypeFrom(typ))
-//    clazz.setResolvingLevel(ResolveLevel.BODY)
-//    addClass(clazz)
-//    clazz.addField(createClassField(clazz))
-//    val field: JawaField = JawaField(clazz, "length", PrimitiveType("int"), AccessFlag.getAccessFlags("FINAL"))
-//	  resolveClassesRelationWholeProgram
-//  }
 	
 	/**
 	 * collect class info from symbol table

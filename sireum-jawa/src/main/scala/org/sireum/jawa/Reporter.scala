@@ -1,10 +1,9 @@
-package org.sireum.jawa.sjc
+package org.sireum.jawa
 
-import util.Position
-import org.sireum.jawa.sjc.util.NoPosition
 import org.sireum.util._
-import org.sireum.jawa.sjc.io.AbstractFile
-import org.sireum.jawa.sjc.interactive.Problem
+import org.sireum.jawa.io.Position
+import org.sireum.jawa.io.NoPosition
+import org.sireum.jawa.io.AbstractFile
 
 /** Report information, warnings and errors.
  *
@@ -68,6 +67,8 @@ trait ReporterImpl extends Reporter {
   def count(severity: Severity): Int       = severity.count
   def resetCount(severity: Severity): Unit = severity.count = 0
 }
+
+case class Problem(pos: Position, msg: String, sev: Int)
 
 class DefaultReporter extends ReporterImpl {
   val problems = mmapEmpty[AbstractFile, MSet[Problem]]

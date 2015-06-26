@@ -2,7 +2,7 @@ package org.sireum.jawa.sjc.interactive
 
 import org.sireum.jawa.sjc.util.WorkScheduler
 import org.sireum.jawa.sjc.util.SourceFile
-import org.sireum.jawa.sjc.ResolveLevel
+import org.sireum.jawa.ResolveLevel
 import org.sireum.jawa.sjc.util.Position
 import org.sireum.jawa.sjc.parser.JawaAstNode
 import org.sireum.jawa.sjc.util.ControlThrowable

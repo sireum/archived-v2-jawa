@@ -1,7 +1,7 @@
 package org.sireum.jawa.sjc.log
 
-import org.sireum.jawa.sjc.util.Position
-import java.io.File
+import org.sireum.jawa.io.Position
+
 
 abstract class AbstractLogger extends Logger
 {
@@ -35,7 +35,7 @@ abstract class AbstractLogger extends Logger
 
 object Logger
 {
-  private[sjc] val Null: AbstractLogger = new AbstractLogger {
+  private[jawa] val Null: AbstractLogger = new AbstractLogger {
     def getLevel: Level.Value = Level.Error
     def setLevel(newLevel: Level.Value) {}
     def getTrace = 0
@@ -88,5 +88,5 @@ object Level extends Enumeration
   /** Returns the level with the given name wrapped in Some, or None if no level exists for that name. */
   def apply(s: String) = values.find(s == _.toString)
   /** Same as apply, defined for use in pattern matching. */
-  private[sjc] def unapply(s: String) = apply(s)
+  private[jawa] def unapply(s: String) = apply(s)
 }

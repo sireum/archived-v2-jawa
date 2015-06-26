@@ -1,13 +1,8 @@
-package org.sireum.jawa.sjc.interactive
+package org.sireum.jawa
 
 import org.sireum.util._
-import org.sireum.jawa.sjc.ResolveLevel
-import org.sireum.jawa.sjc.JavaKnowledge
-import org.sireum.jawa.sjc.ObjectType
-import org.sireum.jawa.sjc.io.AbstractFile
-import org.sireum.jawa.sjc.util.NoPosition
-import org.sireum.jawa.sjc.Signature
-import org.sireum.jawa.sjc.util.SourceFile
+import org.sireum.jawa.io.NoPosition
+import org.sireum.jawa.io.SourceFile
 
 trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Global =>
   

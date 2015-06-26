@@ -7,96 +7,154 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa
 
-import org.sireum.jawa.util._
-import org.sireum.jawa.MessageCenter._
 import org.sireum.util._
 
 /**
  * This class is an jawa representation of a pilar method. It can belong to JawaClass.
  * You can also construct it manually. 
  * 
+ * @constructor create a jawa method
+ * @param declaringClass The declaring class of this method
+ * @param name name of the method. e.g. stackState
+ * @param thisOpt this param of the method, if the method is static or native it is None
+ * @param params List of param name with its type of the method
+ * @param returnTyp return type of the method
+ * @param accessFlags access flags of this field
+ * @param thrownExceptions exceptions throwing by this method
  * 
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */
-class JawaMethod extends ResolveLevel with PropertyProvider {
-
+case class JawaMethod(declaringClass: JawaClass, 
+                      name: String,
+                      thisOpt: Option[String],
+                      params: ISeq[(String, JawaType)], 
+                      returnType: JawaType, 
+                      accessFlags: Int) extends JawaElement with JavaKnowledge with ResolveLevel {
+  
+  import JawaMethod._
+  
   final val TITLE = "JawaMethod"
-	var DEBUG : Boolean = false
+	var DEBUG: Boolean = false
 	
+  require(this.declaringClass != null &&
+          this.name != null &&
+          this.thisOpt != null &&
+          this.params != null &&
+          this.returnType != null &&
+          this.accessFlags >= 0) // NON-NIL
+  
+  require(!this.name.isEmpty())
+  require(!(isStatic || isNative) && this.thisOpt.isDefined, getName + " " + getResolvingLevel + " not has this.")
+  
+  private val signature: Signature = generateSignature(this)
+  
+  def getDeclaringClass: JawaClass = this.declaringClass
+  
+  getDeclaringClass.addMethod(this)
+  
 	/**
-	 * short name of the method. e.g. equals
+	 * name of the method. e.g. equals
 	 */
-	
-	protected var shortName : String = null
-	
-	/**
-	 * full name of the method. e.g. java.lang.Object.equals
-	 */
-	
-	protected var name : String = null
-	
+	def getName: String = name
+  
+  /**
+   * display this method. e.g. isInteresting(IClassFile)
+   */
+  def getDisplay: String = {
+    val sb = new StringBuilder
+    sb.append(getName)
+    sb.append("(")
+    var i = 0
+    getParamTypes foreach {
+      tpe =>
+        if(i == 0){
+          sb.append(tpe.simpleName)
+        } else {sb.append(", " + tpe.simpleName)}
+        i += 1
+    }
+    sb.append(") : ")
+    sb.append(getReturnType.simpleName)
+    sb.toString().intern()
+  }
+  
+  def getFullName: String = getDeclaringClass.getType.name + "." + getName
+  
 	/**
 	 * signature of the method. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
 	 */
-	
-	protected var signature : String = null
+	def getSignature: Signature = this.signature
 	
 	/**
 	 * sub-signature of the method. e.g. equals:(Ljava/lang/Object;)Z
 	 */
+	def getSubSignature: String = {
+    getSignature.getSubSignature
+  }
 	
-	protected var subSignature : String = null
-	
+  def getThisName: String = {
+    require(!isStatic && !isNative)
+    this.thisOpt.get
+  }
+  
+  def getThisType: JawaType = {
+    require(!isStatic && !isNative)
+    getDeclaringClass.getType
+  }
+  
+  /**
+   * list of parameters. e.g. List((v1, java.lang.Object), (v2, java.lang.String))
+   */
+  def getParams: ISeq[(String, JawaType)] = this.params
+  
 	/**
 	 * list of parameter types. e.g. List(java.lang.Object, java.lang.String)
 	 */
-	
-	protected var paramTyps : List[Type] = List()
+	def getParamTypes: ISeq[JawaType] = getParams.map(_._2)
 	
 	/**
 	 * list of parameter names
 	 */
+	def getParamNames: ISeq[String] = getParams.map(_._1)
 	
-	protected var paramNames : List[String] = List()
-	
+  /**
+   * get i'th parameter of this method
+   */
+  def getParam(i: Int): (String, JawaType) = getParams(i)
+  
+  /**
+   * get i'th parameter's type of this method
+   */
+  def getParamType(i: Int): JawaType = getParamTypes(i)
+  
+  /**
+   * get i'th parameter's name of this method
+   */
+  def getParamName(i: Int): String = getParamNames(i)
+  
 	/**
 	 * return type. e.g. boolean
 	 */
 	
-	protected var returnTyp : Type = null
-	
-	/**
-	 * declaring class of this method
-	 */
-	
-	protected var declaringClass : JawaClass = null
-	
-	/**
-   * the access flags integer represent for this method
-   */
-  
-  protected var accessFlags : Int = 0
+	def getReturnType: JawaType = this.returnType
   
   /**
    * exceptions thrown by this method
    */
-  
-  protected var exceptions : Set[JawaClass] = Set()
+  private[jawa] val thrownExceptions: MSet[JawaClass] = msetEmpty
   
   /**
    * Data structure to store all information about a catch clause
    * LocUri should always looks like "L?[0-9a-f]+"
    */
-  
-  case class ExceptionHandler(exception : JawaClass, fromTarget : String, toTarget : String, jumpTo : String){
-	  def handleException(exc : JawaClass, locUri : String) : Boolean = {
+  case class ExceptionHandler(exception: JawaClass, fromTarget: String, toTarget: String, jumpTo: String){
+	  def handleException(exc: JawaClass, locUri: String): Boolean = {
 	    (exception == exc || exception.isChildOf(exc)) && withInScope(locUri)
 	  }
-	  def withInScope(locUri : String) : Boolean = {
+	  def withInScope(locUri: String): Boolean = {
 	    getLocation(fromTarget) <= getLocation(locUri) && getLocation(locUri) <= getLocation(toTarget)
 	  }
-	  def getLocation(locUri : String) : Int = {
+	  def getLocation(locUri: String): Int = {
 	    val loc = locUri.substring(locUri.lastIndexOf("L") + 1)
     	Integer.getInteger(loc, 16)
 	  }
@@ -105,530 +163,191 @@ class JawaMethod extends ResolveLevel with PropertyProvider {
   /**
    * exception handlers
    */
-  
-  protected var exceptionHandlers : IList[ExceptionHandler] = ilistEmpty
-  
-  /**
-   * represents if the method is unknown.
-   */
-  
-  protected var unknown : Boolean = false
-  
-  /**
-   * hold the body symbol table of this method
-   */
-  
-  protected var procBody : MethodBody = null
-  
-  /**
-   * supply property
-   */
-  val propertyMap = mlinkedMapEmpty[Property.Key, Any]
-  
-  /**
-	 * is it declared in some JawaClass?
-	 */
-	
-	def isDeclared : Boolean = declaringClass != null
-  
-  /**
-   * return hash code to provide structural equality
-   */
-  
-  def strEquHashCode : Int = this.returnTyp.hashCode() * 101 + this.accessFlags * 17 + this.name.hashCode()
-  
-  /**
-   * when you construct an amandroid method instance, call this init function first
-   */
-  
-  def init(name : String, sig : String, paramTyps : List[Type], returnTyp : Type, accessFlags : Int, thrownExceptions : List[JawaClass]): JawaMethod = {
-	  setName(name)
-	  setSignature(sig)
-	  this.paramTyps ++= paramTyps
-	  this.returnTyp = returnTyp
-	  this.accessFlags = accessFlags
-	  
-	  if(exceptions.isEmpty || !thrownExceptions.isEmpty){
-	    exceptions ++= thrownExceptions
-	  }
-	  this
-	}
-  
-  /**
-   * when you construct a amandroid method instance, call this init function first
-   */
-  
-  def init(name : String, sig : String, paramTyps : List[Type], returnTyp : Type, accessFlags : Int): JawaMethod = {
-	  init(name, sig, paramTyps, returnTyp, accessFlags, List())
-	}
-  
-  /**
-   * when you construct a amandroid method instance, call this init function first
-   */
-  
-  def init(name : String, sig : String, paramTyps : List[Type], returnTyp : Type): JawaMethod = {
-	  init(name, sig, paramTyps, returnTyp, 0, List())
-	}
-  
-  /**
-   * when you construct a amandroid method instance, call this init function first
-   */
-  
-  def init(sig : String): JawaMethod = {
-    val name = StringFormConverter.getMethodNameFromMethodSignature(sig)
-    val recName = StringFormConverter.getClassNameFromMethodSignature(sig)
-    val sigP = new SignatureParser(sig).getParamSig
-    val paramTyps = sigP.getParameterTypes
-    val returnTyp = sigP.getReturnType
-	  init(name, sig, paramTyps, returnTyp, 0, List())
-	}
-  
-  /**
-   * when you construct a amandroid method instance, call this init function first
-   */
-  
-  def init(name : String, sig : String): JawaMethod = {
-    val sigP = new SignatureParser(sig).getParamSig
-    val recName = StringFormConverter.getClassNameFromMethodSignature(sig)
-    val paramTyps = sigP.getParameterTypes
-    val returnTyp = sigP.getReturnType
-	  init(name, sig, paramTyps, returnTyp, 0, List())
-	}
-  
-  /**
-   * get short name of this method
-   */
-  
-  def getShortName : String = this.shortName
-  
-  def getShortName(name : String) : String = {
-    if(isFullName(name)) name.substring(name.lastIndexOf('.') + 1)
-    else throw new RuntimeException("method name not correct: " + name)
-  }
-
-  def isFullName(name : String) : Boolean = name.lastIndexOf('.') > 0
-  
-  /**
-   * get name of this method
-   */
-  
-  def getName : String = this.name
-  
-  /**
-	 * set declaring class of this field
-	 */
-  
-  def setDeclaringClass(declClass : JawaClass) = if(declClass != null) this.declaringClass = declClass
-	
-  /**
-	 * clear declaring class of this field
-	 */
-  
-  def clearDeclaringClass = this.declaringClass = null
-  
-  /**
-   * return the class which declares the current method
-   */
-  
-  def getDeclaringClass = {
-    if(!isDeclared) throw new RuntimeException("no declaring class: " + getName)
-    declaringClass
-  }
-  
-  /**
-   * set the name of this method
-   */
-  
-  def setName(name : String) = {
-    val wasDeclared = isDeclared
-    val oldDeclaringClass = declaringClass
-    if(wasDeclared) oldDeclaringClass.removeMethod(this)
-    this.name = name
-    this.shortName = getShortName(name)
-    if(wasDeclared) oldDeclaringClass.addMethod(this)
-  }
-  
-  /**
-   * set signature of this method
-   */
-  
-  def setSignature(sig : String) = {
-    if(checkSignature(sig)){
-	    this.signature = sig
-	    this.subSignature = getSubSignature
-    } else throw new RuntimeException("not a full-qualified signature: " + sig)
-  }
-  
-  protected def checkSignature(sig : String) = sig.lastIndexOf('.') > 0
-  
-  /**
-   * get signature of this method
-   */
-  
-  def getSignature : String = this.signature
-  
-  /**
-   * get sub-signature of this method
-   */
-  
-  def getSubSignature : String = {
-    if(this.signature != null) {
-      this.signature.substring(this.signature.lastIndexOf('.') + 1, this.signature.length())
-    } else {
-      generateSubSignature
-    }
-  }
-  
-  /**
-   * generate signature of this method
-   */
-  
-  def generateSignature : String = {
-    val sb : StringBuffer = new StringBuffer
-    if(this.declaringClass != null){
-	    val dc = this.declaringClass
-	    sb.append(StringFormConverter.formatTypeToSigForm(dc.getName.replace("*", "")))
-	    sb.append("." + generateSubSignature)
-	    sb.toString().intern()
-    } else throw new RuntimeException("not declared: " + this.name)
-  }
-  
-  /**
-   * generate sub-signature of this method
-   */
-  
-  def generateSubSignature : String = {
-    val sb : StringBuffer = new StringBuffer
-    val rt = getReturnType
-    val pts = getParamTypes
-    sb.append(this.shortName + ":(")
-    for(i <- 0 to pts.size - 1){
-      if(i != 0){
-	      val pt = pts(i) 
-	      sb.append(StringFormConverter.formatTypeToSigForm(pt.typ))
-      }
-    }
-    sb.append(StringFormConverter.formatTypeToSigForm(rt.typ))
-    sb.toString().intern()
-  }
-  
-  /**
-   * set return type of this method
-   */
-  
-  def setReturnType(typ : Type) = {
-    val wasDeclared = isDeclared
-    val oldDeclaringClass = declaringClass
-    if(wasDeclared) oldDeclaringClass.removeMethod(this)
-    this.returnTyp = typ
-    this.signature = generateSignature
-    this.subSignature = generateSubSignature
-    if(wasDeclared) oldDeclaringClass.addMethod(this)
-  }
-  
-  /**
-   * set parameter types of this method
-   */
-  
-  def setParameterTypes(typs : List[Type]) = {
-    val wasDeclared = isDeclared
-    val oldDeclaringClass = declaringClass
-    if(wasDeclared) oldDeclaringClass.removeMethod(this)
-    this.paramTyps = typs
-    this.signature = generateSignature
-    this.subSignature = generateSubSignature
-    if(wasDeclared) oldDeclaringClass.addMethod(this)
-  }
-  
-  /**
-   * get return type of this method
-   */
-  
-  def getReturnType = this.returnTyp
-  
-  /**
-   * get paramTypes of this method
-   */
-  
-  def getParamTypes = {
-    if(!isStatic){
-      StringFormConverter.getTypeFromName(getDeclaringClass.getName) :: this.paramTyps
-    } else this.paramTyps
-  }
-  
-  /**
-   * get i'th parameter's type of this method
-   */
-  
-  def getParamType(i : Int) = getParamTypes(i)
-  
-  /**
-   * set parameter names of this method
-   */
-  
-  def setParameterNames(names : List[String]) = {
-    this.paramNames = names
-  }
-  
-  /**
-   * get paramTypes of this method
-   */
-  
-  def getParamNames = this.paramNames
-  
-  /**
-   * get i'th parameter's type of this method
-   */
-  
-  def getParamName(i : Int) = this.paramNames(i)
-  
-  /**
-	 * return the access flags for this method
-	 */
-	
-	def getAccessFlags = accessFlags
-	
-	/**
-	 * get access flag string
-	 */
-	
-	def getAccessFlagString = AccessFlag.toString(getAccessFlags)
-	
-	/**
-	 * sets the access flags for this method
-	 */
-	
-	def setAccessFlags(af : Int) = this.accessFlags = af
-	
-	/**
-	 * sets the access flags for this method
-	 */
-	
-	def setAccessFlags(str : String) = this.accessFlags = AccessFlag.getAccessFlags(str)
-	
-	/**
-	 * set method body
-	 */
-	
-	def setMethodBody(pb : MethodBody) = this.procBody = pb
+  private[jawa] val exceptionHandlers: MList[ExceptionHandler] = mlistEmpty
 	
 	/**
 	 * retrieve code belong to this method
 	 */
-	
-	def retrieveCode = if(!isUnknown) JawaCodeSource.getMethodCode(getSignature) else throw new RuntimeException("Trying to retreive body code for a unknown method: " + this)
+//	def retrieveCode: String = getAST.toCode
 	
   /**
-   * resolve current method to body level
+   * Jawa AST node for this JawaMethod. Unless unknown, it should not be null.
    */
+//  private var methodDeclaration: MethodDeclaration = null //NON-NIL
+//  
+//  def setAST(md: MethodDeclaration) = this.methodDeclaration = md
+//  
+//  def getAST: MethodDeclaration = {
+//    if(isUnknown) throw new RuntimeException(getSignature + " is unknown method, so cannot get the AST")
+//    require(this.methodDeclaration != null)
+//    this.methodDeclaration
+//  }
+//  
+//  /**
+//   * resolve current method to body level
+//   */
+//  def resolveBody = {
+//    if(getDeclaringClass.getResolvingLevel >= ResolveLevel.BODY) throw new RuntimeException(getSignature +" is already resolved to " + this.resolvingLevel)
+//    if(isUnknown) throw new RuntimeException(getSignature + " is an unknown method so cannot be resolved to body.")
+//    val global = getDeclaringClass.global
+//    val md: MethodDeclaration = getAST
+//    val file: AbstractFile = md.firstToken.file.file
+//    val pb = getDeclaringClass.global.resolveMethodBody(md)
+//    setAST(pb)
+//    setResolvingLevel(ResolveLevel.BODY)
+//    getDeclaringClass.updateResolvingLevel
+//  }
   
-  def resolveBody = {
-    if(this.resolvingLevel >= Center.ResolveLevel.BODY) throw new RuntimeException(getSignature +" is already resolved to " + this.resolvingLevel)
-    if(isUnknown) throw new RuntimeException(getSignature + " is a unknown method so cannot be resolved to body.")
-    val pb = JawaResolver.resolveMethodBody(getSignature)
-    setMethodBody(pb)
-    setResolvingLevel(Center.ResolveLevel.BODY)
+  /**
+   * set resolving level
+   */
+  def setResolvingLevel(level: ResolveLevel.Value) = {
+    this.resolvingLevel = level
     getDeclaringClass.updateResolvingLevel
   }
-  
-  /**
-   * resolve current method to body level
-   */
-  
-  def tryResolveBody = {
-    if(isUnknown) throw new RuntimeException("Trying to get the body for a unknown method: " + this)
-    if(!checkLevel(Center.ResolveLevel.BODY)) resolveBody
-  }
-  
-	/**
-	 * get method body
-	 */
-	
-	def getMethodBody = {
-	  tryResolveBody
-	  this.procBody
-	}
-  
-  /**
-   * check method body available or not
-   */
-  
-  def hasMethodBody = this.procBody != null
-  
-  /**
-   * clear method body
-   */
-  
-  def clearMethodBody = this.procBody = null
+
   
   /**
    * Adds exception which can be thrown by this method
    */
-  
-  def addExceptionIfAbsent(exc : JawaClass) = {
-    if(!throwsException(exc)) addException(exc)
+  def addExceptionIfAbsent(exc: JawaClass) = {
+    if(!throwException(exc)) addException(exc)
   }
   
   /**
    * Adds exception thrown by this method
    */
-  
-  def addException(exc : JawaClass) = {
+  def addException(exc: JawaClass) = {
     if(DEBUG) println("Adding Exception: " + exc)
-    if(throwsException(exc)) throw new RuntimeException("already throwing exception: " + exc)
-    this.exceptions += exc
+    if(throwException(exc)) throw new RuntimeException("already throwing exception: " + exc)
+    this.thrownExceptions += exc
   }
   
   /**
    * set exception with details
    */
-  
-  def addExceptionHandler(excName : String, fromTarget : String, toTarget : String, jumpTo : String) = {
-    val recName = if(excName == "any") Center.DEFAULT_TOPLEVEL_OBJECT else excName
-    val exc = Center.resolveClass(recName, Center.ResolveLevel.HIERARCHY)
+  def addExceptionHandler(excName: String, fromTarget: String, toTarget: String, jumpTo: String) = {
+    val recType: ObjectType = getTypeFromName(excName).asInstanceOf[ObjectType]
+    val exc: JawaClass = getDeclaringClass.global.getClass(recType) match {
+      case Some(c) => c
+      case None =>
+        JawaClass(getDeclaringClass.global, recType, 0)
+    }
     val handler = ExceptionHandler(exc, fromTarget, toTarget, jumpTo)
     if(DEBUG) println("Adding Exception Handler: " + handler)
     if(this.exceptionHandlers.contains(handler)) throw new RuntimeException("already have exception handler: " + handler)
     addExceptionIfAbsent(exc)
-    this.exceptionHandlers ::= handler
+    this.exceptionHandlers += handler
   }
   
   /**
    * removes exception from this method
    */
-  
-  def removeException(exc : JawaClass) = {
+  def removeException(exc: JawaClass) = {
     if(DEBUG) println("Removing Exception: " + exc)
-    if(!throwsException(exc)) throw new RuntimeException("does not throw exception: " + exc)
-    this.exceptions -= exc
-    this.exceptionHandlers = this.exceptionHandlers.filter(_.exception != exc)
+    if(!throwException(exc)) throw new RuntimeException("does not throw exception: " + exc)
+    this.thrownExceptions -= exc
+    this.exceptionHandlers --= this.exceptionHandlers.filter(_.exception != exc)
   }
   
   /**
    * throws this exception or not?
    */
-  
-  def throwsException(exc : JawaClass) = this.exceptions.contains(exc)
+  def throwException(exc: JawaClass) = this.thrownExceptions.contains(exc)
   
   /**
    * get thrown exception target location
    */
-  
-  def getThrownExcetpionTarget(exc : JawaClass, locUri : String) : Option[String] = {
-    this.exceptionHandlers.foreach{
-      han =>
-        if(han.handleException(exc, locUri)) return Some(han.jumpTo)
-    }
-    err_msg_detail(TITLE, "Given exception " + exc + " throw from " + locUri + ", cannot find a handler to handle it.")
-    None
+  def getThrownExcetpionTarget(exc: JawaClass, locUri: String): Option[String] = {
+    this.exceptionHandlers.find(_.handleException(exc, locUri)).map(_.jumpTo)
   }
   
   /**
    * set exceptions for this method
    */
-  
-  def setExceptions(excs : Set[JawaClass]) = this.exceptions = excs
+  def setExceptions(excs: Set[JawaClass]) = {
+    this.thrownExceptions.clear()
+    this.thrownExceptions ++= excs
+  }
   
   /**
    * get exceptions
    */
-  
-  def getExceptions = this.exceptions
+  def getExceptions: ISet[JawaClass] = this.thrownExceptions.toSet
   
   /**
    * return true if this method is concrete which means it is not abstract nor native nor unknown
    */
-  
-  def isConcrete = !isAbstract && !isNative && !isUnknown
-    
-  /**
-   * return true if this method is abstract
-   */
-  
-  def isAbstract : Boolean = AccessFlag.isAbstract(this.accessFlags)
-  
-  /**
-   * return true if this method is native
-   */
-  
-  def isNative : Boolean = AccessFlag.isNative(this.accessFlags)
-  
-  /**
-   * return true if this method is static
-   */
-  
-  def isStatic : Boolean = AccessFlag.isStatic(this.accessFlags)
-  
-  /**
-   * return true if this method is private
-   */
-  
-  def isPrivate : Boolean = AccessFlag.isPrivate(this.accessFlags)
-  
-  /**
-   * return true if this method is public
-   */
-  
-  def isPublic : Boolean = AccessFlag.isPublic(this.accessFlags)
-  
-  /**
-   * return true if this method is protected
-   */
-  
-  def isProtected : Boolean = AccessFlag.isProtected(this.accessFlags)
-  
-  /**
-   * return true if this method is final
-   */
-  
-  def isFinal : Boolean = AccessFlag.isFinal(this.accessFlags)
-  
-  /**
-   * return true if this method is synchronized
-   */
-  
-  def isSynchronized : Boolean = AccessFlag.isSynchronized(this.accessFlags)
+  def isConcrete: Boolean = !isAbstract && !isNative && !isUnknown
   
   /**
    * return true if this method is synthetic
    */
-  
-  def isSynthetic : Boolean = AccessFlag.isSynthetic(this.accessFlags)
+  def isSynthetic: Boolean = AccessFlag.isSynthetic(this.accessFlags)
   
   /**
    * return true if this method is constructor
    */
-  
-  def isConstructor : Boolean = AccessFlag.isConstructor(this.accessFlags)
+  def isConstructor: Boolean = AccessFlag.isConstructor(this.accessFlags)
   
   /**
    * return true if this method is declared_synchronized
    */
+  def isDeclaredSynchronized: Boolean = AccessFlag.isDeclaredSynchronized(this.accessFlags)
   
-  def isDeclaredSynchronized : Boolean = AccessFlag.isDeclaredSynchronized(this.accessFlags)
+  private var implements: Option[JawaMethod] = None
+  
+  private var overrides: Option[JawaMethod] = None
+  
+  private def setImplementsOrOverrides(m: JawaMethod) = {
+    if(m.isAbstract) this.implements = Some(m)
+    else this.overrides = Some(m)
+  }
+  
+  def getImplements: Option[JawaMethod] = {
+    if(this.implements.isDefined) this.implements
+    else {
+      computeImplementsOrOverrides(getDeclaringClass)
+      this.implements
+    }
+  }
+  
+  def getOverrides: Option[JawaMethod] = {
+    if(this.overrides.isDefined) this.overrides
+    else {
+      computeImplementsOrOverrides(getDeclaringClass)
+      this.overrides
+    }
+  }
+  
+  private def computeImplementsOrOverrides(clazz: JawaClass): Unit = {
+    clazz.getMethods foreach {
+      m =>
+        if(m.getSubSignature == this.getSubSignature){
+          setImplementsOrOverrides(m)
+          return
+        }
+    }
+    clazz.getSuperClass match{
+      case Some(s) => computeImplementsOrOverrides(s)
+      case None =>
+    }
+  }
+  
+  def isImplements: Boolean = {
+    getImplements.isDefined
+  }
+  
+  def isOverride: Boolean = getOverrides.isDefined
   
   /**
    * return true if this method is main method
    */
-  
-  def isMain : Boolean = isPublic && isStatic && this.subSignature == "main:([Ljava/lang/string;)V"
-    
-  /**
-   * return false if this method is a special one with empty body. e.g. A.class
-   */
-    
-  def isUnknown : Boolean = this.unknown
-  
-  /**
-   * set the reality of the method. e.g. for A.class we set the reality as false
-   */
-  
-  def setUnknown = this.unknown = true
+  def isMain: Boolean = isPublic && isStatic && getSubSignature == "main:([Ljava/lang/string;)V"
     
   /**
    * return true if this method is a class initializer or main function
    */
-    
   def isEntryMethod = {
     if(isStatic && name == getDeclaringClass.staticInitializerName) true
     else isMain
@@ -636,16 +355,15 @@ class JawaMethod extends ResolveLevel with PropertyProvider {
   
   def printDetail = {
     println("--------------AmandroidMethod--------------")
-    println("procName: " + getName)
-    println("shortName: " + getShortName)
+    println("name: " + getName)
     println("signature: " + getSignature)
     println("subSignature: " + getSubSignature)
     println("declaringClass: " + getDeclaringClass)
     println("paramTypes: " + getParamTypes)
-    println("accessFlags: " + getAccessFlagString)
+    println("accessFlags: " + getAccessFlagsStr)
     println("----------------------------")
   }
   
-  override def toString : String = getSignature
+  override def toString: String = getSignature.toString
   
 }

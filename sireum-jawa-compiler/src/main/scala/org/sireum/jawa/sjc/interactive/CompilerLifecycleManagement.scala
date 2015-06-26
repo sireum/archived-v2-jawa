@@ -11,7 +11,7 @@ import scala.util.control.Breaks._
 import org.sireum.jawa.sjc.util.NoPosition
 import scala.annotation.elidable
 import org.sireum.jawa.sjc.parser.CompilationUnit
-import org.sireum.jawa.sjc.ResolveLevel
+import org.sireum.jawa.ResolveLevel
 import scala.collection.mutable
 import org.sireum.jawa.sjc.util.DefaultLibraryAPISummary
 

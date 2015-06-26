@@ -1,6 +1,4 @@
-package org.sireum.jawa.sjc.interactive
-
-import org.sireum.jawa.AccessFlag
+package org.sireum.jawa
 
 trait JawaElement {
   def accessFlags: Int

@@ -1,4 +1,4 @@
-package org.sireum.jawa.sjc.io
+package org.sireum.jawa.io
 
 import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, InputStream, OutputStream, File => JFile }
 import scala.collection.mutable

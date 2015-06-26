@@ -1,6 +1,4 @@
-package org.sireum.jawa.sjc.util
-
-import scala.math.Ordering
+package org.sireum.jawa.io
 
 case class Range(offset: Int, length: Int) {
 

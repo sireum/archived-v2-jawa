@@ -1,4 +1,4 @@
-package org.sireum.jawa.sjc.util
+package org.sireum.jawa.io
 
 class Position extends InternalPositionImpl {
   type Pos = Position
@@ -109,7 +109,7 @@ sealed abstract class UndefinedPosition extends Position {
   override def end             = fail("end")
 }
 
-private[util] trait InternalPositionImpl {
+private[io] trait InternalPositionImpl {
   self: Position =>
 
   // The methods which would be abstract in Position if it were

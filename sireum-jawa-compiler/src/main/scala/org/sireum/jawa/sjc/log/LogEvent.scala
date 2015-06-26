@@ -1,5 +1,6 @@
 package org.sireum.jawa.sjc.log
 
+
 sealed trait LogEvent extends NotNull
 final class Success(val msg: String) extends LogEvent
 final class Log(val level: Level.Value, val msg: String) extends LogEvent

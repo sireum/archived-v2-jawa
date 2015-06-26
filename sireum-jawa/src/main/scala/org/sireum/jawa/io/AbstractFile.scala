@@ -1,4 +1,4 @@
-package org.sireum.jawa.sjc.io
+package org.sireum.jawa.io
 
 import java.io.{IOException, InputStream, OutputStream, BufferedOutputStream, ByteArrayOutputStream}
 import java.io.{ File => JFile }
