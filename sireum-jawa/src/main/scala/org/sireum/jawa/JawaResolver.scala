@@ -47,18 +47,6 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
     JawaSymbolTableBuilder(List(newModel), fst, true)
   }
   
-    
-  /**
-   * resolve the given classes to desired level. 
-   */
-  def resolveClassFromSource(source: SourceFile, desiredLevel: ResolveLevel.Value): ISet[JawaClass] = {
-    val file = source.file
-    val code = getClassCode(file, ResolveLevel.BODY)
-    val st = getSymbolResolveResult(Set(code))
-    val classTypes = st.asInstanceOf[SymbolTableProducer].tables.recordTable
-    resolveFromST(st, ResolveLevel.BODY, true)
-  }
-  
   /**
    * resolve the given method code. Normally only for dummyMain i.e. environment method
    */
@@ -180,8 +168,8 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
 	      if(baseaf.contains("FINAL")) baseaf else "FINAL_" + baseaf
 	    }
     val rec: JawaClass = new JawaClass(this, typ, recAccessFlag)
-    rec.addNeedToResolveExtends(Set(DEFAULT_TOPLEVEL_OBJECT))
-    if(isInnerClass(typ)) rec.needToResolveOuterName = Some(getOuterNameFrom(recName))
+    addNeedToResolveExtends(rec, Set(JAVA_TOPLEVEL_OBJECT_TYPE))
+    if(isInnerClass(typ)) addNeedToResolveOuterClass(rec, getOuterTypeFrom(typ))
     rec.setResolvingLevel(ResolveLevel.BODY)
     rec.addField(createClassField(rec))
     val field: JawaField = new JawaField(rec, "length", PrimitiveType("int"), "FINAL")
@@ -192,7 +180,6 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
    * resolve all the classes, fields and procedures from symbol table producer which are provided from symbol table model
    */
 	def resolveFromST(st: SymbolTable, level: ResolveLevel.Value, par: Boolean): Unit = {
-    if(!isPreLoaded) throw new RuntimeException("In whole program mode but library code did not been pre-loaded, call JawaCodeSource.preLoad first.")
     val stp = st.asInstanceOf[SymbolTableProducer]
 	  resolveClasses(stp, level, par)
 	  resolveGlobalVars(stp, level, par)
@@ -218,9 +205,9 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
             case _ => ""
           }
 	      val rec: JawaClass = new JawaClass(this, recTyp, accessFlag)
-	      var exs = rd.extendsClauses.map {_.name.name}.toSet
-	      rec.addNeedToResolveExtends(exs)
-	      if(isInnerClass(recTyp)) rec.needToResolveOuterName = Some(getOuterNameFrom(recName))
+	      val exs = rd.extendsClauses.map {_.name.name}.map(getTypeFromName(_).asInstanceOf[ObjectType]).toSet
+	      addNeedToResolveExtends(rec, exs)
+	      if(isInnerClass(recTyp)) addNeedToResolveOuterClass(rec, getOuterTypeFrom(recTyp))
 	      rd.attributes.foreach{
 	        field =>
 	          val fieldSig = field.name.name
