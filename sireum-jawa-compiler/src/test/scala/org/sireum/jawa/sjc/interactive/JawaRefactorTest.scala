@@ -10,11 +10,11 @@ package org.sireum.jawa.sjc.interactive
 import org.scalatest._
 import org.sireum.jawa.sjc.lexer.JawaLexer
 import org.sireum.util.FileUtil
-import org.sireum.jawa.sjc.io.PlainFile
+import org.sireum.jawa.io.PlainFile
 import java.io.BufferedReader
 import java.io.StringReader
-import org.sireum.jawa.sjc.io.AbstractFile
-import org.sireum.jawa.sjc.util.FgSourceFile
+import org.sireum.jawa.io.AbstractFile
+import org.sireum.jawa.io.FgSourceFile
 import org.sireum.jawa.DefaultReporter
 import org.sireum.util._
 import org.sireum.jawa.sjc.parser.JawaParser
@@ -30,7 +30,7 @@ import org.sireum.jawa.GlobalConfig
 import org.sireum.amandroid.util.AndroidLibraryAPISummary
 import org.sireum.jawa.util.MyFileUtil
 import org.sireum.jawa.alir.JawaAlirInfoProvider
-import org.sireum.jawa.sjc.util.SourceFile
+import org.sireum.jawa.io.SourceFile
 
 class JawaRefactorTest extends FlatSpec with ShouldMatchers {
   

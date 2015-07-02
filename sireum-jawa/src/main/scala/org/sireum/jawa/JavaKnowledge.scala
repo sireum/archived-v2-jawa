@@ -192,6 +192,26 @@ trait JavaKnowledge {
   /********************** JawaMethod related op **************************/
   
   /**
+   * e.g. java.lang.Throwable.run
+   */
+  def isValidMethodFullName(mfn: String): Boolean = mfn.lastIndexOf('.') > 0
+  
+  def getClassNameFromMethodFullName(mfn: String): String = {
+    if(!isValidMethodFullName(mfn)) throw new RuntimeException("given method full name is not a valid form: " + mfn)
+    else mfn.substring(mfn.lastIndexOf('.') + 1)
+  }
+  
+  def getClassTypeFromMethodFullName(mfn: String): ObjectType = {
+    val cn = getClassNameFromMethodFullName(mfn)
+    getTypeFromName(cn).asInstanceOf[ObjectType]
+  }
+  
+  def getMethodNameFromMethodFullName(mfn: String): String = {
+    if(!isValidMethodFullName(mfn)) throw new RuntimeException("given method full name is not a valid form: " + mfn)
+    else mfn.substring(mfn.lastIndexOf('.') + 1)
+  }
+  
+  /**
    * generate signature of this method
    */
   def generateSignature(method: JawaMethod): Signature = {

@@ -21,6 +21,7 @@ import org.sireum.jawa.JavaKnowledge
 import org.sireum.jawa.Global
 import org.sireum.jawa.io.NoPosition
 import org.sireum.jawa.JawaType
+import org.sireum.jawa.ResolveLevel
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -54,11 +55,6 @@ abstract class MethodGenerator(global: Global) {
    * Map of it's local variables
    */
   protected var localVarsForClasses: Map[JawaType, String] = Map()
-  
-  /**
-   * Set of param's clazz name
-   */
-  protected var paramClasses: Set[JawaClass] = Set()
 
   /**
    * set the substituteClassMap
@@ -133,7 +129,6 @@ abstract class MethodGenerator(global: Global) {
         val paramVar = template.getInstanceOf("ParamVar")
 			  val p = varGen.generate(params(i))
 			  localVarsForClasses += (params(i) -> p)
-			  this.paramClasses += global.resolveClass(params(i), ResolveLevel.BODY)
 			  paramVar.add("typ", params(i))
 			  paramVar.add("name", p)
 			  val annot = generateExpAnnotation("type", List("object"))
@@ -143,7 +138,7 @@ abstract class MethodGenerator(global: Global) {
     procDeclTemplate.add("params", paramArray)
     val code = generateInternal(List())
     global.reporter.echo(NoPosition, TITLE + " environment code:\n" + code)
-    global.addApplicationClassCode(className, code)
+//    global.addApplicationClassCode(className, code)
     global.resolveMethodCode(signature, code)
   }
   
@@ -230,11 +225,11 @@ abstract class MethodGenerator(global: Global) {
     var paramVars: Map[Int, String] = Map()
     params.foreach{
 	    case(i, param) =>
-        var r = Center.resolveClass(param.name, Center.ResolveLevel.HIERARCHY)
+        var r = global.resolveClass(param, ResolveLevel.HIERARCHY)
         val outterClassOpt = if(r.isInnerClass) Some(r.getOuterClass) else None
         if(!r.isConcrete){
-          var substClassName = this.substituteClassMap.getOrElse(r.getName, null)
-          if(substClassName != null) r = Center.resolveClass(substClassName, Center.ResolveLevel.HIERARCHY)
+          var substClassName = this.substituteClassMap.getOrElse(r.getType, null)
+          if(substClassName != null) r = global.resolveClass(substClassName, ResolveLevel.HIERARCHY)
           else if(r.isInterface) global.getClassHierarchy.getAllImplementersOf(r).foreach(i => if(constructionStack.contains(i)) r = i)
           else if(r.isAbstract) global.getClassHierarchy.getAllSubClassesOf(r).foreach(s => if(s.isConcrete && constructionStack.contains(s)) r = s)
         }
@@ -243,14 +238,14 @@ abstract class MethodGenerator(global: Global) {
           val va = varGen.generate(r.getType)
           localVarsForClasses += (r.getType -> va)
           paramVars += (i -> va)
-          global.reporter.error(NoPosition, TITLE + ", Cannot create valid constructer for " + r + ", because it is " + r.getAccessFlagString + " and cannot find substitute.")
+          global.reporter.error(NoPosition, TITLE + ", Cannot create valid constructer for " + r + ", because it is " + r.getAccessFlagsStr + " and cannot find substitute.")
         } else if(!constructionStack.contains(r)){
-				  val va = generateInstanceCreation(r.getName, codefg)
-				  localVarsForClasses += (r.getName -> va)
+				  val va = generateInstanceCreation(r.getType, codefg)
+				  localVarsForClasses += (r.getType -> va)
           paramVars += (i -> va)
           generateClassConstructor(r, constructionStack, codefg)
         } else {
-          paramVars += (i -> localVarsForClasses(r.getName))
+          paramVars += (i -> localVarsForClasses(r.getType))
         }
     }
     val invokeStmt = template.getInstanceOf("InvokeStmt")
@@ -322,7 +317,7 @@ abstract class MethodGenerator(global: Global) {
 	  var callbackClasses: Map[JawaClass, ISet[JawaMethod]] = Map()
     this.callbackFunctions(clazz.getType).map{
 	    case (pSig) => 
-	      val theClass = Center.resolveClass(StringFormConverter.getClassNameFromMethodSignature(pSig), Center.ResolveLevel.BODY)
+	      val theClass = global.resolveClass(pSig.getClassType, ResolveLevel.BODY)
 	      val theMethod = findMethod(theClass, pSig.getSubSignature)
 	      theMethod match {
 	        case Some(method) =>

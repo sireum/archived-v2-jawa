@@ -78,6 +78,10 @@ class FgSourceFile(val file : AbstractFile, content0: Array[Char]) extends Sourc
   def start = 0
   def isSelfContained = true
 
+  def getClassCodes: ISet[String] = {
+    val c = code
+    c.replaceAll("(record `)", "DELIMITER$1").split("DELIMITER").tail.toSet
+  }
 
   private def charAtIsEOL(idx: Int)(p: Char => Boolean) = {
     // don't identify the CR in CR LF as a line break, since LF will do.

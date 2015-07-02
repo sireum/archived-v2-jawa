@@ -4,10 +4,11 @@ import org.sireum.util._
 import org.sireum.jawa.sjc.parser.CompilationUnit
 import scala.collection.mutable.LinkedHashMap
 import scala.collection.mutable.SynchronizedMap
-import org.sireum.jawa.sjc.util.SourceFile
-import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.io.SourceFile
+import org.sireum.jawa.io.AbstractFile
 import scala.collection.mutable.SynchronizedSet
 import scala.collection.mutable.HashSet
+import org.sireum.jawa.Problem
 
 trait RichCompilationUnits { self: Global =>
   private val unitOfFile = new LinkedHashMap[AbstractFile, RichCompilationUnit] with

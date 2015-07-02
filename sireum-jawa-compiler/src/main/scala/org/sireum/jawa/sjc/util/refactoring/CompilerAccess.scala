@@ -1,6 +1,6 @@
 package org.sireum.jawa.sjc.util.refactoring
 
-import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.io.AbstractFile
 import org.sireum.jawa.sjc.parser.CompilationUnit
 
 /**

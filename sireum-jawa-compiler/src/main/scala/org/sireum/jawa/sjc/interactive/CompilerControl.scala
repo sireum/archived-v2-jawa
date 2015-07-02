@@ -1,12 +1,12 @@
 package org.sireum.jawa.sjc.interactive
 
 import org.sireum.jawa.sjc.util.WorkScheduler
-import org.sireum.jawa.sjc.util.SourceFile
+import org.sireum.jawa.io.SourceFile
 import org.sireum.jawa.ResolveLevel
-import org.sireum.jawa.sjc.util.Position
+import org.sireum.jawa.io.Position
 import org.sireum.jawa.sjc.parser.JawaAstNode
 import org.sireum.jawa.sjc.util.ControlThrowable
-import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.io.AbstractFile
 import org.sireum.jawa.sjc.util.InterruptReq
 import org.sireum.jawa.sjc.util.FailedInterrupt
 import org.sireum.jawa.sjc.util.EmptyAction

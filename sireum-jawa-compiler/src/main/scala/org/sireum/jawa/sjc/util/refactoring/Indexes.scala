@@ -4,7 +4,7 @@ import org.sireum.jawa.sjc.parser.JawaSymbol
 import org.sireum.jawa.sjc.parser.DefSymbol
 import org.sireum.jawa.sjc.parser.RefSymbol
 import org.sireum.jawa.sjc.parser.MethodDefSymbol
-import org.sireum.jawa.sjc.util.Position
+import org.sireum.jawa.io.Position
 import org.sireum.jawa.sjc.parser.MethodNameSymbol
 import org.sireum.jawa.sjc.parser.TypeDefSymbol
 

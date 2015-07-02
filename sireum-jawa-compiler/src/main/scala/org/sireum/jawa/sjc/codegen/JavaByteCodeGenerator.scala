@@ -8,55 +8,22 @@ import org.sireum.jawa.sjc.parser.{ClassOrInterfaceDeclaration => ClassOrInterfa
 import org.sireum.jawa.sjc.parser.{Declaration => JawaDeclaration}
 import org.sireum.jawa.sjc.parser.{Field => JawaField}
 import org.sireum.jawa.sjc.parser.{Location => JawaLocation}
-import org.sireum.jawa.sjc.parser.MethodDeclaration
-import org.sireum.jawa.sjc.parser.ResolvedBody
-import org.sireum.jawa.sjc.parser.UnresolvedBody
-import org.sireum.jawa.sjc.Type
 import org.objectweb.asm.Label
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.MethodVisitor
-import org.sireum.jawa.sjc.parser.CallStatement
-import org.sireum.jawa.sjc.parser.JawaSymbol
-import org.sireum.jawa.sjc.parser.VarSymbol
-import org.sireum.jawa.sjc.ctType
-import org.sireum.jawa.sjc.itiveType
-import org.sireum.jawa.sjc.parser.AssignmentStatement
-import org.sireum.jawa.sjc.parser.Expression
-import org.sireum.jawa.sjc.parser.NameExpression
-import org.sireum.jawa.sjc.parser.IndexingExpression
-import org.sireum.jawa.sjc.parser.AccessExpression
-import org.sireum.jawa.sjc.parser.TupleExpression
-import org.sireum.jawa.sjc.parser.CastExpression
-import org.sireum.jawa.sjc.parser.NewExpression
-import org.sireum.jawa.sjc.parser.LiteralExpression
-import org.sireum.jawa.sjc.parser.UnaryExpression
-import org.sireum.jawa.sjc.parser.BinaryExpression
-import org.sireum.jawa.sjc.parser.CmpExpression
-import org.sireum.jawa.sjc.parser.RHS
-import org.sireum.jawa.sjc.parser.LHS
-import org.sireum.jawa.sjc.parser.ThrowStatement
-import org.sireum.jawa.sjc.parser.IfStatement
-import org.sireum.jawa.sjc.parser.GotoStatement
-import org.sireum.jawa.sjc.parser.SwitchStatement
-import org.sireum.jawa.sjc.parser.ReturnStatement
-import org.sireum.jawa.sjc.parser.EmptyStatement
-import org.sireum.jawa.sjc.parser.TypeFragmentWithInit
+import org.sireum.jawa.sjc.parser._
 import java.io.PrintWriter
 import scala.tools.asm.ClassReader
 import scala.tools.asm.util.TraceClassVisitor
-import org.sireum.jawa.sjc.parser.ExceptionExpression
-import org.sireum.jawa.sjc.parser.MonitorStatement
 import org.objectweb.asm.Type
-import org.sireum.jawa.sjc.parser.InstanceofExpression
-import org.sireum.jawa.sjc.parser.InstanceofExpression
-import org.sireum.jawa.sjc.parser.ConstClassExpression
-import org.sireum.jawa.sjc.parser.LengthExpression
 import java.io.File
 import java.io.FileWriter
 import java.io.DataOutputStream
 import java.io.FileOutputStream
 import org.sireum.jawa.sjc.parser.NullExpression
+import org.sireum.jawa.ObjectType
+import org.sireum.jawa.JawaType
 
 object JavaByteCodeGenerator {
   def outputByteCodes(pw: PrintWriter, bytecodes: Array[Byte]) = {
@@ -96,50 +63,10 @@ class JavaByteCodeGenerator {
     name.replaceAll("\\.", "/")
   }
   
-  private def getJavaFlags(af: Int): Int = {
-    var mod: Int = 0
-    if(AccessFlag.isPrivate(af))
-      mod = mod | Opcodes.ACC_PRIVATE
-    else if (AccessFlag.isProtected(af))
-      mod = mod | Opcodes.ACC_PROTECTED
-    else if (AccessFlag.isPublic(af))
-      mod = mod | Opcodes.ACC_PUBLIC
-      
-    if(AccessFlag.isAbstract(af))
-      mod = mod | Opcodes.ACC_ABSTRACT
-    if(AccessFlag.isAnnotation(af))
-      mod = mod | Opcodes.ACC_ANNOTATION
-//    if(AccessFlag.isConstructor(af))
-//      mod = mod | Opcodes.ACC_
-    if(AccessFlag.isDeclaredSynchronized(af))
-      mod = mod | Opcodes.ACC_SYNCHRONIZED
-    if(AccessFlag.isEnum(af))
-      mod = mod | Opcodes.ACC_ENUM
-    if(AccessFlag.isFinal(af))
-      mod = mod | Opcodes.ACC_FINAL
-    if(AccessFlag.isInterface(af))
-      mod = mod | Opcodes.ACC_INTERFACE
-    if(AccessFlag.isNative(af))
-      mod = mod | Opcodes.ACC_NATIVE
-    if(AccessFlag.isStatic(af))
-      mod = mod | Opcodes.ACC_STATIC
-    if(AccessFlag.isStrictFP(af))
-      mod = mod | Opcodes.ACC_STRICT
-    if(AccessFlag.isSynchronized(af))
-      mod = mod | Opcodes.ACC_SYNCHRONIZED
-    if(AccessFlag.isSynthetic(af))
-      mod = mod | Opcodes.ACC_SYNTHETIC
-    if(AccessFlag.isTransient(af))
-      mod = mod | Opcodes.ACC_TRANSIENT
-    if(AccessFlag.isVolatile(af))
-      mod = mod | Opcodes.ACC_VOLATILE
-    mod
-  }
-  
   private def visitClass(cid: ClassOrInterfaceDeclaration, javaVersion: Int): Unit = {
     val cw: ClassWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS)
     val af: Int = AccessFlag.getAccessFlags(cid.accessModifier)
-    var mod = getJavaFlags(af)
+    var mod = AccessFlag.getJavaFlags(af)
     
     val superName: String = cid.superClassOpt match {
       case Some(su) => getClassName(su.name)
@@ -162,7 +89,7 @@ class JavaByteCodeGenerator {
   
   private def visitField(cw: ClassWriter, fd: JawaField with JawaDeclaration): Unit = {
     val af: Int = AccessFlag.getAccessFlags(fd.accessModifier)
-    val mod: Int = getJavaFlags(af)
+    val mod: Int = AccessFlag.getJavaFlags(af)
     val typ: String = JavaKnowledge.formatTypeToSignature(fd.typ.typ)
     cw.visitField(mod, fd.fieldName, typ, null, null).visitEnd()
   }
@@ -174,7 +101,7 @@ class JavaByteCodeGenerator {
   
   private def visitMethod(cw: ClassWriter, md: MethodDeclaration): Unit = {
     val af: Int = AccessFlag.getAccessFlags(md.accessModifier)
-    val mod: Int = getJavaFlags(af)
+    val mod: Int = AccessFlag.getJavaFlags(af)
     val mv = cw.visitMethod(mod, md.name, md.signature.getDescriptor, null, null)
     
     val body: ResolvedBody = md.body match {

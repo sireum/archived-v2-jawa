@@ -17,7 +17,7 @@ class VariableGenerator {
 	private var varMap : MMap[String, Int] = mmapEmpty
 	def generate(typ : JawaType) : String = {
 	  var variable : String = ""
-	  typ match {
+	  typ.name match {
 	    case "int" => 
 	      if(varMap.contains("int")) varMap("int") += 1
 	      else varMap.put("int", 0)

@@ -1,6 +1,6 @@
 package org.sireum.jawa.sjc.interactive
 
-import org.sireum.jawa.sjc.util.NoPosition
+import org.sireum.jawa.io.NoPosition
 
 /** A presentation compiler thread. This is a lightweight class, delegating most
  *  of its functionality to the compiler instance.

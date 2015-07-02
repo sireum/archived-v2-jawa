@@ -18,13 +18,14 @@ import org.sireum.jawa.sjc.parser._
 import org.sireum.jawa.sjc.lexer.Token
 import org.sireum.jawa.JavaKnowledge
 import org.sireum.jawa.io.SourceFile
+import org.sireum.jawa.io.NoPosition
 
 /**
  * this object collects info from the symbol table and builds Global, JawaClass, and JawaMethod
  *
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global =>
+trait JawaResolver extends JavaKnowledge {self: Global =>
   
   val DEBUG: Boolean = false
   private final val TITLE: String = "JawaResolver"
@@ -55,114 +56,114 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
   /**
    * resolve the given classes to desired level. 
    */
-  def resolveClassFromSource(source: SourceFile, desiredLevel: ResolveLevel.Value): ISet[JawaClass] = {
-    val resolveBody: Boolean = desiredLevel match {
-      case ResolveLevel.BODY => true
-      case _ => false
-    }
-    val cu = parseCode[CompilationUnit](source, resolveBody).get
-    val tpes = source.getClassTypes(reporter)
-    tpes foreach{removeClass(_)}
-    resolveClasses(cu.topDecls, desiredLevel, true)
-    tpes map{tpe => getClass(tpe).get}
-  }
+//  def resolveClassFromSource(source: SourceFile, desiredLevel: ResolveLevel.Value): ISet[JawaClass] = {
+//    val resolveBody: Boolean = desiredLevel match {
+//      case ResolveLevel.BODY => true
+//      case _ => false
+//    }
+//    val cu = parseCode[CompilationUnit](source, resolveBody).get
+//    val tpes = source.getClassTypes(reporter)
+//    tpes foreach{removeClass(_)}
+//    resolveClasses(cu.topDecls, desiredLevel, true)
+//    tpes map{tpe => getClass(tpe).get}
+//  }
 	
 	/**
 	 * collect class info from symbol table
 	 */
-	def resolveClasses(cids: IList[ClassOrInterfaceDeclaration], level: ResolveLevel.Value, par: Boolean) = {
-	  if(DEBUG) println("Doing " + TITLE + ". Resolve classes parallel: " + par)
-	  val col: GenIterable[ClassOrInterfaceDeclaration] = if(par) cids.par else cids
-	  val classes = col.map{
-	    cid =>
-	      val classType: ObjectType = cid.typ
-        getClass(classType) match {
-          case Some(c) => c
-          case None =>
-            val recAccessFlag = cid.accessModifier        // It can be PUBLIC ... or empty (which means no access flag class)
-            val clazz: JawaClass = new JawaClass(this, classType, recAccessFlag)
-            cid.parents foreach {
-              p =>
-                getClass(p) match {
-                  case Some(pc) =>
-                    if(pc.isInterface) clazz.addInterface(pc)
-                    else clazz.setSuperClass(pc)
-                  case None =>
-                    val up: JawaClass = JawaClass(this, p, 0)
-                    clazz.addUnknownParent(up)
-                }
-            }
-            if(isInnerClass(clazz.getType)){
-              val outer = getOuterTypeFrom(clazz.getType)
-              getClass(outer) match {
-                case Some(o) => clazz.setOuterClass(o)
-                case None =>
-                  val oc: JawaClass = JawaClass(this, outer, 0)
-                  clazz.setOuterClass(oc)
-              }
-            }
-            clazz.setAST(cid)
-            resolveFields(clazz, cid.fields, par)
-            resolveMethods(clazz, cid.methods, level, par)
-            clazz.setResolvingLevel(level)
-            clazz
-        }
-	  }.toSet
-//	  resolveClassesRelationWholeProgram
-	  // now we generate a special Jawa Method for each class; this proc would represent the const-class operation
-	  classes.foreach{
-	    clazz =>
-	      createClassField(clazz)
-	  }
-	}
-	
-	private def createClassField(rec: JawaClass): JawaField = {
-	  JawaField(rec, "class", new ObjectType("java.lang.Class"), AccessFlag.getAccessFlags("FINAL_STATIC"))
-	}
-	
-	/**
-	 * collect global variables info from the symbol table
-	 */
-	def resolveFields(declaringClass: JawaClass, fieldDecls: IList[Field with Declaration], par: Boolean) = {
-	  if(DEBUG) println("Doing " + TITLE + ". Resolve field parallel: " + par)
-	  val col: GenIterable[Field with Declaration] = if(par) fieldDecls.par else fieldDecls
-	  col.foreach{
-	    fieldDecl =>
-	      val fieldName: String = fieldDecl.fieldName // e.g. serialVersionUID
-	      val accessFlags: Int = AccessFlag.getAccessFlags(fieldDecl.accessModifier)
-	      val fieldType: JawaType = fieldDecl.typ.typ	      
-	      JawaField(declaringClass, fieldName, fieldType, accessFlags)
-	  }
-	}
-	
-	/**
-	 * collect method info from symbol table
-	 */
-	def resolveMethods(declaringClass: JawaClass, mds: IList[MethodDeclaration], level: ResolveLevel.Value, par: Boolean) = {
-	  if(DEBUG) println("Doing " + TITLE + ". Resolve methods parallel: " + par)
-	  val col: GenIterable[MethodDeclaration] = if(par) mds.par else mds
-	  col.foreach{
-	    md =>
-	      val methodName: String = md.name
-	      val accessFlags: Int = AccessFlag.getAccessFlags(md.accessModifier)
-        val thisOpt: Option[String] = md.paramClause.thisParam.map(_.name)
-        val params: ISeq[(String, JawaType)] = md.paramlist.map{p => (p.name, p.typ.typ)}
-        val returnType: JawaType = md.returnType.typ
-	      val method: JawaMethod = JawaMethod(declaringClass, methodName, thisOpt, params, returnType, accessFlags)
-	      method.setResolvingLevel(level)
-        method.setAST(md)
-	      if(level >= ResolveLevel.BODY){
-	      	if(md.body.isInstanceOf[ResolvedBody]){
-		        val body = md.body.asInstanceOf[ResolvedBody]
-		        val catchclauses = body.catchClauses
-		        catchclauses.foreach{
-		          catchclause =>
-		            val excName = catchclause.typ.typ.name
-			          method.addExceptionHandler(excName, catchclause.from, catchclause.to, catchclause.goto.text)
-		        }
-		      }
-	      }
-	  }
-	}
+//	def resolveClasses(cids: IList[ClassOrInterfaceDeclaration], level: ResolveLevel.Value, par: Boolean) = {
+//	  if(DEBUG) println("Doing " + TITLE + ". Resolve classes parallel: " + par)
+//	  val col: GenIterable[ClassOrInterfaceDeclaration] = if(par) cids.par else cids
+//	  val classes = col.map{
+//	    cid =>
+//	      val classType: ObjectType = cid.typ
+//        getClass(classType) match {
+//          case Some(c) => c
+//          case None =>
+//            val recAccessFlag = cid.accessModifier        // It can be PUBLIC ... or empty (which means no access flag class)
+//            val clazz: JawaClass = new JawaClass(this, classType, recAccessFlag)
+//            cid.parents foreach {
+//              p =>
+//                getClass(p) match {
+//                  case Some(pc) =>
+//                    if(pc.isInterface) clazz.addInterface(pc)
+//                    else clazz.setSuperClass(pc)
+//                  case None =>
+//                    val up: JawaClass = JawaClass(this, p, 0)
+//                    clazz.addUnknownParent(up)
+//                }
+//            }
+//            if(isInnerClass(clazz.getType)){
+//              val outer = getOuterTypeFrom(clazz.getType)
+//              getClass(outer) match {
+//                case Some(o) => clazz.setOuterClass(o)
+//                case None =>
+//                  val oc: JawaClass = JawaClass(this, outer, 0)
+//                  clazz.setOuterClass(oc)
+//              }
+//            }
+//            clazz.setAST(cid)
+//            resolveFields(clazz, cid.fields, par)
+//            resolveMethods(clazz, cid.methods, level, par)
+//            clazz.setResolvingLevel(level)
+//            clazz
+//        }
+//	  }.toSet
+////	  resolveClassesRelationWholeProgram
+//	  // now we generate a special Jawa Method for each class; this proc would represent the const-class operation
+//	  classes.foreach{
+//	    clazz =>
+//	      createClassField(clazz)
+//	  }
+//	}
+//	
+//	private def createClassField(rec: JawaClass): JawaField = {
+//	  JawaField(rec, "class", new ObjectType("java.lang.Class"), AccessFlag.getAccessFlags("FINAL_STATIC"))
+//	}
+//	
+//	/**
+//	 * collect global variables info from the symbol table
+//	 */
+//	def resolveFields(declaringClass: JawaClass, fieldDecls: IList[Field with Declaration], par: Boolean) = {
+//	  if(DEBUG) println("Doing " + TITLE + ". Resolve field parallel: " + par)
+//	  val col: GenIterable[Field with Declaration] = if(par) fieldDecls.par else fieldDecls
+//	  col.foreach{
+//	    fieldDecl =>
+//	      val fieldName: String = fieldDecl.fieldName // e.g. serialVersionUID
+//	      val accessFlags: Int = AccessFlag.getAccessFlags(fieldDecl.accessModifier)
+//	      val fieldType: JawaType = fieldDecl.typ.typ	      
+//	      JawaField(declaringClass, fieldName, fieldType, accessFlags)
+//	  }
+//	}
+//	
+//	/**
+//	 * collect method info from symbol table
+//	 */
+//	def resolveMethods(declaringClass: JawaClass, mds: IList[MethodDeclaration], level: ResolveLevel.Value, par: Boolean) = {
+//	  if(DEBUG) println("Doing " + TITLE + ". Resolve methods parallel: " + par)
+//	  val col: GenIterable[MethodDeclaration] = if(par) mds.par else mds
+//	  col.foreach{
+//	    md =>
+//	      val methodName: String = md.name
+//	      val accessFlags: Int = AccessFlag.getAccessFlags(md.accessModifier)
+//        val thisOpt: Option[String] = md.paramClause.thisParam.map(_.name)
+//        val params: ISeq[(String, JawaType)] = md.paramlist.map{p => (p.name, p.typ.typ)}
+//        val returnType: JawaType = md.returnType.typ
+//	      val method: JawaMethod = JawaMethod(declaringClass, methodName, thisOpt, params, returnType, accessFlags)
+//	      method.setResolvingLevel(level)
+//        method.setAST(md)
+//	      if(level >= ResolveLevel.BODY){
+//	      	if(md.body.isInstanceOf[ResolvedBody]){
+//		        val body = md.body.asInstanceOf[ResolvedBody]
+//		        val catchclauses = body.catchClauses
+//		        catchclauses.foreach{
+//		          catchclause =>
+//		            val excName = catchclause.typ.typ.name
+//			          method.addExceptionHandler(excName, catchclause.from, catchclause.to, catchclause.goto.text)
+//		        }
+//		      }
+//	      }
+//	  }
+//	}
   
 }

@@ -3,6 +3,7 @@ package org.sireum.jawa
 import java.io.LineNumberReader
 import java.io.StringReader
 import java.io.Reader
+import org.sireum.util.ISet
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -45,6 +46,10 @@ object LightWeightPilarParser {
       lineText = lnr.readLine
     }
     sb.toString.intern()
+  }
+  
+  def splitCode(code: String): ISet[String] = {
+    code.replaceAll("(record `)", "DELIMITER$1").split("DELIMITER").tail.toSet
   }
   
   def getCode(recordCode : String, contentSig : String) : Option[String] = {

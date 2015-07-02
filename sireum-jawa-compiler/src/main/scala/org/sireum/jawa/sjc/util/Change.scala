@@ -1,5 +1,7 @@
 package org.sireum.jawa.sjc.util
 
+import org.sireum.jawa.io.SourceFile
+
 /**
  * The common interface for all changes.
  *

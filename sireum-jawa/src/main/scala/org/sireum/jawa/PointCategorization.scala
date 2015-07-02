@@ -12,7 +12,7 @@ import org.sireum.util.ResourceUri
 import org.sireum.util.IMap
 
 abstract class Point{
-  def ownerSig: String
+  def ownerSig: Signature
 }
 
 /**
@@ -80,7 +80,7 @@ trait Virtual{
 }
 
 trait Invoke{
-  def sig: String
+  def sig: Signature
   def invokeTyp: String
   def argPsCall: IMap[Int, PointArgCall]
   def argPsReturn: IMap[Int, PointArgReturn]
@@ -88,7 +88,7 @@ trait Invoke{
 }
 
 trait Method{
-  def methodSig: String
+  def methodSig: Signature
   def accessTyp: String
   def paramPsEntry: IMap[Int, PointParamEntry]
   def paramPsExit: IMap[Int, PointParamExit]

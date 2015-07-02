@@ -9,6 +9,12 @@ package org.sireum.jawa.util
 
 import org.sireum.pilar.ast._
 import org.sireum.util._
+import org.sireum.jawa.Signature
+
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ */ 
+
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -34,4 +40,28 @@ object ASTUtil {
     }
 	  argNames.toList
 	}
+  
+  def getSignature[T <: Annotable[T]](ast: Annotable[T]): Option[Signature] = {
+    ast.getValueAnnotation("signature") match {
+      case Some(exp: NameExp) =>
+        Some(Signature(exp.name.name))
+      case _ => None
+    }
+  }
+  
+  def getAccessFlag[T <: Annotable[T]](ast: Annotable[T]): String = {
+    ast.getValueAnnotation("AccessFlag") match {
+      case Some(exp: NameExp) =>
+        exp.name.name
+      case _ => ""
+    }
+  }
+  
+  def getTypeKind[T <: Annotable[T]](ast: Annotable[T]): String = {
+    ast.getValueAnnotation("kind") match {
+      case Some(exp: NameExp) =>
+        exp.name.name
+      case _ => ""
+    }
+  }
 }

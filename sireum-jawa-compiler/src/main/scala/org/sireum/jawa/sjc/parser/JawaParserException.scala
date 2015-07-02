@@ -7,6 +7,6 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.sjc.parser
 
-import org.sireum.jawa.sjc.util.Position
+import org.sireum.jawa.io.Position
 
 class JawaParserException(val pos: Position, val message: String) extends RuntimeException(message)

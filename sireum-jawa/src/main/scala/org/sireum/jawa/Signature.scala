@@ -184,14 +184,14 @@ case class Signature(signature: String) extends JavaKnowledge {
     count
   }
   
-  def getObjectParameters(): MMap[Int, JawaType] = {
+  def getObjectParameters(): MMap[Int, ObjectType] = {
     var count = 0
-    val params: MMap[Int, JawaType] = mmapEmpty
+    val params: MMap[Int, ObjectType] = mmapEmpty
     val iterator = new ParameterSignatureIterator
     while(iterator.hasNext){
       val p = iterator.next()
       if(p.startsWith("L") || p.startsWith("[")){
-      	params(count) = formatSignatureToType(p)
+      	params(count) = formatSignatureToType(p).asInstanceOf[ObjectType]
       }
       count+=1
     }

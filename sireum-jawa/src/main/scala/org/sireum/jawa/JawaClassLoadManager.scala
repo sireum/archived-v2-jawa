@@ -7,35 +7,51 @@ import org.sireum.jawa.io.AbstractFile
 
 trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Global =>
   
+  object ClassCategory extends Enumeration {
+    val APPLICATION, USER_LIBRARY, SYSTEM_LIBRARY = Value
+  }
+  
   /**
    * set of classes contained by the current Global
    */
-  private val classes: MMap[ObjectType, JawaClass] = mmapEmpty
+  protected val classes: MMap[ObjectType, JawaClass] = mmapEmpty
   
   /**
    * set of application classes contained by the current Global
    */
-  private val applicationClasses: MMap[ObjectType, JawaClass] = mmapEmpty
+  protected val applicationClasses: MMap[ObjectType, JawaClass] = mmapEmpty
   
   /**
    * set of system library classes contained by the current Global
    */
-  private val systemLibraryClasses: MMap[ObjectType, JawaClass] = mmapEmpty
+  protected val systemLibraryClasses: MMap[ObjectType, JawaClass] = mmapEmpty
   
   /**
    * set of third party lib classes contained by the current Global
    */
-  private val thirdPartyLibraryClasses: MMap[ObjectType, JawaClass] = mmapEmpty
+  protected val userLibraryClasses: MMap[ObjectType, JawaClass] = mmapEmpty
+  
+  private def getClassType(typ: ObjectType): ClassCategory.Value = {
+    this.applicationClasses.contains(typ) match {
+      case true => ClassCategory.APPLICATION
+      case false =>
+        this.userLibraryClasses.contains(typ) match {
+          case true => ClassCategory.USER_LIBRARY
+          case false =>
+            ClassCategory.SYSTEM_LIBRARY
+        }
+    }
+  }
   
   /**
    * set of entry points of the current Global
    */
-  private val entryPoints: MSet[JawaMethod] = msetEmpty
+  protected val entryPoints: MSet[JawaMethod] = msetEmpty
   
   /**
    * class hierarchy of all classes in the current Global
    */
-  private val hierarchy: ClassHierarchy = new ClassHierarchy(reporter)
+  protected val hierarchy: ClassHierarchy = new ClassHierarchy(reporter)
 
   /**
    * get all the application classes
@@ -50,7 +66,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * get all the third party lib classes
    */
-  def getThirdPartyLibraryClasses: ISet[JawaClass] = this.thirdPartyLibraryClasses.values.toSet
+  def getUserLibraryClasses: ISet[JawaClass] = this.userLibraryClasses.values.toSet
   
   /**
    * get all the application classes
@@ -65,7 +81,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * get all the third party lib classes
    */
-  def isThirdPartyLibraryClasses(typ: ObjectType): Boolean = this.thirdPartyLibraryClasses.contains(typ)
+  def isUserLibraryClasses(typ: ObjectType): Boolean = this.userLibraryClasses.contains(typ)
   
   /**
    * add an application class
@@ -86,9 +102,9 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * add a third party library class
    */
-  def addThirdPartyLibraryClass(l: JawaClass) = {
-    if(this.thirdPartyLibraryClasses.contains(l.getType)) reporter.error(NoPosition, "class " + l.getName + " already exists in third party lib class set.")
-    else this.thirdPartyLibraryClasses(l.getType) = l
+  def addUserLibraryClass(l: JawaClass) = {
+    if(this.userLibraryClasses.contains(l.getType)) reporter.error(NoPosition, "class " + l.getName + " already exists in user lib class set.")
+    else this.userLibraryClasses(l.getType) = l
   }
   
   /**
@@ -127,9 +143,9 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * remove third party lib class
    */
-  def removeThirdPartyLibraryClass(l: JawaClass) = {
-    if(!this.thirdPartyLibraryClasses.contains(l.getType)) reporter.error(NoPosition, "class " + l.getType + " does not exist in third party lib class set.")
-    else this.thirdPartyLibraryClasses(l.getType) = l
+  def removeUserLibraryClass(l: JawaClass) = {
+    if(!this.userLibraryClasses.contains(l.getType)) reporter.error(NoPosition, "class " + l.getType + " does not exist in user lib class set.")
+    else this.userLibraryClasses(l.getType) = l
   }
   
   /**
@@ -138,7 +154,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   def getContainingSet(ar: JawaClass): Set[JawaClass] = {
     if(ar.isApplicationClass) getApplicationClasses
     else if(ar.isSystemLibraryClass) getSystemLibraryClasses
-    else if(ar.isThirdPartyLibraryClass) getThirdPartyLibraryClasses
+    else if(ar.isUserLibraryClass) getUserLibraryClasses
     else null
   }
   
@@ -148,7 +164,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   def removeFromContainingSet(ar: JawaClass) = {
     if(ar.isApplicationClass) removeApplicationClass(ar)
     else if(ar.isSystemLibraryClass) removeSystemLibraryClass(ar)
-    else if(ar.isThirdPartyLibraryClass) removeThirdPartyLibraryClass(ar)
+    else if(ar.isUserLibraryClass) removeUserLibraryClass(ar)
   }
   
   /**
@@ -173,16 +189,16 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
       this.classes(ar.getType) = ar
       if(ar.isArray){
         ar.setSystemLibraryClass
-      } else if (containsClassFile(ar.getType)){
-        getFileType(ar.getType) match{
+      } else if (containsJawaClass(ar.getType)){
+        getClassType(ar.getType) match{
           case ClassCategory.APPLICATION => ar.setApplicationClass
-          case ClassCategory.THIRD_PARTY_LIBRARY => ar.setThirdPartyLibraryClass
+          case ClassCategory.USER_LIBRARY => ar.setUserLibraryClass
           case ClassCategory.SYSTEM_LIBRARY => ar.setSystemLibraryClass
         }
       } else {
         ar.setSystemLibraryClass
       }
-//      modifyHierarchy
+      modifyHierarchy
     }
   }
   
@@ -198,9 +214,9 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     else {
       this.classes -= ar.getType
       if(ar.isSystemLibraryClass) this.systemLibraryClasses -= ar.getType
-      else if(ar.isThirdPartyLibraryClass) this.thirdPartyLibraryClasses -= ar.getType
+      else if(ar.isUserLibraryClass) this.userLibraryClasses -= ar.getType
       else if(ar.isApplicationClass) this.applicationClasses -= ar.getType
-//      modifyHierarchy
+      modifyHierarchy
     }
   }
   
@@ -217,7 +233,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * current Global contains the given class or not
    */
-  def containsClass(typ: ObjectType) = this.classes.contains(typ)
+  def containsJawaClass(typ: ObjectType) = this.classes.contains(typ)
   
   /**
    * grab field from Global. Input example is java.lang.Throwable.stackState
@@ -227,7 +243,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
       val rName = getClassNameFromFieldFQN(fieldFQN)
       val rType: ObjectType = getTypeFromName(rName).asInstanceOf[ObjectType]
       val fName = getFieldNameFromFieldFQN(fieldFQN)
-      if(!containsClass(rType)) return None
+      if(!containsJawaClass(rType)) return None
       val r = getClass(rType).get
       if(!r.hasField(fName)) return None
       r.getField(fName)
@@ -247,7 +263,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   def getMethod(signature: Signature): Option[JawaMethod] = {
     val rType = signature.getClassType
     val subSig = signature.getSubSignature
-    if(!containsClass(rType)) return None
+    if(!containsJawaClass(rType)) return None
     val r = getClass(rType).get
     r.getMethod(subSig)
   }
@@ -411,24 +427,12 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
 //    }
 //  }
   
-  /**
-   * reset the current Global
-   */
-  def reset = {
-    this.classes.clear()
-    this.applicationClasses.clear()
-    this.systemLibraryClasses.clear()
-    this.thirdPartyLibraryClasses.clear()
-    this.entryPoints.clear()
-    this.hierarchy.reset
-  }
-  
   def printDetails = {
     println("***************Global***************")
     println("applicationClasses: " + getApplicationClasses)
-    println("thirdPartyLibraryClasses: " + getThirdPartyLibraryClasses)
+    println("userLibraryClasses: " + getUserLibraryClasses)
     println("systemLibraryClasses: " + getSystemLibraryClasses)
-    println("noCategorizedClasses: " + (getClasses -- getSystemLibraryClasses -- getThirdPartyLibraryClasses -- getApplicationClasses))
+    println("noCategorizedClasses: " + (getClasses -- getSystemLibraryClasses -- getUserLibraryClasses -- getApplicationClasses))
     println("entryPoints: " + getEntryPoints)
     println("hierarchy: " + getClassHierarchy)
     if(DEBUG){
@@ -496,7 +500,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   def resolveClassesRelationWholeProgram: Unit = {
     if(!isDirty) return
     val worklist: MList[JawaClass] = mlistEmpty
-    val files: MList[AbstractFile] = mlistEmpty
+    val myclasses: MList[MyClass] = mlistEmpty
     worklist ++= needToResolveExtends.keySet ++ needToResolveOuterClass.keySet
     do{
       val tmpList: MList[JawaClass] = mlistEmpty
@@ -511,15 +515,15 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
                 clazz.setOuterClass(outer)
                 if(!this.needToResolveOuterClass.contains(outer) || this.needToResolveExtends.contains(outer)) worklist += outer
               case None =>
-                if(containsClassFile(o)){
-                  val file = getClassFile(o)
-                  files += file
-                  tmpList += clazz
-                } else {
-                  this.needToResolveOuterClass -= clazz
-                  val unknownOut = resolveClass(o, ResolveLevel.HIERARCHY)
-                  addClassNotFound(o)
-                  clazz.setOuterClass(unknownOut)
+                getMyClass(o) match {
+                  case Some(mc) =>
+                    myclasses += mc
+                    tmpList += clazz
+                  case None =>
+                    this.needToResolveOuterClass -= clazz
+                    val unknownOut = resolveClass(o, ResolveLevel.HIERARCHY)
+                    addClassNotFound(o)
+                    clazz.setOuterClass(unknownOut)
                 }
             }
           case None =>
@@ -534,15 +538,15 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
                 else clazz.setSuperClass(parent)
                 if(!this.needToResolveExtends.contains(parent) || this.needToResolveOuterClass.contains(parent)) worklist += parent
               case None =>
-                if(containsClassFile(parType)){
-                  val file = getClassFile(parType)
-                  files += file
-                  tmpList += clazz
-                } else {
-                  resolved += parType
-                  val unknownSu = resolveClass(parType, ResolveLevel.HIERARCHY)
-                  addClassNotFound(parType)
-                  clazz.setSuperClass(unknownSu)
+                getMyClass(parType) match {
+                  case Some(mc) =>
+                    myclasses += mc
+                    tmpList += clazz
+                  case None =>
+                    resolved += parType
+                    val unknownSu = resolveClass(parType, ResolveLevel.HIERARCHY)
+                    addClassNotFound(parType)
+                    clazz.setSuperClass(unknownSu)
                 }
             }
         }
@@ -551,11 +555,10 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
         if(nre.isEmpty) this.needToResolveExtends -= clazz
       }
       worklist ++= tmpList
-      if(!files.isEmpty) {
-        val st = getCompilationUnitsSymbolResult(files.toList, ResolveLevel.HIERARCHY)
-        st.compilationUnitSymbolTables foreach (resolveFromST(_, ResolveLevel.HIERARCHY, true))
+      myclasses foreach {
+        resolveFromMyClass(_)
       }
-      files.clear()
+      myclasses.clear()
     } while(!worklist.isEmpty)
       
     getClasses.foreach{

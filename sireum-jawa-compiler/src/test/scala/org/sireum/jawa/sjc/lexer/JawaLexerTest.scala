@@ -4,7 +4,7 @@ import org.sireum.jawa._
 import org.sireum.jawa.sjc.lexer.Tokens._
 import org.scalatest._
 import java.io._
-import org.sireum.jawa.sjc.util.NoSourceFile
+import org.sireum.jawa.io.NoSourceFile
 import org.sireum.jawa.DefaultReporter
 
 class JawaLexerTest extends FlatSpec with ShouldMatchers {
@@ -138,23 +138,23 @@ println("foo")""" producesTokens (ID, LPAREN, STRING_LITERAL, RPAREN, WS, ID, LP
   }
 
 """
-record `com.ksu.passwordPassTest.MainActivity`  @type class @AccessFlag PUBLIC  extends `android.app.Activity` {
+record `com.ksu.passwordPassTest.MainActivity`  @kind class @AccessFlag PUBLIC  extends `android.app.Activity` @kind class {
       `android.widget.EditText` `com.ksu.passwordPassTest.MainActivity.editText`    @AccessFlag ;
       `android.widget.Button` `com.ksu.passwordPassTest.MainActivity.passButton`    @AccessFlag ;
    }
-    procedure `void` `com.ksu.passwordPassTest.MainActivity.<init>` (`com.ksu.passwordPassTest.MainActivity` v1 @type `this`) @owner `com.ksu.passwordPassTest.MainActivity` @signature `Lcom/ksu/passwordPassTest/MainActivity;.<init>:()V` @Access `PUBLIC_CONSTRUCTOR` {
+    procedure `void` `com.ksu.passwordPassTest.MainActivity.<init>` (`com.ksu.passwordPassTest.MainActivity` v1 @kind `this`) @owner `com.ksu.passwordPassTest.MainActivity` @signature `Lcom/ksu/passwordPassTest/MainActivity;.<init>:()V` @Access `PUBLIC_CONSTRUCTOR` {
       temp ;
         v0;
       
-#L047178.   v0:= 0I  @length `4`;
-#L04717a.   call temp:=  `android.app.Activity.<init>`(v1) @signature `Landroid/app/Activity;.<init>:()V` @classDescriptor `android.app.Activity` @type direct;
-#L047180.   v1.`com.ksu.passwordPassTest.MainActivity.editText`  := v0 @type `object`;
-#L047184.   v1.`com.ksu.passwordPassTest.MainActivity.passButton`  := v0 @type `object`;
+#L047178.   v0:= 0I  @kind int;
+#L04717a.   call temp:=  `android.app.Activity.<init>`(v1) @signature `Landroid/app/Activity;.<init>:()V` @classDescriptor `android.app.Activity` @kind direct;
+#L047180.   v1.`com.ksu.passwordPassTest.MainActivity.editText`  := v0 @kind object;
+#L047184.   v1.`com.ksu.passwordPassTest.MainActivity.passButton`  := v0 @kind object;
 #L047188.   return @void ;
 
    }
 """ producesTokens 
-  (WS, CLASS_OR_INTERFACE, WS, ID, WS, AT, ID, WS, ID, WS, AT, ID, WS, ID, WS, EXTENDS_AND_IMPLEMENTS, WS, ID, WS, LBRACE,
+  (WS, CLASS_OR_INTERFACE, WS, ID, WS, AT, ID, WS, ID, WS, AT, ID, WS, ID, WS, EXTENDS_AND_IMPLEMENTS, WS, ID, WS, AT, ID, WS, ID, WS, LBRACE,
    WS, ID, WS, ID, WS, AT, ID, WS, SEMI,
    WS, ID, WS, ID, WS, AT, ID, WS, SEMI,
    WS, RBRACE,

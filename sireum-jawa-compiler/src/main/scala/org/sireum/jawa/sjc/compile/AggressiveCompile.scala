@@ -5,10 +5,10 @@ import java.io.File
 import org.sireum.jawa.sjc.util.cp.Locate
 import org.sireum.jawa.Reporter
 import org.sireum.jawa.sjc.util.cp.ClasspathUtilities
-import org.sireum.jawa.log.Logger
 import org.sireum.jawa.sjc.compile.io.IO
 import org.sireum.jawa.sjc.compile.io.PathFinder
 import org.sireum.util._
+import org.sireum.jawa.sjc.log.Logger
 
 /**
  * @author fgwei

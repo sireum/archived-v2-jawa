@@ -14,15 +14,15 @@ import org.sireum.jawa.sjc.util.CaseClassReflector
 import org.sireum.util._
 import org.sireum.jawa.JawaType
 import org.sireum.jawa.JavaKnowledge
-import org.sireum.jawa.sjc.Signe
-import org.sireum.jawa.sjc.ctType
 import org.sireum.jawa.sjc.lexer.TokenType
 import org.sireum.jawa.sjc.lexer.Tokens
 import org.sireum.jawa.io.Range
-import org.sireum.jawa.sjc.util.Position
-import org.sireum.jawa.sjc.util.NoPosition
 import org.sireum.jawa.DefaultReporter
-import org.sireum.jawa.sjc.itiveType
+import org.sireum.jawa.ObjectType
+import org.sireum.jawa.io.NoPosition
+import org.sireum.jawa.io.Position
+import org.sireum.jawa.Signature
+import org.sireum.jawa.PrimitiveType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>

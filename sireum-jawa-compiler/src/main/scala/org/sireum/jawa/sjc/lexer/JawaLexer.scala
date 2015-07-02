@@ -14,13 +14,7 @@ import org.antlr.v4.runtime.{Token => AntlrToken}
 import org.sireum.jawa.sjc.lexer.Tokens._
 import java.net.URI
 import org.sireum.pilar.parser.Antlr4PilarLexer
-import org.sireum.jawa.sjc.util.RangePosition
-import org.sireum.jawa.sjc.io._
-import org.sireum.jawa.sjc.util.FgSourceFile
-import org.sireum.jawa.sjc.util.SourceFile
-import org.sireum.jawa.sjc.util.NoSourceFile
-import org.sireum.jawa.sjc.util.Position
-import org.sireum.jawa.sjc.util.NoFile
+import org.sireum.jawa.io._
 import org.sireum.jawa.Reporter
 
 class JawaLexer(aplexer: Antlr4PilarLexer, file: SourceFile, reporter: Reporter) extends Iterator[Token] {

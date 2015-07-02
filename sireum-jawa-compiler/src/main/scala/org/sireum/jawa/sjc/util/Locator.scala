@@ -2,6 +2,7 @@ package org.sireum.jawa.sjc.util
 
 import org.sireum.jawa.sjc.parser.JawaAstNode
 import org.sireum.jawa.sjc.parser.JawaSymbol
+import org.sireum.jawa.io.Position
 
 /** A locator for trees with given positions.
    *  Given a position `pos`, locator.apply returns

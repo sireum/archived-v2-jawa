@@ -12,6 +12,13 @@ import org.sireum.jawa.backend.JavaPlatform
 import org.sireum.jawa.classpath.Classpath
 import org.sireum.jawa.classpath.ClassFileLookup
 import org.sireum.jawa.classpath.FlatClasspath
+import org.sireum.jawa.classpath.ClassRepresentation
+import org.sireum.jawa.util.MyFileUtil
+import org.sireum.jawa.io.FgSourceFile
+import org.sireum.jawa.io.PlainFile
+import org.sireum.jawa.io.SourceFile
+import org.sireum.jawa.sourcefile.SourcefileParser
+import org.sireum.jawa.classfile.ClassfileParser
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -19,6 +26,40 @@ import org.sireum.jawa.classpath.FlatClasspath
 trait JawaClasspathManager extends JavaKnowledge { self: Global =>
   
   private final val TITLE = "JawaClasspathManager"
+  
+  /**
+   * load code from given root dir
+   */
+  def load(fileRootUri: FileResourceUri, ext: String, summary: LibraryAPISummary) = {
+    val fileUris = FileUtil.listFiles(fileRootUri, ext, true)
+    fileUris.foreach{
+      fileUri => 
+        val source = new FgSourceFile(new PlainFile(FileUtil.toFile(fileUri)))
+        val codes = source.getClassCodes
+        val classTypes: ISet[ObjectType] = codes.map{
+          code =>
+            val className = LightWeightPilarParser.getClassName(code)
+            JavaKnowledge.getTypeFromName(className).asInstanceOf[ObjectType]
+        }
+        classTypes.foreach {
+          typ =>
+            summary.isLibraryClass(typ) match {
+              case true => this.userLibraryClassCodes(typ) = source
+              case false => this.applicationClassCodes(typ) = source
+            }
+        }
+    }
+  }
+  
+  /**
+   * map from class name to pilar code of library. E.g. class type java.lang.Object to its file
+   */
+  protected val userLibraryClassCodes: MMap[ObjectType, SourceFile] = mmapEmpty
+  
+  /**
+   * map from class name to pilar code of app. E.g. record name java.lang.MyObject to its file
+   */
+  protected val applicationClassCodes: MMap[ObjectType, SourceFile] = mmapEmpty
   
   // platform specific elements
 
@@ -48,4 +89,69 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
 
   private def flatClassPath: FlatClasspath = platform.flatClassPath
   
+  protected val cachedClassRepresentation: MMap[ObjectType, ClassRepresentation] = mmapEmpty
+  
+  def containsClassFile(typ: ObjectType): Boolean = {
+    this.applicationClassCodes.contains(typ) ||
+    this.userLibraryClassCodes.contains(typ) ||
+    cachedClassRepresentation.contains(typ)  ||
+    {
+      classPath.findClass(typ.name) match {
+        case Some(c) =>
+          cachedClassRepresentation(typ) = c
+          true
+        case None =>
+          false
+      }
+    }
+  }
+  
+  def getMyClass(typ: ObjectType): Option[MyClass] = {
+    this.applicationClassCodes.get(typ) match {
+      case Some(asrc) =>
+        SourcefileParser.parse(asrc, ResolveLevel.HIERARCHY).get(typ)
+      case None =>
+        this.userLibraryClassCodes.get(typ) match {
+          case Some(usrc) =>
+            SourcefileParser.parse(usrc, ResolveLevel.HIERARCHY).get(typ)
+          case None =>
+            cachedClassRepresentation.get(typ) match {
+              case Some(cs) =>
+                ClassfileParser.parse(cs.binary.get).get(typ)
+              case None =>
+                {
+                  classPath.findClass(typ.name) match {
+                    case Some(c) =>
+                      cachedClassRepresentation(typ) = c
+                      ClassfileParser.parse(c.binary.get).get(typ)
+                    case None =>
+                      None
+                  }
+                }
+            }
+        }
+    }
+  }
+  
+  def getClassRepresentation(typ: ObjectType): Option[ClassRepresentation] = {
+    this.cachedClassRepresentation.get(typ) match {
+      case None =>
+        classPath.findClass(typ.name) match {
+          case Some(c) =>
+            cachedClassRepresentation(typ) = c
+            Some(c)
+          case None =>
+            None
+        }
+      case a => a
+    }
+  }
+  
+  protected[jawa] def processClassRepresentation(cr: ClassRepresentation) = {
+    cr.source match {
+      case Some(f) =>
+        println(f.text)
+      case None =>
+    }
+  }
 }

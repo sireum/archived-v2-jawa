@@ -7,9 +7,9 @@ import FileUtils.AbstractFileOps
  * Provides factory methods for flat classpath. When creating classpath instances for a given path,
  * it uses proper type of classpath depending on a types of particular files containing sources or classes.
  */
-class FlatClasspathFactory() extends ClasspathFactory[FlatClasspath] {
+class FlatClasspathFactory extends ClasspathFactory[FlatClasspath] {
 
-  override def newClassPath(file: AbstractFile): FlatClasspath =
+  override def newClasspath(file: AbstractFile): FlatClasspath =
     if (file.isJarOrZip)
       ZipAndJarFlatClasspathFactory.create(file)
     else if (file.isDirectory)

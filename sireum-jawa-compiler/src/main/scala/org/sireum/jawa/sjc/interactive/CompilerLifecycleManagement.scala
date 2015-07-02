@@ -1,19 +1,18 @@
 package org.sireum.jawa.sjc.interactive
 
 import org.sireum.util._
-import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.io.AbstractFile
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.SynchronizedSet
-import org.sireum.jawa.sjc.util.SourceFile
+import org.sireum.jawa.io.SourceFile
 import org.sireum.jawa.sjc.parser.JawaAstNode
-import org.sireum.jawa.sjc.util.Position
+import org.sireum.jawa.io.Position
 import scala.util.control.Breaks._
-import org.sireum.jawa.sjc.util.NoPosition
+import org.sireum.jawa.io.NoPosition
 import scala.annotation.elidable
 import org.sireum.jawa.sjc.parser.CompilationUnit
 import org.sireum.jawa.ResolveLevel
 import scala.collection.mutable
-import org.sireum.jawa.sjc.util.DefaultLibraryAPISummary
 
 trait CompilerLifecycleManagement {global: Global =>
   private final val SleepTime = 10

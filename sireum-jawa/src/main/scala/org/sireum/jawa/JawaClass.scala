@@ -512,9 +512,9 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
   def isSystemLibraryClass: Boolean = global.isSystemLibraryClasses(getType)
   
   /**
-   * is this class  a third party lib class
+   * is this class  a user lib class
    */
-  def isThirdPartyLibraryClass: Boolean = global.isThirdPartyLibraryClasses(getType)
+  def isUserLibraryClass: Boolean = global.isUserLibraryClasses(getType)
   
   
   /**
@@ -529,10 +529,10 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
   /**
    * set this class as a third party lib class
    */
-  def setThirdPartyLibraryClass = {
+  def setUserLibraryClass = {
     val c = global.getContainingSet(this)
     if(c != null) global.removeFromContainingSet(this)
-    global.addThirdPartyLibraryClass(this)
+    global.addUserLibraryClass(this)
   }
   
   /**

@@ -1,8 +1,9 @@
 package org.sireum.jawa.sjc.interactive
 
 import org.sireum.jawa.ReporterImpl
-import org.sireum.jawa.sjc.util.Position
+import org.sireum.jawa.io.Position
 import org.sireum.util._
+import org.sireum.jawa.Problem
 
 abstract class InteractiveReporter extends ReporterImpl {
 

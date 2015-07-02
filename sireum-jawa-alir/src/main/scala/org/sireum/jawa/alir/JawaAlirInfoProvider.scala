@@ -21,16 +21,13 @@ import org.sireum.pilar.ast.Model
 import org.sireum.jawa.symbolResolver.JawaSymbolTableBuilder
 import org.sireum.alir.AlirIntraProceduralGraph
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaReachingDefinitionAnalysis
-import org.sireum.jawa.GlobalConfig
-import org.sireum.jawa.Center
 import org.sireum.jawa.JawaMethod
 import org.sireum.jawa.JawaClass
-import org.sireum.jawa.util.StringFormConverter
-import org.sireum.jawa.Transform
 import org.sireum.pilar.ast.NameExp
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaDefRef
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaVarAccesses
 import org.sireum.jawa.alir.pta.ClassInstance
+import org.sireum.jawa.JawaResolver
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -117,17 +114,17 @@ object JawaAlirInfoProvider {
 	}
   
 	def getIntraMethodResult(code : String) : Map[ResourceUri, TransformIntraMethodResult] = {
-	  val newModel = Transform.parseCodes(Set(code))
+	  val newModel = JawaResolver.parseCodes(Set(code))
 	  doGetIntraMethodResult(newModel)
 	}
 	
 	def getIntraMethodResult(codes : Set[String]) : Map[ResourceUri, TransformIntraMethodResult] = {
-	  val newModel = Transform.parseCodes(codes)
+	  val newModel = JawaResolver.parseCodes(codes)
 	  doGetIntraMethodResult(newModel)
 	}
 	
 	private def doGetIntraMethodResult(model: Model) : Map[ResourceUri, TransformIntraMethodResult] = {
-	  val result = JawaSymbolTableBuilder(List(model), Transform.fst, GlobalConfig.jawaResolverParallel)
+	  val result = JawaSymbolTableBuilder(List(model), JawaResolver.fst, true)
 	  result.procedureSymbolTables.map{
 	    pst=>
 	      val (pool, cfg) = buildCfg(pst)

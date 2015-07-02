@@ -7,6 +7,8 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa
 
+import org.objectweb.asm.Opcodes
+
 /**
  * This object provides constants which represent pilar access flag; Some helper methods are also present.
  *
@@ -70,6 +72,94 @@ object AccessFlag{
   def isSynthetic(af : Int) : Boolean = (af & SYNTHETIC) != 0
   def isConstructor(af : Int) : Boolean = (af & CONSTRUCTOR) != 0
   def isDeclaredSynchronized(af : Int) : Boolean = (af & DECLARED_SYNCHRONIZED) != 0
+  
+  def getJavaFlags(af: Int): Int = {
+    var mod: Int = 0
+    if(isPrivate(af))
+      mod = mod | Opcodes.ACC_PRIVATE
+    else if (isProtected(af))
+      mod = mod | Opcodes.ACC_PROTECTED
+    else if (isPublic(af))
+      mod = mod | Opcodes.ACC_PUBLIC
+      
+    if(isAbstract(af))
+      mod = mod | Opcodes.ACC_ABSTRACT
+    if(isAnnotation(af))
+      mod = mod | Opcodes.ACC_ANNOTATION
+//    if(isConstructor(af))
+//      mod = mod | Opcodes.ACC_
+    if(isDeclaredSynchronized(af))
+      mod = mod | Opcodes.ACC_SYNCHRONIZED
+    if(isEnum(af))
+      mod = mod | Opcodes.ACC_ENUM
+    if(isFinal(af))
+      mod = mod | Opcodes.ACC_FINAL
+    if(isInterface(af))
+      mod = mod | Opcodes.ACC_INTERFACE
+    if(isNative(af))
+      mod = mod | Opcodes.ACC_NATIVE
+    if(isStatic(af))
+      mod = mod | Opcodes.ACC_STATIC
+    if(isStrictFP(af))
+      mod = mod | Opcodes.ACC_STRICT
+    if(isSynchronized(af))
+      mod = mod | Opcodes.ACC_SYNCHRONIZED
+    if(isSynthetic(af))
+      mod = mod | Opcodes.ACC_SYNTHETIC
+    if(isTransient(af))
+      mod = mod | Opcodes.ACC_TRANSIENT
+    if(isVolatile(af))
+      mod = mod | Opcodes.ACC_VOLATILE
+    mod
+  }
+  
+  object FlagKind extends Enumeration {
+    val CLASS, FIELD, METHOD = Value
+  }
+  
+  def getJawaFlags(jf: Int, kind: FlagKind.Value): Int = {
+    var mod: Int = 0
+    if((jf & Opcodes.ACC_PRIVATE) != 0)
+      mod = mod | PRIVATE
+    else if ((jf & Opcodes.ACC_PROTECTED) != 0)
+      mod = mod | PROTECTED
+    else if ((jf & Opcodes.ACC_PUBLIC) != 0)
+      mod = mod | PUBLIC
+      
+    kind match {
+      case FlagKind.METHOD =>
+        if((jf & Opcodes.ACC_SYNCHRONIZED) != 0)
+          mod = mod | SYNCHRONIZED
+      case FlagKind.FIELD =>
+        if((jf & Opcodes.ACC_VOLATILE) != 0)
+          mod = mod | VOLATILE
+        if((jf & Opcodes.ACC_TRANSIENT) != 0)
+          mod = mod | TRANSIENT
+      case _ =>
+    }
+      
+    if((jf & Opcodes.ACC_ABSTRACT) != 0)
+      mod = mod | ABSTRACT
+    if((jf & Opcodes.ACC_ANNOTATION) != 0)
+      mod = mod | ANNOTATION
+//    if(isConstructor(af))
+//      mod = mod | Opcodes.ACC_
+    if((jf & Opcodes.ACC_ENUM) != 0)
+      mod = mod | ENUM
+    if((jf & Opcodes.ACC_FINAL) != 0)
+      mod = mod | FINAL
+    if((jf & Opcodes.ACC_INTERFACE) != 0)
+      mod = mod | INTERFACE
+    if((jf & Opcodes.ACC_NATIVE) != 0)
+      mod = mod | NATIVE
+    if((jf & Opcodes.ACC_STATIC) != 0)
+      mod = mod | STATIC
+    if((jf & Opcodes.ACC_STRICT) != 0)
+      mod = mod | STRICTFP
+    if((jf & Opcodes.ACC_SYNTHETIC) != 0)
+      mod = mod | SYNTHETIC
+    mod
+  }
   
   def toString(af : Int) : String = {
     val sb = new StringBuffer

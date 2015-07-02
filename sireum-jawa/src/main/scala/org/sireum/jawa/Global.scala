@@ -20,4 +20,19 @@ class Global(val projectName: String, val reporter: Reporter) extends {
 } with JawaClassLoadManager
   with JawaClasspathManager{
   
+  /**
+   * reset the current Global
+   */
+  def reset = {
+    this.classes.clear()
+    this.applicationClasses.clear()
+    this.systemLibraryClasses.clear()
+    this.userLibraryClasses.clear()
+    this.entryPoints.clear()
+    this.hierarchy.reset
+    this.applicationClassCodes.clear()
+    this.userLibraryClassCodes.clear()
+    this.cachedClassRepresentation.clear()
+  }
+  
 }

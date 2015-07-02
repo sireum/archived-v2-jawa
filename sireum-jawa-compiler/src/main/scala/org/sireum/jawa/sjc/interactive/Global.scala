@@ -10,14 +10,15 @@ package org.sireum.jawa.sjc.interactive
 import org.sireum.util._
 import org.sireum.jawa.ResolveLevel
 import org.sireum.jawa.Reporter
-import org.sireum.jawa.sjc.util.NoPosition
-import org.sireum.jawa.sjc.util.Position
+import org.sireum.jawa.io.NoPosition
+import org.sireum.jawa.io.Position
 import scala.annotation.elidable
-import org.sireum.jawa.sjc.util.SourceFile
+import org.sireum.jawa.io.SourceFile
 import org.sireum.jawa.sjc.parser.JawaAstNode
 import org.sireum.jawa.sjc.parser.CompilationUnit
 import org.sireum.jawa.sjc.lexer.{Token => JawaToken}
 import org.sireum.jawa.sjc.parser.JawaSymbol
+import org.sireum.jawa.JawaClassLoadManager
 
 /**
  * This is the interactive compiler of Jawa.
@@ -32,7 +33,7 @@ class Global(val projectName: String, val reporter: Reporter) extends {
 } with RichCompilationUnits
   with CompilerLifecycleManagement
   with CompilerControl
-  with JawaClassLoadManager {
+  with JawaResolver{
   
   def logError(msg: String, t: Throwable): Unit = ()
   def inform(msg: String): Unit = ()
