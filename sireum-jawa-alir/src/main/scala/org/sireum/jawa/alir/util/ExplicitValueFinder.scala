@@ -44,7 +44,7 @@ object ExplicitValueFinder {
         if(varName.equals(slot.toString())){
           defDesc match {
             case ldd : LocDefDesc => 
-              val locDecl = procedure.getMethodBody.location(ldd.locIndex)
+              val locDecl = procedure.getBody.location(ldd.locIndex)
               findIntegerFromLocationDecl(varName, locDecl) match{
                 case Left(num) => nums += num
                 case Right(varn) => nums ++= traverseRdaToFindIntger(procedure, varn, locDecl, cfg, rda, resolvedStack ++ slots)
@@ -97,7 +97,7 @@ object ExplicitValueFinder {
 		          defDesc match {
 		            case ldd : LocDefDesc => 
 		              val node = cfg.getNode(ldd.locUri, ldd.locIndex)
-		              val locDecl = procedure.getMethodBody.location(ldd.locIndex)
+		              val locDecl = procedure.getBody.location(ldd.locIndex)
 		              getStringFromLocationDecl(locDecl) match{
 		                case Some(str) => strs += str
 		                case None => throw new RuntimeException("Cannot find intgerNumber for: " + varName + ".in:" + loc.name.get.uri)

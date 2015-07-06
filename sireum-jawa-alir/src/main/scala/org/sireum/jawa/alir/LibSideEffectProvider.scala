@@ -13,6 +13,7 @@ import java.io.FileInputStream
 import org.sireum.jawa.xml.AndroidXStream
 import org.sireum.util._
 import java.io.File
+import org.sireum.jawa.Signature
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -38,7 +39,7 @@ object LibSideEffectProvider {
   
   def isDefined : Boolean = ipsear != null
   
-  def getInfluencedFields(position : Int, calleeSig : String) : ISet[String] = {
+  def getInfluencedFields(position : Int, calleeSig : Signature) : ISet[String] = {
     require(isDefined)
     val resultopt = this.ipsear.result(calleeSig)
     resultopt match{

@@ -11,9 +11,10 @@ import org.sireum.jawa.JawaMethod
 import org.sireum.jawa.alir.pta.suspark.PointerAssignmentGraph
 import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
 import org.sireum.jawa.alir.pta.suspark.PtaNode
-import org.sireum.jawa.Center
 import org.sireum.jawa.alir.pta.suspark.InterproceduralSuperSpark
 import org.sireum.jawa.util.MyTimer
+import org.sireum.jawa.Global
+import org.sireum.util.ISet
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -21,29 +22,29 @@ import org.sireum.jawa.util.MyTimer
 object ReachabilityAnalysis {
   
   /**
-	 * Get all reachable procedures of given procedure set.
-	 * @param procedureUris Initial procedures set
-	 * @param wholeProgram Building call graph in whole program mode or not
-	 * @return Set of reachable procedure resource uris from initial set
-	 */
-	def getReachableMethods(procedures : Set[JawaMethod], timer : Option[MyTimer] = None) : Set[JawaMethod] = {
-    val idfg = InterproceduralSuperSpark(procedures, timer)
-    idfg.icfg.getCallGraph.getReachableMethods(procedures.map(_.getSignature)).map(Center.getMethodWithoutFailing(_))
-	}
-	
-	def getReachableMethodsBySBCG(procedures : Set[JawaMethod], wholeProcs : Set[JawaMethod], par : Boolean) : Set[JawaMethod] = {
-	  SignatureBasedCallGraph.getReachableMethods(procedures, wholeProcs, par)
-	}
-	
-	def getBackwardReachability(apiSigs : Set[String], par : Boolean) : Map[String, Set[JawaMethod]] = {
-	  BackwardCallChain.getReachableMethods(apiSigs, par)
-	}
-	
-	def getBackwardReachability(apiSig : String, par : Boolean) : Set[JawaMethod] = {
-	  BackwardCallChain.getReachableMethods(apiSig, par)
-	}
-	
-	def getBackwardReachabilityForSubSig(apiSubSig : String, par : Boolean) : Set[JawaMethod] = {
-	  BackwardCallChain.getReachableMethodsBySubSig(apiSubSig, par)
-	}
+   * Get all reachable procedures of given procedure set.
+   * @param procedureUris Initial procedures set
+   * @param wholeProgram Building call graph in whole program mode or not
+   * @return Set of reachable procedure resource uris from initial set
+   */
+  def getReachableMethods(global: Global, procedures: ISet[JawaMethod], timer: Option[MyTimer] = None): Set[JawaMethod] = {
+    val idfg = InterproceduralSuperSpark(global, procedures, timer)
+    idfg.icfg.getCallGraph.getReachableMethods(procedures.map(_.getSignature)).map(global.getMethod(_).get)
+  }
+
+//def getReachableMethodsBySBCG(procedures: Set[JawaMethod], wholeProcs: Set[JawaMethod], par: Boolean): Set[JawaMethod] = {
+//  SignatureBasedCallGraph.getReachableMethods(procedures, wholeProcs, par)
+//}
+//
+//def getBackwardReachability(apiSigs: Set[String], par: Boolean): Map[String, Set[JawaMethod]] = {
+//  BackwardCallChain.getReachableMethods(apiSigs, par)
+//}
+//
+//def getBackwardReachability(apiSig: String, par: Boolean): Set[JawaMethod] = {
+//  BackwardCallChain.getReachableMethods(apiSig, par)
+//}
+//
+//def getBackwardReachabilityForSubSig(apiSubSig: String, par: Boolean): Set[JawaMethod] = {
+//  BackwardCallChain.getReachableMethodsBySubSig(apiSubSig, par)
+//}
 }

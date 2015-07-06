@@ -1,6 +1,14 @@
 package org.sireum.jawa
 
-trait JawaElement {
+import org.sireum.util._
+
+trait JawaElement extends PropertyProvider {
+  
+  /**
+   * supply property
+   */
+  val propertyMap = mlinkedMapEmpty[Property.Key, Any]
+  
   def accessFlags: Int
   
   def getAccessFlags: Int = this.accessFlags

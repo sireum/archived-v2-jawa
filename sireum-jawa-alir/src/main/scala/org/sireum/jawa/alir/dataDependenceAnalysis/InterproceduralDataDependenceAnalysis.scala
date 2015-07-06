@@ -9,8 +9,6 @@ package org.sireum.jawa.alir.dataDependenceAnalysis
 
 import org.sireum.pilar.ast._
 import org.sireum.util._
-import org.sireum.jawa.Center
-import org.sireum.jawa.MessageCenter._
 import org.sireum.jawa.alir.pta.NullInstance
 import org.sireum.jawa.alir.pta.UnknownInstance
 import org.sireum.jawa.JawaMethod
@@ -24,7 +22,6 @@ import org.sireum.alir.DefDesc
 import org.sireum.jawa.alir.controlFlowGraph._
 import org.sireum.jawa.PilarAstHelper
 import org.sireum.alir.AlirEdge
-import org.sireum.jawa.util.StringFormConverter
 import org.sireum.jawa.alir.sideEffectAnalysis.InterProceduralSideEffectAnalysisResult
 import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.alir.interProcedural.InstanceCallee
@@ -76,12 +73,6 @@ object InterproceduralDataDependenceAnalysis {
 	  iddg.initGraph(icfg)
 	  iddg.nodes.foreach{
 	    node =>
-//        if(node.getContext.toString().contains("L026f28")){
-//          println("L151: " + ptaresult.getPTSMap(node.getContext))
-//          println(node.asInstanceOf[IDDGInvokeNode].getCalleeSet)
-//        }
-//        if(node.getContext.toString().contains("L047114")) println("L047114: " + ptaresult.getPTSMap(node.getContext))
-//        if(node.getContext.toString().contains("L026f42")) println("42: " + ptaresult.getPTSMap(node.getContext))
 	      val targetNodes : MSet[Node] = msetEmpty
 	      if(node != iddg.entryNode){
 	        node match{
@@ -91,7 +82,6 @@ object InterproceduralDataDependenceAnalysis {
 	            targetNodes ++= icfgTarN.map(n => iddg.findDefSite(n.getContext, en.position))
 	          case en : IDDGExitParamNode =>
 	            val icfgN = icfg.getICFGExitNode(en.getContext)
-	            val proc =  Center.getMethodWithoutFailing(icfgN.getOwner)
 	            val procName = en.paramName
 	            val irdaFacts = irdaResult(icfgN)
 	            targetNodes ++= searchRda(procName, en, irdaFacts, iddg)
@@ -124,7 +114,7 @@ object InterproceduralDataDependenceAnalysis {
 	            val ownerProc = Center.getMethodWithoutFailing(ln.getOwner)
 				      val loc = ownerProc.getMethodBody.location(ln.getLocIndex)
 				      val irdaFacts = irdaResult(icfgN)
-	    	      targetNodes ++= processLocation(node, loc, ptaresult, irdaFacts, iddg)
+	    	        targetNodes ++= processLocation(node, loc, ptaresult, irdaFacts, iddg)
 	          case a => 
 	        }
 	      }

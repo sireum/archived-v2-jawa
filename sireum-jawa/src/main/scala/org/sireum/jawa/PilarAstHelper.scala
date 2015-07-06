@@ -13,7 +13,7 @@ import org.sireum.pilar.ast._
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 object PilarAstHelper {
-	def getLHSs(a : PilarAstNode) : List[Exp] = {
+  def getLHSs(a : PilarAstNode) : List[Exp] = {
     var result = List[Exp]()
 
     def getLHSRec(e : Exp) : Unit =

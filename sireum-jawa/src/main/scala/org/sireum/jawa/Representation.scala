@@ -16,7 +16,7 @@ case class MyClass(
   protected[jawa] def addMethod(m: MyMethod) = this.methods :+= m
 }
 
-case class MyField(accessFlag: Int, FQN: String, typ: JawaType) {
+case class MyField(accessFlag: Int, FQN: FieldFQN, typ: JawaType) {
   
 }
 

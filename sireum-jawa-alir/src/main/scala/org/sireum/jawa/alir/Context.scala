@@ -7,6 +7,8 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa.alir
 
+import org.sireum.jawa.Signature
+
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
@@ -18,9 +20,9 @@ class Context(var k : Int){
     clone
   }
   def copy(c : Context) = this.callStack = c.getContext
-  private var callStack : List[(String, String)] = List()
+  private var callStack : List[(Signature, String)] = List()
   def length : Int = this.callStack.size
-  def setContext(pSig : String, loc : String) = {
+  def setContext(pSig : Signature, loc : String) = {
     if(length <= k){
       callStack = (pSig, loc) :: callStack
     } else {
@@ -58,7 +60,7 @@ class Context(var k : Int){
     this
   }
   
-  def getContext : List[(String, String)] = this.callStack
+  def getContext : List[(Signature, String)] = this.callStack
   def getLocUri : String = getContext(0)._2
   def getMethodSig = getContext(0)._1
   def isDiff(c : Context) : Boolean = !this.callStack.equals(c.getContext)
@@ -71,13 +73,10 @@ class Context(var k : Int){
     var sb = new StringBuilder
     this.callStack.foreach{
       case(sig, str) =>
-        if(sig.lastIndexOf('.') > 0 && sig.lastIndexOf(':') > 0)
-          sb.append("(" + sig.substring(sig.lastIndexOf('.') + 1, sig.lastIndexOf(':')))
-        else
-          sb.append("(" + sig)
+        sb.append("(" + sig.methodNamePart)
           
         if(str.lastIndexOf('.') > 0)
-        	sb.append("," + str.substring(sig.lastIndexOf('.') + 1, sig.lastIndexOf(':')) + ")")
+          sb.append("," + str.substring(str.lastIndexOf('.') + 1, str.lastIndexOf(':')) + ")")
         else sb.append("," + str + ")")
     }
     sb.toString.intern()

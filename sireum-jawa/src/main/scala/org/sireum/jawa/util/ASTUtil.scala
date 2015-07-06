@@ -10,6 +10,7 @@ package org.sireum.jawa.util
 import org.sireum.pilar.ast._
 import org.sireum.util._
 import org.sireum.jawa.Signature
+import org.sireum.jawa.FieldFQN
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -63,5 +64,9 @@ object ASTUtil {
         exp.name.name
       case _ => ""
     }
+  }
+  
+  def getFieldFQN(accessExp: AccessExp): FieldFQN = {
+    new FieldFQN(accessExp.attributeName.name)
   }
 }

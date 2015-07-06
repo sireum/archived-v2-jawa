@@ -16,12 +16,8 @@ import org.sireum.alir.Slot
 import org.sireum.pilar.symbol.H
 import org.sireum.alir.VarSlot
 import org.sireum.pilar.symbol.Symbol.pp2r
-import org.sireum.jawa.JawaCodeSource
-import org.sireum.jawa.Transform
-import org.sireum.jawa.Center
 import org.sireum.jawa.JawaResolver
-import org.sireum.jawa.util.StringFormConverter
-import org.sireum.jawa.MessageCenter._
+import org.sireum.jawa.JavaKnowledge
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -112,59 +108,13 @@ final class JawaDefRef(st: SymbolTable, val varAccesses: VarAccesses)
 
     strongDefinitions(a)
   }
-  
-  private def is(typ : String, annots : ISeq[Annotation]) : Boolean = {
-      annots.foreach(
-        annot => {
-          if(annot.name.name.equals(typ)){
-            return true
-          } else {
-            annot.params.foreach(
-              param =>{
-                if(param.isInstanceOf[ExpAnnotationParam]){
-                  param.asInstanceOf[ExpAnnotationParam].exp match {
-                    case exp : NameExp =>
-                      if(exp.name.name.equals(typ)){
-                        return true
-                      }
-                    case _ => 
-                  }
-                }
-              }
-            )
-          }
-          
-        }
-      )
-      return false
-    }
-
+    
   def strongDefinitions(a: Assignment): ISet[Slot] =
     defCache.getOrElseUpdate(a, {
       val lhss = PilarAstUtil.getLHSs(a)
       var result = isetEmpty[Slot]
-      def resolveNameExp(ne : NameExp) = {
-        var uri : ResourceUri = null
-        if(!ne.name.hasResourceInfo){
-          val recType = StringFormConverter.getClassTypeFromFieldSignature(ne.name.name)
-          val gf = Center.findField(recType, ne.name.name).getOrElse(throw new RuntimeException("cannot find field: " + ne.name.name))
-          Center.getGlobalVarUri(gf.getSignature) match{
-            case Some(u) => uri = u
-            case None =>
-          }
-          if(uri == null) err_msg_critical(TITLE, "global var " + ne.name.name + " cannot resolved.")
-        } else {
-          uri = ne.name.uri
-        }
-        if(uri != null) result += VarSlot(uri)
-      }
-      lhss.keys.foreach{
-        case key=>
-          key match{
-            case ne : NameExp =>
-              resolveNameExp(ne)
-            case _=>
-          }
+      for (ne @ NameExp(_) <- lhss.keys) {
+        result = result + VarSlot(ne.name.uri)
       }
       result
     })

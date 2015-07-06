@@ -16,6 +16,7 @@ import org.sireum.jawa.JawaType
 import org.sireum.jawa.MyField
 import org.sireum.jawa.MyMethod
 import org.sireum.jawa.MethodBody
+import org.sireum.jawa.FieldFQN
 
 /**
  * @author fgwei
@@ -63,7 +64,7 @@ class MySTVisitor {
         
         rd.attributes.foreach{
           field =>
-            val FQN: String = field.name.name
+            val FQN: FieldFQN = new FieldFQN(field.name.name)
             val accessFlag: Int = AccessFlag.getAccessFlags(ASTUtil.getAccessFlag(field))
             require(field.typeSpec.isDefined)
             var d = 0
@@ -86,7 +87,7 @@ class MySTVisitor {
   }
   
   private def createClassField(rec: MyClass): MyField = {
-    MyField(AccessFlag.getAccessFlags("FINAL_STATIC"), rec.typ.name + ".class", ObjectType("java.lang.Class", 0))
+    MyField(AccessFlag.getAccessFlags("FINAL_STATIC"), FieldFQN(rec.typ, "class"), ObjectType("java.lang.Class", 0))
   }
   
   /**
@@ -96,7 +97,7 @@ class MySTVisitor {
     val col: GenMap[ResourceUri, GlobalVarDecl] = if(par) stp.tables.globalVarTable.par else stp.tables.globalVarTable
     col.map{
       case (uri, gvd) =>
-        val FQN = gvd.name.name.replaceAll("@@", "") // e.g. @@java.lang.Enum.serialVersionUID
+        val FQN = new FieldFQN(gvd.name.name.replaceAll("@@", "")) // e.g. @@java.lang.Enum.serialVersionUID
         val accessFlag = AccessFlag.getAccessFlags(ASTUtil.getAccessFlag(gvd))
         require(gvd.typeSpec.isDefined)
         var d = 0
@@ -108,7 +109,7 @@ class MySTVisitor {
         require(tmpTs.isInstanceOf[NamedTypeSpec])
         val globalVarType: JawaType = JawaType.generateType(tmpTs.asInstanceOf[NamedTypeSpec].name.name, d)
         val f = MyField(accessFlag, FQN, globalVarType)
-        val ownerType = JavaKnowledge.getClassTypeFromFieldFQN(FQN)
+        val ownerType = FQN.owner
         val owner = this.classes(ownerType)
         owner.addField(f)
     }

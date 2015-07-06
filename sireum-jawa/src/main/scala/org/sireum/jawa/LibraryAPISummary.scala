@@ -15,7 +15,7 @@ trait LibraryAPISummary {
   /**
    * check given API name is present in library
    */
-	def isLibraryAPI(apiName : String): Boolean
+  def isLibraryAPI(apiName : String): Boolean
   
   def isLibraryClass(typ: ObjectType): Boolean
 }

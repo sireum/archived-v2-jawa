@@ -62,11 +62,11 @@ abstract class MethodGenerator(global: Global) {
   def setSubstituteClassMap(map: IMap[ObjectType, ObjectType]) = this.substituteClassMap = map
   
   /**
-	 * Registers a list of classes to be automatically scanned for Android
-	 * lifecycle methods
-	 * @param androidClasses The list of classes to be automatically scanned for
-	 * Android lifecycle methods
-	 */
+   * Registers a list of classes to be automatically scanned for Android
+   * lifecycle methods
+   * @param androidClasses The list of classes to be automatically scanned for
+   * Android lifecycle methods
+   */
   def setEntryPointClasses(classes: Set[ObjectType]) = {
     this.classes = classes
   }
@@ -85,31 +85,31 @@ abstract class MethodGenerator(global: Global) {
   }
   
   /**
-	 * Sets the list of callback functions to be integrated into the Android
-	 * lifecycle
-	 * @param callbackFunctions The list of callback functions to be integrated
-	 * into the Android lifecycle. This is a mapping from the Android element
-	 * class (activity, service, etc.) to the list of callback methods for that
-	 * element.
-	 */
-	def setCallbackFunctions(callbackFunctions: Map[ObjectType, Set[Signature]]) {
-		this.callbackFunctions = callbackFunctions
-	}
+   * Sets the list of callback functions to be integrated into the Android
+   * lifecycle
+   * @param callbackFunctions The list of callback functions to be integrated
+   * into the Android lifecycle. This is a mapping from the Android element
+   * class (activity, service, etc.) to the list of callback methods for that
+   * element.
+   */
+  def setCallbackFunctions(callbackFunctions: Map[ObjectType, Set[Signature]]) {
+    this.callbackFunctions = callbackFunctions
+  }
   
-	def generate(name: String): (JawaMethod, String) = {
-	  generate(List(), name)
-	}
+  def generate(name: String): (JawaMethod, String) = {
+    generate(List(), name)
+  }
   
-	/**
-	 * generate environment with predefined methods list
-	 */
+  /**
+   * generate environment with predefined methods list
+   */
   def generate(methods: List[String], name: String): (JawaMethod, String) = {
     val className = this.currentComponent.jawaName
     val methodName = className + "." + name
-	  val annotations = new ArrayList[ST]
-	  val signature = JavaKnowledge.genSignature(JavaKnowledge.formatTypeToSignature(this.currentComponent), name, "()V")
-	  initMethodHead("void", methodName, className, signature, "STATIC")
-	  val code = generateInternal(List())
+    val annotations = new ArrayList[ST]
+    val signature = JavaKnowledge.genSignature(JavaKnowledge.formatTypeToSignature(this.currentComponent), name, "()V")
+    initMethodHead("void", methodName, className, signature, "STATIC")
+    val code = generateInternal(List())
     global.reporter.echo(NoPosition, TITLE + " environment code:\n" + code)
     (global.resolveMethodCode(signature, code), code)
   }
@@ -117,23 +117,23 @@ abstract class MethodGenerator(global: Global) {
   def generateWithParam(params: List[JawaType], name: String): JawaMethod = {
     val className = this.currentComponent.jawaName
     val methodName = className + "." + name
-	  val annotations = new ArrayList[ST]
+    val annotations = new ArrayList[ST]
     var parSigStr: String = ""
     params.foreach{param => parSigStr += JavaKnowledge.formatTypeToSignature(param)}
-	  val signature = JavaKnowledge.genSignature(JavaKnowledge.formatTypeToSignature(this.currentComponent), name, "(" + parSigStr+ ")V")
+    val signature = JavaKnowledge.genSignature(JavaKnowledge.formatTypeToSignature(this.currentComponent), name, "(" + parSigStr+ ")V")
 
-	  initMethodHead("void", methodName, className, signature, "STATIC")
+  initMethodHead("void", methodName, className, signature, "STATIC")
     val paramArray = new ArrayList[ST]
     params.indices.foreach{
       i =>
         val paramVar = template.getInstanceOf("ParamVar")
-			  val p = varGen.generate(params(i))
-			  localVarsForClasses += (params(i) -> p)
-			  paramVar.add("typ", params(i))
-			  paramVar.add("name", p)
-			  val annot = generateExpAnnotation("type", List("object"))
-			  paramVar.add("annotations", new ArrayList[ST](Arrays.asList(annot)))
-			  paramArray.add(i, paramVar)
+        val p = varGen.generate(params(i))
+        localVarsForClasses += (params(i) -> p)
+        paramVar.add("typ", params(i))
+        paramVar.add("name", p)
+        val annot = generateExpAnnotation("type", List("object"))
+        paramVar.add("annotations", new ArrayList[ST](Arrays.asList(annot)))
+        paramArray.add(i, paramVar)
     }
     procDeclTemplate.add("params", paramArray)
     val code = generateInternal(List())
@@ -146,90 +146,90 @@ abstract class MethodGenerator(global: Global) {
     val paramArray = new ArrayList[String]
     params.foreach(param => paramArray.add(param))
     val annot = template.getInstanceOf("annotationWithParam")
-	  annot.add("flag", flag)
-	  annot.add("params", paramArray)
+    annot.add("flag", flag)
+    annot.add("params", paramArray)
   }
   
   protected def generateExpAnnotation(flag: String, exps: List[String]): ST = {
     val expArray = new ArrayList[String]
     exps.foreach(exp => expArray.add(exp))
     val annot = template.getInstanceOf("annotationWithExp")
-	  annot.add("flag", flag)
-	  annot.add("exps", expArray)
+    annot.add("flag", flag)
+    annot.add("exps", expArray)
   }
   
   protected def initMethodHead(retTyp: String, methodName: String, owner: String, signature: Signature, access: String) = {
-	  procDeclTemplate.add("retTyp", retTyp)
-	  procDeclTemplate.add("procedureName", methodName)
-	  val annotations = new ArrayList[ST]
-	  annotations.add(generateExpAnnotation("owner", List(owner)))
-	  annotations.add(generateExpAnnotation("signature", List(signature.signature)))
-	  annotations.add(generateExpAnnotation("Access", List(access)))
-	  procDeclTemplate.add("annotations", annotations)
+    procDeclTemplate.add("retTyp", retTyp)
+    procDeclTemplate.add("procedureName", methodName)
+    val annotations = new ArrayList[ST]
+    annotations.add(generateExpAnnotation("owner", List(owner)))
+    annotations.add(generateExpAnnotation("signature", List(signature.signature)))
+    annotations.add(generateExpAnnotation("Access", List(access)))
+    procDeclTemplate.add("annotations", annotations)
   }
-	
-	def generateInternal(methods: List[String]): String
-	
-	protected def generateBody(): ArrayList[String] = {
-	  val body: ArrayList[String] = new ArrayList[String]
-	  for(i <- 0 to codeFragments.size() - 1){
-	    body.add(i, codeFragments.get(i).generate)
-	  }
-	  body
-	}
-	
-	protected def generateInstanceCreation(classType: ObjectType, codefg: CodeFragmentGenerator): String = {
-	  val rhs =
-		  if(classType.jawaName == "java.lang.String"){
-		    val stringAnnot = generateExpAnnotation("type", List("object"))
-		    "\"\" " + stringAnnot.render() 
-		  } else {
-			  val newExp = template.getInstanceOf("NewExp")
-			  newExp.add("name", classType.jawaName)
-			  newExp.render()
-		  }
-	  val va = varGen.generate(classType)
-	  val variable = template.getInstanceOf("LocalVar")
-	  variable.add("typ", classType.jawaName)
-	  variable.add("name", va)
-	  localVars.add(variable.render())
-	  val asmt = template.getInstanceOf("AssignmentStmt")
-	  asmt.add("lhs", va)
-	  asmt.add("rhs", rhs)
-	  codefg.setCode(asmt)
-	  va
-	}
 
-	
-	def generateClassConstructor(r: JawaClass, constructionStack: MSet[JawaClass], codefg: CodeFragmentGenerator): Signature = {
-	  constructionStack.add(r)
-	  val ps = r.getMethods
-	  var cons: Signature = null
-	  val conMethods = ps.filter(p => p.isConstructor && !p.isStatic && !p.getParamTypes.contains(ObjectType("java.lang.Class", 0)))
-	  if(!conMethods.isEmpty){
-	    val p = conMethods.minBy(_.getParamTypes.size)
-	  	cons = p.getSignature
-	  }
-	  if(cons != null){
-	    generateMethodCall(cons, "direct", localVarsForClasses(r.getType), constructionStack, codefg)
-	  } else {
-	    global.reporter.warning(NoPosition, TITLE + ", cannot find constructor for " + r)
-	  }
-	  cons
-	}
-	
-	
-	protected def generateMethodCall(pSig: Signature, typ: String, localClassVar: String, constructionStack: MSet[JawaClass], codefg: CodeFragmentGenerator): Unit = {
+  def generateInternal(methods: List[String]): String
+
+  protected def generateBody(): ArrayList[String] = {
+    val body: ArrayList[String] = new ArrayList[String]
+    for(i <- 0 to codeFragments.size() - 1){
+      body.add(i, codeFragments.get(i).generate)
+    }
+    body
+  }
+
+  protected def generateInstanceCreation(classType: ObjectType, codefg: CodeFragmentGenerator): String = {
+    val rhs =
+      if(classType.jawaName == "java.lang.String"){
+        val stringAnnot = generateExpAnnotation("type", List("object"))
+        "\"\" " + stringAnnot.render() 
+      } else {
+        val newExp = template.getInstanceOf("NewExp")
+        newExp.add("name", classType.jawaName)
+        newExp.render()
+      }
+    val va = varGen.generate(classType)
+    val variable = template.getInstanceOf("LocalVar")
+    variable.add("typ", classType.jawaName)
+    variable.add("name", va)
+    localVars.add(variable.render())
+    val asmt = template.getInstanceOf("AssignmentStmt")
+    asmt.add("lhs", va)
+    asmt.add("rhs", rhs)
+    codefg.setCode(asmt)
+    va
+  }
+
+
+  def generateClassConstructor(r: JawaClass, constructionStack: MSet[JawaClass], codefg: CodeFragmentGenerator): Signature = {
+    constructionStack.add(r)
+    val ps = r.getMethods
+    var cons: Signature = null
+    val conMethods = ps.filter(p => p.isConstructor && !p.isStatic && !p.getParamTypes.contains(ObjectType("java.lang.Class", 0)))
+    if(!conMethods.isEmpty){
+      val p = conMethods.minBy(_.getParamTypes.size)
+      cons = p.getSignature
+    }
+    if(cons != null){
+      generateMethodCall(cons, "direct", localVarsForClasses(r.getType), constructionStack, codefg)
+    } else {
+      global.reporter.warning(NoPosition, TITLE + ", cannot find constructor for " + r)
+    }
+    cons
+  }
+
+
+  protected def generateMethodCall(pSig: Signature, typ: String, localClassVar: String, constructionStack: MSet[JawaClass], codefg: CodeFragmentGenerator): Unit = {
     val paramNum = pSig.getParameterNum
     val params = pSig.getObjectParameters
     var paramVars: Map[Int, String] = Map()
     params.foreach{
-	    case(i, param) =>
-        var r = global.resolveClass(param, ResolveLevel.HIERARCHY)
+      case(i, param) =>
+        var r = global.resolveToHierarchy(param)
         val outterClassOpt = if(r.isInnerClass) Some(r.getOuterClass) else None
         if(!r.isConcrete){
           var substClassName = this.substituteClassMap.getOrElse(r.getType, null)
-          if(substClassName != null) r = global.resolveClass(substClassName, ResolveLevel.HIERARCHY)
+          if(substClassName != null) r = global.resolveToHierarchy(substClassName)
           else if(r.isInterface) global.getClassHierarchy.getAllImplementersOf(r).foreach(i => if(constructionStack.contains(i)) r = i)
           else if(r.isAbstract) global.getClassHierarchy.getAllSubClassesOf(r).foreach(s => if(s.isConcrete && constructionStack.contains(s)) r = s)
         }
@@ -240,8 +240,8 @@ abstract class MethodGenerator(global: Global) {
           paramVars += (i -> va)
           global.reporter.error(NoPosition, TITLE + ", Cannot create valid constructer for " + r + ", because it is " + r.getAccessFlagsStr + " and cannot find substitute.")
         } else if(!constructionStack.contains(r)){
-				  val va = generateInstanceCreation(r.getType, codefg)
-				  localVarsForClasses += (r.getType -> va)
+          val va = generateInstanceCreation(r.getType, codefg)
+          localVarsForClasses += (r.getType -> va)
           paramVars += (i -> va)
           generateClassConstructor(r, constructionStack, codefg)
         } else {
@@ -268,174 +268,173 @@ abstract class MethodGenerator(global: Global) {
     }
     invokeStmt.add("params", finalParamVars)
     val annotations = new ArrayList[ST]
-	  annotations.add(generateExpAnnotation("signature", List(pSig.signature)))
-	  annotations.add(generateExpAnnotation("type", List(typ)))
+    annotations.add(generateExpAnnotation("signature", List(pSig.signature)))
+    annotations.add(generateExpAnnotation("type", List(typ)))
     invokeStmt.add("annotations", annotations)
     codefg.setCode(invokeStmt)
-	}
-	
-	protected def generateCallToAllCallbacks(callbackClass: JawaClass, callbackMethods: Set[JawaMethod], classLocalVar: String, codefg: CodeFragmentGenerator) = {
-	  var oneCallBackFragment = codefg
-	  callbackMethods.foreach{
-	    callbackMethod =>
-	      val pSig = callbackMethod.getSignature
-	      val thenStmtFragment = new CodeFragmentGenerator
-	      createIfStmt(thenStmtFragment, oneCallBackFragment)
-	      val elseStmtFragment = new CodeFragmentGenerator
-	      createGotoStmt(elseStmtFragment, oneCallBackFragment)
-	      thenStmtFragment.addLabel
-	      codeFragments.add(thenStmtFragment)
-	      generateMethodCall(pSig, "virtual", classLocalVar, msetEmpty + callbackClass, thenStmtFragment)
-	      elseStmtFragment.addLabel
-	      codeFragments.add(elseStmtFragment)
-	      oneCallBackFragment = new CodeFragmentGenerator
-		    oneCallBackFragment.addLabel
-		    codeFragments.add(oneCallBackFragment)
-	  }
-	}
-	
-	protected def searchAndBuildMethodCall(subsignature: String, clazz: JawaClass, entryPoints: MList[Signature], constructionStack: MSet[JawaClass], codefg: CodeFragmentGenerator) = {
-	  val apopt = findMethod(clazz, subsignature)
-	  apopt match{
-	    case Some(ap) =>
-	      entryPoints -= ap.getSignature
-		    assert(ap.isStatic || localVarsForClasses(clazz.getType) != null)
-		    generateMethodCall(ap.getSignature, "virtual", localVarsForClasses(clazz.getType), constructionStack, codefg)
-	    case None =>
-	      global.reporter.error(NoPosition, TITLE + ", Could not find entry point method: " + subsignature)
-	      null
-	  }
-	}
-	
-	/**
-	 * Generates invocation statements for all callback methods which need to be invoked during the give clazz's run cycle.
-	 * @param rUri Current clazz resource uri which under process
-	 * @param classLocalVar The local variable fro current clazz
-	 */
-	protected def addCallbackMethods(clazz: JawaClass, parentClassLocalVar: String, codefg: CodeFragmentGenerator): Unit = {
-	  if(!this.callbackFunctions.contains(clazz.getType)) return
-	  var callbackClasses: Map[JawaClass, ISet[JawaMethod]] = Map()
+  }
+
+  protected def generateCallToAllCallbacks(callbackClass: JawaClass, callbackMethods: Set[JawaMethod], classLocalVar: String, codefg: CodeFragmentGenerator) = {
+    var oneCallBackFragment = codefg
+    callbackMethods.foreach{
+      callbackMethod =>
+        val pSig = callbackMethod.getSignature
+        val thenStmtFragment = new CodeFragmentGenerator
+        createIfStmt(thenStmtFragment, oneCallBackFragment)
+        val elseStmtFragment = new CodeFragmentGenerator
+        createGotoStmt(elseStmtFragment, oneCallBackFragment)
+        thenStmtFragment.addLabel
+        codeFragments.add(thenStmtFragment)
+        generateMethodCall(pSig, "virtual", classLocalVar, msetEmpty + callbackClass, thenStmtFragment)
+        elseStmtFragment.addLabel
+        codeFragments.add(elseStmtFragment)
+        oneCallBackFragment = new CodeFragmentGenerator
+        oneCallBackFragment.addLabel
+        codeFragments.add(oneCallBackFragment)
+    }
+  }
+
+  protected def searchAndBuildMethodCall(subsignature: String, clazz: JawaClass, entryPoints: MList[Signature], constructionStack: MSet[JawaClass], codefg: CodeFragmentGenerator) = {
+    val apopt = findMethod(clazz, subsignature)
+    apopt match{
+      case Some(ap) =>
+        entryPoints -= ap.getSignature
+        assert(ap.isStatic || localVarsForClasses(clazz.getType) != null)
+        generateMethodCall(ap.getSignature, "virtual", localVarsForClasses(clazz.getType), constructionStack, codefg)
+      case None =>
+        global.reporter.error(NoPosition, TITLE + ", Could not find entry point method: " + subsignature)
+        null
+    }
+  }
+
+  /**
+   * Generates invocation statements for all callback methods which need to be invoked during the give clazz's run cycle.
+   * @param rUri Current clazz resource uri which under process
+   * @param classLocalVar The local variable fro current clazz
+   */
+  protected def addCallbackMethods(clazz: JawaClass, parentClassLocalVar: String, codefg: CodeFragmentGenerator): Unit = {
+    if(!this.callbackFunctions.contains(clazz.getType)) return
+    var callbackClasses: Map[JawaClass, ISet[JawaMethod]] = Map()
     this.callbackFunctions(clazz.getType).map{
-	    case (pSig) => 
-	      val theClass = global.resolveClass(pSig.getClassType, ResolveLevel.BODY)
-	      val theMethod = findMethod(theClass, pSig.getSubSignature)
-	      theMethod match {
-	        case Some(method) =>
-			      callbackClasses += (theClass -> (callbackClasses.getOrElse(theClass, isetEmpty) + method))
-	        case None =>
-	          global.reporter.error(NoPosition, TITLE + ", Could not find callback method " + pSig)
-	      }
-	  }
-	  var oneCallBackFragment = codefg
-		callbackClasses.foreach{
-		  case(callbackClass, callbackMethods) =>
-		    
-		    val classLocalVar: String =
-		      if(isCompatible(clazz, callbackClass)) parentClassLocalVar
-		      // create a new instance of this class
-		      else if(callbackClass.isConcrete){
-			      val va = generateInstanceCreation(callbackClass.getType, oneCallBackFragment)
-		        this.localVarsForClasses += (callbackClass.getType -> va)
-		        generateClassConstructor(callbackClass, msetEmpty +clazz, oneCallBackFragment)
-		        va
-		      } else null
-		    if(classLocalVar != null){
-		      // build the calls to all callback methods in this clazz
-		      generateCallToAllCallbacks(callbackClass, callbackMethods, classLocalVar, oneCallBackFragment)
-		    } else {
-		      global.reporter.error(NoPosition, TITLE + ", Constructor cannot be generated for callback class " + callbackClass)
-		    }
-		    oneCallBackFragment = new CodeFragmentGenerator
-		    oneCallBackFragment.addLabel
-		    codeFragments.add(oneCallBackFragment)
-		}
-	}
-	
-	protected def isCompatible(actual: JawaClass, expected: JawaClass): Boolean = {
-	  var act: JawaClass = actual
-	  while(act != null){
-	    if(act.getName.equals(expected.getName))
-	      return true
-	    if(expected.isInterface)
-	      act.getInterfaces.foreach{int => if(int.getName.equals(expected.getName)) return true}
-	    if(!act.hasSuperClass)
-	      act = null
-	    else act = act.getSuperClass.get
-	  }
-	  false
-	}
-	
-	protected def createIfStmt(targetfg: CodeFragmentGenerator, codefg: CodeFragmentGenerator) = {
-	  val target = targetfg.getLabel
-	  if(target != null){
-	    val condExp = template.getInstanceOf("CondExp")
+      case (pSig) => 
+        val theClass = global.resolveToHierarchy(pSig.getClassType)
+        val theMethod = findMethod(theClass, pSig.getSubSignature)
+        theMethod match {
+          case Some(method) =>
+            callbackClasses += (theClass -> (callbackClasses.getOrElse(theClass, isetEmpty) + method))
+          case None =>
+            global.reporter.error(NoPosition, TITLE + ", Could not find callback method " + pSig)
+        }
+    }
+    var oneCallBackFragment = codefg
+    callbackClasses.foreach{
+      case(callbackClass, callbackMethods) =>
+        val classLocalVar: String =
+          if(isCompatible(clazz, callbackClass)) parentClassLocalVar
+          // create a new instance of this class
+          else if(callbackClass.isConcrete){
+          val va = generateInstanceCreation(callbackClass.getType, oneCallBackFragment)
+            this.localVarsForClasses += (callbackClass.getType -> va)
+            generateClassConstructor(callbackClass, msetEmpty +clazz, oneCallBackFragment)
+            va
+          } else null
+        if(classLocalVar != null){
+          // build the calls to all callback methods in this clazz
+          generateCallToAllCallbacks(callbackClass, callbackMethods, classLocalVar, oneCallBackFragment)
+        } else {
+          global.reporter.error(NoPosition, TITLE + ", Constructor cannot be generated for callback class " + callbackClass)
+        }
+        oneCallBackFragment = new CodeFragmentGenerator
+        oneCallBackFragment.addLabel
+        codeFragments.add(oneCallBackFragment)
+    }
+  }
+
+  protected def isCompatible(actual: JawaClass, expected: JawaClass): Boolean = {
+    var act: JawaClass = actual
+    while(act != null){
+      if(act.getName.equals(expected.getName))
+        return true
+      if(expected.isInterface)
+        act.getInterfaces.foreach{int => if(int.getName.equals(expected.getName)) return true}
+      if(!act.hasSuperClass)
+        act = null
+      else act = act.getSuperClass.get
+    }
+    false
+  }
+
+  protected def createIfStmt(targetfg: CodeFragmentGenerator, codefg: CodeFragmentGenerator) = {
+    val target = targetfg.getLabel
+    if(target != null){
+      val condExp = template.getInstanceOf("CondExp")
       condExp.add("lhs", "RandomCoinToss")
       condExp.add("rhs", "head")
       val ifStmt = template.getInstanceOf("IfStmt")
       ifStmt.add("cond", condExp)
       ifStmt.add("label", target)
       codefg.setCode(ifStmt)
-	  }
-	}
-	
-	protected def createGotoStmt(targetfg: CodeFragmentGenerator, codefg: CodeFragmentGenerator) = {
-	  val target = targetfg.getLabel
-	  if(target != null){
+    }
+  }
+
+  protected def createGotoStmt(targetfg: CodeFragmentGenerator, codefg: CodeFragmentGenerator) = {
+    val target = targetfg.getLabel
+    if(target != null){
       val gotoStmt = template.getInstanceOf("GotoStmt")
       gotoStmt.add("label", target)
       codefg.setCode(gotoStmt)
-	  }
-	}
-	
-	protected def createReturnStmt(variable: String, codefg: CodeFragmentGenerator) = {
-	  val returnStmt = template.getInstanceOf("ReturnStmt")
-      returnStmt.add("variable", variable)
-      codefg.setCode(returnStmt)
-	}
-	
-	protected def createFieldSetStmt(base: String, field: String, rhs: String, annoTyps: List[String], codefg: CodeFragmentGenerator) = {
+    }
+  }
+
+  protected def createReturnStmt(variable: String, codefg: CodeFragmentGenerator) = {
+    val returnStmt = template.getInstanceOf("ReturnStmt")
+    returnStmt.add("variable", variable)
+    codefg.setCode(returnStmt)
+  }
+
+  protected def createFieldSetStmt(base: String, field: String, rhs: String, annoTyps: List[String], codefg: CodeFragmentGenerator) = {
     val mBaseField = template.getInstanceOf("FieldAccessExp")
-	  mBaseField.add("base", base)
-	  mBaseField.add("field", field)
-	  val asmt = template.getInstanceOf("AssignmentStmt")
-	  asmt.add("lhs", mBaseField)
-	  asmt.add("rhs", rhs)
-	  val annos = generateExpAnnotation("type", annoTyps)
-	  asmt.add("annotations", annos)
-	  codefg.setCode(asmt)
-	}
-	
-	protected class CodeFragmentGenerator {
-	  protected val codeFragment = template.getInstanceOf("CodeFragment")
-	  protected val codes: ArrayList[ST] = new ArrayList[ST]
-	  protected var label = template.getInstanceOf("Label")
-	  
-	  def addLabel() = {
-	    label.add("num", conditionCounter)
-	    codeFragment.add("label", label)
-	    conditionCounter += 1
-	  }
-	  def getLabel(): ST = label
-	  def setCode(code: ST) = {
-	    codes.add(code)
-	  }
-	  def generate(): String = {
-	    val finalCodes = new ArrayList[ST]
-	    for(i <- 0 to codes.size - 1){
-	      val code = template.getInstanceOf("Code")
-	      code.add("num", codeCounter)
-	      codeCounter += 1
-	      code.add("code", codes.get(i))
-	      finalCodes.add(i, code)
-	    }
-	    codeFragment.add("codes", finalCodes)
-	    codeFragment.render()
-	  }
-	}
-	
-	protected def findMethod(currentClass: JawaClass, subSig: String): Option[JawaMethod] = {
-	  if(currentClass.declaresMethod(subSig)) currentClass.getMethod(subSig)
-	  else if(currentClass.hasSuperClass) findMethod(currentClass.getSuperClass.get, subSig)
-	  else None
-	}
+    mBaseField.add("base", base)
+    mBaseField.add("field", field)
+    val asmt = template.getInstanceOf("AssignmentStmt")
+    asmt.add("lhs", mBaseField)
+    asmt.add("rhs", rhs)
+    val annos = generateExpAnnotation("type", annoTyps)
+    asmt.add("annotations", annos)
+    codefg.setCode(asmt)
+  }
+
+  protected class CodeFragmentGenerator {
+    protected val codeFragment = template.getInstanceOf("CodeFragment")
+    protected val codes: ArrayList[ST] = new ArrayList[ST]
+    protected var label = template.getInstanceOf("Label")
+    
+    def addLabel() = {
+      label.add("num", conditionCounter)
+      codeFragment.add("label", label)
+      conditionCounter += 1
+    }
+    def getLabel(): ST = label
+    def setCode(code: ST) = {
+      codes.add(code)
+    }
+    def generate(): String = {
+      val finalCodes = new ArrayList[ST]
+      for(i <- 0 to codes.size - 1){
+        val code = template.getInstanceOf("Code")
+        code.add("num", codeCounter)
+        codeCounter += 1
+        code.add("code", codes.get(i))
+        finalCodes.add(i, code)
+      }
+      codeFragment.add("codes", finalCodes)
+      codeFragment.render()
+    }
+  }
+
+  protected def findMethod(currentClass: JawaClass, subSig: String): Option[JawaMethod] = {
+    if(currentClass.declaresMethod(subSig)) currentClass.getMethod(subSig)
+    else if(currentClass.hasSuperClass) findMethod(currentClass.getSuperClass.get, subSig)
+    else None
+  }
 }

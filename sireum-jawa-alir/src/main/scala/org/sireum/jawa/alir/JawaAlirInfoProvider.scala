@@ -28,6 +28,8 @@ import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaDefRef
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaVarAccesses
 import org.sireum.jawa.alir.pta.ClassInstance
 import org.sireum.jawa.JawaResolver
+import org.sireum.jawa.Global
+import org.sireum.jawa.ObjectType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -40,22 +42,6 @@ object JawaAlirInfoProvider {
   
   //for building cfg
   type VirtualLabel = String
-  
-  val ERROR_TAG_TYPE = MarkerType(
-  "org.sireum.pilar.tag.error.symtab",
-  None,
-  "Pilar Symbol Resolution Error",
-  MarkerTagSeverity.Error,
-  MarkerTagPriority.Normal,
-  ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
-  
-  val WARNING_TAG_TYPE = MarkerType(
-  "org.sireum.pilar.tag.error.symtab",
-  None,
-  "Pilar Symbol Resolution Warning",
-  MarkerTagSeverity.Warning,
-  MarkerTagPriority.Normal,
-  ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
   
   var dr : SymbolTable => DefRef = { st => new JawaDefRef(st, new JawaVarAccesses(st)) }
   
@@ -71,35 +57,33 @@ object JawaAlirInfoProvider {
     this.dr = dr
   }
   
-  def getExceptionName(cc : CatchClause) : String = {
+  protected[jawa] def getExceptionType(cc : CatchClause) : ObjectType = {
     require(cc.typeSpec.isDefined)
     require(cc.typeSpec.get.isInstanceOf[NamedTypeSpec])
-    cc.typeSpec.get.asInstanceOf[NamedTypeSpec].name.name
+    val name = cc.typeSpec.get.asInstanceOf[NamedTypeSpec].name.name
+    new ObjectType(name)
   }
   
   //for building cfg
-  val siff : ControlFlowGraph.ShouldIncludeFlowFunction =
+  def siff(global: Global) : ControlFlowGraph.ShouldIncludeFlowFunction =
     { (loc, catchclauses) => 
       	var result = isetEmpty[CatchClause]
-      	val thrownExcNames = ExceptionCenter.getExceptionsMayThrow(loc)
-      	if(thrownExcNames.forall(_ != ExceptionCenter.ANY_EXCEPTION)){
-	      	thrownExcNames.foreach{
-	      	  thrownException=>
-//	      	    val ccOpt = 
-//		      	    catchclauses.find{
-//				          catchclause =>
-//				            val excName = if(getExceptionName(catchclause) == ExceptionCenter.ANY_EXCEPTION) "java.lang.Throwable" else getExceptionName(catchclause)
-////				            val exc = Center.resolveClass(excName, Center.ResolveLevel.HIERARCHY)
-//				          	 
-//		      	    }
-//	      	    ccOpt match{
-//	      	      case Some(cc) => result += cc
-//	      	      case None =>
-//	      	    }
-             result ++= catchclauses
-	      	}
-      	} else {
-      	  result ++= catchclauses
+      	val thrownExcs = ExceptionCenter.getExceptionsMayThrow(loc)
+      	thrownExcs.foreach{
+      	  thrownException =>
+          val child = global.getClassOrResolve(thrownException)
+      	    val ccOpt = 
+	      	    catchclauses.find{
+			          catchclause =>
+			            val excType = getExceptionType(catchclause)
+			            val exc = global.getClassOrResolve(excType)
+                  exc.global.getClassHierarchy.isClassRecursivelySubClassOfIncluding(child, exc)
+	      	    }
+      	    ccOpt match{
+      	      case Some(cc) => result += cc
+      	      case None =>
+      	    }
+           result ++= catchclauses
       	}
       	
       	(result, false)
@@ -113,21 +97,21 @@ object JawaAlirInfoProvider {
     }
 	}
   
-	def getIntraMethodResult(code : String) : Map[ResourceUri, TransformIntraMethodResult] = {
+	def getIntraMethodResult(code : String, global: Global) : Map[ResourceUri, TransformIntraMethodResult] = {
 	  val newModel = JawaResolver.parseCodes(Set(code))
-	  doGetIntraMethodResult(newModel)
+	  doGetIntraMethodResult(newModel, global)
 	}
 	
-	def getIntraMethodResult(codes : Set[String]) : Map[ResourceUri, TransformIntraMethodResult] = {
+	def getIntraMethodResult(codes : Set[String], global: Global) : Map[ResourceUri, TransformIntraMethodResult] = {
 	  val newModel = JawaResolver.parseCodes(codes)
-	  doGetIntraMethodResult(newModel)
+	  doGetIntraMethodResult(newModel, global)
 	}
 	
-	private def doGetIntraMethodResult(model: Model) : Map[ResourceUri, TransformIntraMethodResult] = {
+	private def doGetIntraMethodResult(model: Model, global: Global) : Map[ResourceUri, TransformIntraMethodResult] = {
 	  val result = JawaSymbolTableBuilder(List(model), JawaResolver.fst, true)
 	  result.procedureSymbolTables.map{
 	    pst=>
-	      val (pool, cfg) = buildCfg(pst)
+	      val (pool, cfg) = buildCfg(pst, global)
 	      val rda = buildRda(pst, cfg)
 	      val procSig = 
 	        pst.procedure.getValueAnnotation("signature") match {
@@ -139,11 +123,11 @@ object JawaAlirInfoProvider {
 	  }.toMap
 	}
   
-  private def buildCfg(pst : ProcedureSymbolTable) = {
+  private def buildCfg(pst : ProcedureSymbolTable, global: Global) = {
 	  val ENTRY_NODE_LABEL = "Entry"
 	  val EXIT_NODE_LABEL = "Exit"
 	  val pool : AlirIntraProceduralGraph.NodePool = mmapEmpty
-	  val result = ControlFlowGraph[VirtualLabel](pst, ENTRY_NODE_LABEL, EXIT_NODE_LABEL, pool, siff)
+	  val result = ControlFlowGraph[VirtualLabel](pst, ENTRY_NODE_LABEL, EXIT_NODE_LABEL, pool, siff(global))
 	  (pool, result)
 	}
 	
@@ -161,35 +145,35 @@ object JawaAlirInfoProvider {
    * get cfg of current procedure
    */
   
-  def getCfg(p : JawaMethod) = {
+  def getCfg(p : JawaMethod): ControlFlowGraph[VirtualLabel] = {
     if(!(p ? CFG)){
       this.synchronized{
-	      val cfg = buildCfg(p.getMethodBody)._2
+	      val cfg = buildCfg(p.getBody, p.declaringClass.global)._2
 	      p.setProperty(CFG, cfg)
       }
     }
-    p.getProperty(CFG).asInstanceOf[ControlFlowGraph[VirtualLabel]]
+    p.getProperty(CFG)
   }
 	
 	/**
    * get rda result of current procedure
    */
   
-  def getRda(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel]) = {
+  def getRda(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel]): JawaReachingDefinitionAnalysis.Result = {
     if(!(p ? RDA)){
       this.synchronized{
-	      val rda = buildRda(p.getMethodBody, cfg)
+	      val rda = buildRda(p.getBody, cfg)
 	      p.setProperty(RDA, rda)
       }
     }
-    p.getProperty(RDA).asInstanceOf[JawaReachingDefinitionAnalysis.Result]
+    p.getProperty(RDA)
   }
-  
-  def getClassInstance(r : JawaClass) : ClassInstance = {
-    val mainContext = new Context(GlobalConfig.ICFG_CONTEXT_K)
-    mainContext.setContext("Center", "L0000")
-    ClassInstance(r.getName, mainContext)
-  }
+//  
+//  def getClassInstance(r : JawaClass) : ClassInstance = {
+//    val mainContext = new Context(GlobalConfig.ICFG_CONTEXT_K)
+//    mainContext.setContext("Center", "L0000")
+//    ClassInstance(r.getName, mainContext)
+//  }
 }
 
 case class TransformIntraMethodResult(pst : ProcedureSymbolTable, cfg : ControlFlowGraph[String], rda : JawaReachingDefinitionAnalysis.Result)

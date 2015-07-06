@@ -46,5 +46,5 @@ class MethodBody(val procedureUri : ResourceUri, st : SymbolTable) extends Proce
   def catchClauses(locationIndex : Int) : Iterable[CatchClause] =
     tables.bodyTables.get.catchTable.getOrElse(locationIndex,
       Array.empty[CatchClause] : Iterable[CatchClause])
-	
+
 }

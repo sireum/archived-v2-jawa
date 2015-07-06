@@ -31,7 +31,7 @@ trait Right
 /**
  * static variable
  */
-trait Static_Field{def staticFieldSig: String}
+trait Static_Field{def staticFieldFQN: FieldFQN}
 
 /**
  * array

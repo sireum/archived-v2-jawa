@@ -12,14 +12,12 @@ import org.sireum.util._
 import org.sireum.jawa.alir.Context
 import org.sireum.pilar.ast.CallJump
 import org.sireum.pilar.ast.ProcedureDecl
-import org.sireum.jawa.GlobalConfig
 import org.sireum.alir.VarSlot
 import org.sireum.alir.InitDefDesc
 import org.sireum.jawa.PilarAstHelper
 import org.sireum.alir._
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaReachingDefinitionAnalysis
 import org.sireum.jawa.alir.JawaAlirInfoProvider
-import org.sireum.jawa.Center
 import org.sireum.jawa.util.MyTimer
 import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralMonotoneDataFlowAnalysisFramework
 import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralMonotonicFunction

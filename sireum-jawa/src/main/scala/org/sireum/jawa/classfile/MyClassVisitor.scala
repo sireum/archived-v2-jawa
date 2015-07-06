@@ -13,6 +13,7 @@ import org.sireum.jawa.JavaKnowledge
 import org.sireum.jawa.JawaType
 import org.sireum.jawa.Signature
 import org.sireum.jawa.AccessFlag.FlagKind
+import org.sireum.jawa.FieldFQN
 
 /**
  * @author fgwei
@@ -57,7 +58,7 @@ class MyClassVisitor(api: Int) extends ClassVisitor(api) {
   override def visitField(access: Int, name: String, desc: String,
                  signature: String, value: Object): FieldVisitor = {
     val accessFlag: Int = AccessFlag.getJawaFlags(access, FlagKind.FIELD)
-    val FQN: String = currentClass.typ.jawaName + "." + name
+    val FQN: FieldFQN = FieldFQN(currentClass.typ, name)
     val typ: JawaType = JavaKnowledge.formatSignatureToType(desc)
     val f = MyField(accessFlag, FQN, typ)
     currentClass.addField(f)

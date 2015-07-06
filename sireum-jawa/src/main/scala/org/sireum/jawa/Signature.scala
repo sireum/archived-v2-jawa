@@ -148,7 +148,7 @@ case class Signature(signature: String) extends JavaKnowledge {
   def getReturnArrayDimension(): Int = {
     val ret = getReturnTypeSignature()
     if(ret.startsWith("["))
-    	ret.lastIndexOf('[') - ret.indexOf('[') + 1
+    ret.lastIndexOf('[') - ret.indexOf('[') + 1
     else 0
   }
 
@@ -191,7 +191,7 @@ case class Signature(signature: String) extends JavaKnowledge {
     while(iterator.hasNext){
       val p = iterator.next()
       if(p.startsWith("L") || p.startsWith("[")){
-      	params(count) = formatSignatureToType(p).asInstanceOf[ObjectType]
+        params(count) = formatSignatureToType(p).asInstanceOf[ObjectType]
       }
       count+=1
     }
@@ -199,8 +199,8 @@ case class Signature(signature: String) extends JavaKnowledge {
   }
   
   /**
-	 * get class name from method signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object
-	 */
+   * get class name from method signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> java.lang.Object
+   */
   def getClassName: String = getClassType.name
   
   /**

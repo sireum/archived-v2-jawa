@@ -12,13 +12,13 @@ import org.sireum.util._
 import org.sireum.jawa.alir.controlFlowGraph._
 import org.sireum.pilar.ast._
 import org.sireum.pilar.symbol.ProcedureSymbolTable
-import org.sireum.jawa.Center
 import scala.util.control.Breaks._
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.SynchronizedMap
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.util.MyTimer
-import org.sireum.pilar.symbol.Symbol.pp2r
+import org.sireum.jawa.util.ASTUtil
+import org.sireum.jawa.Signature
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -51,6 +51,10 @@ trait NodeListener {
   def onPostVisitNode(node : InterProceduralMonotoneDataFlowAnalysisFramework.N, succs : CSet[InterProceduralMonotoneDataFlowAnalysisFramework.N])
 }
 
+trait PstProvider {
+  def getPst(sig: Signature): ProcedureSymbolTable
+}
+
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
@@ -79,6 +83,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
    gen : InterProceduralMonotonicFunction[LatticeElement],
    kill : InterProceduralMonotonicFunction[LatticeElement],
    callr : CallResolver[LatticeElement],
+   ppr: PstProvider,
    iota : ISet[LatticeElement],
    initial : ISet[LatticeElement],
    timer : Option[MyTimer] = None,
@@ -136,7 +141,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
 	    }
 
       
-      protected def next(l : LocationDecl, pst : ProcedureSymbolTable, pSig : String, callerContext : Context) = {
+      protected def next(l : LocationDecl, pst : ProcedureSymbolTable, pSig : Signature, callerContext : Context) = {
         val newLoc = pst.location(l.index + 1)
         val newContext = callerContext.copy
         if(!newLoc.name.isDefined)
@@ -146,7 +151,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
         if(icfg.isCall(newLoc))
           icfg.getICFGCallNode(newContext)
         else
-        	icfg.getICFGNormalNode(newContext)
+          icfg.getICFGNormalNode(newContext)
       }
 
       protected def node(l : LocationDecl, context : Context) = {
@@ -195,20 +200,16 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
       protected def visitBackward(
         currentNode : ICFGLocNode,
         esl : Option[EntrySetListener[LatticeElement]]) : IMap[N, DFF] = {
-        val pst = Center.getMethodWithoutFailing(currentNode.getOwner).getMethodBody
+        val pSig = currentNode.getOwner
+        val pst = ppr.getPst(pSig)
         val l = pst.location(currentNode.getLocIndex)
         val currentContext = currentNode.getContext
         val callerContext = currentContext.copy.removeTopContext
-        val pSig = pst.procedure.getValueAnnotation("signature") match {
-            case Some(exp : NameExp) =>
-              exp.name.name
-            case _ => throw new RuntimeException("Doing " + TITLE + ": Can not find signature from: " + l)
-          }
         
         val latticeMap : MMap[N, DFF] = mmapEmpty 
         
         if(!l.name.isDefined)
-        	currentContext.setContext(pSig, l.index.toString)
+          currentContext.setContext(pSig, l.index.toString)
         else
           currentContext.setContext(pSig, l.name.get.uri)
         val eslb = esl.getOrElse(null)
@@ -306,7 +307,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
                 result
               case j : ReturnJump =>
                 val exitContext = callerContext.copy
-                exitContext.setContext(pSig, pSig)
+                exitContext.setContext(pSig, pSig.signature)
                 val sn = icfg.getICFGExitNode(exitContext)
                 val result = fOE(j.exp, getEntrySet(sn), currentNode)
                 if (esl.isDefined)
@@ -369,15 +370,11 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
       protected def visitForward(
         currentNode : ICFGLocNode,
         esl : Option[EntrySetListener[LatticeElement]]) : IMap[N, DFF] = {
-        val pst = Center.getMethodWithoutFailing(currentNode.getOwner).getMethodBody
+        val pSig = currentNode.getOwner
+        val pst = ppr.getPst(pSig)
         val l = pst.location(currentNode.getLocIndex)
         val currentContext = currentNode.getContext
         val callerContext = currentContext.copy.removeTopContext
-        val pSig = pst.procedure.getValueAnnotation("signature") match {
-			      case Some(exp : NameExp) =>
-			        exp.name.name
-			      case _ => throw new RuntimeException("Doing " + TITLE + ": Can not find signature from: " + l)
-			    }
 
         val latticeMap : MMap[N, DFF] = mmapEmpty 
 

@@ -14,9 +14,9 @@ import org.sireum.jawa.io._
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
-	/**
-	 * this map is from class to it's sub-classes.
-	 */
+  /**
+   * this map is from class to it's sub-classes.
+   */
   protected val classToSubClasses: MMap[JawaClass, MSet[JawaClass]] = mmapEmpty
   
   /**
@@ -61,7 +61,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
         if(clazz.isInterface){
           val imps = this.interfaceToImplememters.getOrElseUpdate(clazz, msetEmpty)
           if(!imps.isEmpty)
-          	imps ++= imps.map{getAllSubClassesOfIncluding(_)}.reduce((s1, s2) => s1 ++ s2)
+          imps ++= imps.map{getAllSubClassesOfIncluding(_)}.reduce((s1, s2) => s1 ++ s2)
         }
     }
     global.clearClassesNeedUpdateInHierarchy
@@ -92,9 +92,9 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
         case None => 
           val subClasses = this.classToSubClasses.getOrElseUpdate(r, msetEmpty)
           if(!subClasses.isEmpty){
-  	        val allSubClasses = subClasses.map{getAllSubClassesOfIncluding(_)}.reduce((s1, s2) => s1 ++ s2)
-  	        this.classToAllSubClasses.getOrElseUpdate(r, msetEmpty) ++= allSubClasses
-  	        allSubClasses
+            val allSubClasses = subClasses.map{getAllSubClassesOfIncluding(_)}.reduce((s1, s2) => s1 ++ s2)
+            this.classToAllSubClasses.getOrElseUpdate(r, msetEmpty) ++= allSubClasses
+            allSubClasses
           } else isetEmpty
       }
     }
@@ -154,9 +154,9 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
         case None => 
           val subClasses = this.interfaceToSubInterfaces.getOrElseUpdate(r, msetEmpty)
           if(!subClasses.isEmpty){
-  	        val allSubClasses = subClasses.map{getAllSubInterfacesOfIncluding(_)}.reduce((s1, s2) => s1 ++ s2)
-  	        this.interfaceToAllSubInterfaces.getOrElseUpdate(r, msetEmpty) ++= allSubClasses
-  	        allSubClasses
+            val allSubClasses = subClasses.map{getAllSubInterfacesOfIncluding(_)}.reduce((s1, s2) => s1 ++ s2)
+            this.interfaceToAllSubInterfaces.getOrElseUpdate(r, msetEmpty) ++= allSubClasses
+            allSubClasses
           } else Set()
       }
     }
@@ -184,9 +184,8 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
     } else {
       val ins = r.getInterfaces
       if(!ins.isEmpty)
-      	ins.map{getAllSuperInterfacesOf(_)}.reduce((s1, s2) => s1 ++ s2) ++ ins
-      else
-        ins
+        ins.map{getAllSuperInterfacesOf(_)}.reduce((s1, s2) => s1 ++ s2) ++ ins
+      else ins
     }
   }
   
@@ -272,7 +271,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
     } else {
       val subI = getSubInterfacesOfIncluding(r)
       if(!subI.isEmpty)
-      	subI.map{getImplementersOf(_)}.reduce((s1, s2) => s1 ++ s2)
+      subI.map{getImplementersOf(_)}.reduce((s1, s2) => s1 ++ s2)
       else isetEmpty
     }
   }
@@ -433,23 +432,23 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
   private def findMethodThroughHierarchy(clazz: JawaClass, subSig: String): Option[JawaMethod] = {
     if(clazz.isUnknown){
       this.synchronized{
-	      clazz.getMethod(subSig) match{
-	        case Some(p) => Some(p)
-	        case None =>
+        clazz.getMethod(subSig) match{
+          case Some(p) => Some(p)
+          case None =>
             val unknownSig = generateSignatureFromOwnerAndMethodSubSignature(clazz, subSig)
-	          val unknownMethod = generateUnknownJawaMethod(clazz, unknownSig)
-	          Some(unknownMethod)
-	      }
+            val unknownMethod = generateUnknownJawaMethod(clazz, unknownSig)
+            Some(unknownMethod)
+        }
       }
     } else {
-	    clazz.getMethod(subSig) match{
-	      case Some(p) =>
-	        Some(p)
-	      case None =>
-	        if(clazz.hasSuperClass)
-	        	findMethodThroughHierarchy(clazz.getSuperClass.get, subSig)
-	        else None
-	    }
+    clazz.getMethod(subSig) match{
+      case Some(p) =>
+        Some(p)
+      case None =>
+        if(clazz.hasSuperClass)
+        findMethodThroughHierarchy(clazz.getSuperClass.get, subSig)
+        else None
+    }
     }
   }
   

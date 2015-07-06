@@ -104,7 +104,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	        case _ =>
 	      }
 	  }
-    this.centerN = addIDDGCenterNode(icfg.centerNode.asInstanceOf[ICFGCenterNode]).asInstanceOf[IDDGCenterNode]
+//    this.centerN = addIDDGCenterNode(icfg.centerNode.asInstanceOf[ICFGCenterNode]).asInstanceOf[IDDGCenterNode]
     this.entryN = addIDDGEntryNode(icfg.entryNode.asInstanceOf[ICFGEntryNode]).asInstanceOf[IDDGEntryNode]
 	}
 	
@@ -113,14 +113,14 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	    if(this.icfg.icfgNormalNodeExists(defSite)) this.icfg.getICFGNormalNode(defSite)
 		  else if(this.icfg.icfgCallNodeExists(defSite)) this.icfg.getICFGCallNode(defSite)
 		  else if(defSite.toString == "(EntryPoint,L0000)") this.icfg.entryNode
-		  else if(defSite.toString == "(Center,L0000)") this.icfg.centerNode
+//		  else if(defSite.toString == "(Center,L0000)") this.icfg.centerNode
 		  else throw new RuntimeException("Cannot find node: " + defSite)
 	  }
 	  if(icfgN.isInstanceOf[ICFGNormalNode] && iddgNormalNodeExists(icfgN.asInstanceOf[ICFGNormalNode])) getIDDGNormalNode(icfgN.asInstanceOf[ICFGNormalNode])
 	  else if(icfgN.isInstanceOf[ICFGCallNode] && iddgVirtualBodyNodeExists(icfgN.asInstanceOf[ICFGCallNode])) getIDDGVirtualBodyNode(icfgN.asInstanceOf[ICFGCallNode])
 	  else if(icfgN.isInstanceOf[ICFGCallNode] && iddgReturnVarNodeExists(icfgN.asInstanceOf[ICFGCallNode])) getIDDGReturnVarNode(icfgN.asInstanceOf[ICFGCallNode])
 	  else if(icfgN == this.icfg.entryNode) this.entryNode
-	  else if(icfgN == this.icfg.centerNode) this.centerNode
+//	  else if(icfgN == this.icfg.centerNode) this.centerNode
 	  else throw new RuntimeException("Cannot find node: " + defSite)
 	}
 	
@@ -353,7 +353,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 sealed abstract class IDDGNode(icfgN : ICFGNode) extends InterProceduralNode(icfgN.getContext) {
   def getICFGNode = icfgN
   def getOwner = icfgN.getOwner
-  def getCode : String = icfgN.getCode
+//  def getCode : String = icfgN.getCode
   override def getContext = icfgN.getContext
 }
 

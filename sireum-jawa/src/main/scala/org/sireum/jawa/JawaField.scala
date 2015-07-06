@@ -20,13 +20,13 @@ package org.sireum.jawa
  */
 case class JawaField(declaringClass: JawaClass, name: String, typ: JawaType, accessFlags: Int) extends JawaElement with JavaKnowledge {
   import JawaField._
-	
-  /**
-   * construct a jawa field instance
-   */
-	def this(declaringClass: JawaClass, name: String, typ: JawaType, accessString: String) = {
-    this(declaringClass, name, typ, AccessFlag.getAccessFlags(accessString))
-	}
+
+    /**
+     * construct a jawa field instance
+     */
+  def this(declaringClass: JawaClass, name: String, typ: JawaType, accessString: String) = {
+      this(declaringClass, name, typ, AccessFlag.getAccessFlags(accessString))
+  }
   
   declaringClass.addField(this)
   
@@ -40,30 +40,30 @@ case class JawaField(declaringClass: JawaClass, name: String, typ: JawaType, acc
   /**
    * full qualified name of the field. e.g. java.lang.Throwable.stackState
    */
-  def FQN: String = generateFieldFQN(declaringClass.getType, name)
-	
+  def FQN: FieldFQN = generateFieldFQN(declaringClass.getType, name)
+
   /**
    * field type
    */
   def getType: JawaType = typ
-	
-	/**
-	 * return true if the field is object type
-	 */
-	def isObject: Boolean = !isJavaPrimitive(typ)
+
+  /**
+   * return true if the field is object type
+   */
+  def isObject: Boolean = !isJavaPrimitive(typ)
   
   def isConcrete: Boolean = true
-	
-	override def toString(): String = FQN
-	
-	def printDetail = {
-	  println("~~~~~~~~~~~~~JawaField~~~~~~~~~~~~~")
-	  println("name: " + name)
-	  println("FQN: " + FQN)
-	  println("type: " + typ)
-	  println("accessFlags: " + AccessFlag.toString(accessFlags))
-	  println("declaringClass: " + declaringClass)
-	  println("~~~~~~~~~~~~~~~~~~~~~~~~~~")
-	}
-	
+
+  override def toString(): String = FQN.toString()
+
+  def printDetail = {
+    println("~~~~~~~~~~~~~JawaField~~~~~~~~~~~~~")
+    println("name: " + name)
+    println("FQN: " + FQN)
+    println("type: " + typ)
+    println("accessFlags: " + AccessFlag.toString(accessFlags))
+    println("declaringClass: " + declaringClass)
+    println("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+  }
+
 }

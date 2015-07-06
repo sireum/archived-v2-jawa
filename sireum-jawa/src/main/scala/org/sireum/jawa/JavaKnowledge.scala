@@ -146,10 +146,8 @@ trait JavaKnowledge {
   /**
    * generate signature of this field. input: ("java.lang.Throwable", "stackState") output: "java.lang.Throwable.stackState"
    */
-  def generateFieldFQN(typ: ObjectType, name: String): String = {
-    val sb = new StringBuffer
-    sb.append(typ.name + "." + name)
-    sb.toString().intern()
+  def generateFieldFQN(typ: ObjectType, name: String): FieldFQN = {
+    FieldFQN(typ, name)
   }
   
   /**

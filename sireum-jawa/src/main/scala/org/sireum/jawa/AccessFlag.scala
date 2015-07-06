@@ -15,22 +15,22 @@ import org.objectweb.asm.Opcodes
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
 object AccessFlag{
-  final private val ABSTRACT = 							0x0001
-  final private val FINAL =									0x0002
-  final private val INTERFACE =							0x0004
-  final private val NATIVE =								0x0008
-  final private val PRIVATE =								0x0010
-  final private val PROTECTED =							0x0020
-  final private val PUBLIC =								0x0040
-  final private val STATIC =								0x0080
-  final private val SYNCHRONIZED =					0x0100
-  final private val TRANSIENT =							0x0200
-  final private val VOLATILE =							0x0400
-  final private val STRICTFP =							0x0800
-  final private val ANNOTATION =						0x1000
-  final private val ENUM =									0x2000
-  final private val SYNTHETIC =							0x4000
-  final private val CONSTRUCTOR =						0x8000
+  final private val ABSTRACT =              0x0001
+  final private val FINAL =                 0x0002
+  final private val INTERFACE =             0x0004
+  final private val NATIVE =                0x0008
+  final private val PRIVATE =               0x0010
+  final private val PROTECTED =             0x0020
+  final private val PUBLIC =                0x0040
+  final private val STATIC =                0x0080
+  final private val SYNCHRONIZED =          0x0100
+  final private val TRANSIENT =             0x0200
+  final private val VOLATILE =              0x0400
+  final private val STRICTFP =              0x0800
+  final private val ANNOTATION =            0x1000
+  final private val ENUM =                  0x2000
+  final private val SYNTHETIC =             0x4000
+  final private val CONSTRUCTOR =           0x8000
   final private val DECLARED_SYNCHRONIZED = 0x10000
   
   def getAccessFlags(str : String) : Int = {

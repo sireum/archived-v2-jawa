@@ -125,6 +125,17 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   }
   
   /**
+   * get class by type, if not present resolve it, if it still not exist, return None
+   */
+  def getClassOrResolve(typ: ObjectType): JawaClass = {
+    getClass(typ) match {
+      case None =>
+        resolveToHierarchy(typ)
+      case Some(a) => a
+    }
+  }
+  
+  /**
    * remove application class
    */
   def removeApplicationClass(ar: JawaClass) = {
@@ -238,11 +249,10 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * grab field from Global. Input example is java.lang.Throwable.stackState
    */
-  def getField(fieldFQN: String): Option[JawaField] = {
+  def getField(fieldFQN: FieldFQN): Option[JawaField] = {
     try{
-      val rName = getClassNameFromFieldFQN(fieldFQN)
-      val rType: ObjectType = getTypeFromName(rName).asInstanceOf[ObjectType]
-      val fName = getFieldNameFromFieldFQN(fieldFQN)
+      val rType = fieldFQN.owner
+      val fName = fieldFQN.fieldName
       if(!containsJawaClass(rType)) return None
       val r = getClass(rType).get
       if(!r.hasField(fName)) return None
@@ -255,7 +265,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * return true if contains the given field. Input example is java.lang.Throwable.stackState
    */
-  def containsField(fieldFQN: String): Boolean = getField(fieldFQN).isDefined
+  def containsField(fieldFQN: FieldFQN): Boolean = getField(fieldFQN).isDefined
   
   /**
    * get procedure from Global. Input example is Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
@@ -497,7 +507,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * resolve classes relation of the whole program
    */
-  def resolveClassesRelationWholeProgram: Unit = {
+  protected[jawa] def resolveClassesRelationWholeProgram: Unit = {
     if(!isDirty) return
     val worklist: MList[JawaClass] = mlistEmpty
     val myclasses: MList[MyClass] = mlistEmpty
@@ -521,8 +531,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
                     tmpList += clazz
                   case None =>
                     this.needToResolveOuterClass -= clazz
-                    val unknownOut = resolveClass(o, ResolveLevel.HIERARCHY)
-                    addClassNotFound(o)
+                    val unknownOut = resolveToHierarchy(o)
                     clazz.setOuterClass(unknownOut)
                 }
             }
@@ -544,8 +553,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
                     tmpList += clazz
                   case None =>
                     resolved += parType
-                    val unknownSu = resolveClass(parType, ResolveLevel.HIERARCHY)
-                    addClassNotFound(parType)
+                    val unknownSu = resolveToHierarchy(parType)
                     clazz.setSuperClass(unknownSu)
                 }
             }
@@ -564,7 +572,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     getClasses.foreach{
       rec =>
         if(!rec.hasSuperClass && rec.getName != JAVA_TOPLEVEL_OBJECT){
-          if(!hasClass(JAVA_TOPLEVEL_OBJECT_TYPE)) resolveClass(JAVA_TOPLEVEL_OBJECT_TYPE, ResolveLevel.HIERARCHY)
+          if(!hasClass(JAVA_TOPLEVEL_OBJECT_TYPE)) resolveToHierarchy(JAVA_TOPLEVEL_OBJECT_TYPE)
           rec.setSuperClass(getClass(JAVA_TOPLEVEL_OBJECT_TYPE).get)
         }
     }

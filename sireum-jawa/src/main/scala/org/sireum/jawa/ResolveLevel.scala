@@ -11,7 +11,8 @@ package org.sireum.jawa
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 trait ResolveLevel {
-	/**
+  
+  /**
    * resolving level of current class
    */
   protected var resolvingLevel: ResolveLevel.Value = ResolveLevel.NOT_LOADED

@@ -35,8 +35,8 @@ case class JawaMethod(declaringClass: JawaClass,
   import JawaMethod._
   
   final val TITLE = "JawaMethod"
-	var DEBUG: Boolean = false
-	
+  var DEBUG: Boolean = false
+
   require(this.declaringClass != null &&
           this.name != null &&
           this.thisOpt != null &&
@@ -53,10 +53,10 @@ case class JawaMethod(declaringClass: JawaClass,
   
   getDeclaringClass.addMethod(this)
   
-	/**
-	 * name of the method. e.g. equals
-	 */
-	def getName: String = name
+  /**
+   * name of the method. e.g. equals
+   */
+  def getName: String = name
   
   /**
    * display this method. e.g. isInteresting(IClassFile)
@@ -80,18 +80,18 @@ case class JawaMethod(declaringClass: JawaClass,
   
   def getFullName: String = getDeclaringClass.getType.name + "." + getName
   
-	/**
-	 * signature of the method. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
-	 */
-	def getSignature: Signature = this.signature
-	
-	/**
-	 * sub-signature of the method. e.g. equals:(Ljava/lang/Object;)Z
-	 */
-	def getSubSignature: String = {
+  /**
+   * signature of the method. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
+   */
+  def getSignature: Signature = this.signature
+
+  /**
+   * sub-signature of the method. e.g. equals:(Ljava/lang/Object;)Z
+   */
+  def getSubSignature: String = {
     getSignature.getSubSignature
   }
-	
+
   def getThisName: String = {
     require(!isStatic && !isNative)
     this.thisOpt.get
@@ -107,16 +107,16 @@ case class JawaMethod(declaringClass: JawaClass,
    */
   def getParams: ISeq[(String, JawaType)] = this.params
   
-	/**
-	 * list of parameter types. e.g. List(java.lang.Object, java.lang.String)
-	 */
-	def getParamTypes: ISeq[JawaType] = getParams.map(_._2)
-	
-	/**
-	 * list of parameter names
-	 */
-	def getParamNames: ISeq[String] = getParams.map(_._1)
-	
+  /**
+   * list of parameter types. e.g. List(java.lang.Object, java.lang.String)
+   */
+  def getParamTypes: ISeq[JawaType] = getParams.map(_._2)
+
+  /**
+   * list of parameter names
+   */
+  def getParamNames: ISeq[String] = getParams.map(_._1)
+
   /**
    * get i'th parameter of this method
    */
@@ -132,11 +132,10 @@ case class JawaMethod(declaringClass: JawaClass,
    */
   def getParamName(i: Int): String = getParamNames(i)
   
-	/**
-	 * return type. e.g. boolean
-	 */
-	
-	def getReturnType: JawaType = this.returnType
+  /**
+   * return type. e.g. boolean
+   */
+  def getReturnType: JawaType = this.returnType
   
   /**
    * exceptions thrown by this method
@@ -148,28 +147,28 @@ case class JawaMethod(declaringClass: JawaClass,
    * LocUri should always looks like "L?[0-9a-f]+"
    */
   case class ExceptionHandler(exception: JawaClass, fromTarget: String, toTarget: String, jumpTo: String){
-	  def handleException(exc: JawaClass, locUri: String): Boolean = {
-	    (exception == exc || exception.isChildOf(exc)) && withInScope(locUri)
-	  }
-	  def withInScope(locUri: String): Boolean = {
-	    getLocation(fromTarget) <= getLocation(locUri) && getLocation(locUri) <= getLocation(toTarget)
-	  }
-	  def getLocation(locUri: String): Int = {
-	    val loc = locUri.substring(locUri.lastIndexOf("L") + 1)
-    	Integer.getInteger(loc, 16)
-	  }
-	}
+    def handleException(exc: JawaClass, locUri: String): Boolean = {
+      (exception == exc || exception.isChildOf(exc)) && withInScope(locUri)
+    }
+    def withInScope(locUri: String): Boolean = {
+      getLocation(fromTarget) <= getLocation(locUri) && getLocation(locUri) <= getLocation(toTarget)
+    }
+    def getLocation(locUri: String): Int = {
+      val loc = locUri.substring(locUri.lastIndexOf("L") + 1)
+      Integer.getInteger(loc, 16)
+    }
+  }
   
   /**
    * exception handlers
    */
   private[jawa] val exceptionHandlers: MList[ExceptionHandler] = mlistEmpty
-	
-	/**
-	 * retrieve code belong to this method
-	 */
-//	def retrieveCode: String = getAST.toCode
-	
+
+  /**
+   * retrieve code belong to this method
+   */
+  //def retrieveCode: String = getAST.toCode
+
   /**
    * Jawa AST node for this JawaMethod. Unless unknown, it should not be null.
    */
@@ -183,20 +182,23 @@ case class JawaMethod(declaringClass: JawaClass,
 //    this.methodDeclaration
 //  }
 //  
-//  /**
-//   * resolve current method to body level
-//   */
-//  def resolveBody = {
-//    if(getDeclaringClass.getResolvingLevel >= ResolveLevel.BODY) throw new RuntimeException(getSignature +" is already resolved to " + this.resolvingLevel)
-//    if(isUnknown) throw new RuntimeException(getSignature + " is an unknown method so cannot be resolved to body.")
-//    val global = getDeclaringClass.global
-//    val md: MethodDeclaration = getAST
-//    val file: AbstractFile = md.firstToken.file.file
-//    val pb = getDeclaringClass.global.resolveMethodBody(md)
-//    setAST(pb)
-//    setResolvingLevel(ResolveLevel.BODY)
-//    getDeclaringClass.updateResolvingLevel
-//  }
+  
+  final val BODY = "body"
+  
+  /**
+   * resolve current method to body level
+   */
+  def getBody: MethodBody = {
+    if(getDeclaringClass.getResolvingLevel >= ResolveLevel.BODY) throw new RuntimeException(getSignature +" is already resolved to " + this.resolvingLevel)
+    if(isUnknown) throw new RuntimeException(getSignature + " is an unknown method so cannot be resolved to body.")
+    if(!(this ? BODY)){
+      val global = getDeclaringClass.global
+      val pb = global.resolveMethodBody(this.signature)
+      setResolvingLevel(ResolveLevel.BODY)
+      getDeclaringClass.updateResolvingLevel
+      pb
+    } else this.getProperty(BODY)
+  }
   
   /**
    * set resolving level

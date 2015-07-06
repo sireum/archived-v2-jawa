@@ -19,10 +19,10 @@ class PointsCollector {
   def collectMethodPoint(ownerSig: Signature, pst: ProcedureSymbolTable): Point with Method = {
     val methodSig = 
       pst.procedure.getValueAnnotation("signature") match {
-	      case Some(exp: NameExp) =>
-	        Signature(exp.name.name)
-	      case _ => throw new RuntimeException("Can not find signature")
-	    }
+        case Some(exp: NameExp) =>
+          Signature(exp.name.name)
+        case _ => throw new RuntimeException("Can not find signature")
+      }
     
     val types = methodSig.getParameterTypes()
     val thisTyp = methodSig.getClassType
@@ -130,7 +130,8 @@ class PointsCollector {
       e match {
         case n: NameExp =>
           if(isStaticField(n.name.name)){
-            PointStaticFieldL(n.name.name, loc, locIndex, ownerSig)
+            val fqn = new FieldFQN(n.name.name.replace("@@", ""))
+            PointStaticFieldL(fqn, loc, locIndex, ownerSig)
           } else {
             PointL(n.name.name, loc, locIndex, ownerSig)
           }
@@ -139,7 +140,8 @@ class PointsCollector {
             case n: NameExp =>
               val dimensions = ie.indices.size
               if(isStaticField(n.name.name)){
-                PointStaticFieldArrayL(n.name.name, dimensions, loc, locIndex, ownerSig)
+                val fqn = new FieldFQN(n.name.name.replace("@@", ""))
+                PointStaticFieldArrayL(fqn, dimensions, loc, locIndex, ownerSig)
               } else {
                 PointArrayL(n.name.name, dimensions, loc, locIndex, ownerSig)
               }
@@ -153,7 +155,8 @@ class PointsCollector {
       e match {
         case n: NameExp =>
           if(isStaticField(n.name.name)){
-            PointStaticFieldR(n.name.name, loc, locIndex, ownerSig)
+            val fqn = new FieldFQN(n.name.name.replace("@@", ""))
+            PointStaticFieldR(fqn, loc, locIndex, ownerSig)
           } else {
             PointR(n.name.name, loc, locIndex, ownerSig)
           }
@@ -162,7 +165,8 @@ class PointsCollector {
           ie.exp match {
             case n: NameExp =>
               if(isStaticField(n.name.name)){
-                PointStaticFieldArrayR(n.name.name, dimensions, loc, locIndex, ownerSig)
+                val fqn = new FieldFQN(n.name.name.replace("@@", ""))
+                PointStaticFieldArrayR(fqn, dimensions, loc, locIndex, ownerSig)
               } else {
                 PointArrayR(n.name.name, dimensions, loc, locIndex, ownerSig)
               }
@@ -184,8 +188,8 @@ class PointsCollector {
             case _ => ""
           }
           val pBase = PointBaseL(baseName, loc, locIndex, ownerSig)
-          val fSig = a.attributeName.name
-          val fName = JavaKnowledge.getFieldNameFromFieldFQN(fSig)
+          val fqn = new FieldFQN(a.attributeName.name)
+          val fName = fqn.fieldName
           val pfl = PointFieldL(pBase, fName, loc, locIndex, ownerSig)
           pBase.setFieldPoint(pfl)
           pfl
@@ -237,8 +241,8 @@ class PointsCollector {
                 case _ => ""
               }
               val pBase = PointBaseR(baseName, loc, locIndex, ownerSig)
-              val fSig = ae.attributeName.name
-              val fName = JavaKnowledge.getFieldNameFromFieldFQN(fSig)
+              val fqn = new FieldFQN(ae.attributeName.name)
+              val fName = fqn.fieldName
               val pfr = PointFieldR(pBase, fName, loc, locIndex, ownerSig)
               pBase.setFieldPoint(pfr)
               pr = pfr
@@ -408,22 +412,22 @@ final case class PointArrayR(arrayname: String, dimensions: Int, loc: ResourceUr
 /**
  * Set of program points corresponding to l-value static field variable. 
  */
-final case class PointStaticFieldL(staticFieldSig: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Left with Static_Field
+final case class PointStaticFieldL(staticFieldFQN: FieldFQN, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Left with Static_Field
 
 /**
  * Set of program points corresponding to R-value static field variable. 
  */
-final case class PointStaticFieldR(staticFieldSig: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with Static_Field
+final case class PointStaticFieldR(staticFieldFQN: FieldFQN, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with Static_Field
 
 /**
  * Set of program points corresponding to l-value static field array variable. 
  */
-final case class PointStaticFieldArrayL(staticFieldSig: String, dimensions: Int, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Left with Static_Field with Array
+final case class PointStaticFieldArrayL(staticFieldFQN: FieldFQN, dimensions: Int, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Left with Static_Field with Array
 
 /**
  * Set of program points corresponding to R-value static field array variable. 
  */
-final case class PointStaticFieldArrayR(staticFieldSig: String, dimensions: Int, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with Static_Field with Array
+final case class PointStaticFieldArrayR(staticFieldFQN: FieldFQN, dimensions: Int, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with Static_Field with Array
 
 /**
  * Set of program points corresponding to base part of field access expressions in the LHS. 

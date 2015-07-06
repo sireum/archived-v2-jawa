@@ -21,7 +21,7 @@ object JawaType {
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 trait JawaType extends JavaKnowledge {
-	def typ: String
+  def typ: String
   def name: String
   def jawaName: String
   def simpleName: String
@@ -87,25 +87,6 @@ final case class ObjectType(val typ: String, val dimensions: Int) extends JawaTy
   
   override def toString: String = {
     name
-  }
-}
-
-/**
- * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
- * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
- */ 
-final case class NullType() extends JawaType {
-  def typ = "Null"
-  def name: String = typ
-  def simpleName: String = name
-  def canonicalName: String = name
-  def jawaName: String = name
-  def dimensions: Int = 0
-  def isArray: Boolean = false
-  override def toString: String = {
-    val sb = new StringBuilder
-    sb.append(typ)
-    sb.toString.intern()
   }
 }
 

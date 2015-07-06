@@ -6,3 +6,5 @@ package org.sireum.jawa
 case class FatalError(msg: String) extends Exception(msg)
 
 case class InheritanceError(msg: String) extends Exception(msg)
+
+case class JawaResolverError(msg: String) extends Exception(msg)
