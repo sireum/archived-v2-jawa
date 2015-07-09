@@ -58,9 +58,9 @@ class MyClassVisitor(api: Int) extends ClassVisitor(api) {
   override def visitField(access: Int, name: String, desc: String,
                  signature: String, value: Object): FieldVisitor = {
     val accessFlag: Int = AccessFlag.getJawaFlags(access, FlagKind.FIELD)
-    val FQN: FieldFQN = FieldFQN(currentClass.typ, name)
     val typ: JawaType = JavaKnowledge.formatSignatureToType(desc)
-    val f = MyField(accessFlag, FQN, typ)
+    val FQN: FieldFQN = FieldFQN(currentClass.typ, name, typ)
+    val f = MyField(accessFlag, FQN)
     currentClass.addField(f)
     null
   }

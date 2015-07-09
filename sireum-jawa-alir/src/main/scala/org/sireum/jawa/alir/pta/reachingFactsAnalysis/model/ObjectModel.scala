@@ -11,8 +11,6 @@ import org.sireum.jawa._
 import org.sireum.util._
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.util.StringFormConverter
-import org.sireum.jawa.MessageCenter._
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.alir.pta._
 
@@ -21,13 +19,13 @@ import org.sireum.jawa.alir.pta._
  */ 
 object ObjectModel {
   val TITLE = "ObjectModel"
-	def isObject(r : JawaClass) : Boolean = r.getName == "java.lang.Object"
+	def isObject(r: JawaClass): Boolean = r.getName == "java.lang.Object"
 	  
-	def doObjectCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def doObjectCall(s: PTAResult, p: JawaMethod, args: List[String], retVars: Seq[String], currentContext: Context): (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
-	  p.getSignature match{
+	  p.getSignature.signature match{
 	    case "Ljava/lang/Object;.getClass:()Ljava/lang/Class;" =>
         require(retVars.size == 1)
         objectGetClass(s, args, retVars(0), currentContext) match{case (n, d) => newFacts ++= n; delFacts ++= d}
@@ -37,17 +35,17 @@ object ObjectModel {
 	  (newFacts, delFacts, byPassFlag)
 	}
 	
-	private def objectGetClass(s : PTAResult, args : List[String], retVar : String, currentContext : Context): (ISet[RFAFact], ISet[RFAFact]) = {
+	private def objectGetClass(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
     require(args.size > 0)
-    val thisSlot = VarSlot(args(0))
+    val thisSlot = VarSlot(args(0), false)
     val thisValue = s.pointsToSet(thisSlot, currentContext)
     var newfacts = isetEmpty[RFAFact]
     var delfacts = isetEmpty[RFAFact]
     thisValue.foreach{
       cIns =>
-        val name = cIns.typ.name
-        val strIns = ClassInstance(name, cIns.defSite)
-        newfacts += (RFAFact(VarSlot(retVar), strIns))
+        val typ = cIns.typ
+        val strIns = ClassInstance(typ, cIns.defSite)
+        newfacts += (RFAFact(VarSlot(retVar, false), strIns))
     }
     (newfacts, delfacts)
   }

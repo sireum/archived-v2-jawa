@@ -135,6 +135,15 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     }
   }
   
+  def tryLoadClass(typ: ObjectType): Option[JawaClass] = {
+    try{
+      Some(getClassOrResolve(typ))
+    } catch {
+      case e: JawaResolverError =>
+        None
+    }
+  }
+  
   /**
    * remove application class
    */

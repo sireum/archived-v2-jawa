@@ -11,5 +11,7 @@ package org.sireum.jawa
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
 object Constants {
-  
+  final val CONST_CLASS = "constclass"
+  final val LENGTH = "length"
+  final val ALL_FIELD = "ALL.FIELD"
 }

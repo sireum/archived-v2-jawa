@@ -13,10 +13,8 @@ import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.alir.pta._
 import org.sireum.jawa.JawaMethod
-import org.sireum.jawa.Center
-import org.sireum.jawa.Type
-import org.sireum.jawa.NormalType
 import org.sireum.jawa.alir.Context
+import org.sireum.jawa.ObjectType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -27,9 +25,9 @@ object HashSetModel {
   private def addItemToHashSetField(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  require(args.size > 1)
 	  var newfacts = isetEmpty[RFAFact]
-    val thisSlot = VarSlot(args(0))
+    val thisSlot = VarSlot(args(0), false)
 	  val thisValues = s.pointsToSet(thisSlot, currentContext)
-	  val paramSlot = VarSlot(args(1))
+	  val paramSlot = VarSlot(args(1), false)
 	  val paramValues = s.pointsToSet(paramSlot, currentContext)
 	  thisValues.foreach{
       ins =>
@@ -40,16 +38,16 @@ object HashSetModel {
   
   private def cloneHashSetToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
     require(args.size >0)
-    val thisSlot = VarSlot(args(0))
+    val thisSlot = VarSlot(args(0), false)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  thisValue.map{s => RFAFact(VarSlot(retVar), s.clone(currentContext))}
+	  thisValue.map{s => RFAFact(VarSlot(retVar, false), s.clone(currentContext))}
   }
   
   def doHashSetCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
-	  p.getSignature match{
+	  p.getSignature.signature match{
       case "Ljava/util/HashSet;.<init>:()V" =>
 //        newFacts ++= initializeHashSetField(s, args, currentContext)
 		  case "Ljava/util/HashSet;.<init>:(I)V" =>
@@ -71,7 +69,7 @@ object HashSetModel {
 		  case "Ljava/util/HashSet;.contains:(Ljava/lang/Object;)Z" =>
 		  case "Ljava/util/HashSet;.createBackingMap:(IF)Ljava/util/HashMap;" =>
 		    require(retVars.size == 1)
-		    ReachingFactsAnalysisHelper.getReturnFact(NormalType("java.util.HashMap", 0), retVars(0), currentContext) match{
+		    ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashMap", 0), retVars(0), currentContext) match{
 		      case Some(fact) => newFacts += fact
 		      case None =>
 		    }

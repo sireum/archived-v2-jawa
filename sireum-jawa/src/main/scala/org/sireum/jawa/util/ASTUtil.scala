@@ -11,11 +11,8 @@ import org.sireum.pilar.ast._
 import org.sireum.util._
 import org.sireum.jawa.Signature
 import org.sireum.jawa.FieldFQN
-
-/**
- * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
- */ 
-
+import org.sireum.jawa.JawaType
+import org.sireum.jawa.JavaKnowledge
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -44,29 +41,48 @@ object ASTUtil {
   
   def getSignature[T <: Annotable[T]](ast: Annotable[T]): Option[Signature] = {
     ast.getValueAnnotation("signature") match {
-      case Some(exp: NameExp) =>
-        Some(Signature(exp.name.name))
+      case Some(NameExp(name)) =>
+        Some(Signature(name.name))
       case _ => None
     }
   }
   
   def getAccessFlag[T <: Annotable[T]](ast: Annotable[T]): String = {
     ast.getValueAnnotation("AccessFlag") match {
-      case Some(exp: NameExp) =>
-        exp.name.name
+      case Some(NameExp(name)) =>
+        name.name
       case _ => ""
     }
   }
   
-  def getTypeKind[T <: Annotable[T]](ast: Annotable[T]): String = {
+  def getType[T <: Annotable[T]](ast: Annotable[T]): Option[JawaType] = {
+    ast.getValueAnnotation("type") match {
+      case Some(TypeExp(typespec)) =>
+        Some(getTypeFromTypeSpec(typespec))
+      case _ => None
+    }
+  }
+  
+  def getTypeFromTypeSpec(ts: TypeSpec): JawaType = {
+    var d = 0
+    var tmpTs = ts
+    while(tmpTs.isInstanceOf[SeqTypeSpec]){
+      d += 1
+      tmpTs = tmpTs.asInstanceOf[SeqTypeSpec].elementType
+    }
+    require(tmpTs.isInstanceOf[NamedTypeSpec])
+    JawaType.generateType(tmpTs.asInstanceOf[NamedTypeSpec].name.name, d)
+  }
+  
+  def getKind[T <: Annotable[T]](ast: Annotable[T]): String = {
     ast.getValueAnnotation("kind") match {
-      case Some(exp: NameExp) =>
-        exp.name.name
+      case Some(NameExp(name)) =>
+        name.name
       case _ => ""
     }
   }
   
-  def getFieldFQN(accessExp: AccessExp): FieldFQN = {
-    new FieldFQN(accessExp.attributeName.name)
+  def getFieldFQN(accessExp: AccessExp, typ: JawaType): FieldFQN = {
+    new FieldFQN(accessExp.attributeName.name, typ)
   }
 }

@@ -146,8 +146,8 @@ trait JavaKnowledge {
   /**
    * generate signature of this field. input: ("java.lang.Throwable", "stackState") output: "java.lang.Throwable.stackState"
    */
-  def generateFieldFQN(typ: ObjectType, name: String): FieldFQN = {
-    FieldFQN(typ, name)
+  def generateFieldFQN(owner: ObjectType, name: String, typ: JawaType): FieldFQN = {
+    FieldFQN(owner, name, typ)
   }
   
   /**

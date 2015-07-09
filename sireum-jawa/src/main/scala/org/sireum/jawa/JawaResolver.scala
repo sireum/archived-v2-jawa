@@ -123,7 +123,7 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
   
   protected[jawa] def getClassCode(file: AbstractFile, level: ResolveLevel.Value) : String = {
     var code: String = file.text
-    if(level < ResolveLevel.BODY){
+    if(level < ResolveLevel.BODY) {
       code = LightWeightPilarParser.getEmptyBodyCode(code)
     }
     code
@@ -214,7 +214,7 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
     mc.fields foreach{
       f =>
         val fname = f.FQN.fieldName
-        val ftyp = f.typ
+        val ftyp = f.FQN.typ
         val faccessFlag = f.accessFlag
         JawaField(clazz, fname, ftyp, faccessFlag)
     }

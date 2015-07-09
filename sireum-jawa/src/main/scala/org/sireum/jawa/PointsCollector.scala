@@ -10,6 +10,7 @@ package org.sireum.jawa
 import org.sireum.pilar.symbol.ProcedureSymbolTable
 import org.sireum.util._
 import org.sireum.pilar.ast._
+import org.sireum.jawa.util.ASTUtil
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -80,33 +81,22 @@ class PointsCollector {
 //  }
   
   /**
-     * get type from annotations, if it is an object type return true else false
-     */
-    def is(typ: String, annots: ISeq[Annotation]): Boolean = {
-      annots.foreach(
-        annot => {
-          if(annot.name.name.equals(typ)){
-            return true
-          } else {
-            annot.params.foreach(
-              param =>{
-                if(param.isInstanceOf[ExpAnnotationParam]){
-                  param.asInstanceOf[ExpAnnotationParam].exp match {
-                    case exp: NameExp =>
-                      if(exp.name.name.equals(typ)){
-                        return true
-                      }
-                    case _ => 
-                  }
-                }
-              }
-            )
+   * get type from annotations, if it is an object type return true else false
+   */
+  def is(typ: String, annots: ISeq[Annotation]): Boolean = {
+    annots.exists{
+      annot =>
+        annot.params.exists{
+          param =>{
+            param match {
+              case ExpAnnotationParam(_, NameExp(name)) =>
+                name.name.equals(typ)
+              case _ => false
+            }
           }
-          
         }
-      )
-      return false
     }
+  }
   
   def points(ownerSig: Signature, pst: ProcedureSymbolTable): Set[Point] = {
     val points: MSet[Point] = msetEmpty
@@ -123,14 +113,14 @@ class PointsCollector {
           l.name.get.uri
           
     def isStaticField(name: String): Boolean = {
-      if(name.startsWith("@@")){true} else {false}
+      name.startsWith("@@")
     }
     
-    def initExpPointL(e: Exp): Point with Left = {
+    def processLHS(e: Exp, typ: Option[JawaType]): Point with Left = {
       e match {
         case n: NameExp =>
           if(isStaticField(n.name.name)){
-            val fqn = new FieldFQN(n.name.name.replace("@@", ""))
+            val fqn = new FieldFQN(n.name.name.replace("@@", ""), typ.get)
             PointStaticFieldL(fqn, loc, locIndex, ownerSig)
           } else {
             PointL(n.name.name, loc, locIndex, ownerSig)
@@ -140,22 +130,35 @@ class PointsCollector {
             case n: NameExp =>
               val dimensions = ie.indices.size
               if(isStaticField(n.name.name)){
-                val fqn = new FieldFQN(n.name.name.replace("@@", ""))
+                val fqn = new FieldFQN(n.name.name.replace("@@", ""), typ.get)
                 PointStaticFieldArrayL(fqn, dimensions, loc, locIndex, ownerSig)
               } else {
                 PointArrayL(n.name.name, dimensions, loc, locIndex, ownerSig)
               }
             case _ => null
           }
+        case ae: AccessExp =>
+          val baseName = ae.exp match {
+            case ne: NameExp => ne.name.name
+            case _ => ""
+          }
+          val pBase = PointBaseL(baseName, loc, locIndex, ownerSig)
+          val fqn = new FieldFQN(ae.attributeName.name, typ.get)
+          val fName = fqn.fieldName
+          val pfl = PointFieldL(pBase, fName, loc, locIndex, ownerSig)
+          pBase.setFieldPoint(pfl)
+          pfl
         case _ => null
       }
     }
     
-    def initExpPointR(e: Exp): Point with Right = {
+    def processRHS(e: Exp, typ: Option[JawaType]): Point with Right = {
       e match {
         case n: NameExp =>
-          if(isStaticField(n.name.name)){
-            val fqn = new FieldFQN(n.name.name.replace("@@", ""))
+          if(n.name.name == Constants.CONST_CLASS){
+            PointClassR(typ.get.asInstanceOf[ObjectType], loc, locIndex, ownerSig)
+          } else if(isStaticField(n.name.name)){
+            val fqn = new FieldFQN(n.name.name.replace("@@", ""), typ.get)
             PointStaticFieldR(fqn, loc, locIndex, ownerSig)
           } else {
             PointR(n.name.name, loc, locIndex, ownerSig)
@@ -165,34 +168,24 @@ class PointsCollector {
           ie.exp match {
             case n: NameExp =>
               if(isStaticField(n.name.name)){
-                val fqn = new FieldFQN(n.name.name.replace("@@", ""))
+                val fqn = new FieldFQN(n.name.name.replace("@@", ""), typ.get)
                 PointStaticFieldArrayR(fqn, dimensions, loc, locIndex, ownerSig)
               } else {
                 PointArrayR(n.name.name, dimensions, loc, locIndex, ownerSig)
               }
             case _ => null
           }
-        case _ => null
-      }
-    }
-    
-    def processLHS(lhs: Exp): Point with Left = {
-      lhs match {
-        case n: NameExp => 
-          initExpPointL(n)
-        case ie: IndexingExp =>
-          initExpPointL(ie)
-        case a: AccessExp =>
-          val baseName = a.exp match {
+        case ae: AccessExp =>
+          val baseName = ae.exp match {
             case ne: NameExp => ne.name.name
             case _ => ""
           }
-          val pBase = PointBaseL(baseName, loc, locIndex, ownerSig)
-          val fqn = new FieldFQN(a.attributeName.name)
+          val pBase = PointBaseR(baseName, loc, locIndex, ownerSig)
+          val fqn = new FieldFQN(ae.attributeName.name, typ.get)
           val fName = fqn.fieldName
-          val pfl = PointFieldL(pBase, fName, loc, locIndex, ownerSig)
-          pBase.setFieldPoint(pfl)
-          pfl
+          val pfr = PointFieldR(pBase, fName, loc, locIndex, ownerSig)
+          pBase.setFieldPoint(pfr)
+          pfr
         case _ => null
       }
     }
@@ -207,14 +200,15 @@ class PointsCollector {
       case as: AssignAction =>
         var pl: Point with Left = null
         var pr: Point with Right = null
+        val typ: Option[JawaType] = ASTUtil.getType(as)
         as.rhs match {
           case le: LiteralExp =>
             if(le.typ.name.equals("STRING")){
-              pl = processLHS(as.lhs)
+              pl = processLHS(as.lhs, typ)
               pr = PointStringO(le.text, "java.lang.String", loc, locIndex, ownerSig)
             }
           case n: NewExp =>
-            pl = processLHS(as.lhs)
+            pl = processLHS(as.lhs, typ)
             var name: ResourceUri = ""
             var dimensions = 0
             n.typeSpec match {
@@ -230,26 +224,17 @@ class PointsCollector {
             }
           case n: NameExp =>
             if(is("object", as.annotations)){
-              pl = processLHS(as.lhs)
-              pr = initExpPointR(n)
+              pl = processLHS(as.lhs, typ)
+              pr = processRHS(n, typ)
             }
           case ae: AccessExp =>
             if(is("object", as.annotations)){
-              pl = processLHS(as.lhs)
-              val baseName = ae.exp match {
-                case ne: NameExp => ne.name.name
-                case _ => ""
-              }
-              val pBase = PointBaseR(baseName, loc, locIndex, ownerSig)
-              val fqn = new FieldFQN(ae.attributeName.name)
-              val fName = fqn.fieldName
-              val pfr = PointFieldR(pBase, fName, loc, locIndex, ownerSig)
-              pBase.setFieldPoint(pfr)
-              pr = pfr
+              pl = processLHS(as.lhs, typ)
+              pr = processRHS(ae, typ)
             }
           case ie: IndexingExp =>
-            pl = processLHS(as.lhs)
-            pr = initExpPointR(ie)
+            pl = processLHS(as.lhs, typ)
+            pr = processRHS(ie, typ)
           case _ =>
         }
         if(pl != null && pr != null){
@@ -388,6 +373,11 @@ final case class PointL(varname: String, loc: ResourceUri, locIndex: Int, ownerS
  * Set of program points corresponding to r-value. 
  */
 final case class PointR(varname: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
+
+/**
+ * Set of program points corresponding to r-value. 
+ */
+final case class PointClassR(classtyp: ObjectType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
 
 /**
  * Set of program points corresponding to l-value field access expressions. 

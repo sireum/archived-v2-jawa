@@ -22,6 +22,10 @@ import org.sireum.jawa.util.MyTimer
 import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralMonotoneDataFlowAnalysisFramework
 import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralMonotonicFunction
 import org.sireum.jawa.alir.dataFlowAnalysis.CallResolver
+import org.sireum.jawa.Global
+import org.sireum.jawa.alir.dataFlowAnalysis.PstProvider
+import org.sireum.jawa.Signature
+import org.sireum.pilar.symbol.ProcedureSymbolTable
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -32,17 +36,20 @@ object InterproceduralReachingDefinitionAnalysis {
   type IRDFact = (RDFact, Context)
   type Node = ICFGNode
   
-  def apply(cg : InterproceduralControlFlowGraph[Node],
-      parallel : Boolean = false,
-      timer : Option[MyTimer] = None,
-	    switchAsOrderedMatch : Boolean = false) = build(cg, parallel, timer, switchAsOrderedMatch)
+  def apply(
+      global: Global,
+      cg: InterproceduralControlFlowGraph[Node],
+      parallel: Boolean = false,
+      timer: Option[MyTimer] = None,
+	    switchAsOrderedMatch: Boolean = false) = build(global, cg, parallel, timer, switchAsOrderedMatch)
 	
 	def build(
-	    cg : InterproceduralControlFlowGraph[Node],
-	    parallel : Boolean = false,
-      timer : Option[MyTimer] = None,
-	    switchAsOrderedMatch : Boolean = false) = {
-    new InterproceduralReachingDefinitionAnalysis().build(cg, parallel, timer, switchAsOrderedMatch)
+      global: Global,
+	    cg: InterproceduralControlFlowGraph[Node],
+	    parallel: Boolean = false,
+      timer: Option[MyTimer] = None,
+	    switchAsOrderedMatch: Boolean = false) = {
+    new InterproceduralReachingDefinitionAnalysis().build(global, cg, parallel, timer, switchAsOrderedMatch)
   }
 }
 
@@ -55,65 +62,65 @@ class InterproceduralReachingDefinitionAnalysis {
   type IRDFact = InterproceduralReachingDefinitionAnalysis.IRDFact
 	type Node = InterproceduralReachingDefinitionAnalysis.Node
 	
-  var cg : InterproceduralControlFlowGraph[Node] = null
+  var cg: InterproceduralControlFlowGraph[Node] = null
   var factSet = idmapEmpty[Node, ISet[IRDFact]]
   
 	def build(
-	    cg : InterproceduralControlFlowGraph[Node],
-	    parallel : Boolean,
-      timer : Option[MyTimer],
-	    switchAsOrderedMatch : Boolean) = {
+      global: Global,
+	    cg: InterproceduralControlFlowGraph[Node],
+	    parallel: Boolean,
+      timer: Option[MyTimer],
+	    switchAsOrderedMatch: Boolean) = {
 	  val gen = new Gen
     val kill = new Kill
     val callr = new Callr
+    val pstr = new Pstr(global)
     this.cg = cg
     cg.nodes.foreach{
 	    node =>
-	      val owner = Center.getMethodWithoutFailing(node.getOwner)
+	      val owner = global.getMethod(node.getOwner).get
 	      if(!owner.isUnknown){
 		      val cfg = JawaAlirInfoProvider.getCfg(owner)
 		      val rda = JawaAlirInfoProvider.getRda(owner, cfg)
 		      node match{
-		        case cvn : ICFGVirtualNode =>
+		        case cvn: ICFGVirtualNode =>
 		          val rdafact = rda.entrySet(cfg.getVirtualNode(cvn.getVirtualLabel))
 		          factSet.update(cvn, rdafact.map{fact => (fact, getContext(fact, cvn.getContext))})
-		        case cln : ICFGLocNode =>
-		          val owner = Center.getMethodWithoutFailing(cln.getOwner)
-		          val rdafact = rda.entrySet(cfg.getNode(owner.getMethodBody.location(cln.getLocIndex)))
+		        case cln: ICFGLocNode =>
+		          val owner = global.getMethod(cln.getOwner).get
+		          val rdafact = rda.entrySet(cfg.getNode(owner.getBody.location(cln.getLocIndex)))
 		          factSet.update(cln, rdafact.map{fact => (fact, getContext(fact, cln.getContext))})
 		      }
 	      }
 	  }
-	  val initialContext : Context = new Context(GlobalConfig.ICFG_CONTEXT_K)
-    val iota : ISet[IRDFact] = isetEmpty + (((VarSlot("@@IRDA"), InitDefDesc), initialContext))
-    val initial : ISet[IRDFact] = isetEmpty
+	  val initialContext: Context = new Context(0)
+    val iota: ISet[IRDFact] = isetEmpty + (((VarSlot("@@IRDA"), InitDefDesc), initialContext))
+    val initial: ISet[IRDFact] = isetEmpty
     val result = InterProceduralMonotoneDataFlowAnalysisFramework[IRDFact](cg,
-      true, true, false, parallel, gen, kill, callr, iota, initial, timer, switchAsOrderedMatch, None)
+      true, true, false, parallel, gen, kill, callr, pstr, iota, initial, timer, switchAsOrderedMatch, None)
 
-//    print("IRD\n")
-//    print(result)
     factSet
 	}
   
-  private def getContext(fact : RDFact, srcContext : Context) : Context = {
+  private def getContext(fact: RDFact, srcContext: Context): Context = {
     val procSig = srcContext.getMethodSig
     val tarContext = srcContext.copy.removeTopContext
     fact._2 match {
-      case pdd : ParamDefDesc =>
+      case pdd: ParamDefDesc =>
         pdd.locUri match{
           case Some(locU) =>
             tarContext.setContext(procSig, locU)
           case None =>
             throw new RuntimeException("Unexpected ParamDefDesc: " + pdd)
         }
-      case ldd : LocDefDesc => 
+      case ldd: LocDefDesc => 
         ldd.locUri match {
           case Some(locU) =>
             tarContext.setContext(procSig, locU)
           case None =>
             throw new RuntimeException("Unexpected LocDefDesc: " + ldd)
         }
-      case dd : DefDesc =>
+      case dd: DefDesc =>
         if(dd.isDefinedInitially){
           tarContext.setContext(procSig, "Entry")
         } else if(dd.isUndefined) {
@@ -122,15 +129,15 @@ class InterproceduralReachingDefinitionAnalysis {
     }
   }
   
-  private def isGlobal(slot : Slot) : Boolean = 
+  private def isGlobal(slot: Slot): Boolean = 
     slot match{
-	    case vs : VarSlot => vs.varUri.contains("@@")
+	    case vs: VarSlot => vs.varUri.contains("@@")
 	    case _ => false
 	  }
   
-  private def isDef(defDesc : DefDesc) : Boolean =
+  private def isDef(defDesc: DefDesc): Boolean =
     defDesc match{
-	    case ldd : LocDefDesc => true
+	    case ldd: LocDefDesc => true
 	    case _ => false
 	  }
 	
@@ -140,7 +147,7 @@ class InterproceduralReachingDefinitionAnalysis {
 	class Gen extends InterProceduralMonotonicFunction[IRDFact] {
 		import org.sireum.pilar.ast._
 	
-	  def apply(s : ISet[IRDFact], a : Assignment, currentNode : ICFGLocNode) : ISet[IRDFact] = {
+	  def apply(s: ISet[IRDFact], a: Assignment, currentNode: ICFGLocNode): ISet[IRDFact] = {
 		  val node = currentNode
 		  val succs = cg.successors(node)
 		  val globFacts = 
@@ -151,8 +158,8 @@ class InterproceduralReachingDefinitionAnalysis {
 		  factSet += (node -> (factSet.getOrElse(node, isetEmpty) -- globFacts ++ flowingGlobFacts ++ globDefFacts))
 		  globDefFacts
 		}
-	  def apply(s : ISet[IRDFact], e : Exp, currentNode : ICFGLocNode) : ISet[IRDFact] = isetEmpty
-		def apply(s : ISet[IRDFact], a : Action, currentNode : ICFGLocNode) : ISet[IRDFact] = isetEmpty
+	  def apply(s: ISet[IRDFact], e: Exp, currentNode: ICFGLocNode): ISet[IRDFact] = isetEmpty
+		def apply(s: ISet[IRDFact], a: Action, currentNode: ICFGLocNode): ISet[IRDFact] = isetEmpty
 	}
 	
 	/**
@@ -160,7 +167,7 @@ class InterproceduralReachingDefinitionAnalysis {
 	 */
 	class Kill extends InterProceduralMonotonicFunction[IRDFact] {
 		import org.sireum.pilar.ast._
-	  def apply(s : ISet[IRDFact], a : Assignment, currentNode : ICFGLocNode) : ISet[IRDFact] = {
+	  def apply(s: ISet[IRDFact], a: Assignment, currentNode: ICFGLocNode): ISet[IRDFact] = {
 		  val node = currentNode
 		  val succs = cg.successors(node)
 		  val globDefFacts = 
@@ -169,9 +176,15 @@ class InterproceduralReachingDefinitionAnalysis {
 		  val redefGlobSlots = globDefFacts.filter(fact => s.map(_._1._1).contains(fact._1._1)).map(_._1._1)
 		  s.filter(f => !redefGlobSlots.contains(f._1._1))
 		}
-	  def apply(s : ISet[IRDFact], e : Exp, currentNode : ICFGLocNode) : ISet[IRDFact] = s
-		def apply(s : ISet[IRDFact], a : Action, currentNode : ICFGLocNode) : ISet[IRDFact] = s
+	  def apply(s: ISet[IRDFact], e: Exp, currentNode: ICFGLocNode): ISet[IRDFact] = s
+		def apply(s: ISet[IRDFact], a: Action, currentNode: ICFGLocNode): ISet[IRDFact] = s
 	}
+  
+  class Pstr(global: Global) extends PstProvider {
+    def getPst(sig: Signature): ProcedureSymbolTable = {
+      global.getMethod(sig).get.getBody
+    }
+  }
 	
 	/**
 	 * @author Fengguo Wei & Sankardas Roy
@@ -180,22 +193,22 @@ class InterproceduralReachingDefinitionAnalysis {
 	  /**
 		 * It returns the facts for each callee entry node and caller return node
 		 */
-	  def resolveCall(s : ISet[IRDFact], cj : CallJump, callerContext : Context, cg : InterproceduralControlFlowGraph[ICFGNode]) : (IMap[ICFGNode, ISet[IRDFact]], ISet[IRDFact]) = {
-      var calleeFactsMap : IMap[ICFGNode, ISet[IRDFact]] = imapEmpty
-      var returnFacts : ISet[IRDFact] = isetEmpty
+	  def resolveCall(s: ISet[IRDFact], cj: CallJump, callerContext: Context, cg: InterproceduralControlFlowGraph[ICFGNode]): (IMap[ICFGNode, ISet[IRDFact]], ISet[IRDFact]) = {
+      var calleeFactsMap: IMap[ICFGNode, ISet[IRDFact]] = imapEmpty
+      var returnFacts: ISet[IRDFact] = isetEmpty
       val callNode = cg.getICFGCallNode(callerContext)
 	    cg.successors(callNode).foreach{
 	      suc =>
-	        if(suc.isInstanceOf[ICFGEntryNode]){
+	        if(suc.isInstanceOf[ICFGEntryNode]) {
 	          calleeFactsMap += (suc -> s)
-	        } else if(suc.isInstanceOf[ICFGReturnNode]){
+	        } else if(suc.isInstanceOf[ICFGReturnNode]) {
 	          returnFacts ++= s
 	        }
 	    }
 	    (calleeFactsMap, returnFacts)
 	  }
 	  
-	  def getAndMapFactsForCaller(calleeS : ISet[IRDFact], callerNode : ICFGNode, calleeExitNode : ICFGVirtualNode) : ISet[IRDFact] = {
+	  def getAndMapFactsForCaller(calleeS: ISet[IRDFact], callerNode: ICFGNode, calleeExitNode: ICFGVirtualNode): ISet[IRDFact] = {
 	    calleeS
 	  }
 	  

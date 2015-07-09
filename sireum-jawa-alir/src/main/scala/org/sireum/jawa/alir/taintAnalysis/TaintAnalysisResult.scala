@@ -11,14 +11,15 @@ import org.sireum.util.ISet
 import org.sireum.util.IList
 import org.sireum.jawa.alir.interProcedural.InterProceduralGraph
 import org.sireum.jawa.alir.dataDependenceAnalysis.InterproceduralDataDependenceAnalysis
+import org.sireum.jawa.Signature
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 trait TaintDescriptor {
-  def name : String
-  def typ : String
+  def desc: String
+  def typ: String
 }
 
 /**
@@ -26,11 +27,11 @@ trait TaintDescriptor {
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 trait TaintNode {
-  def getNode : InterproceduralDataDependenceAnalysis.Node
-  def getDescriptors : ISet[TaintDescriptor]
-  def isSource : Boolean
-  def isSink : Boolean
-  def isSame(tn : TaintNode) : Boolean
+  def getNode: InterproceduralDataDependenceAnalysis.Node
+  def getDescriptors: ISet[TaintDescriptor]
+  def isSource: Boolean
+  def isSink: Boolean
+  def isSame(tn: TaintNode): Boolean
 }
 
 /**
@@ -38,11 +39,11 @@ trait TaintNode {
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 trait TaintPath {
-  def getSource : TaintNode
-  def getSink : TaintNode
-  def getTypes : ISet[String]
-  def getPath : IList[InterproceduralDataDependenceAnalysis.Edge]
-  def isSame(tp : TaintPath) : Boolean
+  def getSource: TaintNode
+  def getSink: TaintNode
+  def getTypes: ISet[String]
+  def getPath: IList[InterproceduralDataDependenceAnalysis.Edge]
+  def isSame(tp: TaintPath): Boolean
 }
 
 /**
@@ -50,7 +51,7 @@ trait TaintPath {
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 trait TaintAnalysisResult {
-	def getSourceNodes : ISet[TaintNode]
-	def getSinkNodes : ISet[TaintNode]
-	def getTaintedPaths : ISet[TaintPath]
+  def getSourceNodes: ISet[TaintNode]
+  def getSinkNodes: ISet[TaintNode]
+  def getTaintedPaths: ISet[TaintPath]
 }

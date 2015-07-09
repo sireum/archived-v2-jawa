@@ -1,7 +1,6 @@
 package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 
 import org.sireum.jawa.JawaMethod
-import org.sireum.jawa.Center
 import org.sireum.jawa.alir.pta.PTAResult
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis.RFAFact
 import org.sireum.jawa.alir.Context

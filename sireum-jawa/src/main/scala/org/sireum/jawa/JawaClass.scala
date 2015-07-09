@@ -468,12 +468,12 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
     else Some(this.outerClass)
   }
 
-/**
- * set outer class
- */
-def setOuterClass(oc: JawaClass) = {
-  this.outerClass = oc
-}
+  /**
+   * set outer class
+   */
+  def setOuterClass(oc: JawaClass) = {
+    this.outerClass = oc
+  }
 
   /**
    * whether current class is an inner class or not

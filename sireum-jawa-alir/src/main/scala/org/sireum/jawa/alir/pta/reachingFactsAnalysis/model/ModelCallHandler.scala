@@ -10,10 +10,7 @@ package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 import org.sireum.jawa.JawaMethod
 import org.sireum.util._
 import org.sireum.jawa.JawaClass
-import org.sireum.jawa.Type
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.Center
-import org.sireum.jawa.NormalType
 import org.sireum.alir.Slot
 import org.sireum.jawa.alir.pta.Instance
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._

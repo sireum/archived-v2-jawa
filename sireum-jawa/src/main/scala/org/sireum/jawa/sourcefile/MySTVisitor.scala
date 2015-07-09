@@ -48,7 +48,7 @@ class MySTVisitor {
         val interfaces: MList[ObjectType] = mlistEmpty
         rd.extendsClauses.foreach {
           ec =>
-            val isInterface: Boolean = ASTUtil.getTypeKind(ec) == "interface"
+            val isInterface: Boolean = ASTUtil.getKind(ec) == "interface"
             if(isInterface){
               interfaces += JavaKnowledge.getTypeFromName(ec.name.name).asInstanceOf[ObjectType]
             } else {
@@ -64,18 +64,10 @@ class MySTVisitor {
         
         rd.attributes.foreach{
           field =>
-            val FQN: FieldFQN = new FieldFQN(field.name.name)
+            val fieldType: JawaType = ASTUtil.getTypeFromTypeSpec(field.typeSpec.get)
+            val FQN: FieldFQN = new FieldFQN(field.name.name, fieldType)
             val accessFlag: Int = AccessFlag.getAccessFlags(ASTUtil.getAccessFlag(field))
-            require(field.typeSpec.isDefined)
-            var d = 0
-            var tmpTs = field.typeSpec.get
-            while(tmpTs.isInstanceOf[SeqTypeSpec]){
-              d += 1
-              tmpTs = tmpTs.asInstanceOf[SeqTypeSpec].elementType
-            }
-            require(tmpTs.isInstanceOf[NamedTypeSpec])
-            val fieldType: JawaType = JawaType.generateType(tmpTs.asInstanceOf[NamedTypeSpec].name.name, d)
-            val f = MyField(accessFlag, FQN, fieldType)
+            val f = MyField(accessFlag, FQN)
             myclass.addField(f)
         }
         myclass
@@ -87,7 +79,7 @@ class MySTVisitor {
   }
   
   private def createClassField(rec: MyClass): MyField = {
-    MyField(AccessFlag.getAccessFlags("FINAL_STATIC"), FieldFQN(rec.typ, "class"), ObjectType("java.lang.Class", 0))
+    MyField(AccessFlag.getAccessFlags("FINAL_STATIC"), FieldFQN(rec.typ, "class", new ObjectType("java.lang.Class")))
   }
   
   /**
@@ -97,18 +89,11 @@ class MySTVisitor {
     val col: GenMap[ResourceUri, GlobalVarDecl] = if(par) stp.tables.globalVarTable.par else stp.tables.globalVarTable
     col.map{
       case (uri, gvd) =>
-        val FQN = new FieldFQN(gvd.name.name.replaceAll("@@", "")) // e.g. @@java.lang.Enum.serialVersionUID
-        val accessFlag = AccessFlag.getAccessFlags(ASTUtil.getAccessFlag(gvd))
         require(gvd.typeSpec.isDefined)
-        var d = 0
-        var tmpTs = gvd.typeSpec.get
-        while(tmpTs.isInstanceOf[SeqTypeSpec]){
-          d += 1
-          tmpTs = tmpTs.asInstanceOf[SeqTypeSpec].elementType
-        }
-        require(tmpTs.isInstanceOf[NamedTypeSpec])
-        val globalVarType: JawaType = JawaType.generateType(tmpTs.asInstanceOf[NamedTypeSpec].name.name, d)
-        val f = MyField(accessFlag, FQN, globalVarType)
+        val globalVarType: JawaType = ASTUtil.getTypeFromTypeSpec(gvd.typeSpec.get)
+        val FQN = new FieldFQN(gvd.name.name.replaceAll("@@", ""), globalVarType) // e.g. @@java.lang.Enum.serialVersionUID
+        val accessFlag = AccessFlag.getAccessFlags(ASTUtil.getAccessFlag(gvd))
+        val f = MyField(accessFlag, FQN)
         val ownerType = FQN.owner
         val owner = this.classes(ownerType)
         owner.addField(f)

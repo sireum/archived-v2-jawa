@@ -168,12 +168,6 @@ object JawaAlirInfoProvider {
     }
     p.getProperty(RDA)
   }
-//  
-//  def getClassInstance(r : JawaClass) : ClassInstance = {
-//    val mainContext = new Context(GlobalConfig.ICFG_CONTEXT_K)
-//    mainContext.setContext("Center", "L0000")
-//    ClassInstance(r.getName, mainContext)
-//  }
 }
 
 case class TransformIntraMethodResult(pst : ProcedureSymbolTable, cfg : ControlFlowGraph[String], rda : JawaReachingDefinitionAnalysis.Result)

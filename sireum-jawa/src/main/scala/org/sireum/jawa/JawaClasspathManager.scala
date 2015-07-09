@@ -61,6 +61,10 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
    */
   protected val applicationClassCodes: MMap[ObjectType, SourceFile] = mmapEmpty
   
+  def getUserLibraryClassCodes: IMap[ObjectType, SourceFile] = this.userLibraryClassCodes.toMap
+  
+  def getApplicationClassCodes: IMap[ObjectType, SourceFile] = this.applicationClassCodes.toMap
+  
   // platform specific elements
 
   private var javaLibrary: String = ""
@@ -106,6 +110,30 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
     }
   }
   
+  /**
+   * get procedure's containing record's code
+   */
+  def getMethodCode(sig: Signature) : Option[String] = {
+    val typ = sig.getClassType
+    getMyClass(typ) match {
+      case Some(mc) =>
+        this.applicationClassCodes.get(typ) match {
+          case Some(asrc) =>
+            val recordCode = getClassCode(asrc.file, ResolveLevel.BODY)
+            LightWeightPilarParser.getCode(recordCode, sig.signature)
+          case None =>
+            this.userLibraryClassCodes.get(typ) match {
+              case Some(usrc) =>
+                val recordCode = getClassCode(usrc.file, ResolveLevel.BODY)
+                LightWeightPilarParser.getCode(recordCode, sig.signature)
+              case None =>
+                None
+            }
+        }
+      case _ => None
+    }
+  }
+  
   def getMyClass(typ: ObjectType): Option[MyClass] = {
     this.applicationClassCodes.get(typ) match {
       case Some(asrc) =>
@@ -119,14 +147,12 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
               case Some(cs) =>
                 ClassfileParser.parse(cs.binary.get).get(typ)
               case None =>
-                {
-                  classPath.findClass(typ.name) match {
-                    case Some(c) =>
-                      cachedClassRepresentation(typ) = c
-                      ClassfileParser.parse(c.binary.get).get(typ)
-                    case None =>
-                      None
-                  }
+                classPath.findClass(typ.name) match {
+                  case Some(c) =>
+                    cachedClassRepresentation(typ) = c
+                    ClassfileParser.parse(c.binary.get).get(typ)
+                  case None =>
+                    None
                 }
             }
         }

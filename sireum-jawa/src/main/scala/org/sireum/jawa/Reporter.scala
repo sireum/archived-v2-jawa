@@ -11,10 +11,15 @@ import org.sireum.jawa.io.AbstractFile
  */
 trait Reporter {
   protected def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit
+  protected def info1(title: String, msg: String, severity: Severity, force: Boolean): Unit
 
   def echo(pos: Position, msg: String): Unit    = info0(pos, msg, INFO, force = true)
   def warning(pos: Position, msg: String): Unit = info0(pos, msg, WARNING, force = false)
   def error(pos: Position, msg: String): Unit   = info0(pos, msg, ERROR, force = false)
+  
+  def echo(title: String, msg: String): Unit    = info1(title, msg, INFO, force = true)
+  def warning(title: String, msg: String): Unit = info1(title, msg, WARNING, force = false)
+  def error(title: String, msg: String): Unit   = info1(title, msg, ERROR, force = false)
 
   type Severity
   val INFO: Severity
@@ -42,6 +47,9 @@ trait Reporter {
 trait ReporterImpl extends Reporter {
   /** Informational messages. If `!force`, they may be suppressed. */
   final def info(pos: Position, msg: String, force: Boolean): Unit = info0(pos, msg, INFO, force)
+  
+  /** Informational messages. If `!force`, they may be suppressed. */
+  final def info(title: String, msg: String, force: Boolean): Unit = info1(title, msg, INFO, force)
 
   /** For sending a message which should not be labeled as a warning/error,
    *  but also shouldn't require -verbose to be visible.
@@ -69,11 +77,17 @@ trait ReporterImpl extends Reporter {
 }
 
 case class Problem(pos: Position, msg: String, sev: Int)
+case class Problem1(title: String, msg: String, sev: Int)
 
 class DefaultReporter extends ReporterImpl {
   val problems = mmapEmpty[AbstractFile, MSet[Problem]]
+  val problems1 = mmapEmpty[String, MSet[Problem1]]
   def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
     severity.count += 1
     problems.getOrElseUpdate(pos.source.file, msetEmpty) += Problem(pos, msg, severity.id)
+  }
+  def info1(title: String, msg: String, severity: Severity, force: Boolean): Unit = {
+    severity.count += 1
+    problems1.getOrElseUpdate(title, msetEmpty) += Problem1(title, msg, severity.id)
   }
 }

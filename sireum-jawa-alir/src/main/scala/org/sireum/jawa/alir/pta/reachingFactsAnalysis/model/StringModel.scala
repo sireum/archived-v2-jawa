@@ -20,33 +20,33 @@ import org.sireum.jawa.alir.pta._
 object StringModel {
 	def isString(r : JawaClass) : Boolean = r.getName == "java.lang.String"
 	
-	private def getReturnFactsWithAlias(rType : Type, retVar : String, currentContext : Context, alias : ISet[Instance]) : ISet[RFAFact] = 
-    alias.map{a=>RFAFact(VarSlot(retVar), a)}
+	private def getReturnFactsWithAlias(rType : JawaType, retVar : String, currentContext : Context, alias : ISet[Instance]) : ISet[RFAFact] = 
+    alias.map{a=>RFAFact(VarSlot(retVar, false), a)}
 	
 	private def getPointStringForThis(args : List[String], currentContext : Context): ISet[RFAFact] = {
   	  require(args.size > 0)
-	  val thisSlot = VarSlot(args(0))
+	  val thisSlot = VarSlot(args(0), false)
       val newThisValue = PTAPointStringInstance(currentContext.copy)
       Set(RFAFact(thisSlot, newThisValue))	 
 	}
 	
 	private def getFactFromArgForThis(s : PTAResult, args : List[String], currentContext : Context): ISet[RFAFact] = {
 	  require(args.size > 1)
-	  val thisSlot = VarSlot(args(0))
-	  val paramSlot = VarSlot(args(1))
+	  val thisSlot = VarSlot(args(0), false)
+	  val paramSlot = VarSlot(args(1), false)
 	  s.pointsToSet(paramSlot, currentContext).map(v => RFAFact(thisSlot, v)) 
 	}
 	
 	
   private def getOldFactForThis(s : PTAResult, args : List[String], currentContext : Context): ISet[RFAFact] = {
 		require(args.size > 0)
-    val thisSlot = VarSlot(args(0))
+    val thisSlot = VarSlot(args(0), false)
     s.pointsToSet(thisSlot, currentContext).map(v => RFAFact(thisSlot, v))  
 	}
 	
   private def getPointStringForRet(retVar : String, currentContext : Context) :ISet[RFAFact] ={
     
-	  ReachingFactsAnalysisHelper.getReturnFact(new NormalType("java.lang.String"), retVar, currentContext) match{
+	  ReachingFactsAnalysisHelper.getReturnFact(new ObjectType("java.lang.String"), retVar, currentContext) match{
 		  case Some(fact) =>           
 		      //deleteFacts += fact
 		      val value = PTAPointStringInstance(currentContext.copy)
@@ -58,9 +58,9 @@ object StringModel {
   
   private def getFactFromThisForRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) :ISet[RFAFact] ={
   	require(args.size > 0)
-    ReachingFactsAnalysisHelper.getReturnFact(new NormalType("java.lang.String"), retVar, currentContext) match{
+    ReachingFactsAnalysisHelper.getReturnFact(new ObjectType("java.lang.String"), retVar, currentContext) match{
       case Some(fact) => 
-        val thisSlot = VarSlot(args(0))
+        val thisSlot = VarSlot(args(0), false)
 		    s.pointsToSet(thisSlot, currentContext).map(v => RFAFact(fact.s, v))  
       case None =>  isetEmpty
     }
@@ -71,7 +71,7 @@ object StringModel {
 	  var newFacts = isetEmpty[RFAFact]
 	  var deleteFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
-	  p.getSignature match{
+	  p.getSignature.signature match{
 	    case "Ljava/lang/String;.<clinit>:()V" =>
 	    case "Ljava/lang/String;.<init>:()V" =>
 	    case "Ljava/lang/String;.<init>:(II[C)V" =>
@@ -163,7 +163,7 @@ object StringModel {
         newFacts ++= getPointStringForRet(retVars(0), currentContext)
         byPassFlag = false
 	    case "Ljava/lang/String;.failedBoundsCheck:(III)Ljava/lang/StringIndexOutOfBoundsException;" =>
-	      ReachingFactsAnalysisHelper.getReturnFact(new NormalType("java:lang:StringIndexOutOfBoundsException"), retVars(0), currentContext) match{
+	      ReachingFactsAnalysisHelper.getReturnFact(new ObjectType("java.lang.StringIndexOutOfBoundsException"), retVars(0), currentContext) match{
 	        case Some(fact) => 
 	          newFacts += fact
 	        case None =>
@@ -180,7 +180,7 @@ object StringModel {
         newFacts ++= getPointStringForRet(retVars(0), currentContext)
         byPassFlag = false
 	    case "Ljava/lang/String;.indexAndLength:(I)Ljava/lang/StringIndexOutOfBoundsException;" =>
-	      ReachingFactsAnalysisHelper.getReturnFact(new NormalType("java:lang:StringIndexOutOfBoundsException"), retVars(0), currentContext) match{
+	      ReachingFactsAnalysisHelper.getReturnFact(new ObjectType("java.lang.StringIndexOutOfBoundsException"), retVars(0), currentContext) match{
 	        case Some(fact) => 
 	          newFacts += fact
 	        case None =>
@@ -190,7 +190,7 @@ object StringModel {
 	    case "Ljava/lang/String;.indexOfSupplementary:(II)I" =>
 	    case "Ljava/lang/String;.lastIndexOfSupplementary:(II)I" =>
 	    case "Ljava/lang/String;.startEndAndLength:(II)Ljava/lang/StringIndexOutOfBoundsException;" =>
-	      ReachingFactsAnalysisHelper.getReturnFact(new NormalType("java:lang:StringIndexOutOfBoundsException"), retVars(0), currentContext) match{
+	      ReachingFactsAnalysisHelper.getReturnFact(new ObjectType("java.lang.StringIndexOutOfBoundsException"), retVars(0), currentContext) match{
 	        case Some(fact) => 
 	          newFacts += fact
 	        case None =>
@@ -218,7 +218,7 @@ object StringModel {
         byPassFlag = false
 	    case "Ljava/lang/String;.valueOf:(Ljava/lang/Object;)Ljava/lang/String;" =>
 	      require(args.size > 0)
-	      val paramSlot = VarSlot(args(0))
+	      val paramSlot = VarSlot(args(0), false)
 	      if(!s.pointsToSet(paramSlot, currentContext).isEmpty){
 	        var values : ISet[Instance] = isetEmpty
 	        s.pointsToSet(paramSlot, currentContext).foreach{
@@ -227,7 +227,7 @@ object StringModel {
 	            else values += PTAPointStringInstance(currentContext)
 	        }
 	        require(retVars.size == 1)
-	        newFacts ++= values.map{v=>RFAFact(VarSlot(retVars(0)), v)}
+	        newFacts ++= values.map{v=>RFAFact(VarSlot(retVars(0), false), v)}
 	      }
 	      byPassFlag = false
 	    case "Ljava/lang/String;.valueOf:(Z)Ljava/lang/String;" =>

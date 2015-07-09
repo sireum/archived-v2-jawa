@@ -167,7 +167,7 @@ case class JawaMethod(declaringClass: JawaClass,
   /**
    * retrieve code belong to this method
    */
-  //def retrieveCode: String = getAST.toCode
+  def retrieveCode: Option[String] = getDeclaringClass.global.getMethodCode(getSignature)
 
   /**
    * Jawa AST node for this JawaMethod. Unless unknown, it should not be null.

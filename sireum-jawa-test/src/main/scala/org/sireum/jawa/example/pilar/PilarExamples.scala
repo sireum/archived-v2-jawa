@@ -17,18 +17,7 @@ import org.sireum.jawa.test.TestConfig
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */
 object PilarExamples extends Examples{
-  val jawaTestDir = System.getenv(TestConfig.JAWA_TEST_DIR)
+  val GOOD_MODEL_DIR_URI = sourceDirUri(this.getClass, "./good/model/")
   
-  override val PILAR_FILE_EXT = ".pilar"
-  
-  def modelFiles = exampleFiles(sourceDirUri(jawaTestDir + "/model/"), PILAR_FILE_EXT)
-  
-  protected def getFileRets(path : String, ext : String) = {
-    val fileNames = MyFileUtil.getResourceListing(this.getClass(), path, ext)
-    fileNames.map(
-      name =>
-    		ResourceRetriever(this.getClass(), path, name)
-    )
-  }
- 
+  def goodModelFiles = exampleFiles(GOOD_MODEL_DIR_URI)
 }

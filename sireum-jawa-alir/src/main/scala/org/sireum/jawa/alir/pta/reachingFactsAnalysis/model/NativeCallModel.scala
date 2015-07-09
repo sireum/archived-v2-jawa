@@ -10,7 +10,6 @@ package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 import org.sireum.jawa.JawaMethod
 import org.sireum.util._
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
-import org.sireum.jawa.Center
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.alir.pta._
@@ -26,19 +25,17 @@ object NativeCallModel {
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
 	  	  
-	  p.getSignature match{
+	  p.getSignature.signature match{
 	    case "Ljava/lang/Object;.getClass:()Ljava/lang/Class;" =>
 	      // algo:thisvalue.foreach {ins => set insRec's classObj field with a classIns whose type is java:lang:Class and name is same as ins's type
 	               // then, create two facts (a) (retVarSlot, insRec.classObj), (b) ([insRec.classObj, "java:lang:Class.name"], concreteString(ins.typ))}
 	      require(args.size > 0)
-        val thisSlot = VarSlot(args(0))
+        val thisSlot = VarSlot(args(0), false)
 	      val thisValue = s.pointsToSet(thisSlot, currentContext)
 	      thisValue.foreach{
 	        ins =>
-	          require(Center.hasClass(ins.typ.typ))
-	          val insRec = Center.getClass(ins.typ.typ)
-	          val insClasObj = JawaAlirInfoProvider.getClassInstance(insRec)
-	          newFacts += RFAFact(VarSlot(retVars(0)), insClasObj)
+	          val insClasObj = ClassInstance(ins.typ, currentContext)
+	          newFacts += RFAFact(VarSlot(retVars(0), false), insClasObj)
 	          val strIns = PTAConcreteStringInstance(insClasObj.getName, insClasObj.defSite)
 	          newFacts += (RFAFact(FieldSlot(insClasObj, "java.lang.Class.name"), strIns))
 	      }
@@ -46,7 +43,7 @@ object NativeCallModel {
 	    case "Ljava/lang/Class;.getNameNative:()Ljava/lang/String;" =>
 	      // algo:thisValue.foreach.{ cIns => get value of (cIns.name") and create fact (retVar, value)}
 	      require(args.size > 0)
-        val thisSlot = VarSlot(args(0))
+        val thisSlot = VarSlot(args(0), false)
 	      val thisValue = s.pointsToSet(thisSlot, currentContext)
 	      thisValue.foreach{
 	        cIns =>
@@ -54,7 +51,7 @@ object NativeCallModel {
 	          require(cIns.isInstanceOf[ClassInstance])
 	          val name = cIns.asInstanceOf[ClassInstance].getName
 	          val strIns = PTAConcreteStringInstance(name, cIns.defSite)
-              newFacts += (RFAFact(VarSlot(retVars(0)), strIns))
+              newFacts += (RFAFact(VarSlot(retVars(0), false), strIns))
 	      }
 	      byPassFlag = false
 	    case _ =>

@@ -31,13 +31,13 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
   
   protected var icfg : InterproceduralControlFlowGraph[ICFGNode] = null
   
-	def initGraph(icfg : InterproceduralControlFlowGraph[ICFGNode]) = {
+	def initGraph(global: Global, icfg : InterproceduralControlFlowGraph[ICFGNode]) = {
     this.icfg = icfg
 	  icfg.nodes.foreach{
 	    node =>
 	      node match{
 	        case en : ICFGEntryNode =>
-	          val owner = Center.getMethodWithoutFailing(en.getOwner)
+	          val owner = global.getMethod(en.getOwner).get
 	          val pnames = owner.getParamNames
 	          val ptyps = owner.getParamTypes
 	          var position = 0
@@ -53,7 +53,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	            position += 1
 	          }
 	        case en : ICFGExitNode =>
-	          val owner = Center.getMethodWithoutFailing(en.getOwner)
+	          val owner = global.getMethod(en.getOwner).get
 	          val pnames = owner.getParamNames
             val ptyps = owner.getParamTypes
             var position = 0
@@ -70,7 +70,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
             }
 	        case en : ICFGCenterNode =>
 	        case cn : ICFGCallNode =>
-	          val loc = Center.getMethodWithoutFailing(cn.getOwner).getMethodBody.location(cn.getLocIndex)
+	          val loc = global.getMethod(cn.getOwner).get.getBody.location(cn.getLocIndex)
 	          val argNames : MList[String] = mlistEmpty
 	          loc match{
 	            case jumploc : JumpLocation =>
@@ -83,12 +83,12 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	            n.asInstanceOf[IDDGCallArgNode].argName = argName
 	          }
 	          val rn = addIDDGReturnVarNode(cn)
-            if(cn.getCalleeSet.exists{p => p.callee.getDeclaringClass.isFrameworkClass || p.callee.getDeclaringClass.isThirdPartyLibClass || p.callee.isUnknown}){
+            if(cn.getCalleeSet.exists{p => p.callee.getDeclaringClass.isSystemLibraryClass || p.callee.getDeclaringClass.isUserLibraryClass || p.callee.isUnknown}){
 	            val vn = addIDDGVirtualBodyNode(cn)
 	            vn.asInstanceOf[IDDGVirtualBodyNode].argNames = argNames.toList
 	          }
 	        case rn : ICFGReturnNode =>
-	          val loc =  Center.getMethodWithoutFailing(rn.getOwner).getMethodBody.location(rn.getLocIndex)
+	          val loc =  global.getMethod(rn.getOwner).get.getBody.location(rn.getLocIndex)
 	          val argNames : MList[String] = mlistEmpty
 	          loc match{
 	            case jumploc : JumpLocation =>

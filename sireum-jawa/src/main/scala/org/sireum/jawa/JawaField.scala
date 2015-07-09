@@ -40,7 +40,7 @@ case class JawaField(declaringClass: JawaClass, name: String, typ: JawaType, acc
   /**
    * full qualified name of the field. e.g. java.lang.Throwable.stackState
    */
-  def FQN: FieldFQN = generateFieldFQN(declaringClass.getType, name)
+  def FQN: FieldFQN = generateFieldFQN(declaringClass.getType, name, typ)
 
   /**
    * field type

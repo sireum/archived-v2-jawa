@@ -3,7 +3,8 @@ package org.sireum.jawa
 /**
  * @author fgwei
  */
-case class FieldFQN(owner: ObjectType, fieldName: String) extends JavaKnowledge {
-  def this(fqn: String) = this(JavaKnowledge.getClassTypeFromFieldFQN(fqn), JavaKnowledge.getFieldNameFromFieldFQN(fqn))
-  override def toString: String = (owner.jawaName + "." + fieldName).intern()
+case class FieldFQN(owner: ObjectType, fieldName: String, typ: JawaType) extends JavaKnowledge {
+  def this(fqn: String, typ: JawaType) = this(JavaKnowledge.getClassTypeFromFieldFQN(fqn), JavaKnowledge.getFieldNameFromFieldFQN(fqn), typ)
+  def fqn: String = (owner.jawaName + "." + fieldName).intern()
+  override def toString: String = (owner.jawaName + "." + fieldName + ":" + typ.jawaName).intern()
 }

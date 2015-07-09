@@ -24,15 +24,15 @@ abstract class Instance{
 }
 
 
-final case class ClassInstance(name: String, defSite: Context) extends Instance{
-  override def clone(newDefSite: Context): Instance = ClassInstance(name, newDefSite)
+final case class ClassInstance(classtyp: ObjectType, defSite: Context) extends Instance{
+  override def clone(newDefSite: Context): Instance = ClassInstance(classtyp, newDefSite)
   def typ = ObjectType("java.lang.Class", 0)
-  def getName = name
+  def getName = classtyp.jawaName
   override def ===(ins: Instance): Boolean = {
     if(ins.isInstanceOf[ClassInstance]) ins.asInstanceOf[ClassInstance].getName.equals(getName)
     else false
   }
-  override def toString: String = this.name + ".class@" + this.defSite.getCurrentLocUri
+  override def toString: String = getName + ".class@" + this.defSite.getCurrentLocUri
 }
 
 final case class UnknownInstance(baseTyp: ObjectType, defSite: Context) extends Instance{
@@ -56,20 +56,20 @@ final case class PTAInstance(typ: ObjectType, defSite: Context, isNull_ : Boolea
   }
 }
 
-///**
-// * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
-// * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
-// */ 
-//final case class PTATupleInstance(left: Instance, right: Instance, defSite: Context) extends Instance{
-//  override def clone(newDefSite: Context): Instance = PTATupleInstance(left, right, newDefSite)
-//  def typ: Type = TupleType(left.typ, right.typ)
-//  override def toString: String = {
-//    val sb = new StringBuilder
-//    sb.append(this.typ + "@")
-//    sb.append(this.defSite.getCurrentLocUri)
-//    sb.toString.intern()
-//  }
-//}
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */ 
+final case class PTATupleInstance(left: Instance, right: Instance, defSite: Context) extends Instance{
+  override def clone(newDefSite: Context): Instance = PTATupleInstance(left, right, newDefSite)
+  def typ: ObjectType = new ObjectType("Tuple")
+  override def toString: String = {
+    val sb = new StringBuilder
+    sb.append(this.typ + "@")
+    sb.append(this.defSite.getCurrentLocUri)
+    sb.toString.intern()
+  }
+}
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
