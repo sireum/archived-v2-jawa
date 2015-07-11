@@ -18,7 +18,7 @@ class Global(val projectName: String, val reporter: Reporter) extends {
    */
   protected var initializing = true
 } with JawaClassLoadManager
-  with JawaClasspathManager{
+  with JawaClasspathManager {
   
   /**
    * reset the current Global

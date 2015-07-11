@@ -121,7 +121,7 @@ class MySTVisitor {
         val accessFlag = AccessFlag.getAccessFlags(ASTUtil.getAccessFlag(pd))
         val paramNames = pd.params.map{_.name.name}.toList
         
-        val m: MyMethod = MyMethod(accessFlag, signature)
+        val m: MyMethod = MyMethod(accessFlag, signature, paramNames)
         
         if(level >= ResolveLevel.BODY){
             m.setBody(stp.procedureSymbolTableProducer(uri).asInstanceOf[MethodBody])

@@ -91,3 +91,22 @@ class DefaultReporter extends ReporterImpl {
     problems1.getOrElseUpdate(title, msetEmpty) += Problem1(title, msg, severity.id)
   }
 }
+
+class PrintReporter extends ReporterImpl {
+  def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
+    severity.count += 1
+    severity match {
+      case INFO    => println(severity + "@" + pos + ":" + msg)
+      case WARNING => println(severity + "@" + pos + ":" + msg)
+      case ERROR   => System.err.println(severity + "@" + pos + ":" + msg)
+    }
+  }
+  def info1(title: String, msg: String, severity: Severity, force: Boolean): Unit = {
+    severity.count += 1
+    severity match {
+      case INFO    => println(severity + "@" + title + ":" + msg)
+      case WARNING => println(severity + "@" + title + ":" + msg)
+      case ERROR   => System.err.println(severity + "@" + title + ":" + msg)
+    }
+  }
+}

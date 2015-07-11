@@ -136,11 +136,9 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   }
   
   def tryLoadClass(typ: ObjectType): Option[JawaClass] = {
-    try{
-      Some(getClassOrResolve(typ))
-    } catch {
-      case e: JawaResolverError =>
-        None
+    containsClassFile(typ) match {
+      case true => Some(getClassOrResolve(typ))
+      case false => None
     }
   }
   
@@ -345,18 +343,18 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * get entry points
    */
-  def getEntryPoints = {
+  def getEntryPoints: ISet[JawaMethod] = {
     if(!hasEntryPoints) findEntryPoints("main")
-    this.entryPoints
+    this.entryPoints.toSet
   }
   
   /**
    * get entry points
    */
-  def getEntryPoints(entryMethodName: String) = {
+  def getEntryPoints(entryMethodName: String): ISet[JawaMethod] = {
     if(hasEntryPoints) this.entryPoints == Set()
     findEntryPoints(entryMethodName)
-    this.entryPoints
+    this.entryPoints.toSet
   }
     
   /**

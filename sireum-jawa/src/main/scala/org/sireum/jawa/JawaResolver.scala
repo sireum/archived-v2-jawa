@@ -82,6 +82,8 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
    * resolve the given classes to desired level. 
    */
   protected[jawa] def resolveClass(classType: ObjectType, desiredLevel: ResolveLevel.Value, allowUnknown: Boolean): JawaClass = {
+    println(classType)
+    println(containsClassFile(classType))
     if(!classType.isArray && !containsClassFile(classType)){
       if(!allowUnknown) throw JawaResolverError("Does not find class " + classType + " and don't allow unknown.")
       if(desiredLevel >= ResolveLevel.BODY) throw JawaResolverError("Does not allow unknown class " + classType + " resolve to body level.")

@@ -25,11 +25,7 @@ import scala.tools.asm.ClassReader
 import scala.tools.asm.util.TraceClassVisitor
 import java.lang.reflect.InvocationTargetException
 import org.sireum.jawa.sjc.refactoring.RefactorJawa
-import org.sireum.jawa.JawaCodeSource
-import org.sireum.jawa.GlobalConfig
-import org.sireum.amandroid.util.AndroidLibraryAPISummary
 import org.sireum.jawa.util.MyFileUtil
-import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.io.SourceFile
 
 class JawaRefactorTest extends FlatSpec with ShouldMatchers {
@@ -216,7 +212,7 @@ class JawaRefactorTest extends FlatSpec with ShouldMatchers {
 //    val code = MyFileUtil.readFileContent(fileUri)
     val newcode = RefactorJawa(code)
     println(newcode)
-    JawaAlirInfoProvider.getIntraMethodResult(newcode) // check pilar parser
+//    JawaAlirInfoProvider.getIntraMethodResult(newcode) // check pilar parser
     JawaParser.parse[CompilationUnit](Left(newcode), true, reporter) // check jawa parser
     if(reporter.hasErrors) throw new RuntimeException(reporter.problems.toString())    
   }

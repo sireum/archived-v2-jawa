@@ -69,7 +69,11 @@ class MyClassVisitor(api: Int) extends ClassVisitor(api) {
                   signature: String, exceptions: Array[String]): MethodVisitor = {
     val accessFlag: Int = AccessFlag.getJawaFlags(access, FlagKind.METHOD)
     val signature: Signature = JavaKnowledge.genSignature(JavaKnowledge.formatTypeToSignature(currentClass.typ), name, desc)
-    val m = MyMethod(accessFlag, signature)
+    val params = signature.getParameters()
+    val paramnames: IList[String] = params.map {
+      param => "v" + params.indexOf(param)
+    }
+    val m = MyMethod(accessFlag, signature, paramnames)
     currentClass.addMethod(m)
     new MyMethodVisitor(m)
   }

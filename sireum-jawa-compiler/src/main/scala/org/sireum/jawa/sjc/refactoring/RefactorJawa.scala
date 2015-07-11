@@ -1,9 +1,6 @@
 package org.sireum.jawa.sjc.refactoring
 
-import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.DefaultReporter
-import org.sireum.jawa.Center
-import org.sireum.jawa.alir.TransformIntraMethodResult
 import org.sireum.util._
 import org.sireum.alir.AlirLocationNode
 import org.sireum.jawa.sjc.parser._
