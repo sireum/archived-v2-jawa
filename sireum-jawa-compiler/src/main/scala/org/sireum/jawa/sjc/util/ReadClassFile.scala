@@ -3,8 +3,8 @@ package org.sireum.jawa.sjc.util
 import java.io.File
 import java.io.PrintWriter
 import org.sireum.jawa.sjc.codegen.JavaByteCodeGenerator
-import org.apache.commons.io.IOUtils
 import java.io.FileInputStream
+import org.apache.tika.io.IOUtils
 
 /**
  * @author fgwei
