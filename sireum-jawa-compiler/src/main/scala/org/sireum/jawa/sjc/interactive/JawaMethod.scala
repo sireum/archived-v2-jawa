@@ -55,7 +55,7 @@ case class JawaMethod(declaringClass: JawaClass,
           this.accessFlags >= 0) // NON-NIL
   
   require(!this.name.isEmpty())
-  require(!(isStatic || isNative) && this.thisOpt.isDefined, getName + " " + getResolvingLevel + " not has this.")
+  require((isStatic || isNative || isAbstract) || this.thisOpt.isDefined, getDeclaringClass + " " + getName + " " + getResolvingLevel + " not has this.")
   
   private val signature: Signature = generateSignature(this)
   

@@ -68,7 +68,6 @@ object RefactorJawa {
       pendingTasks.remove(varname)
     }
     
-    
 //    val updateEvidence: MMap[Position, String] = mmapEmpty // map from pos -> new string
     val resolved: MSet[ControlFlowGraph.Node] = msetEmpty
     
@@ -107,10 +106,10 @@ object RefactorJawa {
     }
     val entry: ControlFlowGraph.Node = cfg.getVirtualNode("Entry")
     val worklist: MList[ControlFlowGraph.Node] = mlistEmpty
-    worklist ++= cfg.successors(entry)
+    worklist += entry
     
     while(!worklist.isEmpty){
-      val n = worklist.remove(0)
+      val n = worklist.remove(worklist.size - 1)
       resolved += n
       worklist ++= cfg.successors(n).filter(s => !resolved.contains(s))
       n match {
@@ -128,6 +127,7 @@ object RefactorJawa {
                 val arg = args(size - i)
                 val typ = paramTypes(size - i)
                 handlePendingTask(arg.varName, typ)
+                if(!recentvars.contains(arg.varName)) throw new RuntimeException(md.signature + " has problem of " + arg.varName)
                 val newarg = recentvars(arg.varName)
                 locCode = updateCode(locCode, arg.id.pos, newarg)
 //                  updateEvidence(arg._1.id.pos) = newarg
@@ -165,7 +165,7 @@ object RefactorJawa {
                         case None => 
                           kind match {
                             case "object" => JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE
-                            case a => JawaType.generateType(a, 0)
+                            case a => PrimitiveType("int")
                           }
                       }
                       handlePendingTask(varname, typ)
@@ -349,6 +349,7 @@ object RefactorJawa {
               locCode = updateCode(locCode, ts.varSymbol.id.pos, newarg)
 //              updateEvidence(ts.varSymbol.id.pos) = newarg
             case is: IfStatement =>
+              val left = is.cond.left.varName
               is.cond.right match {
                 case Left(v) =>
                   handlePendingTask(v.varName, PrimitiveType("int"))
@@ -356,8 +357,17 @@ object RefactorJawa {
                   locCode = updateCode(locCode, v.id.pos, newright)
 //                  updateEvidence(v.id.pos) = newright
                 case Right(c) =>
+                  if(recentvars.contains(left)){
+                    val tmpleft = recentvars(left)
+                    val (typ, _) = localvars(tmpleft)
+                    JavaKnowledge.isJavaPrimitive(typ) match {
+                      case true =>
+                      case false =>
+                        locCode = updateCode(locCode, c.pos, "null")
+                    }
+                  }
               }
-              val left = is.cond.left.varName
+              
               handlePendingTask(left, PrimitiveType("int"))
               val newleft = recentvars(left)
               locCode = updateCode(locCode, is.cond.left.id.pos, newleft)
@@ -446,6 +456,7 @@ object RefactorJawa {
   
   private def RemoveTempAndDoubleLongVars(md: MethodDeclaration): String = {
     val sb: StringBuilder = new StringBuilder
+    val ccChange: MMap[String, String] = mmapEmpty
     val body: ResolvedBody = md.body match {
       case rb: ResolvedBody =>
         rb
@@ -464,35 +475,43 @@ object RefactorJawa {
             case cs: CallStatement =>
               val typs = cs.signature.getParameterTypes()
               val args = cs.argClause.varSymbols.map(_._1)
-              var j = 0
-              for(i <- 0 to typs.size - 1) {
+              var j = args.size - 1
+              for(x <- 1 to typs.size) {
+                val i = typs.size - x
                 val typ = typs(i)
                 typ.name match {
                   case "double" | "long" =>
-                    val v1pos = args(j).id.pos
-                    val v2pos = args(j+1).id.pos
+                    val v1pos = args(j-1).id.pos
+                    val v2pos = args(j).id.pos
                     val pos = Position.range(v1pos.source, v1pos.start, v2pos.end - v1pos.start + 1, v1pos.line, v1pos.column)
-                    linecode = updateCode(linecode, pos, args(j).varName)
-                    j += 1
+                    linecode = updateCode(linecode, pos, args(j-1).varName)
+                    j -= 1
                   case _ =>
                 }
-                j += 1
+                j -= 1
               }
               cs.signature.getReturnType().name match {
                 case "void" =>
                   linecode = linecode.replaceAll("temp:=  ", "")
                 case _ =>
-                  val nextStat = body.locations(location.locationIndex + 1).statement
+                  val nextLoc = body.locations(location.locationIndex + 1)
+                  val nextStat = nextLoc.statement
                   nextStat match {
                     case as: AssignmentStatement =>
                       if(as.rhs.isInstanceOf[NameExpression] && as.rhs.asInstanceOf[NameExpression].name == "temp"){
                         val varName = as.lhs.asInstanceOf[NameExpression].varSymbol.left.get.varName
                         linecode = linecode.replaceFirst("temp:=", varName + ":=")
+                        
+                        val to = location.locationUri
+                        val from = nextLoc.locationUri
+                        ccChange(from) = to
                         skip = true
+                      } else {
+                        linecode = linecode.replaceAll("temp:=  ", "")
                       }
                     case _ =>
+                      linecode = linecode.replaceAll("temp:=  ", "")
                   }
-                  
               }
             case _ =>
           }
@@ -503,7 +522,12 @@ object RefactorJawa {
     }
     body.catchClauses foreach {
       cc =>
-        sb.append(cc.toCode + "\n")
+        var cctmp = cc.toCode
+        ccChange.foreach {
+          case (f, t) =>
+            cctmp = cctmp.replaceAll(f, t)
+        }
+        sb.append(cctmp + "\n")
     }
     sb.append("}")
     sb.toString().trim()

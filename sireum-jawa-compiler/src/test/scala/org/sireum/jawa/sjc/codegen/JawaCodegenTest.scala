@@ -83,11 +83,11 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
 //    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/constclass/ConstClass2.pilar")))
 //    genCode(jf.file)
 //  }
-  
-  "Generate code" should "not throw an exception on DoubleLong1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/doublelong/DoubleLong1.pilar")))
-    genCode(jf)
-  }
+//  
+//  "Generate code" should "not throw an exception on DoubleLong1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/doublelong/DoubleLong1.pilar")))
+//    genCode(jf)
+//  }
 //  
 //  "Generate code" should "not throw an exception on Exceptions1" in {
 //    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/exception/Exceptions1.pilar")))

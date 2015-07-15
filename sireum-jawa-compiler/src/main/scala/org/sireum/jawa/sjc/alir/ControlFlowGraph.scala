@@ -32,7 +32,7 @@ object ControlFlowGraph {
     { (loc, catchclauses) => 
         val result = catchclauses        
         (result, false)
-    } 
+    }
   
   def apply[VirtualLabel] = build[VirtualLabel] _
 
@@ -84,6 +84,7 @@ object ControlFlowGraph {
         case ts: ThrowStatement =>
           result.addEdge(source, exitNode)
         case is: IfStatement =>
+          result.addEdge(source, next)
           next = verticesMap(is.targetLocation.location)
           result.addEdge(source, next)
         case gs: GotoStatement =>
@@ -110,13 +111,11 @@ object ControlFlowGraph {
         case _ =>
           result.addEdge(source, next)
       }
-      if (shouldIncludeFlow ne defaultSiff) {
-        val (ccs, toExit) = shouldIncludeFlow(l, body.getCatchClauses(l.locationSymbol.locationIndex))
-        ccs.foreach { cc =>
-          result.addEdge(source, verticesMap(cc.targetLocation.location))
-        }
-        if (toExit) result.addEdge(source, exitNode)
+      val (ccs, toExit) = shouldIncludeFlow(l, body.getCatchClauses(l.locationSymbol.locationIndex))
+      ccs.foreach { cc =>
+        result.addEdge(source, verticesMap(cc.targetLocation.location))
       }
+      if (toExit) result.addEdge(source, exitNode)
     }
 
 //    print(result)

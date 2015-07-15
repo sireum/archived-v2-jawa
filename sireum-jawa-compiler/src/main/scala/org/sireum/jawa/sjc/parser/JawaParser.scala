@@ -301,8 +301,11 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
         c =>
           c match {
             case ls: LocationSym =>
-              val index = rb.locations.find(_.locationUri == ls.location).get.locationSymbol.locationIndex
-              ls.locationIndex = index
+              rb.locations.find(_.locationUri == ls.location) match{
+                case Some(l) => 
+                  ls.locationIndex = l.locationSymbol.locationIndex
+                case None =>
+              }
             case _ =>
           }
       }
@@ -735,8 +738,9 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
     val op: Token = accept(OP) // need to check is it binary op
     if(currentTokenType != ID && 
        currentTokenType != INTEGER_LITERAL &&
-       currentTokenType != FLOATING_POINT_LITERAL)
-      throw new JawaParserException(currentToken.pos, "expected 'ID' or 'INTEGER_LITERAL' or 'FLOATING_POINT_LITERAL' but " + currentToken + " found")
+       currentTokenType != FLOATING_POINT_LITERAL &&
+       currentTokenType != NULL)
+      throw new JawaParserException(currentToken.pos, "expected 'ID' or 'INTEGER_LITERAL' or 'FLOATING_POINT_LITERAL' or 'NULL' but " + currentToken + " found")
     val right: Either[VarSymbol, Token] = getVarOrLit()
     val be = BinaryExpression(left, op, right)
     be

@@ -233,7 +233,12 @@ class JavaByteCodeGenerator {
       case (name, local) =>
         mv.visitLocalVariable(local.varname, local.typ, null, initLabel, endLabel, local.index)
     }
-    mv.visitMaxs(0, 0)
+    try {
+      mv.visitMaxs(0, 0)
+    } catch {
+      case ie: IndexOutOfBoundsException =>
+        throw new IndexOutOfBoundsException(md.signature + ":" + ie.getMessage)
+    }
     mv.visitEnd()
     this.locals.clear()
     this.locations.clear()
@@ -312,20 +317,43 @@ class JavaByteCodeGenerator {
   
   private def visitIfStatement(mv: MethodVisitor, is: IfStatement): Unit = {
     val left = is.cond.left.varName
-    visitVarLoad(mv, left, "int")
+    var isNull: Boolean = false
     is.cond.right match {
-      case Left(right) => visitVarLoad(mv, right.varName, "int")
-      case Right(right) => generateIntConst(mv, right.text.toInt)
+      case Left(right) =>
+      case Right(right) => 
+        right.text match {
+          case "null" => isNull = true
+          case t =>
+        }
+    }
+    if(isNull)visitVarLoad(mv, left, "object")
+    else visitVarLoad(mv, left, "int")
+    
+    is.cond.right match {
+      case Left(right) => 
+        visitVarLoad(mv, right.varName, "int")
+      case Right(right) => 
+        right.text match {
+          case "null" =>
+          case t => generateIntConst(mv, t.toInt)
+        }
     }
     val target = this.locations(is.targetLocation.location)
-    is.cond.op.text match {
-      case "==" => mv.visitJumpInsn(Opcodes.IF_ICMPEQ, target)
-      case "!=" => mv.visitJumpInsn(Opcodes.IF_ICMPNE, target)
-      case "<" =>  mv.visitJumpInsn(Opcodes.IF_ICMPLT, target)
-      case ">=" => mv.visitJumpInsn(Opcodes.IF_ICMPGE, target)
-      case ">" =>  mv.visitJumpInsn(Opcodes.IF_ICMPGT, target)
-      case "<=" => mv.visitJumpInsn(Opcodes.IF_ICMPLE, target)
-      case _ =>    println("visitIfStatement problem: " + is)
+    if(isNull){
+      is.cond.op.text match {
+        case "==" => mv.visitJumpInsn(Opcodes.IFNULL, target)
+        case "!=" => mv.visitJumpInsn(Opcodes.IFNONNULL, target)
+      }
+    } else {
+      is.cond.op.text match {
+        case "==" => mv.visitJumpInsn(Opcodes.IF_ICMPEQ, target)
+        case "!=" => mv.visitJumpInsn(Opcodes.IF_ICMPNE, target)
+        case "<" =>  mv.visitJumpInsn(Opcodes.IF_ICMPLT, target)
+        case ">=" => mv.visitJumpInsn(Opcodes.IF_ICMPGE, target)
+        case ">" =>  mv.visitJumpInsn(Opcodes.IF_ICMPGT, target)
+        case "<=" => mv.visitJumpInsn(Opcodes.IF_ICMPLE, target)
+        case _ =>    println("visitIfStatement problem: " + is)
+      }
     }
   }
   
@@ -390,7 +418,10 @@ class JavaByteCodeGenerator {
           case x if JavaKnowledge.isJavaPrimitive(x) => x
           case _ => "object"
         }
-        visitVarStore(mv, cs.lhsOpt.get.lhs.varName, kind)
+        cs.lhsOpt match {
+          case Some(lhs) => visitVarStore(mv, lhs.lhs.varName, kind)
+          case _ =>
+        }
     }
   }
   
@@ -663,8 +694,6 @@ class JavaByteCodeGenerator {
     case "double" =>
       generateDoubleConst(mv, le.getDouble)
     case "object" => // String
-      println(le)
-      println(le.getString)
       visitStringLiteral(mv, le.getString)
     case _ => println("visitLiteralExpression problem: " + kind + " " + le)
   }
