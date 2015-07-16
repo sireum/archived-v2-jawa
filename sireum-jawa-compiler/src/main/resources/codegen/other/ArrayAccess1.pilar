@@ -1,14 +1,29 @@
 record `de.ecspride.ArrayAccess1`  @kind class @AccessFlag PUBLIC {
    }
-procedure `void` `net.daum.mobilead.protocol.AdCommon.debug` (`java.lang.String` String_v2 @kind object, `java.lang.String` String_v3 @kind object) @owner ^`net.daum.mobilead.protocol.AdCommon` @signature `Lnet/daum/mobilead/protocol/AdCommon;.debug:(Ljava/lang/String;Ljava/lang/String;)V` @Access PUBLIC_STATIC {
-      `java.lang.Object` Object_v0;
-      `java.util.Map` Map_v0;
-      `java.lang.String` String_v1;
+procedure `byte`[] `com.military.crypto.core.SimpleCrypto.toByte` (`java.lang.String` String_v5 @kind object) @owner ^`com.military.crypto.core.SimpleCrypto` @signature `Lcom/military/crypto/core/SimpleCrypto;.toByte:(Ljava/lang/String;)[B` @Access PRIVATE_STATIC {
+      `java.lang.String` String_v3;
+      `int` int_v4;
+      `byte`[] byte_arr1_v2;
+      `java.lang.Integer` Integer_v3;
+      `int` int_v1;
+      `byte` byte_v3;
+      `int` int_v0;
+      `int` int_v3;
 
-#L0058b0.   Map_v0:= `@@net.daum.mobilead.protocol.AdCommon.map`  @kind object @type ^`java.util.Map`;
-#L0058b4.   String_v1:= "debug" @kind object;
-#L0058b8.   call Object_v0:=  `java.util.Map.get`(Map_v0, String_v1) @signature `Ljava/util/Map;.get:(Ljava/lang/Object;)Ljava/lang/Object;` @classDescriptor ^`java.util.Map` @kind interface;
-#L0058c0.   if Object_v0 == null then goto L0058ca;
-#L0058c4.   call `android.util.Log.d`(String_v2, String_v3) @signature `Landroid/util/Log;.d:(Ljava/lang/String;Ljava/lang/String;)I` @classDescriptor ^`android.util.Log` @kind static;
-#L0058ca.   return  @kind void;
+#L0039bc.   call int_v3:=  `java.lang.String.length`(String_v5) @signature `Ljava/lang/String;.length:()I` @classDescriptor ^`java.lang.String` @kind virtual;
+#L0039c4.   int_v1:= int_v3 / 2  @kind int;
+#L0039c8.   byte_arr1_v2:= new `byte`[int_v1];
+#L0039cc.   int_v0:= 0I  @kind int;
+#L0039ce.   if int_v0 < int_v1 then goto L0039d4;
+#L0039d2.   return byte_arr1_v2  @kind object;
+#L0039d4.   int_v3:= int_v0 * 2  @kind int;
+#L0039d8.   int_v4:= int_v0 * 2  @kind int;
+#L0039dc.   int_v4:= int_v4 + 2  @kind int;
+#L0039e0.   call String_v3:=  `java.lang.String.substring`(String_v5, int_v3, int_v4) @signature `Ljava/lang/String;.substring:(II)Ljava/lang/String;` @classDescriptor ^`java.lang.String` @kind virtual;
+#L0039e8.   int_v4:= 16I  @kind int;
+#L0039ec.   call Integer_v3:=  `java.lang.Integer.valueOf`(String_v3, int_v4) @signature `Ljava/lang/Integer;.valueOf:(Ljava/lang/String;I)Ljava/lang/Integer;` @classDescriptor ^`java.lang.Integer` @kind static;
+#L0039f4.   call byte_v3:=  `java.lang.Integer.byteValue`(Integer_v3) @signature `Ljava/lang/Integer;.byteValue:()B` @classDescriptor ^`java.lang.Integer` @kind virtual;
+#L0039fc.   byte_arr1_v2[int_v0]:= byte_v3  @kind byte;
+#L003a00.   int_v0:= int_v0 + 1  @kind int;
+#L003a04.   goto L0039ce;
 }

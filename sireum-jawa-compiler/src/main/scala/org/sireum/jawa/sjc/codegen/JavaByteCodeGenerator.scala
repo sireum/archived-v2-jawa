@@ -420,7 +420,7 @@ class JavaByteCodeGenerator {
         }
         cs.lhsOpt match {
           case Some(lhs) => visitVarStore(mv, lhs.lhs.varName, kind)
-          case _ =>
+          case _ => mv.visitInsn(Opcodes.POP)
         }
     }
   }
@@ -721,7 +721,7 @@ class JavaByteCodeGenerator {
       case "char" => mv.visitInsn(Opcodes.CALOAD)
       case "double" => mv.visitInsn(Opcodes.DALOAD)
       case "float" => mv.visitInsn(Opcodes.FALOAD)
-      case "int" => mv.visitInsn(Opcodes.IALOAD)
+      case "int" | "byte" | "" => mv.visitInsn(Opcodes.IALOAD)
       case "long" => mv.visitInsn(Opcodes.LALOAD)
       case "short" => mv.visitInsn(Opcodes.SALOAD)
       case _ => println("visitIndexLoad problem: " + kind + " " + ie)
@@ -735,7 +735,7 @@ class JavaByteCodeGenerator {
       case "char" => mv.visitInsn(Opcodes.CASTORE)
       case "double" => mv.visitInsn(Opcodes.DASTORE)
       case "float" => mv.visitInsn(Opcodes.FASTORE)
-      case "int" | "" => mv.visitInsn(Opcodes.IASTORE)
+      case "int" | "byte" | "" => mv.visitInsn(Opcodes.IASTORE)
       case "long" => mv.visitInsn(Opcodes.LASTORE)
       case "short" => mv.visitInsn(Opcodes.SASTORE)
       case _ => println("visitIndexStore problem: " + kind + " " + ie)
