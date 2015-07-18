@@ -224,6 +224,8 @@ class JavaByteCodeGenerator {
       location =>
         val locLabel = this.locations(location.locationUri)
         mv.visitLabel(locLabel)
+//        println(location.locationUri) // to show the offset
+//        println(locLabel.getOffset)
         mv.visitLineNumber(location.firstToken.pos.line, locLabel)
         visitLocation(mv, location)
     }
@@ -235,7 +237,7 @@ class JavaByteCodeGenerator {
         mv.visitLocalVariable(local.varname, JavaKnowledge.formatTypeToSignature(local.typ), null, initLabel, endLabel, local.index)
     }
     try {
-//      mv.visitMaxs(0, 0)
+      mv.visitMaxs(0, 0)
     } catch {
       case ie: Exception =>
         throw new IndexOutOfBoundsException(md.signature + ":" + ie.getMessage)
@@ -317,18 +319,25 @@ class JavaByteCodeGenerator {
   }
   
   private def visitIfStatement(mv: MethodVisitor, is: IfStatement): Unit = {
-    val left = is.cond.left.varName
     var isNull: Boolean = false
+    var isObject: Boolean = false
+    var isBoolean: Boolean = false
+    val left = is.cond.left.varName
+    locals(left).typ match {
+      case PrimitiveType("boolean") =>
+        isBoolean = true
+      case _ =>
+    }
     is.cond.right match {
       case Left(right) =>
+        if(locals(right.varName).typ.isInstanceOf[ObjectType]) isObject = true
       case Right(right) => 
         right.text match {
           case "null" => isNull = true
           case t =>
         }
     }
-    if(isNull)visitVarLoad(mv, left)
-    else visitVarLoad(mv, left)
+    visitVarLoad(mv, left)
     
     is.cond.right match {
       case Left(right) => 
@@ -336,7 +345,7 @@ class JavaByteCodeGenerator {
       case Right(right) => 
         right.text match {
           case "null" =>
-          case t => generateIntConst(mv, t.toInt)
+          case t => if(!isBoolean)generateIntConst(mv, t.toInt)
         }
     }
     val target = this.locations(is.targetLocation.location)
@@ -344,6 +353,16 @@ class JavaByteCodeGenerator {
       is.cond.op.text match {
         case "==" => mv.visitJumpInsn(Opcodes.IFNULL, target)
         case "!=" => mv.visitJumpInsn(Opcodes.IFNONNULL, target)
+      }
+    } else if(isObject) {
+      is.cond.op.text match {
+        case "==" => mv.visitJumpInsn(Opcodes.IF_ACMPEQ, target)
+        case "!=" => mv.visitJumpInsn(Opcodes.IF_ACMPNE, target)
+      }
+    } else if (isBoolean) {
+      is.cond.op.text match {
+        case "==" => mv.visitJumpInsn(Opcodes.IFEQ, target)
+        case "!=" => mv.visitJumpInsn(Opcodes.IFNE, target)
       }
     } else {
       is.cond.op.text match {
@@ -392,11 +411,16 @@ class JavaByteCodeGenerator {
     }
     for(i <- 0 to cs.signature.getParameterNum() - 1){
       val arg = cs.arg(i)
-      val typ = cs.signature.getParameterTypes()(i) match {
-        case o: ObjectType => "object"
-        case t: JawaType => t.name
+      val reqtyp: Option[PrimitiveType] = cs.signature.getParameterTypes()(i) match {
+        case p: PrimitiveType => Some(p)
+        case t: JawaType => None
+      }
+      val acttyp: Option[PrimitiveType] = this.locals(arg).typ match {
+        case p: PrimitiveType => Some(p)
+        case t: JawaType => None
       }
       visitVarLoad(mv, arg)
+      handleTypeImplicitConvert(mv, reqtyp, acttyp)
     }
         
     val opcode = 
@@ -422,7 +446,9 @@ class JavaByteCodeGenerator {
         }
         cs.lhsOpt match {
           case Some(lhs) => visitVarStore(mv, lhs.lhs.varName)
-          case _ => mv.visitInsn(Opcodes.POP)
+          case _ => 
+            if(typ == "long" || typ == "double") mv.visitInsn(Opcodes.POP2)
+            else mv.visitInsn(Opcodes.POP)
         }
     }
   }
@@ -579,7 +605,7 @@ class JavaByteCodeGenerator {
     case be: BinaryExpression =>
       visitBinaryExpression(mv, be, kind, lhsTyp)
     case ce: CmpExpression =>
-      visitCmpExpression(mv, ce, lhsTyp)
+      visitCmpExpression(mv, ce)
     case ie: InstanceofExpression =>
       visitInstanceofExpression(mv, ie)
     case ce: ConstClassExpression =>
@@ -645,7 +671,20 @@ class JavaByteCodeGenerator {
     mv.visitTypeInsn(Opcodes.INSTANCEOF, getClassName(typ.name))
   }
   
-  private def visitCmpExpression(mv: MethodVisitor, ce: CmpExpression, lhsTyp: Option[PrimitiveType]): Unit = {
+  private def visitCmpExpression(mv: MethodVisitor, ce: CmpExpression): Unit = {
+    val reqTyp: Option[PrimitiveType] = ce.cmp.text match {
+      case "fcmpl" => 
+        Some(PrimitiveType("float"))
+      case "dcmpl" =>
+        Some(PrimitiveType("double"))
+      case "fcmpg" => 
+        Some(PrimitiveType("float"))
+      case "dcmpg" =>
+        Some(PrimitiveType("double"))
+      case "lcmp" =>
+        Some(PrimitiveType("long"))
+      case _ => None
+    }
     val first = ce.var1Symbol.varName
     visitVarLoad(mv, first)
     var rhs1Typ: Option[PrimitiveType] = None
@@ -654,7 +693,7 @@ class JavaByteCodeGenerator {
         rhs1Typ = Some(pt)
       case _ =>
     }
-    handleTypeImplicitConvert(mv, lhsTyp, rhs1Typ)
+    handleTypeImplicitConvert(mv, reqTyp, rhs1Typ)
     val second = ce.var2Symbol.varName
     visitVarLoad(mv, second)
     var rhs2Typ: Option[PrimitiveType] = None
@@ -663,7 +702,7 @@ class JavaByteCodeGenerator {
         rhs2Typ = Some(pt)
       case _ =>
     }
-    handleTypeImplicitConvert(mv, lhsTyp, rhs2Typ)
+    handleTypeImplicitConvert(mv, reqTyp, rhs2Typ)
     ce.cmp.text match {
       case "fcmpl" => 
         mv.visitInsn(Opcodes.FCMPL)

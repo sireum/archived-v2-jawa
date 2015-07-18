@@ -135,8 +135,7 @@ object RefactorJawa {
         while(!worklist.isEmpty){
           val n = worklist.remove(0)
           resolved += n
-          val succs = cfg.successors(n)
-          worklist ++= succs.filter { x => !resolved.contains(x) }
+          var skip: Boolean = false
           n match {
             case alun: AlirLocationNode => 
               val index: Int = alun.locIndex
@@ -157,6 +156,11 @@ object RefactorJawa {
                       val typ = cs.signature.getClassType
                       handleTask(recv.varName, typ, task)
                     case None =>
+                  }
+                  cs.lhsOpt match {
+                    case Some(lhs) =>
+                      if(task.varname == lhs.lhs.varName) skip = true
+                    case _ =>
                   }
                 case as: AssignmentStatement =>
                   val typOpt: Option[JawaType] = as.typOpt
@@ -238,6 +242,7 @@ object RefactorJawa {
                   
                   as.lhs match {
                     case ne: NameExpression =>
+                      if(task.varname == ne.name) skip = true
                     case ie: IndexingExpression =>
                       ie.indices.reverse.foreach{
                         indice =>
@@ -287,6 +292,10 @@ object RefactorJawa {
               }
             case _ =>
           }
+          if(!skip){
+            val succs = cfg.successors(n)
+            worklist ++= succs.filter { x => !resolved.contains(x) }
+          }
         }
       } catch {
         case r: Resolved =>
@@ -311,7 +320,6 @@ object RefactorJawa {
     val locations: MMap[Int, String] = mmapEmpty // map from index -> location string
     val recentvars: MMap[ControlFlowGraph.Node, MMap[String, String]] = mmapEmpty // map from var -> newvar
     
-//    val updateEvidence: MMap[Position, String] = mmapEmpty // map from pos -> new string
     val resolved: MSet[ControlFlowGraph.Node] = msetEmpty
     
     val sb: StringBuilder = new StringBuilder
@@ -329,7 +337,6 @@ object RefactorJawa {
       localvars(newvar) = ((typ, true))
       recentvars.getOrElseUpdate(cfg.entryNode, mmapEmpty)(param.name) = newvar
       head = updateCode(head, param.paramSymbol.id.pos, newvar)
-//      updateEvidence(param.paramSymbol.id.pos) = newvar
     }
     
     md.thisParam match {
@@ -338,7 +345,6 @@ object RefactorJawa {
         localvars(newvar) = ((md.enclosingTopLevelClass.typ, true))
         recentvars.getOrElseUpdate(cfg.entryNode, mmapEmpty)(t.name) = newvar
         head = updateCode(head, t.paramSymbol.id.pos, newvar)
-//        updateEvidence(t.paramSymbol.id.pos) = newvar
       case None =>
     }
     
@@ -523,7 +529,7 @@ object RefactorJawa {
                     case Left(v) =>
                       var newvar = rhsType.typ.substring(rhsType.typ.lastIndexOf(".") + 1) + {if(rhsType.dimensions > 0)"_arr" + rhsType.dimensions else ""} + "_" + ne.name
                       if(localvars.contains(newvar) && localvars(newvar)._1 != rhsType) newvar = "a" + newvar
-                      localvars(newvar) = ((rhsType, false))
+                      if(!localvars.contains(newvar)) localvars(newvar) = ((rhsType, false))
                       recentvars(n)(ne.name) = newvar
                       locCode = updateCode(locCode, v.id.pos, newvar)
                     case Right(f) =>
