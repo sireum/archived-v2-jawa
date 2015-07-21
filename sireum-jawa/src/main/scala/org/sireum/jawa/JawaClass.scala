@@ -373,7 +373,8 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
    * add the given method to this class
    */
   def addMethod(ap: JawaMethod) = {
-    if(this.methods.contains(ap.getSubSignature)) global.reporter.error(NoPosition, "The method " + ap.getName + " is already declared in class " + getName)
+    if(this.methods.contains(ap.getSubSignature)) 
+      global.reporter.error(NoPosition, "The method " + ap.getSubSignature + " is already declared in class " + getName)
     else this.methods(ap.getSubSignature) = ap
   }
 

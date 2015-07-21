@@ -70,10 +70,12 @@ class MyClassVisitor(api: Int) extends ClassVisitor(api) {
     val accessFlag: Int = AccessFlag.getJawaFlags(access, FlagKind.METHOD)
     val signature: Signature = JavaKnowledge.genSignature(JavaKnowledge.formatTypeToSignature(currentClass.typ), name, desc)
     val params = signature.getParameters()
-    val paramnames: IList[String] = params.map {
-      param => "v" + params.indexOf(param)
+    val paramnames: MList[String] = mlistEmpty
+    if(!AccessFlag.isStatic(accessFlag)) paramnames += "this_v"
+    for(i <- 0 to params.size - 1){
+      paramnames += "v" + i
     }
-    val m = MyMethod(accessFlag, signature, paramnames)
+    val m = MyMethod(accessFlag, signature, paramnames.toList)
     currentClass.addMethod(m)
     new MyMethodVisitor(m)
   }

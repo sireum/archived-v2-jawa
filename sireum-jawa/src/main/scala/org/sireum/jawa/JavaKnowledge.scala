@@ -229,10 +229,8 @@ trait JavaKnowledge {
     val pts = method.getParamTypes
     sb.append(method.getName + ":(")
     for(i <- 0 to pts.size - 1){
-      if(i != 0){
-        val pt = pts(i) 
-        sb.append(method.formatTypeToSignature(pt))
-      }
+      val pt = pts(i) 
+      sb.append(method.formatTypeToSignature(pt))
     }
     sb.append(")")
     sb.append(method.formatTypeToSignature(rt))
