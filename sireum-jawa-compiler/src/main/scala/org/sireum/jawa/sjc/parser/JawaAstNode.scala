@@ -250,11 +250,14 @@ case class VarSymbol(id: Token) extends RefSymbol with VarSym {
 }
 
 /**
- * LocationSymbol is following form: #L00001.
+ * LocationSymbol is following form: #L00001. or just #
  */
 case class LocationDefSymbol(id: Token) extends DefSymbol with LocationSym {
   lazy val tokens = flatten(id)
-  def location: String = id.text.substring(1, id.text.length() - 1)
+  def location: String = {
+    if(id.text == "#") id.text
+    else id.text.substring(1, id.text.length() - 1)
+  }
   var owner: MethodDeclaration = null
 }
 

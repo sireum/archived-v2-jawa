@@ -87,7 +87,7 @@ object JawaAlirInfoProvider {
       	}
       	
       	(result, false)
-    } 
+    }
   
   def reporter = {
 	  new org.sireum.pilar.parser.PilarParser.ErrorReporter {

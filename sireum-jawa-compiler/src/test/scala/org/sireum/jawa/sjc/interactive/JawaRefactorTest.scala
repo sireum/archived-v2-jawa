@@ -84,11 +84,11 @@ class JawaRefactorTest extends FlatSpec with ShouldMatchers {
 //    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/constclass/ConstClass2.pilar")))
 //    refactor(jf.code)
 //  }
-  
-  "Refactor code" should "not throw an exception on DoubleLong1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/doublelong/DoubleLong1.pilar")))
-    refactor(jf.code)
-  }
+//  
+//  "Refactor code" should "not throw an exception on DoubleLong1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/doublelong/DoubleLong1.pilar")))
+//    refactor(jf.code)
+//  }
 //  
 //  "Refactor code" should "not throw an exception on Exceptions1" in {
 //    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/exception/Exceptions1.pilar")))
@@ -161,20 +161,20 @@ class JawaRefactorTest extends FlatSpec with ShouldMatchers {
 //    refactor(jf.code)
 //  }
 //  
-  "Refactor code" should "not throw an exception on ArrayAccess1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/other/ArrayAccess1.pilar")))
+  "Refactor code" should "not throw an exception on a" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/other/a.pilar")))
     refactor(jf.code)
   }
   
-  "Refactor code" should "not throw an exception on FooActivity" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/other/FooActivity.pilar")))
-    refactor(jf.code)
-  }
-  
-  "Refactor code" should "not throw an exception on MainActivity" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/other/MainActivity.pilar")))
-    refactor(jf.code)
-  }
+//  "Refactor code" should "not throw an exception on FooActivity" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/other/FooActivity.pilar")))
+//    refactor(jf.code)
+//  }
+//  
+//  "Refactor code" should "not throw an exception on MainActivity" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/other/MainActivity.pilar")))
+//    refactor(jf.code)
+//  }
   
   val reporter = new DefaultReporter
   private def parser(s: Either[String, SourceFile]) = new JawaParser(JawaLexer.tokenise(s, reporter).toArray, reporter)

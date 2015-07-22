@@ -29,139 +29,139 @@ import org.sireum.jawa.io.SourceFile
 
 class JawaCodegenTest extends FlatSpec with ShouldMatchers {
   
-  "Generate code" should "not throw an exception on ArrayAccess1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayAccess1.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on ArrayAccess2" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayAccess2.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on ArrayAccess3" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayAccess3.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on ArrayCopy" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayCopy.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on ArrayFill1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayFill1.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on ArrayFill2" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayFill2.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on ArrayLength1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayLength1.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on Cmp1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/cmp/Cmp1.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on Cmp2" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/cmp/Cmp2.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on ConstClass1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/constclass/ConstClass1.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on ConstClass2" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/constclass/ConstClass2.pilar")))
-    genCode(jf)
-  }
-  
+//  "Generate code" should "not throw an exception on ArrayAccess1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayAccess1.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on ArrayAccess2" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayAccess2.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on ArrayAccess3" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayAccess3.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on ArrayCopy" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayCopy.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on ArrayFill1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayFill1.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on ArrayFill2" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayFill2.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on ArrayLength1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/array/ArrayLength1.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on Cmp1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/cmp/Cmp1.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on Cmp2" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/cmp/Cmp2.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on ConstClass1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/constclass/ConstClass1.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on ConstClass2" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/constclass/ConstClass2.pilar")))
+//    genCode(jf.file)
+//  }
+//  
 //  "Generate code" should "not throw an exception on DoubleLong1" in {
 //    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/doublelong/DoubleLong1.pilar")))
 //    genCode(jf)
 //  }
 //  
-  "Generate code" should "not throw an exception on Exceptions1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/exception/Exceptions1.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on Exceptions2" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/exception/Exceptions2.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on Exceptions3" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/exception/Exceptions3.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "throw an exception on Exceptions4" in {
-    evaluating {
-      val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/exception/Exceptions4.pilar")))
-      genCode(jf)
-    } should produce[RuntimeException]
-  }
-  
-  "Generate code" should "not throw an exception on FieldAccess1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/field/FieldAccess1.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on FieldAccess2" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/field/FieldAccess2.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on StaticFieldAccess1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/field/StaticFieldAccess1.pilar")))
-    genCode(jf)
-  }
-  
-  
-  "Generate code" should "not throw an exception on Instanceof1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/instance/Instanceof1.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on Instanceof2" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/instance/Instanceof2.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on IfJump1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/jump/IfJump1.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on IfJump2" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/jump/IfJump2.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on SwitchJump1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/jump/SwitchJump1.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on SwitchJump2" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/jump/SwitchJump2.pilar")))
-    genCode(jf)
-  }
-  
-  "Generate code" should "not throw an exception on Monitor1" in {
-    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/monitor/Monitor1.pilar")))
-    genCode(jf)
-  }
-  
+//  "Generate code" should "not throw an exception on Exceptions1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/exception/Exceptions1.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on Exceptions2" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/exception/Exceptions2.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on Exceptions3" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/exception/Exceptions3.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "throw an exception on Exceptions4" in {
+//    evaluating {
+//      val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/exception/Exceptions4.pilar")))
+//      genCode(jf.file)
+//    } should produce[RuntimeException]
+//  }
+//  
+//  "Generate code" should "not throw an exception on FieldAccess1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/field/FieldAccess1.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on FieldAccess2" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/field/FieldAccess2.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on StaticFieldAccess1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/field/StaticFieldAccess1.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  
+//  "Generate code" should "not throw an exception on Instanceof1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/instance/Instanceof1.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on Instanceof2" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/instance/Instanceof2.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on IfJump1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/jump/IfJump1.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on IfJump2" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/jump/IfJump2.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on SwitchJump1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/jump/SwitchJump1.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on SwitchJump2" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/jump/SwitchJump2.pilar")))
+//    genCode(jf.file)
+//  }
+//  
+//  "Generate code" should "not throw an exception on Monitor1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/monitor/Monitor1.pilar")))
+//    genCode(jf.file)
+//  }
+//  
 //  "Generate code" should "not throw an exception on Other" in {
 //    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/codegen/other/ArrayAccess1.pilar")))
 //    genCode(jf)

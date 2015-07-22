@@ -1,16 +1,16 @@
 record `com.fgwei.DoubleLong1`  @kind class @AccessFlag PUBLIC {
    }
 procedure `float` `com.fgwei.DoubleLong1.main` () @owner ^`com.fgwei.DoubleLong1` @signature `Lcom/fgwei/DoubleLong1;.main:()F` @Access `PUBLIC_STATIC` {
-      `Int` Int_v0;
+      `int` int_v0;
       `float` float_v0;
       `float` float_v3;
       `double` double_v0;
       `float` float_v5;
       `double` double_v2;
 
-#L021c84.   Int_v0:= 1056964608I  @kind int;
+#L021c84.   int_v0:= 1056964608I  @kind int;
 #L021c85.   float_v5:= 1111111111.00F @kind float;
-#L021c88.   float_v3:= float_v5 - Int_v0  @kind float;
+#L021c88.   float_v3:= float_v5 - int_v0  @kind float;
 #L021c8a.   double_v0:= (`double`)float_v5  @kind f2d;
 #L021c8c.   double_v2:= 0.471239D  @kind double;
 #L021c96.   double_v0:= double_v0 * double_v2  @kind double;

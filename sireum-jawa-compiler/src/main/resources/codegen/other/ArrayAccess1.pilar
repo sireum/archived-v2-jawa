@@ -1,56 +1,46 @@
-record `de.ecspride.ArrayAccess1`  @kind class @AccessFlag PUBLIC  extends `android.app.Activity` @kind class {
+record `de.ecspride.ArrayAccess1`  @kind class @AccessFlag PUBLIC {
    }
-      global `java.lang.String`[] `@@de.ecspride.ArrayAccess1.arrayData`    @AccessFlag PUBLIC_STATIC;
-procedure `void` `de.ecspride.ArrayAccess1.<init>` (`de.ecspride.ArrayAccess1` this_v0 @kind this) @owner ^`de.ecspride.ArrayAccess1` @signature `Lde/ecspride/ArrayAccess1;.<init>:()V` @Access PUBLIC_CONSTRUCTOR {
-
-#L026e20.   call `android.app.Activity.<init>`(this_v0) @signature `Landroid/app/Activity;.<init>:()V` @classDescriptor ^`android.app.Activity` @kind direct;
-#L026e26.   return  @kind void;
-}
-procedure `void` `de.ecspride.ArrayAccess1.onCreate` (`de.ecspride.ArrayAccess1` this_v6 @kind this, `android.os.Bundle` Bundle_v7 @kind object) @owner ^`de.ecspride.ArrayAccess1` @signature `Lde/ecspride/ArrayAccess1;.onCreate:(Landroid/os/Bundle;)V` @Access PROTECTED {
-      `android.telephony.SmsManager` SmsManager_v0;
-      `java.lang.String` String_v3;
+procedure `void` `net.daum.mobilead.MobileAdView.updateAdview` (`net.daum.mobilead.MobileAdView` this_v3 @kind this, `net.daum.mobilead.protocol.MobileAd` MobileAd_v4 @kind object) @owner ^`net.daum.mobilead.MobileAdView` @signature `Lnet/daum/mobilead/MobileAdView;.updateAdview:(Lnet/daum/mobilead/protocol/MobileAd;)V` @Access PRIVATE {
+      `net.daum.mobilead.protocol.MobileAdSDKError` MobileAdSDKError_v1;
+      `boolean` boolean_v0;
       `java.lang.Object` Object_v2;
-      `java.lang.Object` Object_v5;
-      `int` int_v5;
-      `java.lang.String`[] String_arr1_v1;
-      `android.telephony.TelephonyManager` TelephonyManager_v1;
-      `int` int_v4;
+      `java.lang.String` String_v2;
       `int` int_v1;
-      `java.lang.Object` Object_v1;
-      `java.lang.Object` Object_v4;
-      `java.lang.String`[] String_arr1_v3;
+      `boolean` boolean_v1;
       `java.lang.String` String_v1;
-      `java.lang.String` String_v4;
-      `int` int_v3;
+      `int` int_v0;
 
-#L026e38.   int_v5:= 2I  @kind int;
-#L026e3a.   Object_v2:= null  @kind object;
-#L026e3c.   call `android.app.Activity.onCreate`(this_v6, Bundle_v7) @signature `Landroid/app/Activity;.onCreate:(Landroid/os/Bundle;)V` @classDescriptor ^`android.app.Activity` @kind super;
-#L026e42.   int_v1:= 2130903040I  @kind int;
-#L026e46.   call `de.ecspride.ArrayAccess1.setContentView`(this_v6, int_v1) @signature `Lde/ecspride/ArrayAccess1;.setContentView:(I)V` @classDescriptor ^`de.ecspride.ArrayAccess1` @kind virtual;
-#L026e4c.   int_v1:= 3I  @kind int;
-#L026e4e.   String_arr1_v1:= new `java.lang.String`[int_v1];
-#L026e52.   `@@de.ecspride.ArrayAccess1.arrayData`:= String_arr1_v1  @kind object @type ^`java.lang.String`[];
-#L026e56.   String_arr1_v1:= `@@de.ecspride.ArrayAccess1.arrayData`  @kind object @type ^`java.lang.String`[];
-#L026e5a.   int_v3:= 0I  @kind int;
-#L026e5c.   String_v4:= "element 1 is tainted:" @kind object;
-#L026e60.   String_arr1_v1[int_v3]:= String_v4  @kind object;
-#L026e64.   String_arr1_v3:= `@@de.ecspride.ArrayAccess1.arrayData`  @kind object @type ^`java.lang.String`[];
-#L026e68.   int_v4:= 1I  @kind int;
-#L026e6a.   String_v1:= "phone" @kind object;
-#L026e6e.   call Object_v1:=  `de.ecspride.ArrayAccess1.getSystemService`(this_v6, String_v1) @signature `Lde/ecspride/ArrayAccess1;.getSystemService:(Ljava/lang/String;)Ljava/lang/Object;` @classDescriptor ^`de.ecspride.ArrayAccess1` @kind virtual;
-#L026e76.   TelephonyManager_v1:= (`android.telephony.TelephonyManager`)Object_v1  @kind object;
-#L026e7a.   call String_v1:=  `android.telephony.TelephonyManager.getDeviceId`(TelephonyManager_v1) @signature `Landroid/telephony/TelephonyManager;.getDeviceId:()Ljava/lang/String;` @classDescriptor ^`android.telephony.TelephonyManager` @kind virtual;
-#L026e82.   String_arr1_v3[int_v4]:= String_v1  @kind object;
-#L026e86.   String_arr1_v1:= `@@de.ecspride.ArrayAccess1.arrayData`  @kind object @type ^`java.lang.String`[];
-#L026e8a.   String_v3:= "neutral text" @kind object;
-#L026e8e.   String_arr1_v1[int_v5]:= String_v3  @kind object;
-#L026e92.   call SmsManager_v0:=  `android.telephony.SmsManager.getDefault`() @signature `Landroid/telephony/SmsManager;.getDefault:()Landroid/telephony/SmsManager;` @classDescriptor ^`android.telephony.SmsManager` @kind static;
-#L026e9a.   String_v1:= "+49 1234" @kind object;
-#L026e9e.   String_arr1_v3:= `@@de.ecspride.ArrayAccess1.arrayData`  @kind object @type ^`java.lang.String`[];
-#L026ea2.   String_v3:= String_arr1_v3[int_v5]  @kind object;
-#L026ea6.   Object_v4:= Object_v2  @kind object;
-#L026ea8.   Object_v5:= Object_v2  @kind object;
-#L026eaa.   call `android.telephony.SmsManager.sendTextMessage`(SmsManager_v0, String_v1, Object_v2, String_v3, Object_v4, Object_v5) @signature `Landroid/telephony/SmsManager;.sendTextMessage:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Landroid/app/PendingIntent;Landroid/app/PendingIntent;)V` @classDescriptor ^`android.telephony.SmsManager` @kind virtual;
-#L026eb0.   return  @kind void;
+#L0052ec.   int_v0:= 0I  @kind int;
+#L0052ee.   String_v1:= "T" @kind object;
+#L0052f2.   call String_v2:=  `net.daum.mobilead.protocol.MobileAd.type`(MobileAd_v4) @signature `Lnet/daum/mobilead/protocol/MobileAd;.type:()Ljava/lang/String;` @classDescriptor ^`net.daum.mobilead.protocol.MobileAd` @kind virtual;
+#L0052fa.   call boolean_v1:=  `java.lang.String.equals`(String_v1, String_v2) @signature `Ljava/lang/String;.equals:(Ljava/lang/Object;)Z` @classDescriptor ^`java.lang.String` @kind virtual;
+#L005302.   if boolean_v1 == 0 then goto L005348;
+#L005306.   call boolean_v0:=  `net.daum.mobilead.MobileAdView.makeTextAdView`(this_v3, MobileAd_v4) @signature `Lnet/daum/mobilead/MobileAdView;.makeTextAdView:(Lnet/daum/mobilead/protocol/MobileAd;)Z` @classDescriptor ^`net.daum.mobilead.MobileAdView` @kind direct;
+#L00530e.   if boolean_v0 == 0 then goto L00538c;
+#L005312.   String_v1:= "H" @kind object;
+#L005316.   call String_v2:=  `net.daum.mobilead.protocol.MobileAd.type`(MobileAd_v4) @signature `Lnet/daum/mobilead/protocol/MobileAd;.type:()Ljava/lang/String;` @classDescriptor ^`net.daum.mobilead.protocol.MobileAd` @kind virtual;
+#L00531e.   call boolean_v1:=  `java.lang.String.equals`(String_v1, String_v2) @signature `Ljava/lang/String;.equals:(Ljava/lang/Object;)Z` @classDescriptor ^`java.lang.String` @kind virtual;
+#L005326.   if boolean_v1 != 0 then goto L005346;
+#L00532a.   call String_v1:=  `net.daum.mobilead.protocol.MobileAd.curl`(MobileAd_v4) @signature `Lnet/daum/mobilead/protocol/MobileAd;.curl:()Ljava/lang/String;` @classDescriptor ^`net.daum.mobilead.protocol.MobileAd` @kind virtual;
+#L005332.   call String_v2:=  `net.daum.mobilead.protocol.MobileAd.turl`(MobileAd_v4) @signature `Lnet/daum/mobilead/protocol/MobileAd;.turl:()Ljava/lang/String;` @classDescriptor ^`net.daum.mobilead.protocol.MobileAd` @kind virtual;
+#L00533a.   call `net.daum.mobilead.MobileAdView.changedAd`(this_v3, String_v1, String_v2) @signature `Lnet/daum/mobilead/MobileAdView;.changedAd:(Ljava/lang/String;Ljava/lang/String;)V` @classDescriptor ^`net.daum.mobilead.MobileAdView` @kind direct;
+#L005340.   int_v1:= 1I  @kind int;
+#L005342.   this_v3.`net.daum.mobilead.MobileAdView.hasAd`:= int_v1  @kind boolean @type ^`boolean`;
+#L005346.   return  @kind void;
+#L005348.   String_v1:= "B" @kind object;
+#L00534c.   call String_v2:=  `net.daum.mobilead.protocol.MobileAd.type`(MobileAd_v4) @signature `Lnet/daum/mobilead/protocol/MobileAd;.type:()Ljava/lang/String;` @classDescriptor ^`net.daum.mobilead.protocol.MobileAd` @kind virtual;
+#L005354.   call boolean_v1:=  `java.lang.String.equals`(String_v1, String_v2) @signature `Ljava/lang/String;.equals:(Ljava/lang/Object;)Z` @classDescriptor ^`java.lang.String` @kind virtual;
+#L00535c.   if boolean_v1 == 0 then goto L00536a;
+#L005360.   call boolean_v0:=  `net.daum.mobilead.MobileAdView.makeBannerAdView`(this_v3, MobileAd_v4) @signature `Lnet/daum/mobilead/MobileAdView;.makeBannerAdView:(Lnet/daum/mobilead/protocol/MobileAd;)Z` @classDescriptor ^`net.daum.mobilead.MobileAdView` @kind direct;
+#L005368.   goto L00530e;
+#L00536a.   String_v1:= "H" @kind object;
+#L00536e.   call String_v2:=  `net.daum.mobilead.protocol.MobileAd.type`(MobileAd_v4) @signature `Lnet/daum/mobilead/protocol/MobileAd;.type:()Ljava/lang/String;` @classDescriptor ^`net.daum.mobilead.protocol.MobileAd` @kind virtual;
+#L005376.   call boolean_v1:=  `java.lang.String.equals`(String_v1, String_v2) @signature `Ljava/lang/String;.equals:(Ljava/lang/Object;)Z` @classDescriptor ^`java.lang.String` @kind virtual;
+#L00537e.   if boolean_v1 == 0 then goto L00530e;
+#L005382.   call boolean_v0:=  `net.daum.mobilead.MobileAdView.makeHtmlAdView`(this_v3, MobileAd_v4) @signature `Lnet/daum/mobilead/MobileAdView;.makeHtmlAdView:(Lnet/daum/mobilead/protocol/MobileAd;)Z` @classDescriptor ^`net.daum.mobilead.MobileAdView` @kind direct;
+#L00538a.   goto L00530e;
+#L00538c.   MobileAdSDKError_v1:= `@@net.daum.mobilead.protocol.MobileAdSDKError.AD_DOWNLOAD_ERROR_FAILTODRAW`  @kind object @type ^`net.daum.mobilead.protocol.MobileAdSDKError`;
+#L005390.   Object_v2:= null  @kind object;
+#L005392.   call `net.daum.mobilead.MobileAdView.failedDownloadAd`(this_v3, MobileAdSDKError_v1, Object_v2) @signature `Lnet/daum/mobilead/MobileAdView;.failedDownloadAd:(Lnet/daum/mobilead/protocol/MobileAdSDKError;Ljava/lang/String;)V` @classDescriptor ^`net.daum.mobilead.MobileAdView` @kind virtual;
+#L005398.   goto L005346;
 }
