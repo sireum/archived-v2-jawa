@@ -16,6 +16,10 @@ trait JavaKnowledge {
    */
   def isJavaPrimitive(name: String): Boolean = this.JAVA_PRIMITIVES.contains(name)
   
+  object ClassCategory extends Enumeration {
+    val APPLICATION, USER_LIBRARY, SYSTEM_LIBRARY = Value
+  }
+  
   def formatObjectTypeToObjectName(typ: ObjectType): String = {
     val d = typ.dimensions
     typ.typ match{

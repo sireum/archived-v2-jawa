@@ -24,7 +24,7 @@ trait ModelCallHandler {
   /**
    * return true if the given callee procedure needs to be modeled
    */
-  def isModelCall(calleeProc : JawaMethod) : Boolean = {
+  def isModelCall(calleeProc: JawaMethod): Boolean = {
     val r = calleeProc.getDeclaringClass
     StringBuilderModel.isStringBuilder(r) ||
     StringModel.isString(r) || 
@@ -42,15 +42,17 @@ trait ModelCallHandler {
    * instead of doing operation inside callee procedure's real code, we do it manually and return the result. 
    */
   def doModelCall[T](
-      s : PTAResult,
-      calleeProc : JawaMethod, 
-      args : List[String], 
-      retVars : Seq[String], 
-      currentContext : Context,
-      addition: Option[T]) : (ISet[RFAFact], ISet[RFAFact]) = {
-    var (newFacts, delFacts, byPassFlag) = caculateResult(s, calleeProc, args, retVars, currentContext, addition)
+      s: PTAResult,
+      calleeProc: JawaMethod, 
+      args: List[String], 
+      retVars: Seq[String], 
+      currentContext: Context,
+      addition: Option[T]): (ISet[RFAFact], ISet[RFAFact]) = {
+    val hackVars = if(retVars.size != 1) retVars :+ "hack" else retVars
+    
+    var (newFacts, delFacts, byPassFlag) = caculateResult(s, calleeProc, args, hackVars, currentContext, addition)
     if(byPassFlag){
-      val (newF, delF) = ReachingFactsAnalysisHelper.getUnknownObject(calleeProc, s, args, retVars, currentContext)
+      val (newF, delF) = ReachingFactsAnalysisHelper.getUnknownObject(calleeProc, s, args, hackVars, currentContext)
       newFacts ++= newF
       delFacts ++= delF
     }
@@ -58,12 +60,12 @@ trait ModelCallHandler {
   }
 
   def caculateResult[T](
-      s : PTAResult, 
-      calleeProc : JawaMethod, 
-      args : List[String], 
-      retVars : Seq[String], 
-      currentContext : Context,
-      addition: Option[T]) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+      s: PTAResult, 
+      calleeProc: JawaMethod, 
+      args: List[String], 
+      retVars: Seq[String], 
+      currentContext: Context,
+      addition: Option[T]): (ISet[RFAFact], ISet[RFAFact], Boolean) = {
     val r = calleeProc.getDeclaringClass
     if(StringModel.isString(r)) StringModel.doStringCall(s, calleeProc, args, retVars, currentContext)
     else if(StringBuilderModel.isStringBuilder(r)) StringBuilderModel.doStringBuilderCall(s, calleeProc, args, retVars, currentContext)

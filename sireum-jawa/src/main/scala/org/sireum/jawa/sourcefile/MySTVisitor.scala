@@ -120,7 +120,6 @@ class MySTVisitor {
         val signature = ASTUtil.getSignature(pd).get
         val accessFlag = AccessFlag.getAccessFlags(ASTUtil.getAccessFlag(pd))
         val paramNames = pd.params.map{_.name.name}.toList
-        
         val m: MyMethod = MyMethod(accessFlag, signature, paramNames)
         
         if(level >= ResolveLevel.BODY){

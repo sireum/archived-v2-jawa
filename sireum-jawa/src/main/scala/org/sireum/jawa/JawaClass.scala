@@ -26,8 +26,6 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
     this(global, typ, AccessFlag.getAccessFlags(accessStr))
   }
   
-  this.global.addClass(this)
-  
   def getType: ObjectType = this.typ
   
   /**
@@ -594,4 +592,6 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
   }
 
   override def toString: String = getName
+  
+  this.global.addClassInternal(this)
 }

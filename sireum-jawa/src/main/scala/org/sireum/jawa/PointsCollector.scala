@@ -18,12 +18,7 @@ import org.sireum.jawa.util.ASTUtil
 class PointsCollector {
   
   def collectMethodPoint(ownerSig: Signature, pst: ProcedureSymbolTable): Point with Method = {
-    val methodSig = 
-      pst.procedure.getValueAnnotation("signature") match {
-        case Some(exp: NameExp) =>
-          Signature(exp.name.name)
-        case _ => throw new RuntimeException("Can not find signature")
-      }
+    val methodSig = ASTUtil.getSignature(pst.procedure).get
     
     val types = methodSig.getParameterTypes()
     val thisTyp = methodSig.getClassType
@@ -107,10 +102,10 @@ class PointsCollector {
     points += procPoint
     
     def getLocUri(l: LocationDecl) =
-        if (l.name.isEmpty)
-          ""
-        else
-          l.name.get.uri
+      if (l.name.isEmpty)
+        ""
+      else
+        l.name.get.uri
           
     def isStaticField(name: String): Boolean = {
       name.startsWith("@@")
@@ -201,6 +196,7 @@ class PointsCollector {
         var pl: Point with Left = null
         var pr: Point with Right = null
         val typ: Option[JawaType] = ASTUtil.getType(as)
+        
         as.rhs match {
           case le: LiteralExp =>
             if(le.typ.name.equals("STRING")){
@@ -243,19 +239,9 @@ class PointsCollector {
         }
         false
       case t: CallJump if t.jump.isEmpty =>
-        var pl: PointL = null
-        val sig = t.getValueAnnotation("signature") match {
-          case Some(exp: NameExp) =>
-            Signature(exp.name.name)
-          case _ => throw new RuntimeException("Can not find signature")
-        }
-        val invokeTyp = t.getValueAnnotation("type") match {
-          case Some(s) => s match {
-            case ne: NameExp => ne.name.name
-            case _ => ""
-          }
-          case None => ""
-        }
+        var pl: Option[PointL] = None
+        val sig = ASTUtil.getSignature(t).get
+        val invokeTyp = ASTUtil.getKind(t)
         val retTyp = sig.getReturnType
         val paramTyps = sig.getParameterTypes
         
@@ -263,31 +249,23 @@ class PointsCollector {
         var recvPReturn: PointRecvReturn = null
         val argPsCall: MMap[Int, PointArgCall] = mmapEmpty
         val argPsReturn: MMap[Int, PointArgReturn] = mmapEmpty
-        var i = 0
-        var j = 0
-        var ignore = false
+
         t.callExp.arg match {
           case te: TupleExp =>{
             val exps = te.exps
+            var i = 0
             exps foreach {
               exp =>
-                if(!ignore){
-                  require(exp.isInstanceOf[NameExp])
-                  val ne = exp.asInstanceOf[NameExp]
-                  if(i == 0 && !invokeTyp.contains("static")){
-                    recvPCall = PointRecvCall(ne.name.name, i, loc, locIndex, ownerSig)
-                    recvPReturn = PointRecvReturn(ne.name.name, i, loc, locIndex, ownerSig)
-                    j -= 1
-                  } else {
-                    argPsCall += (i -> PointArgCall(ne.name.name, i, loc, locIndex, ownerSig))
-                    argPsReturn += (i -> PointArgReturn(ne.name.name, i, loc, locIndex, ownerSig))
-                    if(paramTyps(j).name == "long" || paramTyps(j).name == "double"){
-                      ignore = true
-                    }
-                  }
-                  i += 1
-                  j += 1
-                } else ignore = false
+                require(exp.isInstanceOf[NameExp])
+                val ne = exp.asInstanceOf[NameExp]
+                if(i == 0 && !invokeTyp.contains("static")){
+                  recvPCall = PointRecvCall(ne.name.name, i, loc, locIndex, ownerSig)
+                  recvPReturn = PointRecvReturn(ne.name.name, i, loc, locIndex, ownerSig)
+                } else {
+                  argPsCall += (i -> PointArgCall(ne.name.name, i, loc, locIndex, ownerSig))
+                  argPsReturn += (i -> PointArgReturn(ne.name.name, i, loc, locIndex, ownerSig))
+                }
+                i += 1
             }
           }
           case _ =>
@@ -307,11 +285,10 @@ class PointsCollector {
         points += pi
         require(t.lhss.size<=1)
         if(t.lhss.size == 1){
-          pl = PointL(t.lhss(0).name.name, loc, locIndex, ownerSig)
+          pl = Some(PointL(t.lhss(0).name.name, loc, locIndex, ownerSig))
         }
-        //Note that we are considering "call temp = invoke" as an assignment
-        val assignmentPoint: PointAsmt = PointAsmt(pl, pi, loc, locIndex, ownerSig)
-        points += assignmentPoint
+        val callPoint: PointCall = PointCall(pl, pi, loc, locIndex, ownerSig)
+        points += callPoint
         false
       case rj: ReturnJump =>
         if(is("object", rj.annotations)){
@@ -342,6 +319,11 @@ class PointsCollector {
  * Set of program points corresponding to assignment expression. 
  */
 final case class PointAsmt(lhs: Point with Left, rhs: Point with Right, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc
+
+/**
+ * Set of program points corresponding to call expression
+ */
+final case class PointCall(lhsOpt: Option[Point with Left], rhs: Point with Right, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc
 
 /**
  * Set of program points corresponding to object creating expressions. 

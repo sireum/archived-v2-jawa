@@ -194,13 +194,13 @@ object InterproceduralDataDependenceAnalysis {
       irdaFacts: ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], 
       iddg: InterProceduralDataDependenceGraph[Node]): ISet[Node] = {
     var result = isetEmpty[Node]
-    val typ: Option[JawaType] = ASTUtil.getType(loc)
     loc match{
       case al: ActionLocation =>
         al.action match {
           case aa: AssignAction =>
             val lhss = PilarAstHelper.getLHSs(aa)
             val rhss = PilarAstHelper.getRHSs(aa)
+            val typ: Option[JawaType] = ASTUtil.getType(aa)
             result ++= processLHSs(global, node, lhss, ptaresult, irdaFacts, iddg)
             result ++= processRHSs(global, node, rhss, typ, ptaresult, irdaFacts, iddg)
           case _ =>
@@ -211,11 +211,11 @@ object InterproceduralDataDependenceAnalysis {
             val lhss = PilarAstHelper.getLHSs(t)
             val rhss = PilarAstHelper.getRHSs(t)
             result ++= processLHSs(global, node, lhss, ptaresult, irdaFacts, iddg)
-            result ++= processRHSs(global, node, rhss, typ, ptaresult, irdaFacts, iddg)
+            result ++= processRHSs(global, node, rhss, None, ptaresult, irdaFacts, iddg)
           case gj: GotoJump =>
           case rj: ReturnJump =>
             if (rj.exp.isDefined) {
-              processExp(global, node, rj.exp.get, typ, ptaresult, irdaFacts, iddg)
+              processExp(global, node, rj.exp.get, None, ptaresult, irdaFacts, iddg)
             }
           case ifj: IfJump =>
             for (ifThen <- ifj.ifThens) {
@@ -457,10 +457,6 @@ object InterproceduralDataDependenceAnalysis {
                   val paramName = paramNames(i)
                   val ptypName = paramTyps(i).name
                   if(paramName == varName) indexs += index
-                  if(ptypName == "double" || ptypName == "long"){
-                    index += 1
-                    if(paramName == varName) indexs += index
-                  }
                   index += 1
                 }
                 result ++= indexs.map(i => iddg.findDefSite(tarContext, i))

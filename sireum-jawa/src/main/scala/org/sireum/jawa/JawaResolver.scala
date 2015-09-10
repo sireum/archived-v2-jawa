@@ -48,7 +48,8 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
     }
     ms foreach {
       m =>
-        resolveFromMyMethod(clazz, m)
+        val method = resolveFromMyMethod(clazz, m)
+        method.setBody(m.body.get) //here assume the body already resolved
     }
     getMethod(sig).get
   }
@@ -82,35 +83,38 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
    * resolve the given classes to desired level. 
    */
   protected[jawa] def resolveClass(classType: ObjectType, desiredLevel: ResolveLevel.Value, allowUnknown: Boolean): JawaClass = {
-    println(classType)
-    println(containsClassFile(classType))
-    if(!classType.isArray && !containsClassFile(classType)){
-      if(!allowUnknown) throw JawaResolverError("Does not find class " + classType + " and don't allow unknown.")
-      if(desiredLevel >= ResolveLevel.BODY) throw JawaResolverError("Does not allow unknown class " + classType + " resolve to body level.")
-      getClass(classType) match {
-        case None =>
-          val rec = new JawaClass(this, classType, "")
-          rec.setUnknown
-          rec.setResolvingLevel(desiredLevel)
-          reporter.echo(NoPosition, TITLE + " add phantom class " + rec)
-          addClassNotFound(classType)
-          rec
-        case Some(c) =>
-          c
-      }
-    } else {
-      getClass(classType) match {
-        case None =>
-          desiredLevel match{
-            case ResolveLevel.BODY => forceResolveToBody(classType)
-            case ResolveLevel.HIERARCHY => forceResolveToHierarchy(classType)
-          }
-        case Some(c) => {
-          if(c.getResolvingLevel < desiredLevel) escalateReolvingLevel(c, desiredLevel)
-          else c
+    if(classType.name.contains("ContextImpl")){
+      println("impl:" + containsClassFile(classType))
+    }
+    val clazz =
+      if(!classType.isArray && !containsClassFile(classType)) {
+        if(!allowUnknown) throw JawaResolverError("Does not find class " + classType + " and don't allow unknown.")
+        if(desiredLevel >= ResolveLevel.BODY) throw JawaResolverError("Does not allow unknown class " + classType + " resolve to body level.")
+        getClass(classType) match {
+          case None =>
+            val rec = new JawaClass(this, classType, "")
+            rec.setUnknown
+            rec.setResolvingLevel(desiredLevel)
+            reporter.echo(NoPosition, TITLE + " add phantom class " + rec)
+            addClassNotFound(classType)
+            rec
+          case Some(c) =>
+            c
+        }
+      } else {
+        getClass(classType) match {
+          case None =>
+            desiredLevel match{
+              case ResolveLevel.BODY => forceResolveToBody(classType)
+              case ResolveLevel.HIERARCHY => forceResolveToHierarchy(classType)
+            }
+          case Some(c) =>
+            if(c.getResolvingLevel < desiredLevel) escalateReolvingLevel(c, desiredLevel)
+            else c
         }
       }
-    }
+    resolveClassesRelationWholeProgram
+    clazz
   }
   
   /**
@@ -224,6 +228,9 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
       m =>
         resolveFromMyMethod(clazz, m)
     }
+    mc.superType.foreach(addNeedToResolveExtend(clazz, _))
+    mc.outerType.foreach(addNeedToResolveOuterClass(clazz, _))
+    mc.interfaces.foreach(addNeedToResolveExtend(clazz, _))
     clazz
   }
   
@@ -231,7 +238,7 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
     val sig = m.signature
     val mname = sig.methodNamePart
     var paramNames = m.params
-    val thisOpt: Option[String] = AccessFlag.isStatic(m.accessFlag) match {
+    val thisOpt: Option[String] = (AccessFlag.isStatic(m.accessFlag) || AccessFlag.isNative(m.accessFlag)) match {
       case true => None
       case false => 
         val t = paramNames.head
@@ -248,6 +255,7 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
     }
     val retTyp = sig.getReturnType()
     val accessFlag = m.accessFlag
+    
     JawaMethod(clazz, mname, thisOpt, params.toList, retTyp, accessFlag)
   }
 }

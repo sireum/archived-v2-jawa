@@ -103,12 +103,12 @@ object ReachingFactsAnalysisHelper {
 
   def getCalleeSet(global: Global, cj: CallJump, sig: Signature, callerContext: Context, ptaresult: PTAResult): ISet[Callee] = {
     val subSig = sig.getSubSignature
-    val typ = cj.getValueAnnotation("type") match {
+    val typ = cj.getValueAnnotation("kind") match {
       case Some(s) => s match {
         case ne: NameExp => ne.name.name
         case _ => ""
       }
-      case None => throw new RuntimeException("cannot found annotation 'type' from: " + cj)
+      case None => throw new RuntimeException("cannot found annotation 'kind' from: " + cj)
     }
     val calleeSet = msetEmpty[Callee]
     typ match {
@@ -155,25 +155,26 @@ object ReachingFactsAnalysisHelper {
     var genFacts: ISet[RFAFact] = isetEmpty
     var killFacts: ISet[RFAFact] = isetEmpty
     val argSlots = args.map(arg=>VarSlot(arg, isBase = false))
-    val paramTyps = calleeMethod.getParamTypes
     for(i <- 0 to argSlots.size - 1){
       val argSlot = argSlots(i)
-      paramTyps(i) match {
-        case ot: ObjectType =>
-          val argValues = s.pointsToSet(argSlot, currentContext)
-          val influencedFields = 
-            if(LibSideEffectProvider.isDefined)
-              LibSideEffectProvider.getInfluencedFields(i, calleeMethod.getSignature)
-            else Set(Constants.ALL_FIELD)
-          argValues.foreach{
-            ins => 
-              for(f <- influencedFields) {
-                val ins = UnknownInstance(ot, currentContext)
-                val fs = FieldSlot(ins, f)
-                genFacts += RFAFact(fs, ins)
-              }
+      val argValues = s.pointsToSet(argSlot, currentContext)
+      val influencedFields = 
+        if(LibSideEffectProvider.isDefined)
+          LibSideEffectProvider.getInfluencedFields(i, calleeMethod.getSignature)
+        else Set(Constants.ALL_FIELD)
+      argValues.foreach{
+        ins => 
+          for(f <- influencedFields) {
+            val fs = FieldSlot(ins, f)
+//            global.getField(f) match {
+//              case Some(field) =>
+//                val ins = UnknownInstance(field.getType, currentContext)
+//                genFacts += RFAFact(fs, ins)
+//              case None =>
+            val uins = UnknownInstance(JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE, currentContext)
+            genFacts += RFAFact(fs, uins)
+//            }
           }
-        case pt: PrimitiveType =>
       }
     }
 //    killFacts ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(argValues, s)

@@ -11,10 +11,9 @@ procedure `$retTyp$` `$procedureName$`($params ; separator=", "$) $annotations ;
 >>
 
 LocalVars(locals) ::= <<
-  temp;
-  RandomCoinToss;
-  head;
-  x;
+  `int` RandomCoinToss;
+  `int` head;
+  `int` x;
   $locals ; separator="\n"$
 >>
 
@@ -26,12 +25,8 @@ ParamVar(typ, name, annotations) ::= <<
 `$typ$` $name$ $annotations ; separator=" "$
 >>
 
-annotationWithParam(flag, params) ::= <<
-@$flag$ (`$params ; separator=", `"$`)
->>
-
 annotationWithExp(flag, exps) ::= <<
-@$flag$ `$exps ; separator=", `"$`
+@$flag$ $exps ; separator=", "$
 >>
 
 Body(codeFragments) ::= <<
@@ -75,8 +70,12 @@ NewExp(name) ::= <<
 new `$name$`
 >>
 
-InvokeStmt(funcName, params, annotations) ::= <<
+InvokeStmtWithReturn(funcName, params, annotations) ::= <<
 call temp:= `$funcName$`($params ; separator=", "$) $annotations ; separator=" "$
+>>
+
+InvokeStmtWithoutReturn(funcName, params, annotations) ::= <<
+call `$funcName$`($params ; separator=", "$) $annotations ; separator=" "$
 >>
 
 FieldAccessExp(base, field) ::= <<

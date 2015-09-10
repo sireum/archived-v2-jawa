@@ -57,7 +57,7 @@ object ASTUtil {
   
   def getType[T <: Annotable[T]](ast: Annotable[T]): Option[JawaType] = {
     ast.getValueAnnotation("type") match {
-      case Some(TypeExp(typespec)) =>
+      case Some(NewExp(typespec, _, _)) =>
         Some(getTypeFromTypeSpec(typespec))
       case _ => None
     }

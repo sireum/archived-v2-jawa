@@ -202,8 +202,8 @@ class PointerAssignmentGraph[Node <: PtaNode]
         getEdgeType(edge) match{
           case EdgeType.ALLOCATION =>
             if(pointsToMap.isDiff(edge.source, edge.target)){
-            pointsToMap.propagatePointsToSet(edge.source, edge.target)
-            worklist += edge.target
+              pointsToMap.propagatePointsToSet(edge.source, edge.target)
+              worklist += edge.target
             }
           case _ =>
         }

@@ -117,8 +117,10 @@ object AccessFlag{
     val CLASS, FIELD, METHOD = Value
   }
   
-  def getJawaFlags(jf: Int, kind: FlagKind.Value): Int = {
+  def getJawaFlags(jf: Int, kind: FlagKind.Value, isConstructor: Boolean): Int = {
     var mod: Int = 0
+    if(isConstructor)
+      mod = mod | CONSTRUCTOR
     if((jf & Opcodes.ACC_PRIVATE) != 0)
       mod = mod | PRIVATE
     else if ((jf & Opcodes.ACC_PROTECTED) != 0)

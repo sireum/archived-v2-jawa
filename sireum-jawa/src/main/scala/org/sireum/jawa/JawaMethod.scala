@@ -45,7 +45,7 @@ case class JawaMethod(declaringClass: JawaClass,
           this.accessFlags >= 0) // NON-NIL
   
   require(!this.name.isEmpty())
-  require(!(isStatic || isNative) && this.thisOpt.isDefined, getName + " " + getResolvingLevel + " not has this.")
+  require((isStatic || isNative) || this.thisOpt.isDefined, getName + " " + getResolvingLevel + " not has this.")
   
   private val signature: Signature = generateSignature(this)
   
@@ -185,11 +185,17 @@ case class JawaMethod(declaringClass: JawaClass,
   
   final val BODY = "body"
   
+  def setBody(md: MethodBody) = {
+    setProperty(BODY, md)
+    setResolvingLevel(ResolveLevel.BODY)
+    getDeclaringClass.updateResolvingLevel
+  }
+  
   /**
    * resolve current method to body level
    */
   def getBody: MethodBody = {
-    if(getDeclaringClass.getResolvingLevel >= ResolveLevel.BODY) throw new RuntimeException(getSignature +" is already resolved to " + this.resolvingLevel)
+//    if(getDeclaringClass.getResolvingLevel >= ResolveLevel.BODY) throw new RuntimeException(getSignature +" is already resolved to " + this.resolvingLevel)
     if(isUnknown) throw new RuntimeException(getSignature + " is an unknown method so cannot be resolved to body.")
     if(!(this ? BODY)){
       val global = getDeclaringClass.global

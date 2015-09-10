@@ -6,10 +6,7 @@ import org.sireum.jawa.io.SourceFile
 import org.sireum.jawa.io.AbstractFile
 
 trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Global =>
-  
-  object ClassCategory extends Enumeration {
-    val APPLICATION, USER_LIBRARY, SYSTEM_LIBRARY = Value
-  }
+  final val TITLE = "JawaClassLoadManager"
   
   /**
    * set of classes contained by the current Global
@@ -31,7 +28,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    */
   protected val userLibraryClasses: MMap[ObjectType, JawaClass] = mmapEmpty
   
-  private def getClassType(typ: ObjectType): ClassCategory.Value = {
+  protected def getClassType(typ: ObjectType): ClassCategory.Value = {
     this.applicationClasses.contains(typ) match {
       case true => ClassCategory.APPLICATION
       case false =>
@@ -87,7 +84,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    * add an application class
    */
   def addApplicationClass(ar: JawaClass) = {
-    if(this.applicationClasses.contains(ar.getType)) reporter.error(NoPosition, "class " + ar.getName + " already exists in application class set.")
+    if(this.applicationClasses.contains(ar.getType)) reporter.error(TITLE, "class " + ar.getName + " already exists in application class set.")
     else this.applicationClasses(ar.getType) = ar
   }
   
@@ -95,7 +92,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    * add a system library class
    */
   def addSystemLibraryClass(l: JawaClass) = {
-    if(this.systemLibraryClasses.contains(l.getType)) reporter.error(NoPosition, "class " + l.getName + " already exists in system library class set.")
+    if(this.systemLibraryClasses.contains(l.getType)) reporter.error(TITLE, "class " + l.getName + " already exists in system library class set.")
     else this.systemLibraryClasses(l.getType) = l
   }
   
@@ -103,7 +100,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    * add a third party library class
    */
   def addUserLibraryClass(l: JawaClass) = {
-    if(this.userLibraryClasses.contains(l.getType)) reporter.error(NoPosition, "class " + l.getName + " already exists in user lib class set.")
+    if(this.userLibraryClasses.contains(l.getType)) reporter.error(TITLE, "class " + l.getName + " already exists in user lib class set.")
     else this.userLibraryClasses(l.getType) = l
   }
   
@@ -146,7 +143,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    * remove application class
    */
   def removeApplicationClass(ar: JawaClass) = {
-    if(!this.applicationClasses.contains(ar.getType)) reporter.error(NoPosition, "class " + ar.getName + " does not exist in application class set.")
+    if(!this.applicationClasses.contains(ar.getType)) reporter.error(TITLE, "class " + ar.getName + " does not exist in application class set.")
     else this.applicationClasses -= ar.getType
   }
   
@@ -154,7 +151,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    * remove System Library Class
    */
   def removeSystemLibraryClass(l: JawaClass) = {
-    if(!this.systemLibraryClasses.contains(l.getType)) reporter.error(NoPosition, "class " + l.getType + " does not exist in framework class set.")
+    if(!this.systemLibraryClasses.contains(l.getType)) reporter.error(TITLE, "class " + l.getType + " does not exist in framework class set.")
     else this.systemLibraryClasses -= l.getType
   }
   
@@ -162,7 +159,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    * remove third party lib class
    */
   def removeUserLibraryClass(l: JawaClass) = {
-    if(!this.userLibraryClasses.contains(l.getType)) reporter.error(NoPosition, "class " + l.getType + " does not exist in user lib class set.")
+    if(!this.userLibraryClasses.contains(l.getType)) reporter.error(TITLE, "class " + l.getType + " does not exist in user lib class set.")
     else this.userLibraryClasses(l.getType) = l
   }
   
@@ -202,13 +199,21 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    * add class into Global
    */
   def addClass(ar: JawaClass) = {
-    if(containsClass(ar) && ar.getResolvingLevel >= ar.getResolvingLevel) reporter.error(NoPosition, "duplicate class: " + ar.getName)
+    if(containsClass(ar) && ar.getResolvingLevel >= ar.getResolvingLevel) reporter.error(TITLE, "duplicate class: " + ar.getName)
+    else {
+      addClassInternal(ar)
+      modifyHierarchy
+    }
+  }
+  
+  protected[jawa] def addClassInternal(ar: JawaClass) = {
+    if(containsClass(ar) && ar.getResolvingLevel >= ar.getResolvingLevel) reporter.error(TITLE, "duplicate class: " + ar.getName)
     else {
       this.classes(ar.getType) = ar
       if(ar.isArray){
         ar.setSystemLibraryClass
-      } else if (containsJawaClass(ar.getType)){
-        getClassType(ar.getType) match{
+      } else if (containsClassFile(ar.getType)){
+        getClassCategoryFromClassPath(ar.getType) match {
           case ClassCategory.APPLICATION => ar.setApplicationClass
           case ClassCategory.USER_LIBRARY => ar.setUserLibraryClass
           case ClassCategory.SYSTEM_LIBRARY => ar.setSystemLibraryClass
@@ -216,7 +221,6 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
       } else {
         ar.setSystemLibraryClass
       }
-      modifyHierarchy
     }
   }
   
@@ -228,7 +232,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    * remove class from Global
    */
   def removeClass(ar: JawaClass): Unit = {
-    if(!containsClass(ar)) reporter.error(NoPosition, "does not exist in Global: " + ar.getName)
+    if(!containsClass(ar)) reporter.error(TITLE, "does not exist in Global: " + ar.getName)
     else {
       this.classes -= ar.getType
       if(ar.isSystemLibraryClass) this.systemLibraryClasses -= ar.getType
@@ -238,8 +242,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     }
   }
   
-  def modifyHierarchy = {
-    if(isDirty) resolveClassesRelationWholeProgram
+  protected def modifyHierarchy = {
     this.hierarchy.build(this)
   }
   
@@ -517,64 +520,51 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   protected[jawa] def resolveClassesRelationWholeProgram: Unit = {
     if(!isDirty) return
     val worklist: MList[JawaClass] = mlistEmpty
-    val myclasses: MList[MyClass] = mlistEmpty
     worklist ++= needToResolveExtends.keySet ++ needToResolveOuterClass.keySet
-    do{
-      val tmpList: MList[JawaClass] = mlistEmpty
-      while(!worklist.isEmpty){
-        val clazz = worklist.remove(0)
-        addClassesNeedUpdateInHierarchy(clazz)
-        this.needToResolveOuterClass.get(clazz) match{
-          case Some(o) =>
-            getClass(o) match{
-              case Some(outer) =>
-                this.needToResolveOuterClass -= clazz
-                clazz.setOuterClass(outer)
-                if(!this.needToResolveOuterClass.contains(outer) || this.needToResolveExtends.contains(outer)) worklist += outer
-              case None =>
-                getMyClass(o) match {
-                  case Some(mc) =>
-                    myclasses += mc
-                    tmpList += clazz
-                  case None =>
-                    this.needToResolveOuterClass -= clazz
-                    val unknownOut = resolveToHierarchy(o)
-                    clazz.setOuterClass(unknownOut)
-                }
-            }
-          case None =>
-        }
-        val resolved: MSet[ObjectType] = msetEmpty
-        this.needToResolveExtends.getOrElse(clazz, msetEmpty).foreach{
-          parType =>
-            getClass(parType) match{
-              case Some(parent) =>
-                resolved += parType
-                if(parent.isInterface) clazz.addInterface(parent)
-                else clazz.setSuperClass(parent)
-                if(!this.needToResolveExtends.contains(parent) || this.needToResolveOuterClass.contains(parent)) worklist += parent
-              case None =>
-                getMyClass(parType) match {
-                  case Some(mc) =>
-                    myclasses += mc
-                    tmpList += clazz
-                  case None =>
-                    resolved += parType
-                    val unknownSu = resolveToHierarchy(parType)
-                    clazz.setSuperClass(unknownSu)
-                }
-            }
-        }
-        val nre = this.needToResolveExtends(clazz)
-        nre --= resolved
-        if(nre.isEmpty) this.needToResolveExtends -= clazz
+    while(!worklist.isEmpty) {
+      val clazz = worklist.remove(0)
+      addClassesNeedUpdateInHierarchy(clazz)
+      this.needToResolveOuterClass.get(clazz) match{
+        case Some(o) =>
+          getClass(o) match{
+            case Some(outer) =>
+              this.needToResolveOuterClass -= clazz
+              clazz.setOuterClass(outer)
+            case None =>
+              getMyClass(o) match {
+                case Some(mc) =>
+                  val outer = resolveFromMyClass(mc)
+                  clazz.setOuterClass(outer)
+                case None =>
+                  this.needToResolveOuterClass -= clazz
+                  val unknownOut = resolveToHierarchy(o)
+                  clazz.setOuterClass(unknownOut)
+              }
+          }
+        case None =>
       }
-      worklist ++= tmpList
-      myclasses foreach {
-        resolveFromMyClass(_)
+      this.needToResolveExtends.getOrElse(clazz, msetEmpty).foreach{
+        parType =>
+          getClass(parType) match{
+            case Some(parent) =>
+              if(parent.isInterface) clazz.addInterface(parent)
+              else clazz.setSuperClass(parent)
+            case None =>
+              getMyClass(parType) match {
+                case Some(mc) =>
+                  val parent = resolveFromMyClass(mc)
+                  if(parent.isInterface) clazz.addInterface(parent)
+                  else clazz.setSuperClass(parent)
+                case None =>
+                  val unknownSu = resolveToHierarchy(parType)
+                  clazz.setSuperClass(unknownSu)
+              }
+          }
       }
-      myclasses.clear()
-    } while(!worklist.isEmpty)
+      this.needToResolveExtends -= clazz
+      this.needToResolveOuterClass -= clazz
+      worklist ++= needToResolveExtends.keySet ++ needToResolveOuterClass.keySet
+    }
       
     getClasses.foreach{
       rec =>

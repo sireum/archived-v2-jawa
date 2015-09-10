@@ -51,6 +51,18 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
     }
   }
   
+  def getClassCategoryFromClassPath(typ: ObjectType): ClassCategory.Value = {
+    this.applicationClassCodes.contains(typ) match {
+      case true => ClassCategory.APPLICATION
+      case false =>
+        this.userLibraryClassCodes.contains(typ) match {
+          case true => ClassCategory.USER_LIBRARY
+          case false =>
+            ClassCategory.SYSTEM_LIBRARY
+        }
+    }
+  }
+  
   /**
    * map from class name to pilar code of library. E.g. class type java.lang.Object to its file
    */

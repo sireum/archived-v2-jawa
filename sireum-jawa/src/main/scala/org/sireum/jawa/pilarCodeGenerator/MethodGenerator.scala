@@ -137,7 +137,7 @@ abstract class MethodGenerator(global: Global) {
         this.paramClasses += params(i)
         paramVar.add("typ", params(i))
         paramVar.add("name", p)
-        val annot = generateExpAnnotation("type", List("object"))
+        val annot = generateExpAnnotation("kind", List("object"))
         paramVar.add("annotations", new ArrayList[ST](Arrays.asList(annot)))
         paramArray.add(i, paramVar)
     }
@@ -146,14 +146,6 @@ abstract class MethodGenerator(global: Global) {
     global.reporter.echo(NoPosition, TITLE + " environment code:\n" + code)
 //    global.addApplicationClassCode(className, code)
     global.resolveMethodCode(signature, code)
-  }
-  
-  protected def generateParamAnnotation(flag: String, params: List[String]): ST = {
-    val paramArray = new ArrayList[String]
-    params.foreach(param => paramArray.add(param))
-    val annot = template.getInstanceOf("annotationWithParam")
-    annot.add("flag", flag)
-    annot.add("params", paramArray)
   }
   
   protected def generateExpAnnotation(flag: String, exps: List[String]): ST = {
@@ -168,9 +160,9 @@ abstract class MethodGenerator(global: Global) {
     procDeclTemplate.add("retTyp", retTyp)
     procDeclTemplate.add("procedureName", methodName)
     val annotations = new ArrayList[ST]
-    annotations.add(generateExpAnnotation("owner", List(owner)))
-    annotations.add(generateExpAnnotation("signature", List(signature.signature)))
-    annotations.add(generateExpAnnotation("Access", List(access)))
+    annotations.add(generateExpAnnotation("owner", List("^`" + owner + "`")))
+    annotations.add(generateExpAnnotation("signature", List("`" + signature.signature + "`")))
+    annotations.add(generateExpAnnotation("AccessFlag", List(access)))
     procDeclTemplate.add("annotations", annotations)
   }
 
@@ -187,7 +179,7 @@ abstract class MethodGenerator(global: Global) {
   protected def generateInstanceCreation(classType: ObjectType, codefg: CodeFragmentGenerator): String = {
     val rhs =
       if(classType.jawaName == "java.lang.String"){
-        val stringAnnot = generateExpAnnotation("type", List("object"))
+        val stringAnnot = generateExpAnnotation("kind", List("object"))
         "\"\" " + stringAnnot.render() 
       } else {
         val newExp = template.getInstanceOf("NewExp")
@@ -254,8 +246,8 @@ abstract class MethodGenerator(global: Global) {
           paramVars += (i -> localVarsForClasses(r.getType))
         }
     }
-    val invokeStmt = template.getInstanceOf("InvokeStmt")
-    invokeStmt.add("funcName", pSig.methodNamePart)
+    val invokeStmt = template.getInstanceOf("InvokeStmtWithoutReturn")
+    invokeStmt.add("funcName", pSig.getClassName + "." + pSig.methodNamePart)
     val finalParamVars: ArrayList[String] = new ArrayList[String]
     finalParamVars.add(0, localClassVar)
     var index = 0
@@ -265,17 +257,18 @@ abstract class MethodGenerator(global: Global) {
       } else {
         finalParamVars.add(index + 1, "x")
         val paramName = pSig.getParameterTypes()(i).name
-        if(paramName == "double" || paramName == "long"){
-          index += 1
-          finalParamVars.add(index + 1, "x")
-        }
+//        if(paramName == "double" || paramName == "long"){
+//          index += 1
+//          finalParamVars.add(index + 1, "x")
+//        }
       }
       index += 1
     }
     invokeStmt.add("params", finalParamVars)
     val annotations = new ArrayList[ST]
-    annotations.add(generateExpAnnotation("signature", List(pSig.signature)))
-    annotations.add(generateExpAnnotation("type", List(typ)))
+    annotations.add(generateExpAnnotation("signature", List("`" + pSig.signature + "`")))
+    annotations.add(generateExpAnnotation("classDescriptor", List("^`" + pSig.getClassName + "`")))
+    annotations.add(generateExpAnnotation("kind", List(typ)))
     invokeStmt.add("annotations", annotations)
     codefg.setCode(invokeStmt)
   }
@@ -398,15 +391,17 @@ abstract class MethodGenerator(global: Global) {
     codefg.setCode(returnStmt)
   }
 
-  protected def createFieldSetStmt(base: String, field: String, rhs: String, annoTyps: List[String], codefg: CodeFragmentGenerator) = {
+  protected def createFieldSetStmt(base: String, field: String, rhs: String, annoTyps: List[String], fieldType: String, codefg: CodeFragmentGenerator) = {
     val mBaseField = template.getInstanceOf("FieldAccessExp")
     mBaseField.add("base", base)
     mBaseField.add("field", field)
     val asmt = template.getInstanceOf("AssignmentStmt")
     asmt.add("lhs", mBaseField)
     asmt.add("rhs", rhs)
-    val annos = generateExpAnnotation("type", annoTyps)
-    asmt.add("annotations", annos)
+    val annotations = new ArrayList[ST]
+    annotations.add(generateExpAnnotation("kind", annoTyps))
+    annotations.add(generateExpAnnotation("type", List("^`" + fieldType + "`")))
+    asmt.add("annotations", annotations)
     codefg.setCode(asmt)
   }
 

@@ -113,7 +113,7 @@ object LightWeightPilarParser {
     while (j < size && !line.charAt(j).isWhitespace && !line.charAt(j).equals("@")) {
       j += 1
     }
-    if (i < size && j <= size) line.substring(i, j)
+    if (i < size && j <= size) line.substring(i + 1, j - 1)
     else throw new RuntimeException("Doing " + TITLE + ". Cannot find name from record code: " + line)
   }
 }

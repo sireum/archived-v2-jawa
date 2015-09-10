@@ -33,7 +33,7 @@ class MyClassVisitor(api: Int) extends ClassVisitor(api) {
             signature: String,
             superName: String,
             interfaces: Array[String]): Unit = {
-    val accessFlag: Int = AccessFlag.getJawaFlags(access, FlagKind.CLASS)
+    val accessFlag: Int = AccessFlag.getJawaFlags(access, FlagKind.CLASS, false)
     val typ: ObjectType = JavaKnowledge.getTypeFromName(getClassName(name)).asInstanceOf[ObjectType]
     val superType: Option[ObjectType] = {
       superName == null match {
@@ -57,7 +57,7 @@ class MyClassVisitor(api: Int) extends ClassVisitor(api) {
   
   override def visitField(access: Int, name: String, desc: String,
                  signature: String, value: Object): FieldVisitor = {
-    val accessFlag: Int = AccessFlag.getJawaFlags(access, FlagKind.FIELD)
+    val accessFlag: Int = AccessFlag.getJawaFlags(access, FlagKind.FIELD, false)
     val typ: JawaType = JavaKnowledge.formatSignatureToType(desc)
     val FQN: FieldFQN = FieldFQN(currentClass.typ, name, typ)
     val f = MyField(accessFlag, FQN)
@@ -67,11 +67,11 @@ class MyClassVisitor(api: Int) extends ClassVisitor(api) {
   
   override def visitMethod(access: Int, name: String, desc: String,
                   signature: String, exceptions: Array[String]): MethodVisitor = {
-    val accessFlag: Int = AccessFlag.getJawaFlags(access, FlagKind.METHOD)
+    val accessFlag: Int = AccessFlag.getJawaFlags(access, FlagKind.METHOD, if(name == "<init>" || name == "<clinit>") true else false)
     val signature: Signature = JavaKnowledge.genSignature(JavaKnowledge.formatTypeToSignature(currentClass.typ), name, desc)
     val params = signature.getParameters()
     val paramnames: MList[String] = mlistEmpty
-    if(!AccessFlag.isStatic(accessFlag)) paramnames += "this_v"
+    if(!AccessFlag.isStatic(accessFlag) && !AccessFlag.isNative(accessFlag)) paramnames += "this_v"
     for(i <- 0 to params.size - 1){
       paramnames += "v" + i
     }

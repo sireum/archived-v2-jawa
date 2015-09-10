@@ -38,34 +38,34 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	      node match{
 	        case en : ICFGEntryNode =>
 	          val owner = global.getMethod(en.getOwner).get
+            var position = 0
+            owner.thisOpt match {
+              case Some(t) =>
+                val n = addIDDGEntryParamNode(en, position)
+                n.asInstanceOf[IDDGEntryParamNode].paramName = t
+                position += 1
+              case None =>
+            }
 	          val pnames = owner.getParamNames
-	          val ptyps = owner.getParamTypes
-	          var position = 0
 	          for(i <- 0 to pnames.size - 1){
-	            val ptypName = ptyps(i).name
 	            val n = addIDDGEntryParamNode(en, position)
 	            n.asInstanceOf[IDDGEntryParamNode].paramName = pnames(i)
-	            if(ptypName == "double" || ptypName == "long"){
-	              position += 1
-	              val n = addIDDGEntryParamNode(en, position)
-	              n.asInstanceOf[IDDGEntryParamNode].paramName = pnames(i)
-	            }
 	            position += 1
 	          }
 	        case en : ICFGExitNode =>
 	          val owner = global.getMethod(en.getOwner).get
-	          val pnames = owner.getParamNames
-            val ptyps = owner.getParamTypes
             var position = 0
+            owner.thisOpt match {
+              case Some(t) =>
+                val n = addIDDGExitParamNode(en, position)
+                n.asInstanceOf[IDDGExitParamNode].paramName = t
+                position += 1
+              case None =>
+            }
+	          val pnames = owner.getParamNames
             for(i <- 0 to pnames.size - 1){
-              val ptypName = ptyps(i).name
               val n = addIDDGExitParamNode(en, position)
               n.asInstanceOf[IDDGExitParamNode].paramName = pnames(i)
-              if(ptypName == "double" || ptypName == "long"){
-                position += 1
-                val n = addIDDGExitParamNode(en, position)
-                n.asInstanceOf[IDDGExitParamNode].paramName = pnames(i)
-              }
               position += 1
             }
 	        case en : ICFGCenterNode =>
@@ -112,7 +112,7 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends InterProcedur
 	  val icfgN = {
 	    if(this.icfg.icfgNormalNodeExists(defSite)) this.icfg.getICFGNormalNode(defSite)
 		  else if(this.icfg.icfgCallNodeExists(defSite)) this.icfg.getICFGCallNode(defSite)
-		  else if(defSite.toString == "(EntryPoint,L0000)") this.icfg.entryNode
+		  else if(defSite.getLocUri == "L0000") this.icfg.entryNode
 //		  else if(defSite.toString == "(Center,L0000)") this.icfg.centerNode
 		  else throw new RuntimeException("Cannot find node: " + defSite)
 	  }
