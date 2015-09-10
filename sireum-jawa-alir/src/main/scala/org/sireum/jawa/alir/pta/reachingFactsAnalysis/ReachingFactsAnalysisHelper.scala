@@ -509,6 +509,10 @@ object ReachingFactsAnalysisHelper {
               val ins = PTAConcreteStringInstance(le.text, currentContext)
               val value: ISet[Instance] = Set(ins)
               result(i) = value
+            } else if(le.typ.name.equals("NULL")){
+              val ins = PTAInstance(JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE, currentContext, isNull_ = true)
+              val value: ISet[Instance] = Set(ins)
+              result(i) = value
             }
           case ne: NewExp =>
             var name: ResourceUri = ""
@@ -617,7 +621,7 @@ object ReachingFactsAnalysisHelper {
       var res = false
       a match{
         case aa: AssignAction => 
-          a.getValueAnnotation("type") match{
+          a.getValueAnnotation("kind") match{
             case Some(e) => 
               e match{
                 case ne: NameExp => res = (ne.name.name == "object")

@@ -501,12 +501,12 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
               }
             }
           case l : ActionLocation =>
-             if(esl.isDefined) eslb.action(l.action, s)
-             val r = actionF(s, l.action, currentNode)
-             if(esl.isDefined) eslb.exitSet(None, r)
-             val node = icfg.getICFGNormalNode(currentContext)
-             val succs = icfg.successors(node)
-             succs.foreach(succ=>latticeMap += (succ -> r))
+            if(esl.isDefined) eslb.action(l.action, s)
+            val r = actionF(s, l.action, currentNode)
+            if(esl.isDefined) eslb.exitSet(None, r)
+            val node = icfg.getICFGNormalNode(currentContext)
+            val succs = icfg.successors(node)
+            succs.foreach(succ=>latticeMap += (succ -> r))
           case l : JumpLocation =>
             jumpF(s, l.jump)
           case l : EmptyLocation =>
