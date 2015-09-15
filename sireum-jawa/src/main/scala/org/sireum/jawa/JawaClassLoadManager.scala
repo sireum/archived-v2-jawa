@@ -199,7 +199,8 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    * add class into Global
    */
   def addClass(ar: JawaClass) = {
-    if(containsClass(ar) && ar.getResolvingLevel >= ar.getResolvingLevel) reporter.error(TITLE, "duplicate class: " + ar.getName)
+    if(containsClass(ar) && getClass(ar.typ).get.getResolvingLevel >= ar.getResolvingLevel) 
+      reporter.error(TITLE, "duplicate class: " + ar.getName)
     else {
       addClassInternal(ar)
       modifyHierarchy
@@ -207,7 +208,8 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   }
   
   protected[jawa] def addClassInternal(ar: JawaClass) = {
-    if(containsClass(ar) && ar.getResolvingLevel >= ar.getResolvingLevel) reporter.error(TITLE, "duplicate class: " + ar.getName)
+    if(containsClass(ar) && getClass(ar.typ).get.getResolvingLevel >= ar.getResolvingLevel) 
+      reporter.error(TITLE, "duplicate class: " + ar.getName)
     else {
       this.classes(ar.getType) = ar
       if(ar.isArray){
@@ -533,6 +535,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
             case None =>
               getMyClass(o) match {
                 case Some(mc) =>
+                  this.needToResolveOuterClass -= clazz
                   val outer = resolveFromMyClass(mc)
                   clazz.setOuterClass(outer)
                 case None =>
@@ -547,15 +550,18 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
         parType =>
           getClass(parType) match{
             case Some(parent) =>
+              this.needToResolveExtends -= clazz
               if(parent.isInterface) clazz.addInterface(parent)
               else clazz.setSuperClass(parent)
             case None =>
               getMyClass(parType) match {
                 case Some(mc) =>
+                  this.needToResolveExtends -= clazz
                   val parent = resolveFromMyClass(mc)
                   if(parent.isInterface) clazz.addInterface(parent)
                   else clazz.setSuperClass(parent)
                 case None =>
+                  this.needToResolveExtends -= clazz
                   val unknownSu = resolveToHierarchy(parType)
                   clazz.setSuperClass(unknownSu)
               }

@@ -301,7 +301,7 @@ abstract class MethodGenerator(global: Global) {
         assert(ap.isStatic || localVarsForClasses(clazz.getType) != null)
         generateMethodCall(ap.getSignature, "virtual", localVarsForClasses(clazz.getType), constructionStack, codefg)
       case None =>
-        global.reporter.error(NoPosition, TITLE + ", Could not find entry point method: " + subsignature)
+        global.reporter.error(NoPosition, TITLE + ", Could not find entry point method " + subsignature + " for " + clazz)
         null
     }
   }

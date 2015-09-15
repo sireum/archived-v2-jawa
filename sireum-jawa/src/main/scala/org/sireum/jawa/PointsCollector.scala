@@ -23,7 +23,7 @@ class PointsCollector {
     val types = methodSig.getParameterTypes()
     val thisTyp = methodSig.getClassType
     
-    val accessTyp = pst.procedure.getValueAnnotation("Access") match{
+    val accessTyp = pst.procedure.getValueAnnotation("AccessFlag") match{
       case Some(acc) =>
         acc match {
           case ne: NameExp =>

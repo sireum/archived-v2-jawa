@@ -407,7 +407,8 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
    */
   def addInterface(i: JawaClass) = {
     if(!i.isInterface) global.reporter.error(NoPosition, "This is not an interface:" + i)
-    else if(implementsInterface(i.getName)) global.reporter.error(NoPosition, this + " already implements interface " + i)
+    else if(implementsInterface(i.getName)) 
+      global.reporter.error(NoPosition, this + " already implements interface " + i)
     else this.interfaces(i.getName) = i
   }
 

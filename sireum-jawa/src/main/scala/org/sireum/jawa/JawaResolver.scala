@@ -83,9 +83,6 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
    * resolve the given classes to desired level. 
    */
   protected[jawa] def resolveClass(classType: ObjectType, desiredLevel: ResolveLevel.Value, allowUnknown: Boolean): JawaClass = {
-    if(classType.name.contains("ContextImpl")){
-      println("impl:" + containsClassFile(classType))
-    }
     val clazz =
       if(!classType.isArray && !containsClassFile(classType)) {
         if(!allowUnknown) throw JawaResolverError("Does not find class " + classType + " and don't allow unknown.")
@@ -206,7 +203,7 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
         if(baseaf.contains("FINAL")) baseaf else "FINAL_" + baseaf
       }
     val clazz: JawaClass = new JawaClass(this, typ, recAccessFlag)
-    addNeedToResolveExtends(clazz, Set(JAVA_TOPLEVEL_OBJECT_TYPE))
+    addNeedToResolveExtend(clazz, JAVA_TOPLEVEL_OBJECT_TYPE)
     clazz.setResolvingLevel(ResolveLevel.BODY)
     new JawaField(clazz, "class", new ObjectType("java.lang.Class"), "FINAL_STATIC")
     new JawaField(clazz, "length", PrimitiveType("int"), "FINAL")
@@ -238,7 +235,10 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
     val sig = m.signature
     val mname = sig.methodNamePart
     var paramNames = m.params
-    val thisOpt: Option[String] = (AccessFlag.isStatic(m.accessFlag) || AccessFlag.isNative(m.accessFlag)) match {
+//    println(sig)
+//    println(AccessFlag.toString(m.accessFlag))
+//    println(paramNames)
+    val thisOpt: Option[String] = (AccessFlag.isStatic(m.accessFlag) || AccessFlag.isNative(m.accessFlag) || AccessFlag.isAbstract(m.accessFlag)) match {
       case true => None
       case false => 
         val t = paramNames.head

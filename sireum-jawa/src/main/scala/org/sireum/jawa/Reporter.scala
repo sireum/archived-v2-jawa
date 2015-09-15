@@ -92,21 +92,25 @@ class DefaultReporter extends ReporterImpl {
   }
 }
 
-class PrintReporter extends ReporterImpl {
+object MsgLevel extends Enumeration {
+  val INFO, WARNING, ERROR, NO = Value
+}
+
+class PrintReporter(msglevel: MsgLevel.Value) extends ReporterImpl {
   def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
     severity.count += 1
     severity match {
-      case INFO    => println(severity + "@" + pos + ":" + msg)
-      case WARNING => println(severity + "@" + pos + ":" + msg)
-      case ERROR   => System.err.println(severity + "@" + pos + ":" + msg)
+      case INFO    => if(msglevel <= MsgLevel.INFO) println(severity + "@" + pos + ":" + msg)
+      case WARNING => if(msglevel <= MsgLevel.WARNING) System.err.println(severity + "@" + pos + ":" + msg)
+      case ERROR   => if(msglevel <= MsgLevel.ERROR) System.err.println(severity + "@" + pos + ":" + msg)
     }
   }
   def info1(title: String, msg: String, severity: Severity, force: Boolean): Unit = {
     severity.count += 1
     severity match {
-      case INFO    => println(severity + "@" + title + ":" + msg)
-      case WARNING => println(severity + "@" + title + ":" + msg)
-      case ERROR   => System.err.println(severity + "@" + title + ":" + msg)
+      case INFO    => if(msglevel <= MsgLevel.INFO) println(severity + "@" + title + ":" + msg)
+      case WARNING => if(msglevel <= MsgLevel.WARNING) System.err.println(severity + "@" + title + ":" + msg)
+      case ERROR   => if(msglevel <= MsgLevel.ERROR) System.err.println(severity + "@" + title + ":" + msg)
     }
   }
 }
