@@ -282,7 +282,7 @@ class PointsCollector {
           }
         argPsCall foreach {case (_, p) => p.setContainer(pi)}
         argPsReturn foreach {case (_, p) => p.setContainer(pi)}
-        points += pi
+//        points += pi
         require(t.lhss.size<=1)
         if(t.lhss.size == 1){
           pl = Some(PointL(t.lhss(0).name.name, loc, locIndex, ownerSig))

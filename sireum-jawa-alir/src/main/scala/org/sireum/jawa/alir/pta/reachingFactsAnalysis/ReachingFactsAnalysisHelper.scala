@@ -116,20 +116,21 @@ object ReachingFactsAnalysisHelper {
         val recvValue: ISet[Instance] = getInstancesOfArg(cj.callExp, 0, callerContext, ptaresult)
         recvValue.foreach{
           ins =>
-            if(typ == "super"){
-              calleeSet ++= CallHandler.getSuperCalleeMethod(global, sig).map(InstanceCallee(_, ins))
-            } else if(typ == "direct"){
-              calleeSet ++= CallHandler.getDirectCalleeMethod(global, sig).map(InstanceCallee(_, ins))
-            } else {
-              if(ins.isInstanceOf[UnknownInstance]){
-                val ps = CallHandler.getUnknownVirtualCalleeMethods(global, ins.typ, subSig)
-                calleeSet ++= ps.map{p=> UnknownCallee(p)}
+            if(!ins.isNull)
+              if(typ == "super"){
+                calleeSet ++= CallHandler.getSuperCalleeMethod(global, sig).map(InstanceCallee(_, ins))
+              } else if(typ == "direct"){
+                calleeSet ++= CallHandler.getDirectCalleeMethod(global, sig).map(InstanceCallee(_, ins))
               } else {
-                calleeSet ++= CallHandler.getVirtualCalleeMethod(global, ins.typ, subSig).map(InstanceCallee(_, ins))
+                if(ins.isInstanceOf[UnknownInstance]){
+                  val ps = CallHandler.getUnknownVirtualCalleeMethods(global, ins.typ, subSig)
+                  calleeSet ++= ps.map{p=> UnknownCallee(p)}
+                } else {
+                  calleeSet ++= CallHandler.getVirtualCalleeMethod(global, ins.typ, subSig).map(InstanceCallee(_, ins))
+                }
               }
-            }
         }
-      case "static" => 
+      case "static" =>
         calleeSet ++= CallHandler.getStaticCalleeMethod(global, sig).map(StaticCallee(_))
       case _ => 
     }

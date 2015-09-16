@@ -168,7 +168,8 @@ trait JavaKnowledge {
    * get field name from field FQN. e.g. java.lang.Throwable.stackState -> stackState
    */
   def getFieldNameFromFieldFQN(fqn: String): String = {
-    if(!isValidFieldFQN(fqn)) throw new RuntimeException("given field signature is not a valid form: " + fqn)
+    if(fqn == "length") fqn
+    else if(!isValidFieldFQN(fqn)) throw new RuntimeException("given field signature is not a valid form: " + fqn)
     else fqn.substring(fqn.lastIndexOf('.') + 1)
   }
   

@@ -469,9 +469,9 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
               latticeMap += (sn -> r)
             case j : CallJump =>
               if (esl.isDefined) eslb.callJump(j, s)
-              val r = fA(j, s, currentNode)
+//              val r = fA(j, s, currentNode)
               if (j.jump.isEmpty) {
-                val (calleeFactsMap, retFacts) = callr.resolveCall(r, j, currentContext, icfg)
+                val (calleeFactsMap, retFacts) = callr.resolveCall(s, j, currentContext, icfg)
                 calleeFactsMap.foreach{
                   case (calleeNode, calleeFacts) =>
 		                latticeMap += (calleeNode -> calleeFacts)
@@ -480,7 +480,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
                 latticeMap += (rn -> retFacts)
                 if (esl.isDefined) eslb.exitSet(None, getEntrySet(rn))
               } else
-                jumpF(r, j.jump.get)
+                jumpF(s, j.jump.get)
         }
         
         var s = getEntrySet(currentNode)

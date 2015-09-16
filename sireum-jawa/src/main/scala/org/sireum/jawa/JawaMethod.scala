@@ -199,11 +199,9 @@ case class JawaMethod(declaringClass: JawaClass,
     if(isUnknown) throw new RuntimeException(getSignature + " is an unknown method so cannot be resolved to body.")
     if(!(this ? BODY)){
       val global = getDeclaringClass.global
-      val pb = global.resolveMethodBody(this.signature)
-      setResolvingLevel(ResolveLevel.BODY)
-      getDeclaringClass.updateResolvingLevel
-      pb
-    } else this.getProperty(BODY)
+      global.resolveMethodBody(getDeclaringClass)
+    }
+    this.getProperty(BODY)
   }
   
   /**

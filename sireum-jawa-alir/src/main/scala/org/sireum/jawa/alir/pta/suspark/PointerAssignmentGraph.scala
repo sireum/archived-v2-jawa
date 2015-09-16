@@ -42,6 +42,8 @@ import org.sireum.jawa.alir.pta.InvokeSlot
 import org.sireum.jawa.alir.interProcedural.InstanceCallee
 import org.sireum.jawa.alir.interProcedural.StaticCallee
 import org.sireum.jawa.alir.pta.StaticFieldSlot
+import org.sireum.jawa.alir.pta.PTAInstance
+import org.sireum.jawa.alir.pta.ClassInstance
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -244,8 +246,8 @@ class PointerAssignmentGraph[Node <: PtaNode]
       }
     )
     pag2.edges.foreach(
-      edge=>{
-        addEdge(edge)
+      e=>{
+        addEdge(e)
       }  
     )
     this.processed ++= pag2.getProcessed
@@ -283,6 +285,36 @@ class PointerAssignmentGraph[Node <: PtaNode]
     }
     
     p match {
+      case cp: PointCall =>
+        val lhsopt = cp.lhsOpt
+        val rhs = cp.rhs
+        lhsopt foreach { nodes += getNodeOrElse(_, context.copy) }
+        val rhsNode = getNodeOrElse(rhs, context.copy)
+        nodes += rhsNode
+        rhs match {
+          case pi: Point with Invoke =>
+            pi match {
+              case vp: Point with Invoke with Dynamic =>
+                nodes += getNodeOrElse(vp.recvPCall, context.copy)
+                nodes += getNodeOrElse(vp.recvPReturn, context.copy)
+              case _ =>
+                worklist += rhsNode
+            }
+            val args_Entry = pi.argPsCall
+            val args_Exit = pi.argPsReturn
+            args_Entry.foreach{
+              case (_, pa) =>
+                val argNode = getNodeOrElse(pa, context.copy)
+                nodes += argNode
+                argNode.setProperty(PARAM_NUM, pa.index)
+            }
+            args_Exit.foreach{
+              case (_, pa) =>
+                val argNode = getNodeOrElse(pa, context.copy)
+                nodes += argNode
+                argNode.setProperty(PARAM_NUM, pa.index)
+            }
+        }
       case asmtP: PointAsmt =>
         val lhs = asmtP.lhs
         val rhs = asmtP.rhs
@@ -311,6 +343,9 @@ class PointerAssignmentGraph[Node <: PtaNode]
             nodes += baseNode
 //            baseNode.asInstanceOf[PtaFieldBaseNode].fieldNode = fieldNode.asInstanceOf[PtaFieldNode]
 //            fieldNode.asInstanceOf[PtaFieldNode].baseNode = baseNode.asInstanceOf[PtaFieldBaseNode]
+          case pcr: PointClassR =>
+            val ins = ClassInstance(pcr.classtyp, context.copy)
+            pointsToMap.addInstance(InstanceSlot(ins), context.copy, ins)
           case pso: PointStringO =>
             val ins = PTAConcreteStringInstance(pso.text, context.copy)
             pointsToMap.addInstance(InstanceSlot(ins), context.copy, ins)
@@ -320,35 +355,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
           case po: PointO =>
             val ins = PTAInstance(new ObjectType(po.obj), context.copy, false)
             pointsToMap.addInstance(InstanceSlot(ins), context.copy, ins)
-          case pi: PointI =>
-            if(pi.invokeTyp.equals("static")){
-              worklist += rhsNode
-            }
           case _ =>
-        }
-      case pi: Point with Invoke =>
-        pi match {
-          case vp: Point with Invoke with Dynamic =>
-            nodes += getNodeOrElse(vp.recvPCall, context.copy)
-            nodes += getNodeOrElse(vp.recvPReturn, context.copy)
-          case _ =>
-            val node = getNodeOrElse(pi, context.copy)
-            nodes += node
-            worklist += node
-        }
-        val args_Entry = pi.argPsCall
-        val args_Exit = pi.argPsReturn
-        args_Entry.foreach{
-          case (_, pa) =>
-            val argNode = getNodeOrElse(pa, context.copy)
-            nodes += argNode
-            argNode.setProperty(PARAM_NUM, pa.index)
-        }
-        args_Exit.foreach{
-          case (_, pa) =>
-            val argNode = getNodeOrElse(pa, context.copy)
-            nodes += argNode
-            argNode.setProperty(PARAM_NUM, pa.index)
         }
       case procP: Point with Method =>
         procP match {

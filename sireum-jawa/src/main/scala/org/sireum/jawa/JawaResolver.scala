@@ -57,8 +57,8 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
   /**
    * resolve the given method's body to body level. 
    */
-  def resolveMethodBody(sig : Signature): MethodBody = {
-    val typ = sig.getClassType
+  def resolveMethodBody(c: JawaClass) = {
+    val typ = c.getType
     val mcs = this.applicationClassCodes.get(typ) match {
       case Some(asrc) =>
         SourcefileParser.parse(asrc, ResolveLevel.BODY)
@@ -67,16 +67,15 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
           case Some(usrc) =>
             SourcefileParser.parse(usrc, ResolveLevel.BODY)
           case None =>
-            reporter.error(NoPosition, "Could not find code for " + sig)
-            throw new RuntimeException("Could not find code for " + sig)
+            reporter.error(NoPosition, "Could not find code for " + typ)
+            throw new RuntimeException("Could not find code for " + typ)
         }
     }
     val mc = mcs(typ)
     mc.methods foreach {
       m =>
-        if(m.signature.signature == sig.signature) return m.body.get
+        c.getMethod(m.signature.getSubSignature) foreach(_.setBody(m.body.get))
     }
-    throw new RuntimeException("Doing " + TITLE + ": Can not resolve method body for " + sig)
   }
     
   /**
@@ -198,7 +197,7 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global
       if(isJavaPrimitive(typ.typ)){
         "FINAL_PUBLIC"
       } else {
-        val base = resolveClass(typ, ResolveLevel.HIERARCHY, true)
+        val base = resolveClass(new ObjectType(typ.typ), ResolveLevel.HIERARCHY, true)
         val baseaf = base.getAccessFlagsStr
         if(baseaf.contains("FINAL")) baseaf else "FINAL_" + baseaf
       }

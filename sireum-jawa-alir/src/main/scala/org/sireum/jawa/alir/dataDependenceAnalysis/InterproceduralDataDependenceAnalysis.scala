@@ -37,6 +37,7 @@ import org.sireum.jawa.Global
 import org.sireum.jawa.io.NoPosition
 import org.sireum.jawa.FieldFQN
 import org.sireum.jawa.JawaType
+import org.sireum.jawa.JavaKnowledge
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -295,7 +296,7 @@ object InterproceduralDataDependenceAnalysis {
             result += iddg.findDefSite(defSite)
         }
       case ae: AccessExp =>
-        val fieldFQN: FieldFQN = ASTUtil.getFieldFQN(ae, typ.get)
+        val fieldName: String = JavaKnowledge.getFieldNameFromFieldFQN(ae.attributeName.name)
         val baseSlot = ae.exp match {
           case ne: NameExp => 
             result ++= searchRda(global, ne.name.name, node, irdaFacts, iddg)
@@ -307,12 +308,9 @@ object InterproceduralDataDependenceAnalysis {
           ins =>
             result += iddg.findDefSite(ins.defSite)
             if(!ins.isNull) { // if(!ins.isInstanceOf[NullInstance] && !ins.isInstanceOf[UnknownInstance]){
-              val recTyp = fieldFQN.owner
-              if(!recTyp.isArray) {
-                val fieldSlot = FieldSlot(ins, fieldFQN.fieldName)
-                val fieldValue = ptaresult.pointsToSet(fieldSlot, node.getContext)
-                fieldValue.foreach(fIns => result += iddg.findDefSite(fIns.defSite))
-              }
+              val fieldSlot = FieldSlot(ins, fieldName)
+              val fieldValue = ptaresult.pointsToSet(fieldSlot, node.getContext)
+              fieldValue.foreach(fIns => result += iddg.findDefSite(fIns.defSite))
             }
         }
       case ie: IndexingExp =>
