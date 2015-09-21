@@ -1,6 +1,6 @@
 record `com.fgwei.Exceptions1`  @kind class @AccessFlag PUBLIC {
    }
-    procedure `void` `com.fgwei.Exceptions1.<init>` (`com.fgwei.Exceptions1` v0 @kind `this`) @owner ^`com.fgwei.Exceptions1` @signature `Lcom/fgwei/Exceptions1;.<init>:()V` @Access `PUBLIC_CONSTRUCTOR` {
+    procedure `void` `com.fgwei.Exceptions1.<init>` (`com.fgwei.Exceptions1` v0 @kind `this`) @owner ^`com.fgwei.Exceptions1` @signature `Lcom/fgwei/Exceptions1;.<init>:()V` @AccessFlag PUBLIC_CONSTRUCTOR {
       temp ;
       
 #L00e344.   call temp:=  `java.lang.Object.<init>`(v0) @signature `Ljava/lang/Object;.<init>:()V` @classDescriptor ^`java.lang.Object` @kind direct;

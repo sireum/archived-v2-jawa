@@ -37,7 +37,7 @@ object ObjectModel {
 	
 	private def objectGetClass(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
     require(args.size > 0)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
     val thisValue = s.pointsToSet(thisSlot, currentContext)
     var newfacts = isetEmpty[RFAFact]
     var delfacts = isetEmpty[RFAFact]
@@ -45,7 +45,7 @@ object ObjectModel {
       cIns =>
         val typ = cIns.typ
         val strIns = ClassInstance(typ, cIns.defSite)
-        newfacts += (RFAFact(VarSlot(retVar, false), strIns))
+        newfacts += (RFAFact(VarSlot(retVar, false, false), strIns))
     }
     (newfacts, delfacts)
   }

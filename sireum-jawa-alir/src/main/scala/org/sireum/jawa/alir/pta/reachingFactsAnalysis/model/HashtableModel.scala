@@ -24,20 +24,20 @@ object HashtableModel {
 	
 	private def getPointStringToRet(retVar : String, currentContext : Context): RFAFact = {
     val newThisValue = PTAPointStringInstance(currentContext.copy)
-    RFAFact(VarSlot(retVar, false), newThisValue)	 
+    RFAFact(VarSlot(retVar, false, false), newThisValue)	 
 	}
 	  
 	private def cloneHashTable(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
     require(args.size >0)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  thisValue.map{s => RFAFact(VarSlot(retVar, false), s.clone(currentContext))}
+	  thisValue.map{s => RFAFact(VarSlot(retVar, false, false), s.clone(currentContext))}
   }
 	
 	private def getHashTableEntrySetFactToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >0)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "java.util.Hashtable.entrys"), currentContext)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashSet", 0), retVar, currentContext).get
@@ -49,7 +49,7 @@ object HashtableModel {
 	private def getHashTableKeySetToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >0)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "java.util.Hashtable.entrys"), currentContext)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashSet", 0), retVar, currentContext).get
@@ -65,7 +65,7 @@ object HashtableModel {
 	private def getHashTableValuesToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >0)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "java.util.Hashtable.entrys"), currentContext)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashSet", 0), retVar, currentContext).get
@@ -81,16 +81,16 @@ object HashtableModel {
 	private def getHashTableValue(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >1)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  val keySlot = VarSlot(args(1), false)
+	  val keySlot = VarSlot(args(1), false, true)
 	  val keyValue = s.pointsToSet(keySlot, currentContext)
 	  val entValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "java.util.Hashtable.entrys"), currentContext)}.reduce(iunion[Instance])
 	  entValue.foreach{
 	    v =>
 	      require(v.isInstanceOf[PTATupleInstance])
 	      if(keyValue.exists { kIns => kIns === v.asInstanceOf[PTATupleInstance].left }){
-	        result += (RFAFact(VarSlot(retVar, false), v.asInstanceOf[PTATupleInstance].right))
+	        result += (RFAFact(VarSlot(retVar, false, false), v.asInstanceOf[PTATupleInstance].right))
 	      }
 	  }
 	  result
@@ -99,11 +99,11 @@ object HashtableModel {
 	private def putHashTableValue(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >2)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  val keySlot = VarSlot(args(1), false)
+	  val keySlot = VarSlot(args(1), false, true)
 	  val keyValue = s.pointsToSet(keySlot, currentContext)
-	  val valueSlot = VarSlot(args(2), false)
+	  val valueSlot = VarSlot(args(2), false, true)
 	  val valueValue = s.pointsToSet(valueSlot, currentContext)
 	  var entrys = isetEmpty[Instance]
 	  keyValue.foreach{
@@ -127,9 +127,9 @@ object HashtableModel {
 	private def putAllHashTableValues(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >1)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  val slot2 = VarSlot(args(1), false)
+	  val slot2 = VarSlot(args(1), false, true)
 	  val value2 = s.pointsToSet(slot2, currentContext)
 	  thisValue.foreach{
 	    ins =>

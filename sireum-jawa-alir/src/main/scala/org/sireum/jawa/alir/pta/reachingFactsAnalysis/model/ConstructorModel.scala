@@ -12,7 +12,7 @@ object ConstructorModel {
   val TITLE = "ConstructorModel"
   def isConstructor(m: JawaMethod): Boolean = {
     val res = ScopeManager.getCurrentScopeManager.shouldBypass(m.getDeclaringClass) &&
-    m.getName.contains(m.getDeclaringClass.constructorName)
+      m.getName.contains(m.getDeclaringClass.constructorName)
     res
   }
   
@@ -20,8 +20,6 @@ object ConstructorModel {
     var newFacts = isetEmpty[RFAFact]
     var delFacts = isetEmpty[RFAFact]
     var byPassFlag = true
-    val typs = p.getParamTypes
-    if(typs.size == 1) byPassFlag = false
     (newFacts, delFacts, byPassFlag)
   }
 }

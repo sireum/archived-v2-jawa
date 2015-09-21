@@ -626,39 +626,39 @@ final case class PtaNode(point: Point, context: Context) extends InterProcedural
       case glo: Point with Loc with Static_Field =>
         Set(StaticFieldSlot(glo.staticFieldFQN))
       case arr: PointArrayL =>
-        val pts = ptaresult.pointsToSet(VarSlot(arr.arrayname, true), context)
+        val pts = ptaresult.pointsToSet(VarSlot(arr.arrayname, true, false), context)
         pts.map{
           ins =>
             ArraySlot(ins)
         }
       case arr: PointArrayR =>
-        val pts = ptaresult.pointsToSet(VarSlot(arr.arrayname, true), context)
+        val pts = ptaresult.pointsToSet(VarSlot(arr.arrayname, true, false), context)
         pts.map{
           ins =>
             ArraySlot(ins)
         }
       case fie: Point with Loc with Field =>
-        val pts = ptaresult.pointsToSet(VarSlot(fie.baseP.baseName, true), context)
+        val pts = ptaresult.pointsToSet(VarSlot(fie.baseP.baseName, true, false), context)
         pts.map{
           ins =>
             FieldSlot(ins, fie.fieldName)
         }
       case bas: Point with Loc with Base =>
-        Set(VarSlot(bas.baseName, true))
+        Set(VarSlot(bas.baseName, true, false))
       case pl: PointL =>
-        Set(VarSlot(pl.varname, false))
+        Set(VarSlot(pl.varname, false, false))
       case pr: PointR =>
-        Set(VarSlot(pr.varname, false))
+        Set(VarSlot(pr.varname, false, false))
       case pla: Point with Loc with Arg =>
-        Set(VarSlot(pla.argName, false))
+        Set(VarSlot(pla.argName, false, true))
       case pop: Point with Param =>
-        Set(VarSlot(pop.paramName, false))
+        Set(VarSlot(pop.paramName, false, false))
       case inp: Point with Invoke =>
         Set(InvokeSlot(inp.sig, inp.invokeTyp))
       case p: PointRet =>
-        Set(VarSlot(p.retname, false))
+        Set(VarSlot(p.retname, false, false))
       case p: PointMethodRet =>
-        Set(VarSlot("ret", false))
+        Set(VarSlot("ret", false, false))
       case _ => throw new RuntimeException("No slot for such pta node: " + point + "@" + context)
     }
   }

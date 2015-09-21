@@ -27,153 +27,155 @@ import java.lang.reflect.InvocationTargetException
 import org.sireum.jawa.sjc.refactoring.RefactorJawa
 import org.sireum.jawa.util.MyFileUtil
 import org.sireum.jawa.io.SourceFile
+import org.sireum.pilar.parser.Parser
+import org.sireum.pilar.ast.Model
 
 class JawaRefactorTest extends FlatSpec with ShouldMatchers {
   
-//  "Refactor code" should "not throw an exception on ArrayAccess1" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayAccess1.pilar")))
-//    refactor(jf.code)
+  "Refactor code" should "not throw an exception on ArrayAccess1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayAccess1.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on ArrayAccess2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayAccess2.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on ArrayAccess3" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayAccess3.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on ArrayCopy" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayCopy.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on ArrayFill1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayFill1.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on ArrayFill2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayFill2.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on ArrayLength1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayLength1.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on Cmp1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/cmp/Cmp1.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on Cmp2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/cmp/Cmp2.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on ConstClass1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/constclass/ConstClass1.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on ConstClass2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/constclass/ConstClass2.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on DoubleLong1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/doublelong/DoubleLong1.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on Exceptions1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/exception/Exceptions1.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on Exceptions2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/exception/Exceptions2.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on Exceptions3" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/exception/Exceptions3.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on Exceptions4" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/exception/Exceptions4.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on FieldAccess1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/field/FieldAccess1.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on FieldAccess2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/field/FieldAccess2.pilar")))
+    refactor(jf)
+  }
+  
+//  "Refactor code" should "not throw an exception on StaticFieldAccess1" in {
+//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/field/StaticFieldAccess1.pilar")))
+//    refactor(jf)
 //  }
-//  
-//  "Refactor code" should "not throw an exception on ArrayAccess2" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayAccess2.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on ArrayAccess3" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayAccess3.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on ArrayCopy" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayCopy.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on ArrayFill1" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayFill1.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on ArrayFill2" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayFill2.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on ArrayLength1" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/array/ArrayLength1.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on Cmp1" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/cmp/Cmp1.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on Cmp2" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/cmp/Cmp2.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on ConstClass1" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/constclass/ConstClass1.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on ConstClass2" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/constclass/ConstClass2.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on DoubleLong1" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/doublelong/DoubleLong1.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on Exceptions1" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/exception/Exceptions1.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on Exceptions2" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/exception/Exceptions2.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on Exceptions3" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/exception/Exceptions3.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on Exceptions4" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/exception/Exceptions4.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on FieldAccess1" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/field/FieldAccess1.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on FieldAccess2" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/field/FieldAccess2.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-////  "Refactor code" should "not throw an exception on StaticFieldAccess1" in {
-////    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/field/StaticFieldAccess1.pilar")))
-////    refactor(jf.code)
-////  }
-//  
-//  
-//  "Refactor code" should "not throw an exception on Instanceof1" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/instance/Instanceof1.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on Instanceof2" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/instance/Instanceof2.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on IfJump1" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/jump/IfJump1.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on IfJump2" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/jump/IfJump2.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on SwitchJump1" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/jump/SwitchJump1.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on SwitchJump2" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/jump/SwitchJump2.pilar")))
-//    refactor(jf.code)
-//  }
-//  
-//  "Refactor code" should "not throw an exception on Monitor1" in {
-//    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/monitor/Monitor1.pilar")))
-//    refactor(jf.code)
-//  }
-//  
+  
+  
+  "Refactor code" should "not throw an exception on Instanceof1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/instance/Instanceof1.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on Instanceof2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/instance/Instanceof2.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on IfJump1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/jump/IfJump1.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on IfJump2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/jump/IfJump2.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on SwitchJump1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/jump/SwitchJump1.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on SwitchJump2" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/jump/SwitchJump2.pilar")))
+    refactor(jf)
+  }
+  
+  "Refactor code" should "not throw an exception on Monitor1" in {
+    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/monitor/Monitor1.pilar")))
+    refactor(jf)
+  }
+  
   "Refactor code" should "not throw an exception on a" in {
     val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/other/a.pilar")))
-    refactor(jf.code)
+    refactor(jf)
   }
   
 //  "Refactor code" should "not throw an exception on FooActivity" in {
 //    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/other/FooActivity.pilar")))
-//    refactor(jf.code)
+//    refactor(jf)
 //  }
 //  
 //  "Refactor code" should "not throw an exception on MainActivity" in {
 //    val jf = new FgSourceFile(new PlainFile(new File("src/main/resources/refactoring/other/MainActivity.pilar")))
-//    refactor(jf.code)
+//    refactor(jf)
 //  }
   
   val reporter = new DefaultReporter
@@ -206,14 +208,16 @@ class JawaRefactorTest extends FlatSpec with ShouldMatchers {
     cu
   }
   
-  private def refactor(code: String) = {
+  private def refactor(jf: SourceFile) = {
+    val code = jf.code
 //    JawaCodeSource.setPreLoadFlag
 //    JawaCodeSource.load(code, GlobalConfig.PILAR_FILE_EXT, AndroidLibraryAPISummary)
 //    val code = MyFileUtil.readFileContent(fileUri)
     val newcode = RefactorJawa(code)
     println(newcode)
-//    JawaAlirInfoProvider.getIntraMethodResult(newcode) // check pilar parser
     JawaParser.parse[CompilationUnit](Left(newcode), true, reporter) // check jawa parser
     if(reporter.hasErrors) throw new RuntimeException(reporter.problems.toString())    
+    val (model, err) = Parser.parseWithErrorAsString[Model](Left(newcode)) // check pilar parser
+    if(err != "") throw new RuntimeException(err)
   }
 }

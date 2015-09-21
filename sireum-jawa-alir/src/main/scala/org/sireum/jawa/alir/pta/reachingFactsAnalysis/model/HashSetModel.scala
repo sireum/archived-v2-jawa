@@ -25,9 +25,9 @@ object HashSetModel {
   private def addItemToHashSetField(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  require(args.size > 1)
 	  var newfacts = isetEmpty[RFAFact]
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValues = s.pointsToSet(thisSlot, currentContext)
-	  val paramSlot = VarSlot(args(1), false)
+	  val paramSlot = VarSlot(args(1), false, true)
 	  val paramValues = s.pointsToSet(paramSlot, currentContext)
 	  thisValues.foreach{
       ins =>
@@ -38,9 +38,9 @@ object HashSetModel {
   
   private def cloneHashSetToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
     require(args.size >0)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  thisValue.map{s => RFAFact(VarSlot(retVar, false), s.clone(currentContext))}
+	  thisValue.map{s => RFAFact(VarSlot(retVar, false, false), s.clone(currentContext))}
   }
   
   def doHashSetCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {

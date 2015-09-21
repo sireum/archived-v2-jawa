@@ -137,7 +137,7 @@ object InterproceduralDataDependenceAnalysis {
       iddg: InterProceduralDataDependenceGraph[Node]): ISet[Node] = {
     val result = msetEmpty[Node]
     result ++= searchRda(global, callArgNode.argName, callArgNode, irdaFacts, iddg)
-    val argSlot = VarSlot(callArgNode.argName, false)
+    val argSlot = VarSlot(callArgNode.argName, false, true)
     val inss = ptaresult.pointsToSet(argSlot, callArgNode.getContext)
     inss.foreach(ins => result += iddg.findDefSite(ins.defSite))
     result.toSet
@@ -158,7 +158,7 @@ object InterproceduralDataDependenceAnalysis {
             if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleep.getSignature)
             else None
           for(i <- 0 to virtualBodyNode.argNames.size - 1) {
-            val argSlot = VarSlot(virtualBodyNode.argNames(i), false)
+            val argSlot = VarSlot(virtualBodyNode.argNames(i), false, true)
             val argInss = ptaresult.pointsToSet(argSlot, virtualBodyNode.getContext)
             argInss.foreach (ins => result += iddg.findDefSite(ins.defSite))
             if(sideEffectResult.isDefined) {
@@ -288,7 +288,7 @@ object InterproceduralDataDependenceAnalysis {
     exp match {
       case ne: NameExp =>
         result ++= searchRda(global, ne.name.name, node, irdaFacts, iddg)
-        val slot = VarSlot(ne.name.name, false)
+        val slot = VarSlot(ne.name.name, false, false)
         val value = ptaresult.pointsToSet(slot, node.getContext)
         value.foreach{
           ins =>
@@ -300,7 +300,7 @@ object InterproceduralDataDependenceAnalysis {
         val baseSlot = ae.exp match {
           case ne: NameExp => 
             result ++= searchRda(global, ne.name.name, node, irdaFacts, iddg)
-            VarSlot(ne.name.name, true)
+            VarSlot(ne.name.name, true, false)
           case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
         }
         val baseValue = ptaresult.pointsToSet(baseSlot, node.getContext)
@@ -317,7 +317,7 @@ object InterproceduralDataDependenceAnalysis {
         val baseSlot = ie.exp match {
           case ine: NameExp =>
             result ++= searchRda(global, ine.name.name, node, irdaFacts, iddg)
-            VarSlot(ine.name.name, true)
+            VarSlot(ine.name.name, true, false)
           case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
         }
         val baseValue = ptaresult.pointsToSet(baseSlot, node.getContext)
@@ -332,7 +332,7 @@ object InterproceduralDataDependenceAnalysis {
         ce.exp match{
           case ice: NameExp =>
             result ++= searchRda(global, ice.name.name, node, irdaFacts, iddg)
-            val slot = VarSlot(ice.name.name, false)
+            val slot = VarSlot(ice.name.name, false, false)
             val value = ptaresult.pointsToSet(slot, node.getContext)
             value.foreach{
               ins =>
@@ -351,8 +351,8 @@ object InterproceduralDataDependenceAnalysis {
                 exp match{
                   case ne: NameExp => 
                     result ++= searchRda(global, ne.name.name, node, irdaFacts, iddg)
-                    VarSlot(ne.name.name, false)
-                  case _ => VarSlot(exp.toString, false)
+                    VarSlot(ne.name.name, false, true)
+                  case _ => VarSlot(exp.toString, false, true)
                 }
             }
             calleeSet.foreach{
@@ -448,12 +448,16 @@ object InterproceduralDataDependenceAnalysis {
               if(dd.isDefinedInitially && !varName.startsWith("@@")){
                 val indexs: MSet[Int] = msetEmpty
                 val owner = global.getMethod(node.getOwner).get
+                var index = 0
+                owner.thisOpt foreach{
+                  t =>
+                    if(t == varName) indexs += index
+                    index += 1
+                }
                 val paramNames = owner.getParamNames
                 val paramTyps = owner.getParamTypes
-                var index = 0
                 for(i <- 0 to paramNames.size - 1){
                   val paramName = paramNames(i)
-                  val ptypName = paramTyps(i).name
                   if(paramName == varName) indexs += index
                   index += 1
                 }

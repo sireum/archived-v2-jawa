@@ -1,13 +1,13 @@
 record `com.fgwei.Exceptions3`  @kind class @AccessFlag PUBLIC {
    }
-    procedure `void` `com.fgwei.Exceptions3.<init>` (`com.fgwei.Exceptions3` v0 @kind `this`) @owner ^`com.fgwei.Exceptions3` @signature `Lcom/fgwei/Exceptions3;.<init>:()V` @Access `PUBLIC_CONSTRUCTOR` {
+    procedure `void` `com.fgwei.Exceptions3.<init>` (`com.fgwei.Exceptions3` v0 @kind `this`) @owner ^`com.fgwei.Exceptions3` @signature `Lcom/fgwei/Exceptions3;.<init>:()V` @AccessFlag PUBLIC_CONSTRUCTOR {
       temp ;
       
 #L00e344.   call temp:=  `java.lang.Object.<init>`(v0) @signature `Ljava/lang/Object;.<init>:()V` @classDescriptor ^`java.lang.Object` @kind direct;
 #L00e34a.   return  @kind void;
 
    }
-    procedure `int` `com.fgwei.Exceptions3.main` () @owner ^`com.fgwei.Exceptions3` @signature `Lcom/fgwei/Exceptions3;.main:()I` @Access `PUBLIC_STATIC` {
+    procedure `int` `com.fgwei.Exceptions3.main` () @owner ^`com.fgwei.Exceptions3` @signature `Lcom/fgwei/Exceptions3;.main:()I` @AccessFlag PUBLIC_STATIC {
       temp ;
         v0;
         v1;

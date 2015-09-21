@@ -1,6 +1,6 @@
 record `com.a.a.b.c.a`  @kind interface @AccessFlag PUBLIC_INTERFACE_ABSTRACT  {
    }
-procedure `void` `net.daum.mobilead.protocol.XMLContentHandler.endElement` (`net.daum.mobilead.protocol.XMLContentHandler` v2 @kind this, `java.lang.String` v3 @kind object, `java.lang.String` v4 @kind object, `java.lang.String` v5 @kind object) @owner ^`net.daum.mobilead.protocol.XMLContentHandler` @signature `Lnet/daum/mobilead/protocol/XMLContentHandler;.endElement:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V` @Access PUBLIC {
+procedure `void` `net.daum.mobilead.protocol.XMLContentHandler.endElement` (`net.daum.mobilead.protocol.XMLContentHandler` v2 @kind this, `java.lang.String` v3 @kind object, `java.lang.String` v4 @kind object, `java.lang.String` v5 @kind object) @owner ^`net.daum.mobilead.protocol.XMLContentHandler` @signature `Lnet/daum/mobilead/protocol/XMLContentHandler;.endElement:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V` @AccessFlag PUBLIC {
       temp ;
         v0;
         v1;

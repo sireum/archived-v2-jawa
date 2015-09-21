@@ -552,6 +552,8 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
       case CMP => cmpExpression()
       case EXCEPTION => exceptionExpression()
       case CONST_CLASS => constClassExpression()
+      case LENGTH => lengthExpression()
+      case INSTANCEOF => instanceofExpression()
       case NULL => nullExpression()
       case LPAREN => 
         val next: TokenType = lookahead(1)
@@ -570,15 +572,11 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
           case LENGTH => true
           case _ => false
         }
-        if(isLength) lengthExpression()
-        else {
-          next match { 
-            case INSTANCEOF => instanceofExpression()
-            case DOT => accessExpression()
-            case LBRACKET => indexingExpression()
-            case OP => binaryExpression()
-            case _ => nameExpression()
-          }
+        next match {
+          case DOT => accessExpression()
+          case LBRACKET => indexingExpression()
+          case OP => binaryExpression()
+          case _ => nameExpression()
         }
       case _ => throw new JawaParserException(currentToken.pos, "Unexpected expression start: " + currentToken)
     }
@@ -591,21 +589,29 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
   
   private def constClassExpression(): ConstClassExpression = {
     val const_class: Token = accept(CONST_CLASS)
-    ConstClassExpression(const_class)
+    val at: Token = accept(AT)
+    val typeToken: Token = nextToken()
+    val typExp: TypeExpression = typExpression()
+    ConstClassExpression(const_class, at, typeToken, typExp)
   }
   
   private def lengthExpression():LengthExpression = {
-    val varSymbol_ : VarSymbol = varSymbol()
-    val dot: Token = accept(DOT)
     val length: Token = accept(LENGTH)
-    LengthExpression(varSymbol_, dot, length)
+    val at: Token = accept(AT)
+    val variable: Token = nextToken()
+    val varSymbol_ : VarSymbol = varSymbol()
+    LengthExpression(length, at, variable, varSymbol_)
   }
   
   private def instanceofExpression(): InstanceofExpression = {
-    val varSymbol_ : VarSymbol = varSymbol()
     val instanceof: Token = accept(INSTANCEOF)
-    val typ_ : Type = typ()
-    InstanceofExpression(varSymbol_, instanceof, typ_)
+    val at1: Token = accept(AT)
+    val variable: Token = nextToken()
+    val varSymbol_ : VarSymbol = varSymbol()
+    val at2: Token = accept(AT)
+    val typeToken: Token = nextToken()
+    val typExp : TypeExpression = typExpression()
+    InstanceofExpression(instanceof, at1, variable, varSymbol_, at2, typeToken, typExp)
   }
   
   private def exceptionExpression(): ExceptionExpression = {

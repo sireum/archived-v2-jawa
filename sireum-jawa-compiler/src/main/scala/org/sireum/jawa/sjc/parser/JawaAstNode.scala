@@ -647,15 +647,19 @@ case class NullExpression(
 }
 
 case class ConstClassExpression(
-    const_class: Token) extends Expression with RHS {
-  lazy val tokens = flatten(const_class)
+    const_class: Token,
+    at: Token,
+    typeToken: Token,
+    typExp: TypeExpression) extends Expression with RHS {
+  lazy val tokens = flatten(const_class, at, typeToken, typExp)
 }
 
 case class LengthExpression(
-    varSymbol: VarSymbol,
-    dot: Token,
-    length: Token) extends Expression with RHS {
-  lazy val tokens = flatten(varSymbol, dot, length)
+    length: Token,
+    at: Token,
+    variable: Token,
+    varSymbol: VarSymbol) extends Expression with RHS {
+  lazy val tokens = flatten(length, at, variable, varSymbol)
 }
 
 case class IndexingExpression(
@@ -720,10 +724,14 @@ case class TypeFragmentWithInit(lbracket: Token, varSymbols: IList[(VarSymbol, O
 }
 
 case class InstanceofExpression(
-    varSymbol: VarSymbol,
     instanceof: Token,
-    typ: Type) extends Expression with RHS {
-  lazy val tokens = flatten(varSymbol, instanceof, typ)
+    at1: Token,
+    variable: Token,
+    varSymbol: VarSymbol,
+    at2: Token,
+    typeToken: Token,
+    typExp: TypeExpression) extends Expression with RHS {
+  lazy val tokens = flatten(instanceof, at1, variable, varSymbol, at2, typeToken, typExp)
 }
 
 case class LiteralExpression(

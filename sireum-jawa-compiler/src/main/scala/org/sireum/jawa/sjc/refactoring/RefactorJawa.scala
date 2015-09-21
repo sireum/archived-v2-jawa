@@ -383,17 +383,35 @@ object RefactorJawa {
               }
               cs.recvVarOpt match {
                 case Some(recv) =>
-                  val typ = cs.signature.getClassType
                   val newarg = recentvars(n)(recv.varName)
                   locCode = updateCode(locCode, recv.id.pos, newarg)
                 case None =>
               }
               cs.lhsOpt match {
                 case Some(lhs) =>
-                  val retType = cs.signature.getReturnType()
-                  var newvar = retType.typ.substring(retType.typ.lastIndexOf(".") + 1) + {if(retType.dimensions > 0)"_arr" + retType.dimensions else ""} + "_" + lhs.lhs.varName
-                  if(localvars.contains(newvar) && localvars(newvar)._1 != retType) newvar = "a" + newvar
-                  localvars(newvar) = ((cs.signature.getReturnType(), false))
+                  var newvar: String = null
+                  val retType = cs.signature.getReturnType() match {
+                    case ot: ObjectType =>
+                      if(JavaKnowledge.isJavaPrimitive(ot.typ)) ot
+                      else ObjectType(JavaKnowledge.JAVA_TOPLEVEL_OBJECT, ot.dimensions)
+                    case a => a
+                  }
+                  cs.recvVarOpt match {
+                    case Some(recv) =>
+                      if(recv.varName == lhs.lhs.varName){
+                        newvar = "a" + retType.typ.substring(retType.typ.lastIndexOf(".") + 1) + {if(retType.dimensions > 0)"_arr" + retType.dimensions else ""} + "_" + lhs.lhs.varName
+                      } else {
+                        newvar = retType.typ.substring(retType.typ.lastIndexOf(".") + 1) + {if(retType.dimensions > 0)"_arr" + retType.dimensions else ""} + "_" + lhs.lhs.varName
+                      }
+                    case None =>
+                      newvar = retType.typ.substring(retType.typ.lastIndexOf(".") + 1) + {if(retType.dimensions > 0)"_arr" + retType.dimensions else ""} + "_" + lhs.lhs.varName
+                  }
+                  cs.argVars.filter { arg => arg.varName == lhs.lhs.varName } foreach {
+                    arg =>
+                      val argvar = recentvars(n)(arg.varName)
+                      if(argvar == newvar) newvar = "a" + newvar
+                  }
+                  localvars(newvar) = ((retType, false))
                   recentvars(n)(lhs.lhs.varName) = newvar
                   locCode = updateCode(locCode, lhs.lhs.id.pos, newvar)
 //                  updateEvidence(lhs.lhs.id.pos) = newvar
@@ -447,7 +465,22 @@ object RefactorJawa {
                   locCode = updateCode(locCode, ae.varSymbol.id.pos, newarg)
                   rhsType = typOpt.get
                 case te: TupleExpression =>
-                  rhsType = ObjectType("char", 1) /*TODO*/
+                  rhsType =
+                    as.lhs match {
+                      case ne: NameExpression =>
+                        ne.varSymbol match {
+                          case Left(v) =>
+                            val newv = recentvars(n)(v.varName)
+                            val (typ, _) = localvars(newv)
+                            typ
+                          case Right(v) =>
+                            println("resolveLocalVarType TupleExpression NameExpression problem: " + as.lhs)
+                            ObjectType("char", 1)
+                        }
+                      case _ =>
+                        println("resolveLocalVarType TupleExpression problem: " + as.lhs)
+                        ObjectType("char", 1)
+                    }
                 case ce: CastExpression =>
                   val varname = ce.varName
                   val newarg = recentvars(n)(varname)
@@ -518,7 +551,12 @@ object RefactorJawa {
                   rhsType = JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE
                 case _ =>  println("resolveLocalVarType rhs problem: " + as.rhs)
               }
-              
+              rhsType = rhsType match {
+                case ot: ObjectType =>
+                  if(JavaKnowledge.isJavaPrimitive(ot.typ)) ot
+                  else ObjectType(JavaKnowledge.JAVA_TOPLEVEL_OBJECT, ot.dimensions)
+                case a => a
+              }
               as.lhs match {
                 case ne: NameExpression =>
                   ne.varSymbol match {

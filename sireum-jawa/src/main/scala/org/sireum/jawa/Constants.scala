@@ -13,6 +13,7 @@ package org.sireum.jawa
 object Constants {
   final val CONST_CLASS = "constclass"
   final val LENGTH = "length"
+  final val INSTANCEOF = "instanceof"
   final val ALL_FIELD = "ALL.FIELD"
   
   final val PILAR_FILE_EXT = "pilar"

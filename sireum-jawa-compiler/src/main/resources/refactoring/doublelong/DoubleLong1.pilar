@@ -1,6 +1,6 @@
 record `com.fgwei.DoubleLong1`  @kind class @AccessFlag PUBLIC {
    }
-    procedure `float` `com.fgwei.DoubleLong1.main` () @owner ^`com.fgwei.DoubleLong1` @signature `Lcom/fgwei/DoubleLong1;.main:()F` @Access `PUBLIC_STATIC` {
+    procedure `float` `com.fgwei.DoubleLong1.main` () @owner ^`com.fgwei.DoubleLong1` @signature `Lcom/fgwei/DoubleLong1;.main:()F` @AccessFlag PUBLIC_STATIC {
       temp ;
         v0;
         v1;

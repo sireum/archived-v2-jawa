@@ -21,20 +21,20 @@ object HashMapModel {
 	
 	private def getPointStringToRet(retVar : String, currentContext : Context): RFAFact = {
     val newThisValue = PTAPointStringInstance(currentContext.copy)
-    RFAFact(VarSlot(retVar, false), newThisValue)	 
+    RFAFact(VarSlot(retVar, false, false), newThisValue)	 
 	}
 	  
 	private def cloneHashMap(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
     require(args.size >0)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  thisValue.map{s => RFAFact(VarSlot(retVar, false), s.clone(currentContext))}
+	  thisValue.map{s => RFAFact(VarSlot(retVar, false, false), s.clone(currentContext))}
   }
 	
 	private def getHashMapEntrySetFactToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >0)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashSet", 0), retVar, currentContext).get
@@ -46,7 +46,7 @@ object HashMapModel {
 	private def getHashMapKeySetToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >0)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashSet", 0), retVar, currentContext).get
@@ -62,7 +62,7 @@ object HashMapModel {
 	private def getHashMapValuesToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >0)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashSet", 0), retVar, currentContext).get
@@ -78,9 +78,9 @@ object HashMapModel {
 	private def getHashMapValue(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  val result = msetEmpty[RFAFact]
     require(args.size >1)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  val keySlot = VarSlot(args(1), false)
+	  val keySlot = VarSlot(args(1), false, true)
 	  val keyValue = s.pointsToSet(keySlot, currentContext)
     if(!thisValue.isEmpty){
   	  val entValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
@@ -88,7 +88,7 @@ object HashMapModel {
   	    v =>
   	      require(v.isInstanceOf[PTATupleInstance])
   	      if(keyValue.exists { kIns => kIns === v.asInstanceOf[PTATupleInstance].left }){
-  	        result += (RFAFact(VarSlot(retVar, false), v.asInstanceOf[PTATupleInstance].right))
+  	        result += (RFAFact(VarSlot(retVar, false, false), v.asInstanceOf[PTATupleInstance].right))
   	      }
   	  }
     }
@@ -98,11 +98,11 @@ object HashMapModel {
 	private def putHashMapValue(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  val result = msetEmpty[RFAFact]
     require(args.size >2)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  val keySlot = VarSlot(args(1), false)
+	  val keySlot = VarSlot(args(1), false, true)
 	  val keyValue = s.pointsToSet(keySlot, currentContext)
-	  val valueSlot = VarSlot(args(2), false)
+	  val valueSlot = VarSlot(args(2), false, true)
 	  val valueValue = s.pointsToSet(valueSlot, currentContext)
 	  val entrys = msetEmpty[Instance]
 	  keyValue.foreach{
@@ -124,9 +124,9 @@ object HashMapModel {
 	private def putAllHashMapValues(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >1)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  val slot2 = VarSlot(args(1), false)
+	  val slot2 = VarSlot(args(1), false, true)
 	  val value2 = s.pointsToSet(slot2, currentContext)
 	  thisValue.foreach{
 	    ins =>

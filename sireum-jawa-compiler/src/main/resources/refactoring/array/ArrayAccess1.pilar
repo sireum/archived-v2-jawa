@@ -1,6 +1,6 @@
 record `com.fgwei.ArrayAccess1`  @kind class @AccessFlag PUBLIC {
    }
-    procedure `int` `com.fgwei.ArrayAccess1.main` () @owner ^`com.fgwei.ArrayAccess1` @signature `Lcom/fgwei/ArrayAccess1;.main:()I` @Access `PUBLIC_STATIC` {
+    procedure `int` `com.fgwei.ArrayAccess1.main` () @owner ^`com.fgwei.ArrayAccess1` @signature `Lcom/fgwei/ArrayAccess1;.main:()I` @AccessFlag PUBLIC_STATIC {
       temp ;
         v0;
         v1;

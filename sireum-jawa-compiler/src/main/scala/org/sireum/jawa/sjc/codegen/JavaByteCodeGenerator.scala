@@ -309,7 +309,7 @@ class JavaByteCodeGenerator {
       case Some(va) => 
         visitVarLoad(mv, va.varName)
         this.locals(va.varName).typ.name match {
-          case "int" => mv.visitInsn(Opcodes.IRETURN)
+          case "byte" | "char" | "short" | "int" | "boolean" => mv.visitInsn(Opcodes.IRETURN)
           case "long" => mv.visitInsn(Opcodes.LRETURN)
           case "float" => mv.visitInsn(Opcodes.FRETURN)
           case "double" => mv.visitInsn(Opcodes.DRETURN)
@@ -536,7 +536,7 @@ class JavaByteCodeGenerator {
     case ie: InstanceofExpression =>
       visitInstanceofExpression(mv, ie)
     case ce: ConstClassExpression =>
-      visitConstClassExpression(mv, ce, typOpt.get)
+      visitConstClassExpression(mv, ce)
     case le: LengthExpression =>
       visitLengthExpression(mv, le)
     case _ =>  println("visitRhsExpression problem: " + rhs + " " + kind)
@@ -582,8 +582,8 @@ class JavaByteCodeGenerator {
     }
   }
   
-  private def visitConstClassExpression(mv: MethodVisitor, ce: ConstClassExpression, typ: JawaType): Unit = {
-    val c = Type.getType(JavaKnowledge.formatTypeToSignature(typ))
+  private def visitConstClassExpression(mv: MethodVisitor, ce: ConstClassExpression): Unit = {
+    val c = Type.getType(JavaKnowledge.formatTypeToSignature(ce.typExp.typ))
     mv.visitLdcInsn(c)
   }
   
@@ -594,7 +594,7 @@ class JavaByteCodeGenerator {
   
   private def visitInstanceofExpression(mv: MethodVisitor, ie: InstanceofExpression): Unit = {
     visitVarLoad(mv, ie.varSymbol.varName)
-    val typ: JawaType = ie.typ.typ
+    val typ: JawaType = ie.typExp.typ
     mv.visitTypeInsn(Opcodes.INSTANCEOF, getClassName(typ.name))
   }
   

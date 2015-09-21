@@ -139,13 +139,13 @@ object ClassModel {
    */
   private def classAsSubClass(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
     require(args.size >1)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  var newfacts = isetEmpty[RFAFact]
     var delfacts = isetEmpty[RFAFact]
 	  thisValue.foreach{
 	    tv =>
-	      newfacts += RFAFact(VarSlot(retVar, false), tv)
+	      newfacts += RFAFact(VarSlot(retVar, false, false), tv)
 	  }
     (newfacts, delfacts)
   }
@@ -155,13 +155,13 @@ object ClassModel {
    */
   private def classCast(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
     require(args.size >1)
-    val paramSlot = VarSlot(args(1), false)
+    val paramSlot = VarSlot(args(1), false, true)
 	  val paramValue = s.pointsToSet(paramSlot, currentContext)
 	  var newfacts = isetEmpty[RFAFact]
     var delfacts = isetEmpty[RFAFact]
 	  paramValue.foreach{
 	    pv =>
-	      newfacts += RFAFact(VarSlot(retVar, false), pv)
+	      newfacts += RFAFact(VarSlot(retVar, false, false), pv)
 	  }
     (newfacts, delfacts)
   }
@@ -172,7 +172,7 @@ object ClassModel {
 	private def classForName(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
 	  // algo:thisValue.foreach.{ cIns => get value of (cIns.name") and create fact (retVar, value)}
     require(args.size > 0)
-    val clazzNameSlot = VarSlot(args(0), false)
+    val clazzNameSlot = VarSlot(args(0), false, true)
     val clazzNameValue = s.pointsToSet(clazzNameSlot, currentContext)
     var newfacts = isetEmpty[RFAFact]
     var delfacts = isetEmpty[RFAFact]
@@ -181,7 +181,7 @@ object ClassModel {
         cIns match{
           case cstr @ PTAConcreteStringInstance(text, c) =>
             val classType = JavaKnowledge.getTypeFromName(text).asInstanceOf[ObjectType]
-            RFAFact(VarSlot(retVar, false), ClassInstance(classType, currentContext))
+            RFAFact(VarSlot(retVar, false, false), ClassInstance(classType, currentContext))
           case pstr @ PTAPointStringInstance(c) => 
 //            System.err.println(TITLE, "Get class use point string: " + pstr)
           case _ =>
@@ -197,7 +197,7 @@ object ClassModel {
 	private def classGetName(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
 	  // algo:thisValue.foreach.{ cIns => get value of (cIns.name") and create fact (retVar, value)}
     require(args.size > 0)
-    val thisSlot = VarSlot(args(0), false)
+    val thisSlot = VarSlot(args(0), false, true)
     val thisValue = s.pointsToSet(thisSlot, currentContext)
     var newfacts = isetEmpty[RFAFact]
     var delfacts = isetEmpty[RFAFact]
@@ -206,7 +206,7 @@ object ClassModel {
         require(cIns.isInstanceOf[ClassInstance])
         val name = cIns.asInstanceOf[ClassInstance].getName
         val strIns = PTAConcreteStringInstance(name, cIns.defSite)
-        newfacts += (RFAFact(VarSlot(retVar, false), strIns))
+        newfacts += (RFAFact(VarSlot(retVar, false, false), strIns))
     }
     (newfacts, delfacts)
 	}

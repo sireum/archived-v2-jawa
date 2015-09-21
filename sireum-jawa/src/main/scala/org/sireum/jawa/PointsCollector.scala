@@ -152,6 +152,21 @@ class PointsCollector {
         case n: NameExp =>
           if(n.name.name == Constants.CONST_CLASS){
             PointClassR(typ.get.asInstanceOf[ObjectType], loc, locIndex, ownerSig)
+          } else if (n.name.name == Constants.LENGTH) {
+            val varname: String = e.getValueAnnotation("variable") match {
+              case Some(NameExp(name)) =>
+                name.name
+              case _ => ""
+            }
+            PointLengthR(varname, loc, locIndex, ownerSig)
+          } else if (n.name.name == Constants.INSTANCEOF) {
+            val varname: String = e.getValueAnnotation("variable") match {
+              case Some(NameExp(name)) =>
+                name.name
+              case _ => ""
+            }
+            val typ: JawaType = ASTUtil.getType(e).get
+            PointInstanceOfR(varname, typ, loc, locIndex, ownerSig)
           } else if(isStaticField(n.name.name)){
             val fqn = new FieldFQN(n.name.name.replace("@@", ""), typ.get)
             PointStaticFieldR(fqn, loc, locIndex, ownerSig)
@@ -357,9 +372,19 @@ final case class PointL(varname: String, loc: ResourceUri, locIndex: Int, ownerS
 final case class PointR(varname: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
 
 /**
- * Set of program points corresponding to r-value. 
+ * Set of program points corresponding to const class value. 
  */
 final case class PointClassR(classtyp: ObjectType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
+
+/**
+ * Set of program points corresponding to length. 
+ */
+final case class PointLengthR(varname: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
+
+/**
+ * Set of program points corresponding to length. 
+ */
+final case class PointInstanceOfR(varname: String, typ: JawaType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
 
 /**
  * Set of program points corresponding to l-value field access expressions. 

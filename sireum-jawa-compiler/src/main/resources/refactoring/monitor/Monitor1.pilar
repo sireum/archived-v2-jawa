@@ -1,6 +1,6 @@
 record `com.fgwei.Monitor1`  @kind class @AccessFlag PUBLIC {
    }
-    procedure `java.lang.String` `com.fgwei.Monitor1.main` () @owner ^`com.fgwei.Monitor1` @signature `Lcom/fgwei/Monitor1;.main:()Ljava/lang/String;` @Access `PUBLIC_STATIC` {
+    procedure `java.lang.String` `com.fgwei.Monitor1.main` () @owner ^`com.fgwei.Monitor1` @signature `Lcom/fgwei/Monitor1;.main:()Ljava/lang/String;` @AccessFlag PUBLIC_STATIC {
       temp ;
         v0;
       

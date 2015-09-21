@@ -28,7 +28,7 @@ import org.sireum.jawa.sourcefile.MySTVisitor
  *
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-trait JawaResolver extends JawaClasspathManager with JavaKnowledge {self: Global =>
+trait JawaResolver extends JawaClasspathManager with JavaKnowledge { self: Global =>
   
   import JawaResolver._
   

@@ -1,6 +1,6 @@
 record `com.fgwei.ArrayAccess2`  @kind class @AccessFlag PUBLIC {
    }
-    procedure `java.lang.String` `com.fgwei.ArrayAccess2.main` () @owner ^`com.fgwei.ArrayAccess2` @signature `Lcom/fgwei/ArrayAccess2;.main:()Ljava/lang/String;` @Access `PUBLIC_STATIC` {
+    procedure `java.lang.String` `com.fgwei.ArrayAccess2.main` () @owner ^`com.fgwei.ArrayAccess2` @signature `Lcom/fgwei/ArrayAccess2;.main:()Ljava/lang/String;` @AccessFlag PUBLIC_STATIC {
       temp ;
         v0;
         v1;

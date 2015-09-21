@@ -47,8 +47,8 @@ object ReachingFactsAnalysisHelper {
     s.filter(_.s.isInstanceOf[HeapSlot]).map{f=>(f.s, f.v).asInstanceOf[(HeapSlot, Instance)]}.toSet
   }
 
-  def getRelatedFacts(slot: Slot, s: ISet[RFAFact]): ISet[RFAFact] = {
-    val bFacts = s.filter(fact=> slot == fact.s)
+  private def getRelatedFactsForArg(slot: VarSlot, s: ISet[RFAFact]): ISet[RFAFact] = {
+    val bFacts = s.filter(fact=> slot.getId == fact.s.getId).map(fact => RFAFact(slot, fact.v))
     val rhFacts = getRelatedHeapFactsFrom(bFacts, s)
     bFacts ++ rhFacts
   }
@@ -92,7 +92,7 @@ object ReachingFactsAnalysisHelper {
       case te: TupleExp =>
         te.exps(i) match{
           case ne: NameExp =>
-            val s = VarSlot(ne.name.name, false)
+            val s = VarSlot(ne.name.name, false, true)
             value ++= ptaresult.pointsToSet(s, callerContext)
           case _ =>
         }
@@ -126,7 +126,12 @@ object ReachingFactsAnalysisHelper {
                   val ps = CallHandler.getUnknownVirtualCalleeMethods(global, ins.typ, subSig)
                   calleeSet ++= ps.map{p=> UnknownCallee(p)}
                 } else {
-                  calleeSet ++= CallHandler.getVirtualCalleeMethod(global, ins.typ, subSig).map(InstanceCallee(_, ins))
+                  CallHandler.getVirtualCalleeMethod(global, ins.typ, subSig).map(InstanceCallee(_, ins)) match {
+                    case Some(c) => calleeSet += c
+                    case None =>
+                      val ps = CallHandler.getUnknownVirtualCalleeMethods(global, ins.typ, subSig)
+                      calleeSet ++= ps.map{p=> UnknownCallee(p)}
+                  }
                 }
               }
         }
@@ -148,14 +153,14 @@ object ReachingFactsAnalysisHelper {
   }
   
   def getReturnFact(rType: JawaType, retVar: String, currentContext: Context): Option[RFAFact] = {
-    getInstanceFromType(rType, currentContext) map(RFAFact(VarSlot(retVar, isBase = false), _))
+    getInstanceFromType(rType, currentContext) map(RFAFact(VarSlot(retVar, isBase = false, false), _))
   }
 
   def getUnknownObject(calleeMethod: JawaMethod, s: PTAResult, args: Seq[String], retVars: Seq[String], currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
     val global = calleeMethod.getDeclaringClass.global
     var genFacts: ISet[RFAFact] = isetEmpty
     var killFacts: ISet[RFAFact] = isetEmpty
-    val argSlots = args.map(arg=>VarSlot(arg, isBase = false))
+    val argSlots = args.map(arg=>VarSlot(arg, isBase = false, true))
     for(i <- 0 to argSlots.size - 1){
       val argSlot = argSlots(i)
       val argValues = s.pointsToSet(argSlot, currentContext)
@@ -184,7 +189,7 @@ object ReachingFactsAnalysisHelper {
       case ot: ObjectType =>
         retVars.foreach{
           retVar =>
-            val slot = VarSlot(retVar, isBase = false)
+            val slot = VarSlot(retVar, isBase = false, false)
             val value = 
               if(retTyp.name == "java.lang.String") PTAPointStringInstance(currentContext)
               else UnknownInstance(ot, currentContext)
@@ -213,7 +218,7 @@ object ReachingFactsAnalysisHelper {
           case ae: AccessExp =>
             val fieldSig = ae.attributeName.name
             val baseSlot = ae.exp match {
-              case ne: NameExp => VarSlot(ne.name.name, isBase = true)
+              case ne: NameExp => VarSlot(ne.name.name, isBase = true, false)
               case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
             }
             val baseValue = s.filter { fact => fact.s.getId == baseSlot.getId }.map(_.v)
@@ -224,7 +229,7 @@ object ReachingFactsAnalysisHelper {
           case ie: IndexingExp =>
             val baseSlot = ie.exp match {
               case ine: NameExp =>
-                VarSlot(ine.name.name, isBase = true)
+                VarSlot(ine.name.name, isBase = true, false)
               case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
             }
             val baseValue = s.filter { fact => fact.s.getId == baseSlot.getId }.map(_.v)
@@ -240,7 +245,7 @@ object ReachingFactsAnalysisHelper {
   private def resolvePTAResultAccessExp(ae: AccessExp, typ: JawaType, currentContext: Context, s: ISet[RFAFact], ptaresult: PTAResult) = {
     val fqn = ASTUtil.getFieldFQN(ae, typ)
     val baseSlot = ae.exp match {
-      case ne: NameExp => VarSlot(ne.name.name, isBase = true)
+      case ne: NameExp => VarSlot(ne.name.name, isBase = true, false)
       case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
     }
     val baseValue = s.filter { fact => fact.s.getId == baseSlot.getId }.map{
@@ -259,7 +264,7 @@ object ReachingFactsAnalysisHelper {
             fact =>
               if(fact.s.isInstanceOf[FieldSlot] && 
                  fact.s.asInstanceOf[FieldSlot].ins == ins && 
-                 fact.s.asInstanceOf[FieldSlot].fieldName.equals("FIELD.ALL") &&
+                 fact.s.asInstanceOf[FieldSlot].fieldName.equals(Constants.ALL_FIELD) &&
                  fqn.typ.isInstanceOf[ObjectType]) {
                 val uIns = UnknownInstance(fqn.typ.asInstanceOf[ObjectType], fact.v.defSite)
                 ptaresult.addInstance(fieldSlot, currentContext, uIns)
@@ -272,7 +277,7 @@ object ReachingFactsAnalysisHelper {
   private def resolvePTAResultIndexingExp(ie: IndexingExp, currentContext: Context, s: ISet[RFAFact], ptaresult: PTAResult) = {
     val baseSlot = ie.exp match {
       case ine: NameExp =>
-        VarSlot(ine.name.name, isBase = true)
+        VarSlot(ine.name.name, isBase = true, false)
       case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
     }
     val baseValue = s.filter { fact => fact.s.getId == baseSlot.getId }.map{
@@ -291,8 +296,10 @@ object ReachingFactsAnalysisHelper {
               f.v
           }
           if(temp.isEmpty){
-            val uIns = UnknownInstance(ObjectType(ins.typ.typ, ins.typ.dimensions-1), currentContext)
-            ptaresult.addInstance(arraySlot, currentContext, uIns)
+            if(!(JavaKnowledge.isJavaPrimitive(ins.typ.typ) && ins.typ.dimensions <= 1)) {
+              val uIns = UnknownInstance(ObjectType(ins.typ.typ, ins.typ.dimensions-1), currentContext)
+              ptaresult.addInstance(arraySlot, currentContext, uIns)
+            }
           }
         }
         else{
@@ -310,7 +317,6 @@ object ReachingFactsAnalysisHelper {
   }
   
   def updatePTAResultCallJump(cj: CallJump, callerContext: Context, s: ISet[RFAFact], ptaresult: PTAResult) = {
-    updatePTAResultLHSs(cj.lhss, callerContext, s, ptaresult)
     cj.callExp.arg match{
       case te: TupleExp => 
         te.exps map(updatePTAResultCallArg(_, callerContext, s, ptaresult))
@@ -324,7 +330,7 @@ object ReachingFactsAnalysisHelper {
         updatePTAResultExp(be.left, typ, currentContext, s, ptaresult)
         updatePTAResultExp(be.right, typ, currentContext, s, ptaresult)
       case ne: NameExp =>
-        val slot = getNameSlotFromNameExp(ne, typ, false)
+        val slot = getNameSlotFromNameExp(ne, typ, false, false)
         slot match {
           case cs: ClassSlot => 
             val ci = ClassInstance(typ.get.asInstanceOf[ObjectType], currentContext)
@@ -341,7 +347,7 @@ object ReachingFactsAnalysisHelper {
       case ce: CastExp =>
         ce.exp match{
           case ice: NameExp =>
-            val slot = VarSlot(ice.name.name, false)
+            val slot = VarSlot(ice.name.name, false, false)
             s.filter { fact => fact.s == slot }.map{
               f => 
                 ptaresult.addInstance(slot, currentContext, f.v)
@@ -357,8 +363,8 @@ object ReachingFactsAnalysisHelper {
   def updatePTAResultCallArg(exp: Exp, currentContext: Context, s: ISet[RFAFact], ptaresult: PTAResult): Unit = {
     exp match{
       case ne: NameExp =>
-        val slot = VarSlot(ne.name.name, false)
-        getRelatedFacts(slot, s).map( f => ptaresult.addInstance(f.s, currentContext, f.v))
+        val slot = VarSlot(ne.name.name, false, true)
+        getRelatedFactsForArg(slot, s).map( f => ptaresult.addInstance(f.s, currentContext, f.v))
       case _ =>
     }
   }
@@ -394,7 +400,7 @@ object ReachingFactsAnalysisHelper {
       case ie: IndexingExp =>
         val baseSlot = ie.exp match {
           case ine: NameExp =>
-            VarSlot(ine.name.name, true)
+            VarSlot(ine.name.name, true, false)
           case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
         }
         val baseValue = ptaresult.pointsToSet(baseSlot, currentContext)
@@ -432,12 +438,12 @@ object ReachingFactsAnalysisHelper {
         i += 1
         key match{
           case ne: NameExp =>
-            val slot = getNameSlotFromNameExp(ne, typ, false)
+            val slot = getNameSlotFromNameExp(ne, typ, false, false)
             result.getOrElseUpdate(i, mmapEmpty)(slot) = true
           case ae: AccessExp =>
             val fieldFQN = ASTUtil.getFieldFQN(ae, typ.get)
             val baseSlot = ae.exp match {
-              case ne: NameExp => VarSlot(ne.name.name, true)
+              case ne: NameExp => VarSlot(ne.name.name, true, false)
               case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
             }
             val baseValue = ptaresult.pointsToSet(baseSlot, currentContext)
@@ -453,7 +459,7 @@ object ReachingFactsAnalysisHelper {
           case ie: IndexingExp =>
             val baseSlot = ie.exp match {
               case ine: NameExp =>
-                VarSlot(ine.name.name, true)
+                VarSlot(ine.name.name, true, false)
               case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
             }
             val baseValue = ptaresult.pointsToSet(baseSlot, currentContext)
@@ -502,7 +508,7 @@ object ReachingFactsAnalysisHelper {
         i += 1
         rhs match{
           case ne: NameExp =>
-            val slot = getNameSlotFromNameExp(ne, typ, false)
+            val slot = getNameSlotFromNameExp(ne, typ, false, false)
             var value: ISet[Instance] = ptaresult.pointsToSet(slot, currentContext)   
             result(i) = value
           case le: LiteralExp =>
@@ -535,7 +541,7 @@ object ReachingFactsAnalysisHelper {
           case ae: AccessExp =>
             val fieldFQN = ASTUtil.getFieldFQN(ae, typ.get)
             val baseSlot = ae.exp match {
-              case ne: NameExp => getNameSlotFromNameExp(ne, typ, true)
+              case ne: NameExp => getNameSlotFromNameExp(ne, typ, true, false)
               case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
             }
             val baseValue: ISet[Instance] = ptaresult.pointsToSet(baseSlot, currentContext)
@@ -555,7 +561,7 @@ object ReachingFactsAnalysisHelper {
           case ie: IndexingExp =>
             val baseSlot = ie.exp match {
               case ine: NameExp =>
-                getNameSlotFromNameExp(ine, typ, true)
+                getNameSlotFromNameExp(ine, typ, true, false)
               case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
             }
             val baseValue: ISet[Instance] = ptaresult.pointsToSet(baseSlot, currentContext)
@@ -595,7 +601,7 @@ object ReachingFactsAnalysisHelper {
               case Some(ins) =>
                 ce.exp match{
                   case ne: NameExp =>
-                    val slot = getNameSlotFromNameExp(ne, typ, false)
+                    val slot = getNameSlotFromNameExp(ne, typ, false, false)
                     val value: ISet[Instance] = ptaresult.pointsToSet(slot, currentContext)
                     result(i) = value.map{
                       v =>
@@ -618,21 +624,21 @@ object ReachingFactsAnalysisHelper {
     result.toMap
   }
   
-   def isObjectTypeRegAssignment(a: Assignment): Boolean = {
-      var res = false
-      a match{
-        case aa: AssignAction => 
-          a.getValueAnnotation("kind") match{
-            case Some(e) => 
-              e match{
-                case ne: NameExp => res = (ne.name.name == "object")
-                case _ =>
-              }
-            case None => 
-          }
-        case _ =>
-      }
-      res
+  def isObjectTypeRegAssignment(a: Assignment): Boolean = {
+    var res = false
+    a match{
+      case aa: AssignAction => 
+        a.getValueAnnotation("kind") match{
+          case Some(e) => 
+            e match{
+              case ne: NameExp => res = (ne.name.name == "object")
+              case _ =>
+            }
+          case None => 
+        }
+      case _ =>
+    }
+    res
   }
   
   def isStaticFieldRead(a: Assignment): Boolean = {
@@ -672,10 +678,10 @@ object ReachingFactsAnalysisHelper {
     result
   }
   
-  def getNameSlotFromNameExp(ne: NameExp, typ: Option[JawaType], isBase: Boolean): NameSlot = {
+  def getNameSlotFromNameExp(ne: NameExp, typ: Option[JawaType], isBase: Boolean, isArg: Boolean): NameSlot = {
     val name = ne.name.name
     if(name == Constants.CONST_CLASS) ClassSlot(typ.get.asInstanceOf[ObjectType])
     else if(name.startsWith("@@")) StaticFieldSlot(new FieldFQN(name.replace("@@", ""), typ.get))
-    else VarSlot(name, isBase)
+    else VarSlot(name, isBase, isArg)
   }
 }
