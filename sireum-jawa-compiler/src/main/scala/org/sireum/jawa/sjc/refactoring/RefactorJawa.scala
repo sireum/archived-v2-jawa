@@ -389,29 +389,15 @@ object RefactorJawa {
               }
               cs.lhsOpt match {
                 case Some(lhs) =>
-                  var newvar: String = null
                   val retType = cs.signature.getReturnType() match {
                     case ot: ObjectType =>
                       if(JavaKnowledge.isJavaPrimitive(ot.typ)) ot
                       else ObjectType(JavaKnowledge.JAVA_TOPLEVEL_OBJECT, ot.dimensions)
                     case a => a
                   }
-                  cs.recvVarOpt match {
-                    case Some(recv) =>
-                      if(recv.varName == lhs.lhs.varName){
-                        newvar = "a" + retType.typ.substring(retType.typ.lastIndexOf(".") + 1) + {if(retType.dimensions > 0)"_arr" + retType.dimensions else ""} + "_" + lhs.lhs.varName
-                      } else {
-                        newvar = retType.typ.substring(retType.typ.lastIndexOf(".") + 1) + {if(retType.dimensions > 0)"_arr" + retType.dimensions else ""} + "_" + lhs.lhs.varName
-                      }
-                    case None =>
-                      newvar = retType.typ.substring(retType.typ.lastIndexOf(".") + 1) + {if(retType.dimensions > 0)"_arr" + retType.dimensions else ""} + "_" + lhs.lhs.varName
-                  }
-                  cs.argVars.filter { arg => arg.varName == lhs.lhs.varName } foreach {
-                    arg =>
-                      val argvar = recentvars(n)(arg.varName)
-                      if(argvar == newvar) newvar = "a" + newvar
-                  }
-                  localvars(newvar) = ((retType, false))
+                  var newvar = retType.typ.substring(retType.typ.lastIndexOf(".") + 1) + {if(retType.dimensions > 0)"_arr" + retType.dimensions else ""} + "_" + lhs.lhs.varName
+                  if(localvars.contains(newvar) && localvars(newvar)._1 != retType) newvar = "a" + newvar
+                  if(!localvars.contains(newvar)) localvars(newvar) = ((retType, false))
                   recentvars(n)(lhs.lhs.varName) = newvar
                   locCode = updateCode(locCode, lhs.lhs.id.pos, newvar)
 //                  updateEvidence(lhs.lhs.id.pos) = newvar
