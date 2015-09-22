@@ -309,10 +309,10 @@ object ReachingFactsAnalysisHelper {
     }
   }
   
-  def updatePTAResultRHSs(rhss: List[Exp], typ: Option[JawaType], currentContext: Context, s: ISet[RFAFact], ptaresult: PTAResult) = {
+  def updatePTAResultRHSs(rhss: List[Exp], typ: Option[JawaType], currentContext: Context, s: ISet[RFAFact], ptaresult: PTAResult, global: Global) = {
     rhss.foreach{
       rhs=>
-        updatePTAResultExp(rhs, typ, currentContext, s, ptaresult)
+        updatePTAResultExp(rhs, typ, currentContext, s, ptaresult, global)
     }
   }
   
@@ -324,13 +324,13 @@ object ReachingFactsAnalysisHelper {
     }
   }
   
-  def updatePTAResultExp(exp: Exp, typ: Option[JawaType], currentContext: Context, s: ISet[RFAFact], ptaresult: PTAResult): Unit = {
+  def updatePTAResultExp(exp: Exp, typ: Option[JawaType], currentContext: Context, s: ISet[RFAFact], ptaresult: PTAResult, global: Global): Unit = {
     exp match{
       case be: BinaryExp =>
-        updatePTAResultExp(be.left, typ, currentContext, s, ptaresult)
-        updatePTAResultExp(be.right, typ, currentContext, s, ptaresult)
+        updatePTAResultExp(be.left, typ, currentContext, s, ptaresult, global)
+        updatePTAResultExp(be.right, typ, currentContext, s, ptaresult, global)
       case ne: NameExp =>
-        val slot = getNameSlotFromNameExp(ne, typ, false, false)
+        val slot = getNameSlotFromNameExp(ne, typ, false, false, global)
         slot match {
           case cs: ClassSlot => 
             val ci = ClassInstance(typ.get.asInstanceOf[ObjectType], currentContext)
@@ -430,7 +430,7 @@ object ReachingFactsAnalysisHelper {
     result.toSet
   }
 
-  def processLHSs(lhss: List[Exp], typ: Option[JawaType], currentContext: Context, ptaresult: PTAResult): IMap[Int, IMap[PTASlot, Boolean]] = {
+  def processLHSs(lhss: List[Exp], typ: Option[JawaType], currentContext: Context, ptaresult: PTAResult, global: Global): IMap[Int, IMap[PTASlot, Boolean]] = {
     val result = mmapEmpty[Int, MMap[PTASlot, Boolean]]
     var i = -1
     lhss.foreach{
@@ -438,7 +438,7 @@ object ReachingFactsAnalysisHelper {
         i += 1
         key match{
           case ne: NameExp =>
-            val slot = getNameSlotFromNameExp(ne, typ, false, false)
+            val slot = getNameSlotFromNameExp(ne, typ, false, false, global)
             result.getOrElseUpdate(i, mmapEmpty)(slot) = true
           case ae: AccessExp =>
             val fieldFQN = ASTUtil.getFieldFQN(ae, typ.get)
@@ -500,7 +500,7 @@ object ReachingFactsAnalysisHelper {
 //    result
 //  }
   
-  def processRHSs(rhss: List[Exp], typ: Option[JawaType], currentContext: Context, ptaresult: PTAResult): Map[Int, Set[Instance]] = {
+  def processRHSs(rhss: List[Exp], typ: Option[JawaType], currentContext: Context, ptaresult: PTAResult, global: Global): Map[Int, Set[Instance]] = {
     val result = mmapEmpty[Int, Set[Instance]]
     var i = -1
     rhss.foreach{
@@ -508,7 +508,7 @@ object ReachingFactsAnalysisHelper {
         i += 1
         rhs match{
           case ne: NameExp =>
-            val slot = getNameSlotFromNameExp(ne, typ, false, false)
+            val slot = getNameSlotFromNameExp(ne, typ, false, false, global)
             var value: ISet[Instance] = ptaresult.pointsToSet(slot, currentContext)   
             result(i) = value
           case le: LiteralExp =>
@@ -541,7 +541,7 @@ object ReachingFactsAnalysisHelper {
           case ae: AccessExp =>
             val fieldFQN = ASTUtil.getFieldFQN(ae, typ.get)
             val baseSlot = ae.exp match {
-              case ne: NameExp => getNameSlotFromNameExp(ne, typ, true, false)
+              case ne: NameExp => getNameSlotFromNameExp(ne, typ, true, false, global)
               case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
             }
             val baseValue: ISet[Instance] = ptaresult.pointsToSet(baseSlot, currentContext)
@@ -561,7 +561,7 @@ object ReachingFactsAnalysisHelper {
           case ie: IndexingExp =>
             val baseSlot = ie.exp match {
               case ine: NameExp =>
-                getNameSlotFromNameExp(ine, typ, true, false)
+                getNameSlotFromNameExp(ine, typ, true, false, global)
               case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
             }
             val baseValue: ISet[Instance] = ptaresult.pointsToSet(baseSlot, currentContext)
@@ -601,7 +601,7 @@ object ReachingFactsAnalysisHelper {
               case Some(ins) =>
                 ce.exp match{
                   case ne: NameExp =>
-                    val slot = getNameSlotFromNameExp(ne, typ, false, false)
+                    val slot = getNameSlotFromNameExp(ne, typ, false, false, global)
                     val value: ISet[Instance] = ptaresult.pointsToSet(slot, currentContext)
                     result(i) = value.map{
                       v =>
@@ -678,10 +678,18 @@ object ReachingFactsAnalysisHelper {
     result
   }
   
-  def getNameSlotFromNameExp(ne: NameExp, typ: Option[JawaType], isBase: Boolean, isArg: Boolean): NameSlot = {
+  def getNameSlotFromNameExp(ne: NameExp, typ: Option[JawaType], isBase: Boolean, isArg: Boolean, global: Global): NameSlot = {
     val name = ne.name.name
     if(name == Constants.CONST_CLASS) ClassSlot(typ.get.asInstanceOf[ObjectType])
-    else if(name.startsWith("@@")) StaticFieldSlot(new FieldFQN(name.replace("@@", ""), typ.get))
+    else if(name.startsWith("@@")){
+      val fqn = new FieldFQN(name.replace("@@", ""), typ.get)
+      global.getClassOrResolve(fqn.owner).getField(fqn.fieldName) match{
+        case Some(af) =>
+          StaticFieldSlot(af.FQN)
+        case None =>
+          StaticFieldSlot(fqn)
+      }
+    }
     else VarSlot(name, isBase, isArg)
   }
 }

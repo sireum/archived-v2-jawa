@@ -431,7 +431,6 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
    */
   def getSuperClass: Option[JawaClass] = {
     if(!hasSuperClass){
-      global.reporter.error(NoPosition, "no super class for " + getName)
       None
     } else {
       Some(this.superClass)

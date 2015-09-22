@@ -127,6 +127,9 @@ object ClassModel {
 		  case "Ljava/lang/Class;.isPrimitive:()Z" =>  //public native
 		  case "Ljava/lang/Class;.isSynthetic:()Z" =>  //public
 		  case "Ljava/lang/Class;.newInstance:()Ljava/lang/Object;" =>  //public
+        require(retVars.size == 1)
+        classNewInstance(s, args, retVars(0), currentContext) match{case (n, d) => newFacts ++= n; delFacts ++= d}
+        byPassFlag = false
 		  case "Ljava/lang/Class;.newInstanceImpl:()Ljava/lang/Object;" =>  //private native
 		  case "Ljava/lang/Class;.toString:()Ljava/lang/String;" =>  //public
 	  }
@@ -181,7 +184,7 @@ object ClassModel {
         cIns match{
           case cstr @ PTAConcreteStringInstance(text, c) =>
             val classType = JavaKnowledge.getTypeFromName(text).asInstanceOf[ObjectType]
-            RFAFact(VarSlot(retVar, false, false), ClassInstance(classType, currentContext))
+            newfacts += RFAFact(VarSlot(retVar, false, false), ClassInstance(classType, currentContext))
           case pstr @ PTAPointStringInstance(c) => 
 //            System.err.println(TITLE, "Get class use point string: " + pstr)
           case _ =>
@@ -190,6 +193,23 @@ object ClassModel {
     }
     (newfacts, delfacts)
 	}
+  
+  private def classNewInstance(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
+    require(args.size > 0)
+    val classSlot = VarSlot(args(0), false, true)
+    val classValue = s.pointsToSet(classSlot, currentContext)
+    var newfacts = isetEmpty[RFAFact]
+    var delfacts = isetEmpty[RFAFact]
+    classValue.foreach{
+      cIns =>
+        cIns match{
+          case ci @ ClassInstance(typ, c) =>
+            newfacts += RFAFact(VarSlot(retVar, false, false), PTAInstance(typ, currentContext, false))
+          case _ =>
+        }
+    }
+    (newfacts, delfacts)
+  }
 	
 	/**
 	 * Ljava/lang/Class;.getName:()Ljava/lang/String;
