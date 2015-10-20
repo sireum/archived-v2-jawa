@@ -295,13 +295,13 @@ trait PAGConstraint{
           case pc: PointCall =>
             pc.rhs match{
               case psi: PointStaticI =>
-                val candidateP = psi.argPsReturn.getOrElse(paramIndex, throw new RuntimeException("Wrong index: " + paramIndex))
-                if(candidateP.argName == uri && candidateP.loc == locUri && candidateP.locIndex == locIndex) point = candidateP
+                val candidateP = psi.argPsReturn.get(paramIndex)
+                if(candidateP.isDefined && candidateP.get.argName == uri && candidateP.get.loc == locUri && candidateP.get.locIndex == locIndex) point = candidateP.get
               case pi: PointI =>
                 val candidateP = 
-                  if(paramIndex == 0) pi.recvPReturn
-                  else pi.argPsReturn.getOrElse(paramIndex, throw new RuntimeException("Wrong index: " + paramIndex))
-                if(candidateP.argName == uri && candidateP.loc == locUri && candidateP.locIndex == locIndex) point = candidateP
+                  if(paramIndex == 0) Some(pi.recvPReturn)
+                  else pi.argPsReturn.get(paramIndex)
+                if(candidateP.isDefined && candidateP.get.argName == uri && candidateP.get.loc == locUri && candidateP.get.locIndex == locIndex) point = candidateP.get
             }
           case _ =>
        }

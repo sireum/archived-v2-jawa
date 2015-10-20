@@ -11,9 +11,15 @@ import org.sireum.util._
 import org.sireum.jawa.alir.Context
 import org.sireum.alir.Slot
 
+object PTAResult {
+  type PTSMap = IMap[Slot, ISet[Instance]]
+}
+
 class PTAResult {
+  import PTAResult._
+  
   private val ptMap : MMap[Context, MMap[Slot, MSet[Instance]]] = mmapEmpty
-  def pointsToMap : IMap[Context, IMap[Slot, ISet[Instance]]] = {
+  def pointsToMap : IMap[Context, PTSMap] = {
     ptMap.map{
       case (c, m) =>
         (c, m.map{
@@ -22,6 +28,18 @@ class PTAResult {
         }.toMap)
     }.toMap
   }
+  
+  def merge(result: PTAResult): PTAResult = {
+    result.pointsToMap.foreach {
+      case (c, m) =>
+        m.foreach {
+          case (str, s) =>
+            addInstances(str, c, s)
+        }
+    }
+    this
+  }
+  
   def setInstance(s : Slot, context : Context, i : Instance) = {
     ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty).clear()
     ptMap(context.copy)(s) += i
@@ -40,7 +58,7 @@ class PTAResult {
   def pointsToSet(s : Slot, context : Context) : ISet[Instance] = {
     ptMap.getOrElse(context.copy, mmapEmpty).getOrElse(s, msetEmpty).toSet
   }
-  def getPTSMap(context : Context) : IMap[Slot, ISet[Instance]] = {
+  def getPTSMap(context : Context) : PTSMap = {
     ptMap.getOrElseUpdate(context.copy, mmapEmpty).map{
       case (str, s) =>
         (str, s.toSet)

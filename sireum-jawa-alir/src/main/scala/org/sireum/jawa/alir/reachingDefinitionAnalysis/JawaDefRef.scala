@@ -127,15 +127,15 @@ final class JawaDefRef(st: SymbolTable, val varAccesses: VarAccesses)
     refCache.getOrElseUpdate(j, getRefs(j))
 
   def callReferences(j: CallJump): ISeq[ISet[Slot]] = {
-//    val arg = j.callExp.arg
-//    arg match {
-//      case e: TupleExp =>
-//        val result = e.exps.map { exp => refCache.getOrElseUpdate(exp, getRefs(exp)) }
-//        result
-//      case e =>
-//        ivector(refCache.getOrElseUpdate(j, getRefs(e)))
-//    }
-    ivectorEmpty
+    val arg = j.callExp.arg
+    arg match {
+      case e: TupleExp =>
+        val result = e.exps.map { exp => refCache.getOrElseUpdate(exp, getRefs(exp)) }
+        result
+      case e =>
+        ivector(refCache.getOrElseUpdate(j, getRefs(e)))
+    }
+//    ivectorEmpty
   }
 
   def callDefinitions(j: CallJump): ISeq[ISet[Slot]] = {

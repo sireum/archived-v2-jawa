@@ -96,13 +96,13 @@ class CallGraph {
     
     this.callMap.foreach {
       case (caller, callees) =>
-        val callerContext = new Context(0)
+        val callerContext = new Context
         callerContext.setContext(caller, caller.signature)
         val callerNode = CGSimpleCallNode(callerContext)
         val callerV = addNode(header, scg, callerNode)
         callees foreach {
           case callee =>
-            val calleeContext = new Context(0)
+            val calleeContext = new Context
             calleeContext.setContext(callee, callee.signature)
             val calleeNode = CGSimpleCallNode(calleeContext)
             val calleeV = addNode(header, scg, calleeNode)

@@ -57,6 +57,8 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 
   protected var exitN: ICFGNode = null
   
+  def addEntryNode(en: ICFGEntryNode) = this.entryN = en
+  def addExitNode(en: ICFGExitNode) = this.exitN = en
 //  val centerContext = new Context(GlobalConfig.ICFG_CONTEXT_K)
 //  centerContext.setContext("Center", "L0000")
 //  private val cNode = addICFGCenterNode(centerContext)
@@ -261,8 +263,10 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
         cg.addCalls(src, cg.getCallMap.getOrElse(src, isetEmpty) ++ dsts)
     }
     this.processed ++= icfg.processed
-    this.predBranchMap ++= icfg.predBranchMap
-    this.succBranchMap ++= icfg.succBranchMap
+    if(this.predBranchMap != null && icfg.predBranchMap != null)
+      this.predBranchMap ++= icfg.predBranchMap
+    if(this.succBranchMap != null && icfg.succBranchMap != null)
+      this.succBranchMap ++= icfg.succBranchMap
   }
   
   def collectCfgToBaseGraph[VirtualLabel](calleeProc: JawaMethod, callerContext: Context, isFirst: Boolean = false) = {
@@ -276,7 +280,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 	    cfg.nodes map{
 	      n =>
 		      n match{
-		        case vn: AlirVirtualNode[VirtualLabel] =>
+		        case vn @ AlirVirtualNode(label) =>
 		          vn.label.toString match{
 		            case "Entry" => 
 		              val entryNode = addICFGEntryNode(callerContext.copy.setContext(calleeSig, "Entry"))
@@ -329,9 +333,9 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 	      val entryNode = getICFGEntryNode(callerContext.copy.setContext(calleeSig, "Entry"))
 	      val exitNode = getICFGExitNode(callerContext.copy.setContext(calleeSig, "Exit"))
 	      e.source match{
-	        case vns: AlirVirtualNode[VirtualLabel] =>
+	        case AlirVirtualNode(label) =>
 	          e.target match{
-	            case vnt: AlirVirtualNode[VirtualLabel] =>
+	            case AlirVirtualNode(label) =>
 	              addEdge(entryNode, exitNode)
 	            case lnt: AlirLocationUriNode =>
 	              val lt = body.location(lnt.locIndex)
@@ -349,7 +353,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 	        case lns: AlirLocationUriNode =>
 	          val ls = body.location(lns.locIndex)
 	          e.target match{
-	            case vnt: AlirVirtualNode[VirtualLabel] =>
+	            case AlirVirtualNode(label) =>
 	              if(isCall(ls)){
 	                val returnNodeSource = getICFGReturnNode(callerContext.copy.setContext(calleeSig, lns.locUri))
 	                addEdge(returnNodeSource, exitNode)
@@ -391,7 +395,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 	        case ns =>
 	          val sourceNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, ns.toString))
 	          e.target match{
-	            case vnt: AlirVirtualNode[VirtualLabel] =>
+	            case AlirVirtualNode(label) =>
 	              addEdge(sourceNode, exitNode)
 	            case lnt: AlirLocationUriNode =>
 	              val lt = body.location(lnt.locIndex)

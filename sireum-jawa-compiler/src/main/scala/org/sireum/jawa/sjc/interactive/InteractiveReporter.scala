@@ -30,6 +30,8 @@ abstract class InteractiveReporter extends ReporterImpl {
   } catch {
     case ex: UnsupportedOperationException =>
   }
+  
+  override def info1(title: String, msg: String, severity: Severity, force: Boolean): Unit = {}
 
   override def reset() {
     super.reset()

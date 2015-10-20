@@ -28,7 +28,7 @@ trait TaintDescriptor {
  */ 
 trait TaintNode {
   def getNode: InterproceduralDataDependenceAnalysis.Node
-  def getDescriptors: ISet[TaintDescriptor]
+  def getDescriptor: TaintDescriptor
   def isSource: Boolean
   def isSink: Boolean
   def isSame(tn: TaintNode): Boolean

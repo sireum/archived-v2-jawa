@@ -32,7 +32,7 @@ class IntraprocedureSuperSpark {
   def doPTA(ap : JawaMethod,
             pag : PointerAssignmentGraph[PtaNode]) : Unit = {
     val points = new PointsCollector().points(ap.getSignature, ap.getBody)
-    val context : Context = new Context(0)
+    val context : Context = new Context
     pag.constructGraph(ap, points, context.copy)
     workListPropagation(pag)
   }

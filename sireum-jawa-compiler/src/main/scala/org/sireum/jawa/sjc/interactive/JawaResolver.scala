@@ -19,6 +19,10 @@ import org.sireum.jawa.sjc.lexer.Token
 import org.sireum.jawa.JavaKnowledge
 import org.sireum.jawa.io.SourceFile
 import org.sireum.jawa.io.NoPosition
+import org.sireum.jawa.JawaClass
+import org.sireum.jawa.Reporter
+import org.sireum.jawa.ObjectType
+import org.sireum.jawa.io.AbstractFile
 
 /**
  * this object collects info from the symbol table and builds Global, JawaClass, and JawaMethod
@@ -27,7 +31,7 @@ import org.sireum.jawa.io.NoPosition
  */
 trait JawaResolver extends JavaKnowledge {self: Global =>
   
-  val DEBUG: Boolean = false
+  private val DEBUG: Boolean = false
   private final val TITLE: String = "JawaResolver"
   
   import scala.reflect.runtime.{ universe => ru }
@@ -53,6 +57,14 @@ trait JawaResolver extends JavaKnowledge {self: Global =>
     md
   }
   
+  def getClassTypes(file: SourceFile, reporter: Reporter): ISet[ObjectType] = {
+    val cuOpt = JawaParser.parse[CompilationUnit](Right(file), false, reporter)
+    cuOpt match {
+      case Some(cu) => cu.topDecls.map(_.typ).toSet
+      case None => isetEmpty
+    }
+  }
+  
   /**
    * resolve the given classes to desired level. 
    */
@@ -62,15 +74,15 @@ trait JawaResolver extends JavaKnowledge {self: Global =>
 //      case _ => false
 //    }
 //    val cu = parseCode[CompilationUnit](source, resolveBody).get
-//    val tpes = source.getClassTypes(reporter)
+//    val tpes = getClassTypes(source, reporter)
 //    tpes foreach{removeClass(_)}
 //    resolveClasses(cu.topDecls, desiredLevel, true)
 //    tpes map{tpe => getClass(tpe).get}
 //  }
-	
-	/**
-	 * collect class info from symbol table
-	 */
+//	
+//	/**
+//	 * collect class info from symbol table
+//	 */
 //	def resolveClasses(cids: IList[ClassOrInterfaceDeclaration], level: ResolveLevel.Value, par: Boolean) = {
 //	  if(DEBUG) println("Doing " + TITLE + ". Resolve classes parallel: " + par)
 //	  val col: GenIterable[ClassOrInterfaceDeclaration] = if(par) cids.par else cids

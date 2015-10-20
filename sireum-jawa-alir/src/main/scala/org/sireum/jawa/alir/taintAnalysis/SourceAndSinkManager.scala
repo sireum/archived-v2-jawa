@@ -22,5 +22,5 @@ trait SourceAndSinkManager {
   def isSource(calleeMethod : JawaMethod, callerMethod : JawaMethod, callerLoc : JumpLocation) : Boolean
   def isSourceMethod(procedure : JawaMethod) : Boolean
   def isSink(loc : LocationDecl, ptaresult : PTAResult) : Boolean
-  def isSinkMethod(procedure : JawaMethod) : Boolean
+  def isSink(procedure : JawaMethod, position: Int) : Boolean
 }

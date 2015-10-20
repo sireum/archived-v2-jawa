@@ -66,7 +66,7 @@ object InterproceduralSuperSpark {
       icfg: InterproceduralControlFlowGraph[N],
       timer: Option[MyTimer]): Unit = {
     val points = new PointsCollector().points(ep.getSignature, ep.getBody)
-    val context: Context = new Context(0) //FIXME for now just set the context length to 0
+    val context: Context = new Context
     pag.constructGraph(ep, points, context.copy)
     icfg.collectCfgToBaseGraph(ep, context.copy)
     workListPropagation(global, pag, icfg, timer)

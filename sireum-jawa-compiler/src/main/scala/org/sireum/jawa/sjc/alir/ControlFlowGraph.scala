@@ -75,7 +75,7 @@ object ControlFlowGraph {
     for (i <- 0 until size) {
       val l = locationDecls(i)
       source = getNode(l)
-      next = if (i != size - 1) getNode(locationDecls(i + 1)) else null
+      next = if (i != size - 1) getNode(locationDecls(i + 1)) else exitNode
       l.statement match {
         case cs: CallStatement =>
           result.addEdge(source, next)
@@ -85,20 +85,20 @@ object ControlFlowGraph {
           result.addEdge(source, exitNode)
         case is: IfStatement =>
           result.addEdge(source, next)
-          next = verticesMap(is.targetLocation.location)
+          next = verticesMap.getOrElse(is.targetLocation.location, exitNode)
           result.addEdge(source, next)
         case gs: GotoStatement =>
-          next = verticesMap(gs.targetLocation.location)
+          next = verticesMap.getOrElse(gs.targetLocation.location, exitNode)
           result.addEdge(source, next)
         case ss: SwitchStatement =>
           ss.cases foreach {
             c =>
-              next = verticesMap(c.targetLocation.location)
+              next = verticesMap.getOrElse(c.targetLocation.location, exitNode)
               result.addEdge(source, next)
           }
           ss.defaultCaseOpt match {
             case Some(d) =>
-              next = verticesMap(d.targetLocation.location)
+              next = verticesMap.getOrElse(d.targetLocation.location, exitNode)
               result.addEdge(source, next)
             case None => result.addEdge(source, next)
           }
@@ -113,7 +113,7 @@ object ControlFlowGraph {
       }
       val (ccs, toExit) = shouldIncludeFlow(l, body.getCatchClauses(l.locationSymbol.locationIndex))
       ccs.foreach { cc =>
-        result.addEdge(source, verticesMap(cc.targetLocation.location))
+        result.addEdge(source, verticesMap.getOrElse(cc.targetLocation.location, exitNode))
       }
       if (toExit) result.addEdge(source, exitNode)
     }

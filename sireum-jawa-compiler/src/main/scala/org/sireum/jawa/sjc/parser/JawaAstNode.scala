@@ -404,7 +404,7 @@ case class MethodDeclaration(
     annotations: IList[Annotation],
     var body: Body) extends Declaration with ParsableAstNode {
   lazy val tokens = flatten(dclToken, returnType, methodSymbol, paramClause, annotations, body)
-  def isConstructor: Boolean = isJawaConstructor(methodSymbol.id.text)
+  def isConstructor: Boolean = isJawaConstructor(name)
   def name: String = methodSymbol.id.text.substring(methodSymbol.id.text.lastIndexOf(".") + 1)
   def owner: String = annotations.find { a => a.key == "owner" }.get.value
   def signature: Signature = Signature(annotations.find { a => a.key == "signature" }.get.value)

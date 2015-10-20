@@ -41,6 +41,7 @@ abstract class SourceFile {
   final def skipWhitespace(offset: Int): Int =
     if (content(offset).isWhitespace) skipWhitespace(offset + 1) else offset
 
+  def identifier(pos: Position): Option[String] = None
 }
 
 /** An object representing a missing source file.
@@ -82,6 +83,14 @@ class FgSourceFile(val file : AbstractFile, content0: Array[Char]) extends Sourc
     val c = code
     c.replaceAll("(record `)", "DELIMITER$1").split("DELIMITER").tail.toSet
   }
+  
+  override def identifier(pos: Position) =
+    if (pos.isDefined && pos.source == this && pos.point != -1) {
+      def isOK(c: Char) = isIdentifierPart(c, true) || isOperatorPart(c)
+      Some(new String(content drop pos.point takeWhile isOK))
+    } else {
+      super.identifier(pos)
+    }
 
   private def charAtIsEOL(idx: Int)(p: Char => Boolean) = {
     // don't identify the CR in CR LF as a line break, since LF will do.

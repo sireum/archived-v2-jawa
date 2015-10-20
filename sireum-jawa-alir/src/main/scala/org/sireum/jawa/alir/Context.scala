@@ -9,13 +9,19 @@ package org.sireum.jawa.alir
 
 import org.sireum.jawa.Signature
 
+object Context {
+  private var k: Int = 1
+  def init_context_length(k: Int) = this.k = k
+}
+
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-class Context(var k : Int){
+class Context {
+  import Context._
   def copy : Context = {
-    val clone = new Context(k)
+    val clone = new Context
     clone.callStack ++= this.callStack
     clone
   }
@@ -40,7 +46,6 @@ class Context(var k : Int){
    * update current context using another context.
    */
   def updateContext(context2 : Context) = {
-    this.k = context2.k
     val size2 = context2.length
     val callStack2 = context2.getContext
     val size = length

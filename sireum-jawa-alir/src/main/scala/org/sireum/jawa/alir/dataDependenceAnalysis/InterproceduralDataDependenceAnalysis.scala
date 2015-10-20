@@ -44,9 +44,19 @@ import org.sireum.jawa.JavaKnowledge
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 trait InterproceduralDataDependenceInfo{
-  def getIddg: InterProceduralDataDependenceGraph[InterproceduralDataDependenceAnalysis.Node]
+  def getIddg: DataDependenceBaseGraph[InterproceduralDataDependenceAnalysis.Node]
   def getDependentPath(src: InterproceduralDataDependenceAnalysis.Node, dst: InterproceduralDataDependenceAnalysis.Node): IList[InterproceduralDataDependenceAnalysis.Edge]
   def isDependent(src: InterproceduralDataDependenceAnalysis.Node, dst: InterproceduralDataDependenceAnalysis.Node): Boolean
+}
+
+class DefaultInterproceduralDataDependenceInfo(iddg: DataDependenceBaseGraph[InterproceduralDataDependenceAnalysis.Node]) extends InterproceduralDataDependenceInfo{
+  def getIddg: DataDependenceBaseGraph[InterproceduralDataDependenceAnalysis.Node] = iddg
+  def getDependentPath(src: InterproceduralDataDependenceAnalysis.Node, dst: InterproceduralDataDependenceAnalysis.Node): IList[InterproceduralDataDependenceAnalysis.Edge] = {
+    iddg.findPath(src, dst)
+  }
+  def isDependent(src: InterproceduralDataDependenceAnalysis.Node, dst: InterproceduralDataDependenceAnalysis.Node): Boolean = {
+    getDependentPath(src, dst) != null
+  }
 }
 
 /**
@@ -61,16 +71,6 @@ object InterproceduralDataDependenceAnalysis {
   def apply(global: Global, idfg: InterProceduralDataFlowGraph): InterproceduralDataDependenceInfo = build(global, idfg)
 
   def build(global: Global, idfg: InterProceduralDataFlowGraph): InterproceduralDataDependenceInfo = {
-    
-    class Iddi(iddg: InterProceduralDataDependenceGraph[Node]) extends InterproceduralDataDependenceInfo{
-      def getIddg: InterProceduralDataDependenceGraph[InterproceduralDataDependenceAnalysis.Node] = iddg
-      def getDependentPath(src: InterproceduralDataDependenceAnalysis.Node, dst: InterproceduralDataDependenceAnalysis.Node): IList[InterproceduralDataDependenceAnalysis.Edge] = {
-        iddg.findPath(src, dst)
-      }
-      def isDependent(src: InterproceduralDataDependenceAnalysis.Node, dst: InterproceduralDataDependenceAnalysis.Node): Boolean = {
-        getDependentPath(src, dst) != null
-      }
-    }
     val icfg = idfg.icfg
     val ptaresult = idfg.ptaresult
     val irdaResult = InterproceduralReachingDefinitionAnalysis(global, icfg)
@@ -126,7 +126,8 @@ object InterproceduralDataDependenceAnalysis {
         targetNodes.foreach(tn=>iddg.addEdge(node, tn))
     }
     global.reporter.echo(NoPosition, "[IDDG building done!]")
-    new Iddi(iddg)
+//    iddg.toDot(new PrintWriter(System.out))
+    new DefaultInterproceduralDataDependenceInfo(iddg)
   }
   
   def processCallArg(
@@ -433,7 +434,8 @@ object InterproceduralDataDependenceAnalysis {
             case pdd: ParamDefDesc =>
               pdd.locUri match{
                 case Some(locU) =>
-                  result += iddg.findDefSite(tarContext, pdd.paramIndex)
+//                  result += iddg.findDefSite(tarContext, pdd.paramIndex)
+                  result += iddg.findDefSite(tarContext)
                 case None =>
                   throw new RuntimeException("Unexpected ParamDefDesc: " + pdd)
               }

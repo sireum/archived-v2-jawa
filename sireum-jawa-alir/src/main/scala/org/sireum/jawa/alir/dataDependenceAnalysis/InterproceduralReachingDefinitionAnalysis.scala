@@ -93,7 +93,7 @@ class InterproceduralReachingDefinitionAnalysis {
 		      }
 	      }
 	  }
-	  val initialContext: Context = new Context(0)
+	  val initialContext: Context = new Context
     val iota: ISet[IRDFact] = isetEmpty + (((VarSlot("@@IRDA"), InitDefDesc), initialContext))
     val initial: ISet[IRDFact] = isetEmpty
     val result = InterProceduralMonotoneDataFlowAnalysisFramework[IRDFact](cg,

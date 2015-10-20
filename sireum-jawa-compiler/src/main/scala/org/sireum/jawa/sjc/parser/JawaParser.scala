@@ -322,7 +322,7 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
   
   private def localVarDeclarations(): IList[LocalVarDeclaration] = {
     val locals: MList[LocalVarDeclaration] = mlistEmpty
-    while(currentTokenType != LOCATION_ID){
+    while(currentTokenType != LOCATION_ID && currentTokenType != RBRACE && currentTokenType != CATCH){
       val ahead1 = lookahead(1)
       val typOpt: Option[Type] = ahead1 match {
         case SEMI =>
@@ -376,8 +376,8 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
       case SWITCH => switchStatement()
       case RETURN => returnStatement()
       case GOTO => gotoStatement()
-      case AT => monitorStatement()
-      case SEMI | LOCATION_ID => emptyStatement()
+      case AT if lookahead(1) == MONITOR_ENTER || lookahead(1) == MONITOR_EXIT => monitorStatement()
+      case AT | SEMI | LOCATION_ID | RBRACE => emptyStatement()
       case _ => assignmentStatement()
     }
   }
@@ -939,6 +939,7 @@ object JawaParser {
     } catch {
       case e: JawaParserException ⇒
         reporter.error(e.pos, e.message)
+        e.printStackTrace()
         None
     }
   }

@@ -357,8 +357,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    * get entry points
    */
   def getEntryPoints(entryMethodName: String): ISet[JawaMethod] = {
-    if(hasEntryPoints) this.entryPoints == Set()
-    findEntryPoints(entryMethodName)
+    if(!hasEntryPoints) findEntryPoints(entryMethodName)
     this.entryPoints.toSet
   }
     
@@ -457,7 +456,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     println("noCategorizedClasses: " + (getClasses -- getSystemLibraryClasses -- getUserLibraryClasses -- getApplicationClasses))
     println("entryPoints: " + getEntryPoints)
     println("hierarchy: " + getClassHierarchy)
-    if(DEBUG){
+    if(false){
       getClasses.foreach{
         case r=>
           r.printDetail

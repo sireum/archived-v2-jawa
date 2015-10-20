@@ -89,7 +89,7 @@ trait JavaKnowledge {
   }
   
   /**
-   * convert type string from signature style to type style. [Ljava/lang/Object; -> (java.lang.Object, 1)
+   * convert type string from signature style to type. [Ljava/lang/Object; -> (java.lang.Object, 1)
    */
   def formatSignatureToType(sig: String): JawaType = {
     val (tmp, d) = getDimensionsAndRemoveArrayFromSig(sig)
@@ -137,6 +137,19 @@ trait JavaKnowledge {
   }
   
   def genSignature(classSigPart: String, methodNamePart: String, paramSigPart: String): Signature = {
+    Signature((classSigPart + "." + methodNamePart + ":" + paramSigPart).trim)
+  }
+  
+  def genSignature(classTyp: ObjectType, methodName: String, paramTyps: IList[JawaType], retTyp: JawaType): Signature = {
+    val classSigPart = formatTypeToSignature(classTyp)
+    val methodNamePart = methodName
+    val paramPartSB = new StringBuilder
+    paramTyps foreach{
+      pTyp =>
+        paramPartSB.append(formatTypeToSignature(pTyp))
+    }
+    val retPart = formatTypeToSignature(retTyp)
+    val paramSigPart = "(" + paramPartSB.toString + ")" + retPart
     Signature((classSigPart + "." + methodNamePart + ":" + paramSigPart).trim)
   }
   

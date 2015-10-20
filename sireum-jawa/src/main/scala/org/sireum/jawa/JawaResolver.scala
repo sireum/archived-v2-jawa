@@ -28,11 +28,11 @@ import org.sireum.jawa.sourcefile.MySTVisitor
  *
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-trait JawaResolver extends JawaClasspathManager with JavaKnowledge { self: Global =>
+trait JawaResolver extends JavaKnowledge { self: Global =>
   
   import JawaResolver._
   
-  val DEBUG: Boolean = false
+  private val DEBUG: Boolean = false
   private final val TITLE: String = "JawaResolver"
   
   /**
@@ -234,9 +234,6 @@ trait JawaResolver extends JawaClasspathManager with JavaKnowledge { self: Globa
     val sig = m.signature
     val mname = sig.methodNamePart
     var paramNames = m.params
-//    println(sig)
-//    println(AccessFlag.toString(m.accessFlag))
-//    println(paramNames)
     val thisOpt: Option[String] = (AccessFlag.isStatic(m.accessFlag) || AccessFlag.isNative(m.accessFlag) || AccessFlag.isAbstract(m.accessFlag)) match {
       case true => None
       case false => 

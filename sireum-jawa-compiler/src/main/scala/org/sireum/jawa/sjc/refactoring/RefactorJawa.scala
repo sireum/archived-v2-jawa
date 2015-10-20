@@ -33,8 +33,13 @@ object RefactorJawa {
               md =>
                 val pool: AlirIntraProceduralGraph.NodePool = mmapEmpty
                 val cfg = ControlFlowGraph[String](md, "Entry", "Exit", pool, ControlFlowGraph.defaultSiff)
-                val methodcode = resolveNull(md, cfg)
-                sb.append(methodcode + "\n")
+                try {
+                  val methodcode = resolveNull(md, cfg)
+                  sb.append(methodcode + "\n")
+                } catch {
+                  case e: Exception =>
+                    sb.append(md.toCode + "\n")
+                }
             }
         }
       case None =>
@@ -54,8 +59,13 @@ object RefactorJawa {
               md =>
                 val pool: AlirIntraProceduralGraph.NodePool = mmapEmpty
                 val cfg = ControlFlowGraph[String](md, "Entry", "Exit", pool, ControlFlowGraph.defaultSiff)
-                val methodcode = resolveLocalVarType(md, cfg)
-                sb.append(methodcode + "\n")
+                try{
+                  val methodcode = resolveLocalVarType(md, cfg)
+                  sb.append(methodcode + "\n")
+                } catch {
+                  case e: Exception =>
+                    sb.append(md.toCode + "\n")
+                }
             }
         }
       case None =>
@@ -669,8 +679,7 @@ object RefactorJawa {
             }
         }
       case None =>
-        println(reporter.problems)
-        throw new RuntimeException()
+        throw new RuntimeException(code + "\n" + reporter.problems.toString())
     }
     sb.toString().trim()
   }
@@ -685,7 +694,9 @@ object RefactorJawa {
         ub.resolve
     }
     val code = md.toCode
-    val head: String = code.substring(0, code.indexOf("#") - 1).replaceAll("temp ;", "")
+    val head: String = 
+      if(code.indexOf("#") != -1) code.substring(0, code.indexOf("#") - 1).replaceAll("temp ;", "")
+      else code.substring(0, code.indexOf("}") - 1).replaceAll("temp ;", "")
     sb.append(head + "\n")
     var skip: Boolean = false
     body.locations foreach {
