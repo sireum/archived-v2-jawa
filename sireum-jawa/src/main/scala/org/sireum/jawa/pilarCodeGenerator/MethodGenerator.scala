@@ -297,9 +297,11 @@ abstract class MethodGenerator(global: Global) {
     val apopt = findMethod(clazz, subsignature)
     apopt match{
       case Some(ap) =>
-        entryPoints -= ap.getSignature
-        assert(ap.isStatic || localVarsForClasses(clazz.getType) != null)
-        generateMethodCall(ap.getSignature, "virtual", localVarsForClasses(clazz.getType), constructionStack, codefg)
+        if(ap.getDeclaringClass.isApplicationClass) {
+          entryPoints -= ap.getSignature
+          assert(ap.isStatic || localVarsForClasses(clazz.getType) != null)
+          generateMethodCall(ap.getSignature, "virtual", localVarsForClasses(clazz.getType), constructionStack, codefg)
+        }
       case None =>
         global.reporter.error(NoPosition, TITLE + ", Could not find entry point method " + subsignature + " for " + clazz)
         null

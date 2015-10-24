@@ -98,7 +98,7 @@ final class JawaVarAccesses(st: SymbolTable) extends VarAccesses {
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-final class JawaDefRef(st: SymbolTable, val varAccesses: VarAccesses)
+final class JawaDefRef(st: SymbolTable, val varAccesses: VarAccesses, callref: Boolean)
   extends DefRef {
 
   final val TITLE = "AmandroidDefRef"
@@ -127,15 +127,17 @@ final class JawaDefRef(st: SymbolTable, val varAccesses: VarAccesses)
     refCache.getOrElseUpdate(j, getRefs(j))
 
   def callReferences(j: CallJump): ISeq[ISet[Slot]] = {
-    val arg = j.callExp.arg
-    arg match {
-      case e: TupleExp =>
-        val result = e.exps.map { exp => refCache.getOrElseUpdate(exp, getRefs(exp)) }
-        result
-      case e =>
-        ivector(refCache.getOrElseUpdate(j, getRefs(e)))
+    if(callref){
+      val arg = j.callExp.arg
+      arg match {
+        case e: TupleExp =>
+          val result = e.exps.map { exp => refCache.getOrElseUpdate(exp, getRefs(exp)) }
+          result
+        case e =>
+          ivector(refCache.getOrElseUpdate(j, getRefs(e)))
+      }
     }
-//    ivectorEmpty
+    else ivectorEmpty
   }
 
   def callDefinitions(j: CallJump): ISeq[ISet[Slot]] = {

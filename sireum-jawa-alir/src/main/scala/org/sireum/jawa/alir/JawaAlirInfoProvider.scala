@@ -43,7 +43,7 @@ object JawaAlirInfoProvider {
   //for building cfg
   type VirtualLabel = String
   
-  var dr : SymbolTable => DefRef = { st => new JawaDefRef(st, new JawaVarAccesses(st)) }
+  var dr : (SymbolTable, Boolean) => DefRef = { (st, b) => new JawaDefRef(st, new JawaVarAccesses(st), b) }
   
   val iopp : ProcedureSymbolTable => (ResourceUri => Boolean, ResourceUri => Boolean) = { pst =>
     val params = pst.params.toSet[ResourceUri]
@@ -53,7 +53,7 @@ object JawaAlirInfoProvider {
   
   val saom : Boolean = true
   
-  def init(dr : SymbolTable => DefRef) = {
+  def init(dr : (SymbolTable, Boolean) => DefRef) = {
     this.dr = dr
   }
   
@@ -112,7 +112,7 @@ object JawaAlirInfoProvider {
 	  result.procedureSymbolTables.map{
 	    pst=>
 	      val (pool, cfg) = buildCfg(pst, global)
-	      val rda = buildRda(pst, cfg)
+	      val rda = buildRda(pst, cfg, callref = false)
 	      val procSig = 
 	        pst.procedure.getValueAnnotation("signature") match {
 			      case Some(exp : NameExp) =>
@@ -131,11 +131,11 @@ object JawaAlirInfoProvider {
 	  (pool, result)
 	}
 	
-	private def buildRda (pst : ProcedureSymbolTable, cfg : ControlFlowGraph[VirtualLabel], initialFacts : ISet[JawaReachingDefinitionAnalysis.RDFact] = isetEmpty) = {
+	private def buildRda (pst : ProcedureSymbolTable, cfg : ControlFlowGraph[VirtualLabel], initialFacts : ISet[JawaReachingDefinitionAnalysis.RDFact] = isetEmpty, callref: Boolean) = {
 	  val iiopp = iopp(pst)
 	  JawaReachingDefinitionAnalysis[VirtualLabel](pst,
 	    cfg,
-	    dr(pst.symbolTable),
+	    dr(pst.symbolTable, callref),
 	    first2(iiopp),
 	    saom,
 	    initialFacts)
@@ -144,7 +144,6 @@ object JawaAlirInfoProvider {
 	/**
    * get cfg of current procedure
    */
-  
   def getCfg(p : JawaMethod): ControlFlowGraph[VirtualLabel] = {
     if(!(p ? CFG)){
       this.synchronized{
@@ -158,15 +157,21 @@ object JawaAlirInfoProvider {
 	/**
    * get rda result of current procedure
    */
-  
-  def getRda(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel]): JawaReachingDefinitionAnalysis.Result = {
+  def getRda(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel], cr: Boolean): JawaReachingDefinitionAnalysis.Result = {
     if(!(p ? RDA)){
       this.synchronized{
-	      val rda = buildRda(p.getBody, cfg)
+	      val rda = buildRda(p.getBody, cfg, callref = cr)
 	      p.setProperty(RDA, rda)
       }
     }
     p.getProperty(RDA)
+  }
+  
+  /**
+   * get rda result of current procedure
+   */
+  def getRdaWithoutStore(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel], cr: Boolean): JawaReachingDefinitionAnalysis.Result = {
+    buildRda(p.getBody, cfg, callref = cr)
   }
 }
 

@@ -280,7 +280,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 	    cfg.nodes map{
 	      n =>
 		      n match{
-		        case vn @ AlirVirtualNode(label) =>
+		        case vn: AlirVirtualNode[VirtualLabel] =>
 		          vn.label.toString match{
 		            case "Entry" => 
 		              val entryNode = addICFGEntryNode(callerContext.copy.setContext(calleeSig, "Entry"))
@@ -333,9 +333,9 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 	      val entryNode = getICFGEntryNode(callerContext.copy.setContext(calleeSig, "Entry"))
 	      val exitNode = getICFGExitNode(callerContext.copy.setContext(calleeSig, "Exit"))
 	      e.source match{
-	        case AlirVirtualNode(label) =>
+	        case an: AlirVirtualNode[VirtualLabel] =>
 	          e.target match{
-	            case AlirVirtualNode(label) =>
+	            case an: AlirVirtualNode[VirtualLabel] =>
 	              addEdge(entryNode, exitNode)
 	            case lnt: AlirLocationUriNode =>
 	              val lt = body.location(lnt.locIndex)
@@ -353,7 +353,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 	        case lns: AlirLocationUriNode =>
 	          val ls = body.location(lns.locIndex)
 	          e.target match{
-	            case AlirVirtualNode(label) =>
+	            case an: AlirVirtualNode[VirtualLabel] =>
 	              if(isCall(ls)){
 	                val returnNodeSource = getICFGReturnNode(callerContext.copy.setContext(calleeSig, lns.locUri))
 	                addEdge(returnNodeSource, exitNode)
@@ -395,7 +395,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 	        case ns =>
 	          val sourceNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, ns.toString))
 	          e.target match{
-	            case AlirVirtualNode(label) =>
+	            case an: AlirVirtualNode[VirtualLabel] =>
 	              addEdge(sourceNode, exitNode)
 	            case lnt: AlirLocationUriNode =>
 	              val lt = body.location(lnt.locIndex)

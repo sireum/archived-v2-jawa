@@ -209,7 +209,7 @@ object SideEffectAnalysis {
     var globalWrite : Set[String] = Set()
     var callInfos : Set[CallInfo] = Set()
     val cfg = JawaAlirInfoProvider.getCfg(procedure)
-    val rda = JawaAlirInfoProvider.getRda(procedure, cfg)
+    val rda = JawaAlirInfoProvider.getRda(procedure, cfg, false)
     val points = new PointsCollector().points(procedure.getSignature, procedure.getBody)
     points.foreach{
       point =>

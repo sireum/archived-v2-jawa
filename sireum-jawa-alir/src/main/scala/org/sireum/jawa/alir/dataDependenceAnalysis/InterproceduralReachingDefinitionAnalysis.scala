@@ -81,7 +81,7 @@ class InterproceduralReachingDefinitionAnalysis {
 	      val owner = global.getMethod(node.getOwner).get
 	      if(!owner.isUnknown){
 		      val cfg = JawaAlirInfoProvider.getCfg(owner)
-		      val rda = JawaAlirInfoProvider.getRda(owner, cfg)
+		      val rda = JawaAlirInfoProvider.getRda(owner, cfg, true)
 		      node match{
 		        case cvn: ICFGVirtualNode =>
 		          val rdafact = rda.entrySet(cfg.getVirtualNode(cvn.getVirtualLabel))

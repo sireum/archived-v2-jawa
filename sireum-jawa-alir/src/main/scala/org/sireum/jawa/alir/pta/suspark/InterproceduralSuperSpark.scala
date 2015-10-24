@@ -96,7 +96,7 @@ object InterproceduralSuperSpark {
       while (!pag.worklist.isEmpty) {
         if(timer.isDefined) timer.get.ifTimeoutThrow
         val srcNode = pag.worklist.remove(0)
-        srcNode.point match{
+        srcNode.point match {
           case pbr: PointBaseR => // e.g. q = ofbnr.f; edge is ofbnr.f -> q
             val fp = pbr.getFieldPoint
             val fNode = pag.getNode(fp, srcNode.context)
@@ -110,7 +110,7 @@ object InterproceduralSuperSpark {
         }
         pag.successorEdges(srcNode).foreach{
           edge =>
-            pag.getEdgeType(edge) match{
+            pag.getEdgeType(edge) match {
               case pag.EdgeType.TRANSFER => // e.g. L0: p = q; L1:  r = p; edge is p@L0 -> p@L1
                 val dstNode = pag.successor(edge)
                 if(pag.pointsToMap.isDiff(srcNode, dstNode)){

@@ -31,7 +31,7 @@ object HashSetModel {
 	  val paramValues = s.pointsToSet(paramSlot, currentContext)
 	  thisValues.foreach{
       ins =>
-        newfacts ++= paramValues.map{p=>RFAFact(FieldSlot(ins, "java.util.HashSet.items"), p)}
+        newfacts ++= paramValues.map{p=>RFAFact(FieldSlot(ins, "items"), p)}
     }
 	  newfacts 
 	}

@@ -27,7 +27,8 @@ trait ModelCallHandler {
   def isModelCall(calleeProc: JawaMethod): Boolean = {
     val r = calleeProc.getDeclaringClass
     StringBuilderModel.isStringBuilder(r) ||
-    StringModel.isString(r) || 
+    StringModel.isString(r) ||
+    ListModel.isList(r) ||
     HashSetModel.isHashSet(r) || 
     HashtableModel.isHashtable(r) ||
     HashMapModel.isHashMap(r) ||
@@ -69,6 +70,7 @@ trait ModelCallHandler {
     val r = calleeProc.getDeclaringClass
     if(StringModel.isString(r)) StringModel.doStringCall(s, calleeProc, args, retVars, currentContext)
     else if(StringBuilderModel.isStringBuilder(r)) StringBuilderModel.doStringBuilderCall(s, calleeProc, args, retVars, currentContext)
+    else if(ListModel.isList(r)) ListModel.doListCall(s, calleeProc, args, retVars, currentContext)
     else if(HashSetModel.isHashSet(r)) HashSetModel.doHashSetCall(s, calleeProc, args, retVars, currentContext)
     else if(HashtableModel.isHashtable(r)) HashtableModel.doHashtableCall(s, calleeProc, args, retVars, currentContext)
     else if(HashMapModel.isHashMap(r)) HashMapModel.doHashMapCall(s, calleeProc, args, retVars, currentContext)

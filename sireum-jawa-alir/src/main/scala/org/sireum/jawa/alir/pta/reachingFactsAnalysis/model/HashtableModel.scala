@@ -39,7 +39,7 @@ object HashtableModel {
     require(args.size >0)
     val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "java.util.Hashtable.entrys"), currentContext)}.reduce(iunion[Instance])
+	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashSet", 0), retVar, currentContext).get
 	  result += rf
 	  result ++= strValue.map{s => RFAFact(FieldSlot(rf.v, "java.util.HashSet.items"), s)}
@@ -51,7 +51,7 @@ object HashtableModel {
     require(args.size >0)
     val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "java.util.Hashtable.entrys"), currentContext)}.reduce(iunion[Instance])
+	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashSet", 0), retVar, currentContext).get
 	  result += rf
 	  result ++= strValue.map{
@@ -67,7 +67,7 @@ object HashtableModel {
     require(args.size >0)
     val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "java.util.Hashtable.entrys"), currentContext)}.reduce(iunion[Instance])
+	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashSet", 0), retVar, currentContext).get
 	  result += rf
 	  result ++= strValue.map{
@@ -85,7 +85,7 @@ object HashtableModel {
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val keySlot = VarSlot(args(1), false, true)
 	  val keyValue = s.pointsToSet(keySlot, currentContext)
-	  val entValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "java.util.Hashtable.entrys"), currentContext)}.reduce(iunion[Instance])
+	  val entValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
 	  entValue.foreach{
 	    v =>
 	      require(v.isInstanceOf[PTATupleInstance])
@@ -119,7 +119,7 @@ object HashtableModel {
 	  }
 	  thisValue.foreach{
 	    ins =>
-	      result ++= entrys.map(e => RFAFact(FieldSlot(ins, "java.util.Hashtable.entrys"), e))
+	      result ++= entrys.map(e => RFAFact(FieldSlot(ins, "entrys"), e))
 	  }
 	  result
   }
@@ -133,7 +133,7 @@ object HashtableModel {
 	  val value2 = s.pointsToSet(slot2, currentContext)
 	  thisValue.foreach{
 	    ins =>
-	      result ++= value2.map(e => RFAFact(FieldSlot(ins, "java.util.Hashtable.entrys"), e))
+	      result ++= value2.map(e => RFAFact(FieldSlot(ins, "entrys"), e))
 	  }
 	  result
   }

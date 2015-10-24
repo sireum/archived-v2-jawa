@@ -269,7 +269,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
     ps.foreach{
       p =>
         val cfg = JawaAlirInfoProvider.getCfg(ap)
-        val rda = JawaAlirInfoProvider.getRda(ap, cfg)
+        val rda = JawaAlirInfoProvider.getRda(ap, cfg, false)
         val constraintMap = applyConstraint(p, ps, cfg, rda)
         newEdges ++= buildingEdges(constraintMap, ap.getSignature, callerContext.copy)
     }
@@ -445,7 +445,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
     }
   }
   
-  private def connectCallEdges(met: Point with Method, pi: Point with Invoke, srcContext: Context) ={
+  private def connectCallEdges(met: Point with Method, pi: Point with Invoke, srcContext: Context) = {
     val targetContext = srcContext.copy
     targetContext.setContext(met.methodSig, met.ownerSig.signature)
     met.paramPsEntry.foreach{
@@ -521,7 +521,8 @@ class PointerAssignmentGraph[Node <: PtaNode]
    */
   def recvInverse(n: Node): Option[Point with Invoke] = {
     n.point match{
-      case on: PointRecvCall => Some(on.getContainer)
+      case on: PointRecvCall =>
+        Some(on.getContainer)
       case _ => None
     }
   }
