@@ -269,7 +269,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
     ps.foreach{
       p =>
         val cfg = JawaAlirInfoProvider.getCfg(ap)
-        val rda = JawaAlirInfoProvider.getRda(ap, cfg, false)
+        val rda = JawaAlirInfoProvider.getRda(ap, cfg)
         val constraintMap = applyConstraint(p, ps, cfg, rda)
         newEdges ++= buildingEdges(constraintMap, ap.getSignature, callerContext.copy)
     }

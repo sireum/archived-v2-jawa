@@ -863,8 +863,9 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
   private def accept(tokenType: TokenType): Token =
     if (currentTokenType == tokenType)
       nextToken()
-    else
+    else {
       throw new JawaParserException(currentToken.pos, "Expected token " + tokenType + " but got " + currentToken)
+    }
 
   private var tokensArray: Array[Token] = tokens.toArray
 

@@ -119,7 +119,7 @@ sealed trait JawaAstNode extends CaseClassReflector with JavaKnowledge {
         prevcolumn = column + token.length
         sb.append(text)
     }
-    sb.toString.trim
+    sb.toString
   }
   
   /**

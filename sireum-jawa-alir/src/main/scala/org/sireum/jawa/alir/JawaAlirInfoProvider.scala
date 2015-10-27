@@ -39,6 +39,7 @@ object JawaAlirInfoProvider {
   
   final val CFG = "cfg"
   final val RDA = "rda"
+  final val RDA_WITH_CALL = "rda_with_call"
   
   //for building cfg
   type VirtualLabel = String
@@ -157,21 +158,27 @@ object JawaAlirInfoProvider {
 	/**
    * get rda result of current procedure
    */
-  def getRda(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel], cr: Boolean): JawaReachingDefinitionAnalysis.Result = {
+  def getRda(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel]): JawaReachingDefinitionAnalysis.Result = {
     if(!(p ? RDA)){
       this.synchronized{
-	      val rda = buildRda(p.getBody, cfg, callref = cr)
+	      val rda = buildRda(p.getBody, cfg, callref = false)
 	      p.setProperty(RDA, rda)
       }
     }
     p.getProperty(RDA)
   }
-  
+
   /**
    * get rda result of current procedure
    */
-  def getRdaWithoutStore(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel], cr: Boolean): JawaReachingDefinitionAnalysis.Result = {
-    buildRda(p.getBody, cfg, callref = cr)
+  def getRdaWithCall(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel]): JawaReachingDefinitionAnalysis.Result = {
+    if(!(p ? RDA_WITH_CALL)){
+      this.synchronized{
+        val rda = buildRda(p.getBody, cfg, callref = true)
+        p.setProperty(RDA_WITH_CALL, rda)
+      }
+    }
+    p.getProperty(RDA_WITH_CALL)
   }
 }
 
