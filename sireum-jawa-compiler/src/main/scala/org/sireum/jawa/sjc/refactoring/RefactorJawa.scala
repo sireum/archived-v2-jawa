@@ -64,6 +64,7 @@ object RefactorJawa {
                   sb.append(methodcode + "\n")
                 } catch {
                   case e: Exception =>
+                    e.printStackTrace()
                     sb.append(md.toCode + "\n")
                 }
             }
@@ -679,7 +680,8 @@ object RefactorJawa {
             }
         }
       case None =>
-        throw new RuntimeException(code + "\n" + reporter.problems.toString())
+        System.err.println(reporter.problems.toString())
+        sb.append(code + "\n")
     }
     sb.toString().trim()
   }
@@ -698,11 +700,11 @@ object RefactorJawa {
       if(code.indexOf("#") != -1) code.substring(0, code.indexOf("#") - 1).replaceAll("temp ;", "")
       else code.substring(0, code.indexOf("}") - 1).replaceAll("temp ;", "")
     sb.append(head + "\n")
-    var skip: Boolean = false
+    var skip: Int = 0
     body.locations foreach {
       location =>
         var linecode = location.toCode
-        if(!skip){
+        if(skip == 0){
           location.statement match {
             case cs: CallStatement =>
               val typs = cs.signature.getParameterTypes()
@@ -726,18 +728,24 @@ object RefactorJawa {
                 case "void" =>
                   linecode = linecode.replaceAll("temp:=  ", "")
                 case _ =>
-                  val nextLoc = body.locations(location.locationIndex + 1)
-                  val nextStat = nextLoc.statement
+                  var nextStat: Statement = null
+                  var nextLoc: org.sireum.jawa.sjc.parser.Location = null
+                  var i = 0
+                  while(nextStat == null || nextStat.isInstanceOf[EmptyStatement]) {
+                    i += 1
+                    nextLoc = body.locations(location.locationIndex + i)
+                    nextStat = nextLoc.statement
+                  }
                   nextStat match {
                     case as: AssignmentStatement =>
-                      if(as.rhs.isInstanceOf[NameExpression] && as.rhs.asInstanceOf[NameExpression].name == "temp"){
+                      if(as.rhs.isInstanceOf[NameExpression] && as.rhs.asInstanceOf[NameExpression].name == "temp") {
                         val varName = as.lhs.asInstanceOf[NameExpression].varSymbol.left.get.varName
                         linecode = linecode.replaceFirst("temp:=", varName + ":=")
                         
                         val to = location.locationUri
                         val from = nextLoc.locationUri
                         ccChange(from) = to
-                        skip = true
+                        skip = i
                       } else {
                         linecode = linecode.replaceAll("temp:=  ", "")
                       }
@@ -749,7 +757,7 @@ object RefactorJawa {
           }
           sb.append(linecode + "\n")
         } else {
-          skip = false
+          skip -= 1
         }
     }
     body.catchClauses foreach {

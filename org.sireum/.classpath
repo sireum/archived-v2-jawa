@@ -23,7 +23,7 @@
 	<classpathentry exported="true" kind="lib" path="lib/rxjava-core.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/rxjava-scala.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/scala-logging.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/sireum-alir.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/sireum-alir.jar" sourcepath="/sireum-alir"/>
 	<classpathentry exported="true" kind="lib" path="lib/sireum-cli.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/sireum-macro.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/sireum-option.jar"/>
