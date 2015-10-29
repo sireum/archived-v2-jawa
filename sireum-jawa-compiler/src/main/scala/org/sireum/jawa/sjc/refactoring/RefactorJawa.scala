@@ -12,6 +12,7 @@ import org.sireum.jawa.sjc.alir.ControlFlowGraph
 import org.sireum.alir.AlirIntraProceduralGraph
 import org.sireum.jawa.io.Position
 import org.sireum.jawa.PrimitiveType
+import org.sireum.jawa.ExceptionCenter
 
 /**
  * @author fgwei
@@ -329,6 +330,19 @@ object RefactorJawa {
     
     val resolved: MSet[ControlFlowGraph.Node] = msetEmpty
     
+    def findRecentVarsOrUpdate(node: ControlFlowGraph.Node, varName: String, typ: JawaType): String = {
+      val map = recentvars(node)
+      map.get(varName) match {
+        case Some(n) => n
+        case None =>
+          var newvar = typ.typ.substring(typ.typ.lastIndexOf(".") + 1) + {if(typ.dimensions > 0)"_arr" + typ.dimensions else ""} + "_" + varName
+          if(localvars.contains(newvar) && localvars(newvar)._1 != typ) newvar = "a" + newvar
+          if(!localvars.contains(newvar)) localvars(newvar) = ((typ, false))
+          recentvars(node)(varName) = newvar
+          newvar
+      }
+    }
+    
     val sb: StringBuilder = new StringBuilder
     val code = md.toCode
     var head: String = code.substring(0, code.indexOf("{") + 1)
@@ -360,10 +374,9 @@ object RefactorJawa {
       case rb: ResolvedBody => rb
       case ub: UnresolvedBody => ub.resolve
     }
-    val entry: ControlFlowGraph.Node = cfg.getVirtualNode("Entry")
+    val entry: ControlFlowGraph.Node = cfg.entryNode
     val worklist: MList[ControlFlowGraph.Node] = mlistEmpty
     worklist += entry
-    
     while(!worklist.isEmpty){
       val n = worklist.remove(0)
       resolved += n
@@ -389,12 +402,12 @@ object RefactorJawa {
               for(i <- 1 to size) {
                 val arg = args(size - i)
                 val typ = paramTypes(size - i)
-                val newarg = recentvars(n)(arg.varName)
+                val newarg = findRecentVarsOrUpdate(n, arg.varName, typ)
                 locCode = updateCode(locCode, arg.id.pos, newarg)
               }
               cs.recvVarOpt match {
                 case Some(recv) =>
-                  val newarg = recentvars(n)(recv.varName)
+                  val newarg = findRecentVarsOrUpdate(n, recv.varName, cs.signature.getClassType)
                   locCode = updateCode(locCode, recv.id.pos, newarg)
                 case None =>
               }
@@ -431,7 +444,7 @@ object RefactorJawa {
                             case a => PrimitiveType("int")
                           }
                       }
-                      val newarg = recentvars(n)(varname)
+                      val newarg = findRecentVarsOrUpdate(n, varname, typ)
                       locCode = updateCode(locCode, v.id.pos, newarg)
                       rhsType = localvars(newarg)._1
                     case Right(f) =>
@@ -445,20 +458,21 @@ object RefactorJawa {
                       indice.index match {
                         case Left(v) =>
                           val varName = v.varName
-                          val newarg = recentvars(n)(varName)
+                          val newarg = findRecentVarsOrUpdate(n, varName, PrimitiveType("int"))
                           locCode = updateCode(locCode, v.id.pos, newarg)
                         case Right(c) =>
                       }
                   }
                   val varname = ie.base
-                  val newarg = recentvars(n)(varname)
+                  val newarg = findRecentVarsOrUpdate(n, varname, ObjectType(JavaKnowledge.JAVA_TOPLEVEL_OBJECT, 1))
                   locCode = updateCode(locCode, ie.varSymbol.id.pos, newarg)
                   val dimentions = ie.dimentions
-                  val typ = localvars(newarg)._1.asInstanceOf[ObjectType]
-                  rhsType = JawaType.generateType(typ.typ, typ.dimensions - dimentions)
+                  val typ = localvars(newarg)._1
+                  val d = if(typ.dimensions - dimentions < 0) 0 else typ.dimensions - dimentions // for safe
+                  rhsType = JawaType.generateType(typ.typ, d)
                 case ae: AccessExpression =>
                   val varname = ae.base
-                  val newarg = recentvars(n)(varname)
+                  val newarg = findRecentVarsOrUpdate(n, varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
                   locCode = updateCode(locCode, ae.varSymbol.id.pos, newarg)
                   rhsType = typOpt.get
                 case te: TupleExpression =>
@@ -467,7 +481,7 @@ object RefactorJawa {
                       case ne: NameExpression =>
                         ne.varSymbol match {
                           case Left(v) =>
-                            val newv = recentvars(n)(v.varName)
+                            val newv = findRecentVarsOrUpdate(n, v.varName, ObjectType("int", 1))
                             val (typ, _) = localvars(newv)
                             typ
                           case Right(v) =>
@@ -480,7 +494,7 @@ object RefactorJawa {
                     }
                 case ce: CastExpression =>
                   val varname = ce.varName
-                  val newarg = recentvars(n)(varname)
+                  val newarg = findRecentVarsOrUpdate(n, varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
                   locCode = updateCode(locCode, ce.varSym.id.pos, newarg)
                   rhsType = ce.typ.typ
                 case ne: NewExpression =>
@@ -489,7 +503,7 @@ object RefactorJawa {
                       tf.varSymbols.reverse.foreach{
                         v =>
                           val varname = v._1.varName
-                          val newarg = recentvars(n)(varname)
+                          val newarg = findRecentVarsOrUpdate(n, varname, PrimitiveType("int"))
                           locCode = updateCode(locCode, v._1.id.pos, newarg)
                       }
                   }
@@ -508,40 +522,40 @@ object RefactorJawa {
                   }
                 case ue: UnaryExpression =>
                   val varname = ue.unary.varName
-                  val newarg = recentvars(n)(varname)
-                  locCode = updateCode(locCode, ue.unary.id.pos, newarg)
                   rhsType = PrimitiveType(kind)
+                  val newarg = findRecentVarsOrUpdate(n, varname, rhsType)
+                  locCode = updateCode(locCode, ue.unary.id.pos, newarg)
                 case be: BinaryExpression =>
+                  rhsType = PrimitiveType(kind)
                   val rightname = be.right match {
                     case Left(v) =>
                       val rightname = v.varName
-                      val newright = recentvars(n)(rightname)
+                      val newright = findRecentVarsOrUpdate(n, rightname, rhsType)
                       locCode = updateCode(locCode, v.id.pos, newright)
                     case Right(s) =>
                   }
                   val leftname = be.left.varName
-                  val newleft = recentvars(n)(leftname)
+                  val newleft = findRecentVarsOrUpdate(n, leftname, rhsType)
                   locCode = updateCode(locCode, be.left.id.pos, newleft)
-                  rhsType = PrimitiveType(kind)
                 case ce: CmpExpression =>
                   val var2name = ce.var2Symbol.varName
                   val typ = ce.paramType
-                  val newvar2name = recentvars(n)(var2name)
+                  val newvar2name = findRecentVarsOrUpdate(n, var2name, typ)
                   locCode = updateCode(locCode, ce.var2Symbol.id.pos, newvar2name)
                   val var1name = ce.var1Symbol.varName
-                  val newvar1name = recentvars(n)(var1name)
+                  val newvar1name = findRecentVarsOrUpdate(n, var1name, typ)
                   locCode = updateCode(locCode, ce.var1Symbol.id.pos, newvar1name)
                   rhsType = PrimitiveType("boolean")
                 case ie: InstanceofExpression =>
                   val varname = ie.varSymbol.varName
-                  val newarg = recentvars(n)(varname)
+                  val newarg = findRecentVarsOrUpdate(n, varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
                   locCode = updateCode(locCode, ie.varSymbol.id.pos, newarg)
                   rhsType = PrimitiveType("boolean")
                 case ce: ConstClassExpression =>
                   rhsType = new ObjectType("java.lang.Class")
                 case le: LengthExpression =>
                   val varname = le.varSymbol.varName
-                  val newarg = recentvars(n)(varname)
+                  val newarg = findRecentVarsOrUpdate(n, varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
                   locCode = updateCode(locCode, le.varSymbol.id.pos, newarg)
                   rhsType = PrimitiveType("int")
                 case ne: NullExpression =>
@@ -571,7 +585,7 @@ object RefactorJawa {
                       indice.index match {
                         case Left(v) =>
                           val varName = v.varName
-                          val newarg = recentvars(n)(varName)
+                          val newarg = findRecentVarsOrUpdate(n, varName, PrimitiveType("int"))
                           locCode = updateCode(locCode, v.id.pos, newarg)
                         case Right(c) =>
                       }
@@ -579,27 +593,27 @@ object RefactorJawa {
                   val varname = ie.base
                   val dimentions = ie.dimentions
                   val typ = JawaType.generateType(rhsType.typ, rhsType.dimensions + dimentions)
-                  val newarg = recentvars(n)(varname)
+                  val newarg = findRecentVarsOrUpdate(n, varname, typ)
                   locCode = updateCode(locCode, ie.varSymbol.id.pos, newarg)
                 case ae: AccessExpression =>
                   val varname = ae.base
-                  val newarg = recentvars(n)(varname)
+                  val newarg = findRecentVarsOrUpdate(n, varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
                   locCode = updateCode(locCode, ae.varSymbol.id.pos, newarg)
-                case _ => println("resolveLocalVarType lhs problem: " + as.lhs)
+                case _ => System.err.println("resolveLocalVarType lhs problem: " + as.lhs)
               }
             case ts: ThrowStatement => 
               val varname = ts.varSymbol.varName
-              val newarg = recentvars(n)(varname)
+              val newarg = findRecentVarsOrUpdate(n, varname, ExceptionCenter.EXCEPTION)
               locCode = updateCode(locCode, ts.varSymbol.id.pos, newarg)
             case is: IfStatement =>
               val left = is.cond.left.varName
               is.cond.right match {
                 case Left(v) =>
-                  val newright = recentvars(n)(v.varName)
+                  val newright = findRecentVarsOrUpdate(n, v.varName, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
                   locCode = updateCode(locCode, v.id.pos, newright)
                 case Right(c) =>
                   if(recentvars(n).contains(left)){
-                    val tmpleft = recentvars(n)(left)
+                    val tmpleft = findRecentVarsOrUpdate(n, left, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
                     val (typ, _) = localvars(tmpleft)
                     JavaKnowledge.isJavaPrimitive(typ) match {
                       case true =>
@@ -608,24 +622,24 @@ object RefactorJawa {
                     }
                   }
               }
-              val newleft = recentvars(n)(left)
+              val newleft = findRecentVarsOrUpdate(n, left, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
               locCode = updateCode(locCode, is.cond.left.id.pos, newleft)
             case gs: GotoStatement =>
             case ss: SwitchStatement =>
               val varname = ss.condition.varName
-              val newvar = recentvars(n)(varname)
+              val newvar = findRecentVarsOrUpdate(n, varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
               locCode = updateCode(locCode, ss.condition.id.pos, newvar)
             case rs: ReturnStatement =>
               rs.varOpt match {
                 case Some(v) =>
                   val varname = v.varName
-                  val newvar = recentvars(n)(varname)
+                  val newvar = findRecentVarsOrUpdate(n, varname, sig.getReturnType())
                   locCode = updateCode(locCode, v.id.pos, newvar)
                 case None =>
               }
             case ms: MonitorStatement =>
               val varname = ms.varSymbol.varName
-              val newvar = recentvars(n)(varname)
+              val newvar = findRecentVarsOrUpdate(n, varname, JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE)
               locCode = updateCode(locCode, ms.varSymbol.id.pos, newvar)
             case es: EmptyStatement =>
             case _ =>

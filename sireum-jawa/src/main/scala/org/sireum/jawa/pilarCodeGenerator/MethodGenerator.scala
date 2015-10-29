@@ -115,7 +115,7 @@ abstract class MethodGenerator(global: Global) {
     val signature = JavaKnowledge.genSignature(JavaKnowledge.formatTypeToSignature(this.currentComponent), name, "()V")
     initMethodHead("void", methodName, className, signature, "STATIC")
     val code = generateInternal(List())
-    global.reporter.echo(NoPosition, TITLE + " environment code:\n" + code)
+    global.reporter.echo(TITLE, "Environment code:\n" + code)
     (global.resolveMethodCode(signature, code), code)
   }
   
@@ -143,7 +143,7 @@ abstract class MethodGenerator(global: Global) {
     }
     procDeclTemplate.add("params", paramArray)
     val code = generateInternal(List())
-    global.reporter.echo(NoPosition, TITLE + " environment code:\n" + code)
+    global.reporter.echo(TITLE, "Environment code:\n" + code)
 //    global.addApplicationClassCode(className, code)
     global.resolveMethodCode(signature, code)
   }
@@ -211,7 +211,7 @@ abstract class MethodGenerator(global: Global) {
     if(cons != null){
       generateMethodCall(cons, "direct", localVarsForClasses(r.getType), constructionStack, codefg)
     } else {
-      global.reporter.warning(NoPosition, TITLE + ", cannot find constructor for " + r)
+      global.reporter.warning(TITLE, "Cannot find constructor for " + r)
     }
     cons
   }
@@ -236,7 +236,7 @@ abstract class MethodGenerator(global: Global) {
           val va = varGen.generate(r.getType)
           localVarsForClasses += (r.getType -> va)
           paramVars += (i -> va)
-          global.reporter.error(NoPosition, TITLE + ", Cannot create valid constructer for " + r + ", because it is " + r.getAccessFlagsStr + " and cannot find substitute.")
+          global.reporter.warning(TITLE, "Cannot create valid constructer for " + r + ", because it is " + r.getAccessFlagsStr + " and cannot find substitute.")
         } else if(!constructionStack.contains(r.getType)){
           val va = generateInstanceCreation(r.getType, codefg)
           localVarsForClasses += (r.getType -> va)
@@ -303,7 +303,7 @@ abstract class MethodGenerator(global: Global) {
           generateMethodCall(ap.getSignature, "virtual", localVarsForClasses(clazz.getType), constructionStack, codefg)
         }
       case None =>
-        global.reporter.error(NoPosition, TITLE + ", Could not find entry point method " + subsignature + " for " + clazz)
+        global.reporter.warning(TITLE, "Could not find entry point method " + subsignature + " for " + clazz)
         null
     }
   }
@@ -324,7 +324,7 @@ abstract class MethodGenerator(global: Global) {
           case Some(method) =>
             callbackClasses += (theClass -> (callbackClasses.getOrElse(theClass, isetEmpty) + method))
           case None =>
-            global.reporter.error(NoPosition, TITLE + ", Could not find callback method " + pSig)
+            global.reporter.warning(TITLE, "Could not find callback method " + pSig)
         }
     }
     var oneCallBackFragment = codefg
@@ -343,7 +343,7 @@ abstract class MethodGenerator(global: Global) {
           // build the calls to all callback methods in this clazz
           generateCallToAllCallbacks(callbackClass, callbackMethods, classLocalVar, oneCallBackFragment)
         } else {
-          global.reporter.error(NoPosition, TITLE + ", Constructor cannot be generated for callback class " + callbackClass)
+          global.reporter.warning(TITLE, "Constructor cannot be generated for callback class " + callbackClass)
         }
         oneCallBackFragment = new CodeFragmentGenerator
         oneCallBackFragment.addLabel
