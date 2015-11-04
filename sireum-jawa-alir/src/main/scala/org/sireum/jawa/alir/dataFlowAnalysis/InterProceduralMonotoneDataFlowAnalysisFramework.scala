@@ -63,7 +63,7 @@ trait CallResolver[LatticeElement] {
   /**
 	 * It returns the facts for each callee entry node and caller return node
 	 */
-  def resolveCall(s : ISet[LatticeElement], cj : CallJump, callerContext : Context, icfg : InterproceduralControlFlowGraph[ICFGNode]) : (IMap[ICFGNode, ISet[LatticeElement]], ISet[LatticeElement])
+  def resolveCall(s : ISet[LatticeElement], cj : CallJump, callerNode : ICFGNode, icfg : InterproceduralControlFlowGraph[ICFGNode]) : (IMap[ICFGNode, ISet[LatticeElement]], ISet[LatticeElement])
   def getAndMapFactsForCaller(calleeS : ISet[LatticeElement], callerNode : ICFGNode, calleeExitNode : ICFGVirtualNode) : ISet[LatticeElement]
 }
 
@@ -75,9 +75,9 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
   
   final val TITLE = "InterProceduralMonotoneDataFlowAnalysisFramework"
   type N = ICFGNode
-	def apply[LatticeElement] = build[LatticeElement] _
+	def apply[LatticeElement] = build0[LatticeElement] _
 
-  def build[LatticeElement] //
+  def build0[LatticeElement] //
   (icfg : InterproceduralControlFlowGraph[N], 
    forward : Boolean, lub : Boolean, rapid : Boolean, par : Boolean,
    gen : InterProceduralMonotonicFunction[LatticeElement],
@@ -90,12 +90,30 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
    switchAsOrderedMatch : Boolean = false,
    nl : Option[NodeListener] = None) : //
    InterProceduralMonotoneDataFlowAnalysisResult[LatticeElement] = {
+    val flow = if (forward) icfg else icfg.reverse
+    val startNode = flow.entryNode
+    build(icfg, forward, lub, rapid, par, gen, kill, callr, ppr, startNode, iota, initial, timer, switchAsOrderedMatch, nl)
+  }
+  
+  def build[LatticeElement] //
+  (icfg : InterproceduralControlFlowGraph[N], 
+   forward : Boolean, lub : Boolean, rapid : Boolean, par : Boolean,
+   gen : InterProceduralMonotonicFunction[LatticeElement],
+   kill : InterProceduralMonotonicFunction[LatticeElement],
+   callr : CallResolver[LatticeElement],
+   ppr: PstProvider,
+   startNode: N,
+   iota : ISet[LatticeElement],
+   initial : ISet[LatticeElement],
+   timer : Option[MyTimer] = None,
+   switchAsOrderedMatch : Boolean = false,
+   nl : Option[NodeListener] = None) : //
+   InterProceduralMonotoneDataFlowAnalysisResult[LatticeElement] = {
 
     val confluence = if (lub) iunion[LatticeElement] _ else iintersect[LatticeElement] _
     val bigConfluence : Iterable[ISet[LatticeElement]] => ISet[LatticeElement] =
       if (lub) bigIUnion else bigIIntersect
-
-    val flow = if (forward) icfg else icfg.reverse
+      
     val entrySetMap = if(par) new HashMap[N, ISet[LatticeElement]] with SynchronizedMap[N, ISet[LatticeElement]]
     									else new HashMap[N, ISet[LatticeElement]]
     
@@ -471,7 +489,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
               if (esl.isDefined) eslb.callJump(j, s)
 //              val r = fA(j, s, currentNode)
               if (j.jump.isEmpty) {
-                val (calleeFactsMap, retFacts) = callr.resolveCall(s, j, currentContext, icfg)
+                val (calleeFactsMap, retFacts) = callr.resolveCall(s, j, currentNode, icfg)
                 calleeFactsMap.foreach{
                   case (calleeNode, calleeFacts) =>
 		                latticeMap += (calleeNode -> calleeFacts)
@@ -576,9 +594,9 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
 	    result
 	  }
     
-    entrySetMap.put(flow.entryNode, iota)
+    entrySetMap.put(startNode, iota)
     val workList = mlistEmpty[N]
-    workList += flow.entryNode
+    workList += startNode
     while(!workList.isEmpty){
 	    while (!workList.isEmpty) {
         if(timer.isDefined) timer.get.ifTimeoutThrow

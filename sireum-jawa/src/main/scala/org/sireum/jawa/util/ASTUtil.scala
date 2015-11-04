@@ -18,16 +18,16 @@ import org.sireum.jawa.JavaKnowledge
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 object ASTUtil {
-	def getCallArgs(jumploc : JumpLocation) : List[String] = {
-	  val argNames : MList[String] = mlistEmpty
+	def getCallArgs(jumploc: JumpLocation): List[String] = {
+	  val argNames: MList[String] = mlistEmpty
     jumploc.jump match {
-      case t : CallJump if t.jump.isEmpty =>
+      case t: CallJump if t.jump.isEmpty =>
         t.callExp.arg match {
-          case te : TupleExp =>
+          case te: TupleExp =>
             val exps = te.exps
             for(i <- 0 to (exps.size-1)) {
               val varName = exps(i) match{
-                case ne : NameExp => ne.name.name
+                case ne: NameExp => ne.name.name
                 case a => a.toString()
               }
               argNames += varName
@@ -38,6 +38,22 @@ object ASTUtil {
     }
 	  argNames.toList
 	}
+  
+  def getReturnVars(jumploc: JumpLocation): List[String] = {
+    val retNames: MList[String] = mlistEmpty
+    jumploc.jump match {
+      case t: CallJump if t.jump.isEmpty =>
+        for(i <- 0 to t.lhss.size - 1){
+          val retName = t.lhss(i) match {
+            case ne: NameExp => ne.name.name
+            case a => a.toString()
+          }
+          retNames += retName
+        }
+      case _ =>
+    }
+    retNames.toList
+  }
   
   def getSignature[T <: Annotable[T]](ast: Annotable[T]): Option[Signature] = {
     ast.getValueAnnotation("signature") match {

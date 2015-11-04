@@ -16,22 +16,29 @@ import org.sireum.jawa.alir.pta._
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
-object HashMapModel {
-	def isHashMap(r : JawaClass) : Boolean = r.getName == "java.util.HashMap"
+object MapModel {
+	def isMap(r : JawaClass) : Boolean = {
+    if(r.isApplicationClass) false
+    else {
+      val map = r.global.getClassOrResolve(new ObjectType("java.util.Map"))
+      val res = r.global.getClassHierarchy.getAllImplementersOf(map).contains(r)
+      res
+    }
+  }
 	
 	private def getPointStringToRet(retVar : String, currentContext : Context): RFAFact = {
     val newThisValue = PTAPointStringInstance(currentContext.copy)
     RFAFact(VarSlot(retVar, false, false), newThisValue)	 
 	}
 	  
-	private def cloneHashMap(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
+	private def cloneMap(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
     require(args.size >0)
     val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  thisValue.map{s => RFAFact(VarSlot(retVar, false, false), s.clone(currentContext))}
   }
 	
-	private def getHashMapEntrySetFactToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
+	private def getMapEntrySetFactToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >0)
     val thisSlot = VarSlot(args(0), false, true)
@@ -43,7 +50,7 @@ object HashMapModel {
 	  result
   }
 	
-	private def getHashMapKeySetToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
+	private def getMapKeySetToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >0)
     val thisSlot = VarSlot(args(0), false, true)
@@ -59,7 +66,7 @@ object HashMapModel {
 	  result
   }
 	
-	private def getHashMapValuesToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
+	private def getMapValuesToRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >0)
     val thisSlot = VarSlot(args(0), false, true)
@@ -75,7 +82,7 @@ object HashMapModel {
 	  result
   }
 	
-	private def getHashMapValue(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
+	private def getMapValue(s : PTAResult, args : List[String], retVar : String, currentContext : Context) : ISet[RFAFact] ={
 	  val result = msetEmpty[RFAFact]
     require(args.size >1)
     val thisSlot = VarSlot(args(0), false, true)
@@ -95,7 +102,7 @@ object HashMapModel {
 	  result.toSet
   } 
 	
-	private def putHashMapValue(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
+	private def putMapValue(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  val result = msetEmpty[RFAFact]
     require(args.size >2)
     val thisSlot = VarSlot(args(0), false, true)
@@ -121,7 +128,7 @@ object HashMapModel {
 	  result.toSet
   }
 	
-	private def putAllHashMapValues(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
+	private def putAllMapValues(s : PTAResult, args : List[String], currentContext : Context) : ISet[RFAFact] ={
 	  var result = isetEmpty[RFAFact]
     require(args.size >1)
     val thisSlot = VarSlot(args(0), false, true)
@@ -139,75 +146,43 @@ object HashMapModel {
 	  result
   }
 	
-	def doHashMapCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+	def doMapCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
-	  p.getSignature.signature match{
-	    case "Ljava/util/HashMap;.<clinit>:()V" =>
-		  case "Ljava/util/HashMap;.<init>:()V" =>
-		  case "Ljava/util/HashMap;.<init>:(I)V" =>
-		  case "Ljava/util/HashMap;.<init>:(IF)V" =>
-		  case "Ljava/util/HashMap;.<init>:(Ljava/util/Map;)V" =>
-		  case "Ljava/util/HashMap;.access$600:(Ljava/util/HashMap;Ljava/lang/Object;Ljava/lang/Object;)Z" =>
-		  case "Ljava/util/HashMap;.access$700:(Ljava/util/HashMap;Ljava/lang/Object;Ljava/lang/Object;)Z" =>
-		  case "Ljava/util/HashMap;.addNewEntry:(Ljava/lang/Object;Ljava/lang/Object;II)V" =>
-		  case "Ljava/util/HashMap;.addNewEntryForNullKey:(Ljava/lang/Object;)V" =>
-		  case "Ljava/util/HashMap;.capacityForInitSize:(I)I" =>
-		  case "Ljava/util/HashMap;.clear:()V" =>
-		  case "Ljava/util/HashMap;.clone:()Ljava/lang/Object;" =>
+	  p.getSignature.getSubSignature match{
+		  case "clear:()V" =>
+		  case "clone:()Ljava/lang/Object;" =>
 		    require(retVars.size == 1)
-		    newFacts ++= cloneHashMap(s, args, retVars(0), currentContext)
+		    newFacts ++= cloneMap(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "Ljava/util/HashMap;.constructorNewEntry:(Ljava/lang/Object;Ljava/lang/Object;ILjava/util/HashMap$HashMapEntry;)Ljava/util/HashMap$HashMapEntry;" =>
-		  case "Ljava/util/HashMap;.constructorPut:(Ljava/lang/Object;Ljava/lang/Object;)V" =>
-		  case "Ljava/util/HashMap;.constructorPutAll:(Ljava/util/Map;)V" =>
-		  case "Ljava/util/HashMap;.containsKey:(Ljava/lang/Object;)Z" =>
-		  case "Ljava/util/HashMap;.containsMapping:(Ljava/lang/Object;Ljava/lang/Object;)Z" =>
-		  case "Ljava/util/HashMap;.containsValue:(Ljava/lang/Object;)Z" =>
-		  case "Ljava/util/HashMap;.doubleCapacity:()[Ljava/util/HashMap$HashMapEntry;" =>
-		  case "Ljava/util/HashMap;.ensureCapacity:(I)V" =>
-		  case "Ljava/util/HashMap;.entrySet:()Ljava/util/Set;" =>
+		  case "entrySet:()Ljava/util/Set;" =>
 		    require(retVars.size == 1)
-		    newFacts ++= getHashMapEntrySetFactToRet(s, args, retVars(0), currentContext)
+		    newFacts ++= getMapEntrySetFactToRet(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "Ljava/util/HashMap;.get:(Ljava/lang/Object;)Ljava/lang/Object;" =>
+		  case "get:(Ljava/lang/Object;)Ljava/lang/Object;" =>
 		    require(retVars.size == 1)
-		    newFacts ++= getHashMapValue(s, args, retVars(0), currentContext)
+		    newFacts ++= getMapValue(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "Ljava/util/HashMap;.init:()V" =>
-		  case "Ljava/util/HashMap;.isEmpty:()Z" =>
-		  case "Ljava/util/HashMap;.keySet:()Ljava/util/Set;" =>
+		  case "keySet:()Ljava/util/Set;" =>
 		    require(retVars.size == 1)
-		    newFacts ++= getHashMapKeySetToRet(s, args, retVars(0), currentContext)
+		    newFacts ++= getMapKeySetToRet(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "Ljava/util/HashMap;.makeTable:(I)[Ljava/util/HashMap$HashMapEntry;" =>
-		  case "Ljava/util/HashMap;.newEntryIterator:()Ljava/util/Iterator;" =>
-		  case "Ljava/util/HashMap;.newKeyIterator:()Ljava/util/Iterator;" =>
-		  case "Ljava/util/HashMap;.newValueIterator:()Ljava/util/Iterator;" =>
-		  case "Ljava/util/HashMap;.postRemove:(Ljava/util/HashMap$HashMapEntry;)V" =>
-		  case "Ljava/util/HashMap;.preModify:(Ljava/util/HashMap$HashMapEntry;)V" =>
-		  case "Ljava/util/HashMap;.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;" =>
-		    newFacts ++= putHashMapValue(s, args, currentContext)
+		  case "put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;" =>
+		    newFacts ++= putMapValue(s, args, currentContext)
 		    byPassFlag = false
-		  case "Ljava/util/HashMap;.putAll:(Ljava/util/Map;)V" =>
-		    newFacts ++= putAllHashMapValues(s, args, currentContext)
+		  case "putAll:(Ljava/util/Map;)V" =>
+		    newFacts ++= putAllMapValues(s, args, currentContext)
 		    byPassFlag = false
-		  case "Ljava/util/HashMap;.putValueForNullKey:(Ljava/lang/Object;)Ljava/lang/Object;" =>
-		  case "Ljava/util/HashMap;.readObject:(Ljava/io/ObjectInputStream;)V" =>
-		  case "Ljava/util/HashMap;.remove:(Ljava/lang/Object;)Ljava/lang/Object;" =>
+		  case "remove:(Ljava/lang/Object;)Ljava/lang/Object;" =>
 		    require(retVars.size == 1)
-		    newFacts ++= getHashMapValue(s, args, retVars(0), currentContext)
+		    newFacts ++= getMapValue(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "Ljava/util/HashMap;.removeMapping:(Ljava/lang/Object;Ljava/lang/Object;)Z" =>
-		  case "Ljava/util/HashMap;.removeNullKey:()Ljava/lang/Object;" =>
-		  case "Ljava/util/HashMap;.secondaryHash:(Ljava/lang/Object;)I" =>
-		  case "Ljava/util/HashMap;.size:()I" =>
-		  case "Ljava/util/HashMap;.values:()Ljava/util/Collection;" =>
+		  case "values:()Ljava/util/Collection;" =>
 		    require(retVars.size == 1)
-		    newFacts ++= getHashMapValuesToRet(s, args, retVars(0), currentContext)
+		    newFacts ++= getMapValuesToRet(s, args, retVars(0), currentContext)
 		    byPassFlag = false
-		  case "Ljava/util/HashMap;.writeObject:(Ljava/io/ObjectOutputStream;)V" =>
+		  case _ =>
 	  }
 	  (newFacts, delFacts, byPassFlag)
 	}

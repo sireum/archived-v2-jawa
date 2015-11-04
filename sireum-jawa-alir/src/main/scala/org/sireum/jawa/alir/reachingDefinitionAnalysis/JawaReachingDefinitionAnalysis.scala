@@ -72,7 +72,7 @@ object JawaReachingDefinitionAnalysis {
           var i = -1
           val paramDefs = callDefs.map { s =>
             i += 1
-            s.diff(defs).map { d =>
+            s.diff(strongDefs).map { d =>
               (d, ParamDefDesc(ldd.locUri, ldd.locIndex, ldd.transIndex,
                 ldd.commandIndex, i)) : RDFact
             }
@@ -93,31 +93,12 @@ object JawaReachingDefinitionAnalysis {
       extends MonotonicFunction[RDFact] {
     
     def apply(s : ISet[RDFact], a : Assignment) : ISet[RDFact] = {
+      val strongDefs = defRef.strongDefinitions(a)
       var result = s
-      a match{
-        case j : CallJump =>
-          val strongDefs = defRef.strongDefinitions(j)
-          val callDefs = defRef.callDefinitions(j)
-          for (rdf @ (slot, _) <- s) {
-            if (strongDefs.contains(slot)) {
-              result = result - rdf
-            }
-          }
-          callDefs.map { 
-            cd =>
-              for (rdf @ (slot, _) <- s) {
-                if (cd.contains(slot)) {
-                  result = result - rdf
-                }
-              }
-          }
-        case _ =>
-          val strongDefs = defRef.strongDefinitions(a)
-          for (rdf @ (slot, _) <- s) {
-            if (strongDefs.contains(slot)) {
-              result = result - rdf
-            }
-          }
+      for (rdf @ (slot, _) <- s) {
+        if (strongDefs.contains(slot)) {
+          result = result - rdf
+        }
       }
       result
     }

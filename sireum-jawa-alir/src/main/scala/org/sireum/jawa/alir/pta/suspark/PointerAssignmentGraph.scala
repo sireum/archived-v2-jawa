@@ -44,6 +44,7 @@ import org.sireum.jawa.alir.interProcedural.StaticCallee
 import org.sireum.jawa.alir.pta.StaticFieldSlot
 import org.sireum.jawa.alir.pta.PTAInstance
 import org.sireum.jawa.alir.pta.ClassInstance
+import org.sireum.jawa.alir.pta.PTASlot
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -610,7 +611,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
 }
 
 final case class PtaNode(point: Point, context: Context) extends InterProceduralNode(context) {
-  def getSlots(ptaresult: PTAResult): ISet[Slot] = {
+  def getSlots(ptaresult: PTAResult): ISet[PTASlot] = {
     point match {
       case pao: PointArrayO =>
         Set(InstanceSlot(PTAInstance(new ObjectType(pao.obj, pao.dimensions), context.copy, false)))

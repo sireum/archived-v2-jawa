@@ -12,6 +12,8 @@ import org.sireum.util.IList
 import org.sireum.jawa.alir.interProcedural.InterProceduralGraph
 import org.sireum.jawa.alir.dataDependenceAnalysis.InterproceduralDataDependenceAnalysis
 import org.sireum.jawa.Signature
+import org.sireum.alir.AlirEdge
+import org.sireum.jawa.alir.interProcedural.InterProceduralNode
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -25,33 +27,69 @@ trait TaintDescriptor {
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
- */ 
-trait TaintNode {
-  def getNode: InterproceduralDataDependenceAnalysis.Node
-  def getDescriptor: TaintDescriptor
+ */
+case class TypeTaintDescriptor(desc: String, position: Option[Int], typ: String) extends TaintDescriptor {
+  override def toString: String = s"$typ: $desc ${if(position.isDefined) position.get.toString else ""}"
+}
+
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */
+case class TagTaintDescriptor(desc: String, positions: ISet[Int], typ: String, tags: ISet[String]) extends TaintDescriptor {
+  override def toString: String = s"$typ: $desc ${positions.mkString("|")} ${tags.mkString("|")}"
+}
+
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */
+trait TaintNode[N <: InterProceduralNode] {
+  def node: N
+  def descriptor: TaintDescriptor
   def isSource: Boolean
   def isSink: Boolean
-  def isSame(tn: TaintNode): Boolean
+  def isSame(tn: TaintNode[N]): Boolean
+}
+
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */
+case class TaintSource[N <: InterProceduralNode](node: N, descriptor: TaintDescriptor) extends TaintNode[N] {
+  def isSource = true
+  def isSink = false
+  def isSame(tn: TaintNode[N]): Boolean = descriptor == tn.descriptor && node.getContext.getCurrentLocUri == node.getContext.getCurrentLocUri
+}
+
+/**
+ * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
+ * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
+ */
+case class TaintSink[N <: InterProceduralNode](node: N, descriptor: TaintDescriptor) extends TaintNode[N] {
+  def isSource = false
+  def isSink = true
+  def isSame(tn: TaintNode[N]): Boolean = descriptor == descriptor && node.getContext.getCurrentLocUri == node.getContext.getCurrentLocUri
 }
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-trait TaintPath {
-  def getSource: TaintNode
-  def getSink: TaintNode
+trait TaintPath[N <: InterProceduralNode, E <: AlirEdge[N]] {
+  def getSource: TaintNode[N]
+  def getSink: TaintNode[N]
   def getTypes: ISet[String]
-  def getPath: IList[InterproceduralDataDependenceAnalysis.Edge]
-  def isSame(tp: TaintPath): Boolean
+  def getPath: IList[E]
+  def isSame(tp: TaintPath[N, E]): Boolean
 }
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-trait TaintAnalysisResult {
-  def getSourceNodes: ISet[TaintNode]
-  def getSinkNodes: ISet[TaintNode]
-  def getTaintedPaths: ISet[TaintPath]
+trait TaintAnalysisResult[N <: InterProceduralNode, E <: AlirEdge[N]] {
+  def getSourceNodes: ISet[TaintNode[N]]
+  def getSinkNodes: ISet[TaintNode[N]]
+  def getTaintedPaths: ISet[TaintPath[N, E]]
 }

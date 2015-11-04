@@ -29,9 +29,8 @@ trait ModelCallHandler {
     StringBuilderModel.isStringBuilder(r) ||
     StringModel.isString(r) ||
     ListModel.isList(r) ||
-    HashSetModel.isHashSet(r) || 
-    HashtableModel.isHashtable(r) ||
-    HashMapModel.isHashMap(r) ||
+    SetModel.isSet(r) || 
+    MapModel.isMap(r) ||
     ClassModel.isClass(r) ||
 //    ConstructorModel.isConstructor(calleeProc) ||
     ObjectModel.isObject(r) ||
@@ -71,9 +70,8 @@ trait ModelCallHandler {
     if(StringModel.isString(r)) StringModel.doStringCall(s, calleeProc, args, retVars, currentContext)
     else if(StringBuilderModel.isStringBuilder(r)) StringBuilderModel.doStringBuilderCall(s, calleeProc, args, retVars, currentContext)
     else if(ListModel.isList(r)) ListModel.doListCall(s, calleeProc, args, retVars, currentContext)
-    else if(HashSetModel.isHashSet(r)) HashSetModel.doHashSetCall(s, calleeProc, args, retVars, currentContext)
-    else if(HashtableModel.isHashtable(r)) HashtableModel.doHashtableCall(s, calleeProc, args, retVars, currentContext)
-    else if(HashMapModel.isHashMap(r)) HashMapModel.doHashMapCall(s, calleeProc, args, retVars, currentContext)
+    else if(SetModel.isSet(r)) SetModel.doSetCall(s, calleeProc, args, retVars, currentContext)
+    else if(MapModel.isMap(r)) MapModel.doMapCall(s, calleeProc, args, retVars, currentContext)
     else if(ClassModel.isClass(r)) ClassModel.doClassCall(s, calleeProc, args, retVars, currentContext)
 //    else if(ConstructorModel.isConstructor(calleeProc)) ConstructorModel.doConstructorCall(s, calleeProc, args, retVars, currentContext)
     else if(ObjectModel.isObject(r)) ObjectModel.doObjectCall(s, calleeProc, args, retVars, currentContext)

@@ -108,6 +108,45 @@ object InterproceduralDataDependenceAnalysis {
                   }
               }
             case rn: IDDGReturnVarNode =>
+              val icfgN = icfg.getICFGReturnNode(rn.getContext)
+              val icfgTarN = icfg.predecessors(icfgN)
+              icfgTarN.foreach{
+                N =>
+                  N match{
+                    case cn: ICFGCallNode =>
+                      val retSlot = VarSlot(rn.retVarName, false, false)
+                      val retInss = ptaresult.pointsToSet(retSlot, rn.getContext)
+                      val idEntNs = iddg.getIDDGCallArgNodes(rn.icfgN).map(_.asInstanceOf[IDDGCallArgNode])
+                      if(retInss.isEmpty) targetNodes ++= idEntNs
+                      else {
+                        val argInss = 
+                          idEntNs.map {
+                            n =>
+                              val argSlot = VarSlot(n.argName, false, true)
+                              ptaresult.getRelatedInstances(argSlot, n.getContext)
+                          }
+                        val poss = retInss.map {
+                          ins =>
+                            argInss.filter(_.contains(ins)) map (argInss.indexOf(_))
+                        }.fold(ilistEmpty)(_ ++ _)
+                        if(poss.isEmpty) targetNodes ++= idEntNs
+                        else {
+                          targetNodes ++= poss.map(pos => iddg.findDefSite(cn.getContext, pos))
+                        }
+                      }
+                    case en: ICFGExitNode =>
+                      val enPreds = icfg.predecessors(en)
+                      enPreds foreach {
+                        enPred =>
+                          enPred match {
+                            case nn: ICFGNormalNode =>
+                              targetNodes += iddg.findDefSite(nn.getContext)
+                            case _ =>
+                          }
+                      }
+                    case _ =>
+                  }
+              }
             case vn: IDDGVirtualBodyNode =>
               val icfgN = vn.icfgN
               val idEntNs = iddg.getIDDGCallArgNodes(icfgN)
@@ -293,8 +332,7 @@ object InterproceduralDataDependenceAnalysis {
         val value = ptaresult.pointsToSet(slot, node.getContext)
         value.foreach{
           ins =>
-            val defSite = ins.defSite
-            result += iddg.findDefSite(defSite)
+            result += iddg.findDefSite(ins.defSite)
         }
       case ae: AccessExp =>
         val fieldName: String = JavaKnowledge.getFieldNameFromFieldFQN(ae.attributeName.name)
@@ -434,15 +472,14 @@ object InterproceduralDataDependenceAnalysis {
             case pdd: ParamDefDesc =>
               pdd.locUri match{
                 case Some(locU) =>
-//                  result += iddg.findDefSite(tarContext, pdd.paramIndex)
-                  result += iddg.findDefSite(tarContext)
+                  result ++= iddg.findVirtualBodyDefSite(tarContext)
                 case None =>
                   throw new RuntimeException("Unexpected ParamDefDesc: " + pdd)
               }
             case ldd: LocDefDesc => 
               ldd.locUri match {
                 case Some(locU) =>
-                  result += iddg.findDefSite(tarContext)
+                  result += iddg.findDefSite(tarContext, true)
                 case None =>
                   throw new RuntimeException("Unexpected LocDefDesc: " + ldd)
               }

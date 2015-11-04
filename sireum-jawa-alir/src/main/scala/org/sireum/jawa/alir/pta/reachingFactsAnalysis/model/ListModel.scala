@@ -22,8 +22,11 @@ import org.sireum.jawa.ObjectType
  */
 object ListModel {
   def isList(r: JawaClass): Boolean = {
-    val list = r.global.getClassOrResolve(new ObjectType("java.util.AbstractList"))
-    r.isChildOf(list)
+    if(r.isApplicationClass) false
+    else {
+      val list = r.global.getClassOrResolve(new ObjectType("java.util.List"))
+      r.global.getClassHierarchy.getAllImplementersOf(list).contains(r)
+    }
   }
     
   private def addItemToListField(s: PTAResult, args: List[String], itempar: Int, currentContext: Context): ISet[RFAFact] ={

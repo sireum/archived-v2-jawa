@@ -14,6 +14,7 @@ import org.sireum.jawa.io._
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
+  private final val TITLE = "ClassHierarchy"
   /**
    * this map is from class to it's sub-classes.
    */
@@ -73,7 +74,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getAllSubClassesOfIncluding(r: JawaClass): ISet[JawaClass] = {
     if(r.isInterface){
-      reporter.error(NoPosition, "Cannot get sub class for interface " + r)
+      reporter.error(TITLE, "Cannot get sub class for interface " + r)
       isetEmpty
     }
     else getAllSubClassesOf(r) + r
@@ -84,7 +85,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getAllSubClassesOf(r: JawaClass): ISet[JawaClass] = {
     if(r.isInterface){
-      reporter.error(NoPosition, "Cannot get sub class for interface " + r)
+      reporter.error(TITLE, "Cannot get sub class for interface " + r)
       isetEmpty
     } else {
       this.classToAllSubClasses.get(r) match{
@@ -105,7 +106,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getAllSuperClassesOfIncluding(r: JawaClass): ISet[JawaClass] = {
     if(r.isInterface){
-      reporter.error(NoPosition, "Cannot get super class for interface " + r)
+      reporter.error(TITLE, "Cannot get super class for interface " + r)
       isetEmpty
     }
     getAllSuperClassesOf(r) + r
@@ -116,7 +117,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getAllSuperClassesOf(r: JawaClass): Set[JawaClass] = {
     if(r.isInterface) {
-      reporter.error(NoPosition, "Cannot get super class for interface " + r)
+      reporter.error(TITLE, "Cannot get super class for interface " + r)
       isetEmpty
     } else {
       var rl = r
@@ -134,7 +135,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getAllSubInterfacesOfIncluding(r: JawaClass): ISet[JawaClass] = {
     if(!r.isInterface){
-      reporter.error(NoPosition, "Cannot get sub interface for class " + r)
+      reporter.error(TITLE, "Cannot get sub interface for class " + r)
       isetEmpty
     } else {
       getAllSubInterfacesOf(r) + r
@@ -146,7 +147,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getAllSubInterfacesOf(r: JawaClass): Set[JawaClass] = {
     if(!r.isInterface){
-      reporter.error(NoPosition, "Cannot get sub interface for class " + r)
+      reporter.error(TITLE, "Cannot get sub interface for class " + r)
       isetEmpty
     } else {
       this.interfaceToAllSubInterfaces.get(r) match{
@@ -167,7 +168,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getAllSuperInterfacesOfIncluding(r: JawaClass): Set[JawaClass] = {
     if(!r.isInterface){
-      reporter.error(NoPosition, "Cannot get super interface for class " + r)
+      reporter.error(TITLE, "Cannot get super interface for class " + r)
       isetEmpty
     } else {
       getAllSuperInterfacesOf(r) + r
@@ -179,7 +180,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getAllSuperInterfacesOf(r: JawaClass): Set[JawaClass] = {
     if(!r.isInterface){
-      reporter.error(NoPosition, "Cannot get super interface for class " + r)
+      reporter.error(TITLE, "Cannot get super interface for class " + r)
       isetEmpty
     } else {
       val ins = r.getInterfaces
@@ -194,7 +195,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getSubClassesOfIncluding(r: JawaClass): Set[JawaClass] = {
     if(r.isInterface){
-      reporter.error(NoPosition, "Cannot get sub class for interface " + r)
+      reporter.error(TITLE, "Cannot get sub class for interface " + r)
       isetEmpty
     } else {
       getSubClassesOf(r) + r
@@ -206,7 +207,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getSubClassesOf(r: JawaClass): Set[JawaClass] = {
     if(r.isInterface){
-      reporter.error(NoPosition, "Cannot get sub class for interface " + r)
+      reporter.error(TITLE, "Cannot get sub class for interface " + r)
       isetEmpty
     } else {
       this.classToSubClasses.getOrElse(r, msetEmpty).toSet
@@ -218,7 +219,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getSuperClassOf(r: JawaClass): Option[JawaClass] = {
     if(r.isInterface){
-      reporter.error(NoPosition, "Cannot get super class for interface " + r)
+      reporter.error(TITLE, "Cannot get super class for interface " + r)
       None
     } else {
       r.getSuperClass
@@ -230,7 +231,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getSubInterfacesOfIncluding(r: JawaClass): ISet[JawaClass] = {
     if(!r.isInterface){
-      reporter.error(NoPosition, "Cannot get sub interface for class " + r)
+      reporter.error(TITLE, "Cannot get sub interface for class " + r)
       isetEmpty
     } else {
       getSubInterfacesOf(r) + r
@@ -242,7 +243,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getSubInterfacesOf(r: JawaClass): ISet[JawaClass] = {
     if(!r.isInterface) {
-      reporter.error(NoPosition, "Cannot get sub interface for class " + r)
+      reporter.error(TITLE, "Cannot get sub interface for class " + r)
       isetEmpty
     } else {
       this.interfaceToSubInterfaces.getOrElse(r, msetEmpty).toSet
@@ -254,7 +255,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getSuperInterfacesOf(r: JawaClass): ISet[JawaClass] = {
     if(!r.isInterface) {
-      reporter.error(NoPosition, "Cannot get super interface for class " + r)
+      reporter.error(TITLE, "Cannot get super interface for class " + r)
       isetEmpty
     } else {
       r.getInterfaces
@@ -266,7 +267,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getAllImplementersOf(r: JawaClass): ISet[JawaClass] = {
     if(!r.isInterface) {
-      reporter.error(NoPosition, "Cannot get implementer for class " + r)
+      reporter.error(TITLE, "Cannot get implementer for class " + r)
       isetEmpty
     } else {
       val subI = getSubInterfacesOfIncluding(r)
@@ -281,7 +282,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def getImplementersOf(r: JawaClass): ISet[JawaClass] = {
     if(!r.isInterface){
-      reporter.error(NoPosition, "Cannot get implementer for class " + r)
+      reporter.error(TITLE, "Cannot get implementer for class " + r)
       isetEmpty
     } else {
       this.interfaceToImplememters.getOrElse(r, msetEmpty).toSet
@@ -307,7 +308,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def isClassSubClassOf(child: JawaClass, parent: JawaClass): Boolean = {
     if(child.isInterface){
-      reporter.error(NoPosition, "Cannot get sub class for interface " + child)
+      reporter.error(TITLE, "Cannot get sub class for interface " + child)
       false
     } else {
       getSuperClassOf(child) == parent
@@ -333,7 +334,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def isClassSuperClassOf(parent: JawaClass, child: JawaClass): Boolean = {
     if(parent.isInterface) {
-      reporter.error(NoPosition, "Super class cannot be interface " + parent)
+      reporter.error(TITLE, "Super class cannot be interface " + parent)
       false
     } else {
       child.getSuperClass == parent
@@ -345,7 +346,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def isClassRecursivelySubInterfaceOf(child: JawaClass, parent: JawaClass): Boolean = {
     if(!child.isInterface) {
-      reporter.error(NoPosition, "Sub interface cannot be class " + child)
+      reporter.error(TITLE, "Sub interface cannot be class " + child)
       false
     }  else {
       getAllSuperInterfacesOf(child).contains(parent)
@@ -357,7 +358,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def isClassRecursivelySubInterfaceOfIncluding(child: JawaClass, parent: JawaClass): Boolean = {
     if(!child.isInterface) {
-      reporter.error(NoPosition, "Sub interface cannot be class " + child)
+      reporter.error(TITLE, "Sub interface cannot be class " + child)
       false
     }  else {
       getAllSuperInterfacesOfIncluding(child).contains(parent)
@@ -369,7 +370,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def isClassSubInterfaceOf(child: JawaClass, parent: JawaClass): Boolean = {
     if(!child.isInterface) {
-      reporter.error(NoPosition, "Sub interface cannot be class " + child)
+      reporter.error(TITLE, "Sub interface cannot be class " + child)
       false
     }  else {
       getSuperInterfacesOf(child).contains(parent)
@@ -395,7 +396,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def resolveConcreteDispatch(concreteType: JawaClass, p: JawaMethod): Option[JawaMethod] = {
     if(concreteType.isInterface){
-      reporter.error(NoPosition, "concreteType need to be class type: " + concreteType)
+      reporter.error(TITLE, "concreteType need to be class type: " + concreteType)
       None
     } else {
       val pSubSig = p.getSubSignature
@@ -408,22 +409,22 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
    */
   def resolveConcreteDispatch(concreteType: JawaClass, pSubSig: String): Option[JawaMethod] = {
     if(concreteType.isInterface){
-      reporter.error(NoPosition, "concreteType need to be class type: " + concreteType)
+      reporter.error(TITLE, "concreteType need to be class type: " + concreteType)
       None
     } else {
       findMethodThroughHierarchy(concreteType, pSubSig) match {
         case apOpt @ Some(ap) => 
           if(ap.isAbstract){
-            reporter.error(NoPosition, "Target procedure needs to be non-abstract method type: " + ap)
+            reporter.error(TITLE, "Target procedure needs to be non-abstract method type: " + ap)
             None
           }
           else if(!isMethodVisible(concreteType, ap)){
-            reporter.error(NoPosition, "Target procedure " + ap + " needs to be visible from: " + concreteType)
+            reporter.error(TITLE, "Target procedure " + ap + " needs to be visible from: " + concreteType)
             None
           }
           else apOpt
         case None => 
-          reporter.error(NoPosition, "Cannot resolve concrete dispatch!\n" + "Type:" + concreteType + "\nMethod:" + pSubSig)
+          reporter.error(TITLE, "Cannot resolve concrete dispatch!\n" + "Type:" + concreteType + "\nMethod:" + pSubSig)
           None
       }
     }
@@ -497,7 +498,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
           results += unknownMethod
         }
       } else {
-        reporter.error(NoPosition, "Could not resolve abstract dispath for:\nclass:" + r + " method:" + pSubSig)
+        reporter.error(TITLE, "Could not resolve abstract dispath for:\nclass:" + r + " method:" + pSubSig)
       }
     }
     results.toSet

@@ -20,20 +20,29 @@ trait DataDependenceBaseGraph[Node <: IDDGNode] extends InterProceduralGraph[Nod
   def entryNode: Node
   def icfg: InterproceduralControlFlowGraph[ICFGNode]
   
-  def findDefSite(defSite: Context): Node = {
+  def findDefSite(defSite: Context, isRet: Boolean = false): Node = {
     val icfgN = {
       if(this.icfg.icfgNormalNodeExists(defSite)) this.icfg.getICFGNormalNode(defSite)
       else if(this.icfg.icfgCallNodeExists(defSite)) this.icfg.getICFGCallNode(defSite)
       else if(defSite.getLocUri == "L0000") this.icfg.entryNode
-//      else if(defSite.toString == "(Center,L0000)") this.icfg.centerNode
       else throw new RuntimeException("Cannot find node: " + defSite)
     }
     if(icfgN.isInstanceOf[ICFGNormalNode] && iddgNormalNodeExists(icfgN.asInstanceOf[ICFGNormalNode])) getIDDGNormalNode(icfgN.asInstanceOf[ICFGNormalNode])
+    else if(icfgN.isInstanceOf[ICFGCallNode] && isRet && iddgReturnVarNodeExists(icfgN.asInstanceOf[ICFGCallNode])) getIDDGReturnVarNode(icfgN.asInstanceOf[ICFGCallNode])
     else if(icfgN.isInstanceOf[ICFGCallNode] && iddgVirtualBodyNodeExists(icfgN.asInstanceOf[ICFGCallNode])) getIDDGVirtualBodyNode(icfgN.asInstanceOf[ICFGCallNode])
-    else if(icfgN.isInstanceOf[ICFGCallNode] && iddgReturnVarNodeExists(icfgN.asInstanceOf[ICFGCallNode])) getIDDGReturnVarNode(icfgN.asInstanceOf[ICFGCallNode])
     else if(icfgN == this.icfg.entryNode) this.entryNode
-//    else if(icfgN == this.icfg.centerNode) this.centerNode
     else throw new RuntimeException("Cannot find node: " + defSite)
+  }
+  
+  def findVirtualBodyDefSite(defSite: Context): Option[Node] = {
+    val icfgN = if(this.icfg.icfgCallNodeExists(defSite)) Some(this.icfg.getICFGCallNode(defSite)) else None
+    icfgN match {
+      case Some(n: ICFGCallNode) =>
+        if(iddgVirtualBodyNodeExists(n)) 
+          Some(getIDDGVirtualBodyNode(n))
+        else None
+      case _ => None
+    }
   }
   
   def findDefSite(defSite: Context, position: Int): Node = {
@@ -114,14 +123,14 @@ trait DataDependenceBaseGraph[Node <: IDDGNode] extends InterProceduralGraph[Nod
   def getIDDGCallArgNode(icfgN: ICFGCallNode, position: Int): Node =
     pool(newIDDGCallArgNode(icfgN, position))
     
-  def getIDDGCallArgNodes(icfgN: ICFGCallNode): Set[Node] = {
-    val result: MSet[Node] = msetEmpty
+  def getIDDGCallArgNodes(icfgN: ICFGCallNode): IList[Node] = {
+    val result: MList[Node] = mlistEmpty
     var position = 0
     while(iddgCallArgNodeExists(icfgN, position)){
       result += pool(newIDDGCallArgNode(icfgN, position))
       position += 1
     }
-    result.toSet
+    result.toList
   }
     
   protected def newIDDGCallArgNode(icfgN: ICFGCallNode, position: Int) = IDDGCallArgNode(icfgN, position)
@@ -362,5 +371,6 @@ final case class IDDGReturnArgNode(icfgN: ICFGReturnNode, position: Int) extends
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 final case class IDDGReturnVarNode(icfgN: ICFGCallNode) extends IDDGInvokeNode(icfgN){
+  var retVarName: String = null
   def getInvokeLabel: String = "ReturnVar"
 }

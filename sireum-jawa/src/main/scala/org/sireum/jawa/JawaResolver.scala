@@ -67,7 +67,7 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
           case Some(usrc) =>
             SourcefileParser.parse(usrc, ResolveLevel.BODY)
           case None =>
-            reporter.error(NoPosition, "Could not find code for " + typ)
+            reporter.error(TITLE, "Could not find code for " + typ)
             throw new RuntimeException("Could not find code for " + typ)
         }
     }
@@ -91,7 +91,7 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
             val rec = new JawaClass(this, classType, "")
             rec.setUnknown
             rec.setResolvingLevel(desiredLevel)
-            reporter.echo(NoPosition, TITLE + " add phantom class " + rec)
+            reporter.echo(TITLE, "Add phantom class " + rec)
             addClassNotFound(classType)
             rec
           case Some(c) =>

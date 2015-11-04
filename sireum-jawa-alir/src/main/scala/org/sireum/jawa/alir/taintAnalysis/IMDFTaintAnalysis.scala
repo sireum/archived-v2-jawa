@@ -1,442 +1,482 @@
 //package org.sireum.jawa.alir.taintAnalysis
 //
 //import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
-//import org.sireum.jawa.alir.controlFlowGraph.CGNode
 //import org.sireum.util._
-//import org.sireum.jawa.alir.reachingFactsAnalysis.VarSlot
 //import org.sireum.jawa.alir.interProcedural._
 //import org.sireum.pilar.ast._
 //import org.sireum.jawa.alir.controlFlowGraph._
 //import org.sireum.jawa.PilarAstHelper
 //import org.sireum.jawa.alir.Context
-//import org.sireum.jawa.ExceptionCenter
+//import org.sireum.jawa.alir.dataFlowAnalysis.CallResolver
+//import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralMonotonicFunction
+//import org.sireum.jawa.alir.pta.reachingFactsAnalysis.ReachingFactsAnalysisHelper
+//import org.sireum.jawa.util.ASTUtil
+//import org.sireum.jawa.Global
+//import org.sireum.jawa.alir.pta.PTAResult
+//import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralMonotoneDataFlowAnalysisFramework
+//import org.sireum.jawa.alir.pta.VarSlot
+//import org.sireum.jawa.alir.dataFlowAnalysis.PstProvider
+//import org.sireum.jawa.Signature
+//import org.sireum.pilar.symbol.ProcedureSymbolTable
+//import org.sireum.jawa.util.MyTimer
+//import org.sireum.alir.AlirEdge
+//import org.sireum.jawa.alir.dataFlowAnalysis.NodeListener
+//import org.sireum.jawa.alir.pta.PTASlot
+//import org.sireum.jawa.JawaType
 //
-//object IMDFTaintAnalysis {
+//class IMDFTaintAnalysis(global: Global, ptaresult: PTAResult, ssm: SourceAndSinkManager) {
 //  final val TITLE = "IMDFTaintAnalysis"
 //  
+//  type Node = ICFGNode
+//  type Edge = (PTASlot, Context)
+//  
+//  class Tp extends TaintPath[Node, Edge] {
+//    var srcN: TaintSource[Node] = null
+//    var sinN: TaintSink[Node] = null
+//    val path: MList[Edge] = mlistEmpty
+//    val typs: MSet[String] = msetEmpty
+//    def getSource = srcN
+//    def getSink = sinN
+//    def getTypes: ISet[String] = this.typs.toSet
+//    def getPath: IList[Edge] = {
+//      path.map(node => new Edge(edge.owner, edge.target, edge.source)).toList
+//    }
+//    def isSame(tp: TaintPath[Node, Edge]): Boolean = getSource.isSame(tp.getSource) && getSink.isSame(tp.getSink)
+//    override def toString: String = {
+//      val sb = new StringBuilder
+//      sb.append("Taint path: ")
+//      this.typs foreach (typ => sb.append(typ + " "))
+//      sb.append("\n")
+//      sb.append(srcN.descriptor + "\n\t-> " + sinN.descriptor + "\n")
+//      if(path.size > 1) {
+//        path.tail.reverse.foreach{
+//          edge =>
+//            sb.append(edge.target.getContext + "\n\t-> ")
+//        }
+//        sb.append(path.head.source.getContext + "\n")
+//      } else {
+//        sb.append(path.head.target.getContext + "\n\t-> ")
+//        sb.append(path.head.source.getContext + "\n")
+//      }
+//      sb.toString().intern
+//    }
+//  }
+//  
+//  case class Tar() extends TaintAnalysisResult[Node, Edge] {
+//    var sourceNodes: ISet[TaintSource[Node]] = isetEmpty
+//    var sinkNodes: ISet[TaintSink[Node]] = isetEmpty
+//    
+//    def getSourceNodes: ISet[TaintNode[Node]] = this.sourceNodes.toSet
+//    def getSinkNodes: ISet[TaintNode[Node]] = this.sinkNodes.toSet
+//    def getTaintedPaths: ISet[TaintPath[Node, Edge]] = {
+//      var tps: ISet[TaintPath[Node, Edge]] = isetEmpty
+//      sinkNodes.foreach {
+//        sinN =>
+//          sourceNodes.foreach {
+//            srcN =>
+////              val path = iddi.getDependentPath(sinN.getNode, srcN.getNode)
+////              if(path != null){
+////                val tp = Tp(path)
+////                tp.srcN = srcN
+////                tp.sinN = sinN
+////                
+////                if(!tp.typs.isEmpty)
+////                  tps += tp
+////              }
+//          }
+//      }
+//      tps
+//    }
+//    override def toString: String = {
+//      val sb = new StringBuilder
+//      val paths = getTaintedPaths
+//      if(!paths.isEmpty){
+//        getTaintedPaths.foreach(tp => sb.append(tp.toString) + "\n")
+//      }
+//      sb.toString.intern()
+//    }
+//  }
+//  
 //  def build //
-//  (icfg : InterproceduralControlFlowGraph[CGNode],
-//   initialFacts : ISet[TaintFact] = isetEmpty,
-//   switchAsOrderedMatch : Boolean) : InterProceduralMonotoneDataFlowAnalysisResult[TaintFact] = {
+//  (icfg: InterproceduralControlFlowGraph[ICFGNode],
+//   initialFacts: ISet[TaintFact] = isetEmpty,
+//   timer: Option[MyTimer],
+//   switchAsOrderedMatch: Boolean) = {
 //    val gen = new Gen
 //    val kill = new Kill
 //    val callr = new Callr
-//    val initial : ISet[TaintFact] = isetEmpty
-//    val iota : ISet[TaintFact] = initialFacts + TaintFact(VarSlot("@@RFAiota"), new TaintTag)
+//    val ppr = new Pstr
+//    val nl = new NL
+//    val initial: ISet[TaintFact] = isetEmpty
+//    val iota: ISet[TaintFact] = initialFacts + TaintFact(PrimitiveTaintSlot(VarSlot("@@Taintiota", false, false)), "IOTA")
 //    val result = InterProceduralMonotoneDataFlowAnalysisFramework[TaintFact](icfg,
-//      true, true, false, false, gen, kill, callr, iota, initial, switchAsOrderedMatch, None)
+//      true, true, false, false, gen, kill, callr, ppr, iota, initial, timer, switchAsOrderedMatch, Some(nl))
 //    result
 //  }
 //  
+//  
+//  class Pstr extends PstProvider {
+//    def getPst(sig: Signature): ProcedureSymbolTable = {
+//      global.getMethod(sig).get.getBody
+//    }
+//  }
+//  
+//  class NL extends NodeListener {
+//    def onPreVisitNode(node: InterProceduralMonotoneDataFlowAnalysisFramework.N, preds: CSet[InterProceduralMonotoneDataFlowAnalysisFramework.N]): Unit = {
+//      if(!processed.contains(node)) {
+//        processed += node
+//        val (srcs, sins) = ssm.getSourceAndSinkNode(node, ptaresult)
+//        srcSet ++= srcs.map{src => (src.node, src.asInstanceOf[TagTaintDescriptor])}
+//        sinSet ++= sins.map{sin => (sin.node, sin.asInstanceOf[TagTaintDescriptor])}
+//      }
+//    }
+//    
+//    def onPostVisitNode(node: InterProceduralMonotoneDataFlowAnalysisFramework.N, succs: CSet[InterProceduralMonotoneDataFlowAnalysisFramework.N]): Unit = {
+//      ???
+//    }
+//  }
+//  
+//  private val processed: MSet[InterProceduralMonotoneDataFlowAnalysisFramework.N] = msetEmpty
+//  private val srcSet: MMap[InterProceduralMonotoneDataFlowAnalysisFramework.N, TagTaintDescriptor] = mmapEmpty
+//  private val sinSet: MMap[InterProceduralMonotoneDataFlowAnalysisFramework.N, TagTaintDescriptor] = mmapEmpty
+//  private val sanSet: MMap[InterProceduralMonotoneDataFlowAnalysisFramework.N, ISet[String]] = mmapEmpty // TODO
+//  private val tgeSet: MMap[InterProceduralMonotoneDataFlowAnalysisFramework.N, ISet[String]] = mmapEmpty // TODO
+//  
+//  private val paths: MMap[TaintSlot, Tp] = mmapEmpty
+//  private val dataTrans: MMap[TaintSlot, TaintSlot] = mmapEmpty
+//  private def updatePath(ts: TaintSlot, ps: PTASlot, node: ICFGNode, isSource: Boolean, isSink: Boolean) = {
+//    val tp = paths.getOrElseUpdate(ts, new Tp)
+//    if(isSource) tp.srcN = TaintSource(node, srcSet(node))
+//    if(isSink) tp.sinN = TaintSink(node, sinSet(node))
+//    tp.path += ((ps, node.getContext))
+//  }
+//  
+//  private def isObjectAssignment(a: Assignment): Boolean = {
+//    var result = false
+//    a match{
+//      case aa: AssignAction => 
+//        aa.rhs match {
+//          case ne: NewExp => result = true
+//          case ce: CastExp => result = true
+//          case _ =>
+//            a.getValueAnnotation("kind") match {
+//              case Some(e) => 
+//                e match{
+//                  case ne: NameExp => result = (ne.name.name == "object")
+//                  case _ =>
+//                }
+//              case None => 
+//            }
+//        }
+//      case _ =>
+//    }
+//    result
+//  }
+//  
+//  private def processPTASlots(slots: ISet[PTASlot], context: Context, isObject: Boolean): IMap[PTASlot, ISet[TaintSlot]] = {
+//    val result: MMap[PTASlot, ISet[TaintSlot]] = mmapEmpty
+//    if(isObject) {
+//      slots.foreach{
+//        slot =>
+//          val inss = ptaresult.pointsToSet(slot, context)
+//          result(slot) = inss.map(InstanceTaintSlot(_))
+//      }
+//    } else {
+//      slots.map {s => result(s) = Set(PrimitiveTaintSlot(s))}
+//    }
+//    result.toMap
+//  }
+//  
+//  /**
+//   * Gen algorithm:
+//   * 1. If current node is source, then it generate a TaintFact with the tags associate with the source.
+//   * 2. If current node is an object operation then wherever the instance going get tainted.
+//   * 3. If current node is a scala value operation then the left value get tainted.
+//   * 4. If a tag generate node found, gen the tag facts.
+//   */
 //  class Gen
 //      extends InterProceduralMonotonicFunction[TaintFact] {
 //    
-//    protected def isInterestingAssignment(a : Assignment) : Boolean = {
-//      var result = false
-//      a match{
-//        case aa : AssignAction => 
-//          aa.rhs match{
-//            case ne : NewExp => result = true
-//            case ce : CastExp => result = true
-//            case _ =>
+//    def apply(s: ISet[TaintFact], a: Assignment, currentNode: ICFGLocNode): ISet[TaintFact] = {
+//      val result: MSet[TaintFact] = msetEmpty
+//      val typ = ASTUtil.getType(a)
+//      val lhss = PilarAstHelper.getLHSs(a)
+//      val rhss = PilarAstHelper.getRHSs(a)
+//      val slots: ISet[PTASlot] = ReachingFactsAnalysisHelper.processLHSs(lhss, typ, currentNode.getContext, ptaresult, global).flatMap(_._2).map(_._1).toSet
+//      val isObject = isObjectAssignment(a)
+//      // Here handle statement source. we consider lhs will be tainted for a statement source.
+//      val descOpt = srcSet.get(currentNode)
+//      descOpt.foreach {
+//        desc =>
+//          val taintslots = processPTASlots(slots, currentNode.getContext, isObject)
+//          taintslots.foreach {
+//            case (ps, tss) =>
+//              tss foreach {
+//                ts =>
+//                  updatePath(ts, ps, currentNode, true, false)
+//                  result ++= desc.tags.map(TaintFact(ts, _))
+//              }
 //          }
-//          a.getValueAnnotation("type") match{
-//            case Some(e) => 
-//              e match{
-//                case ne : NameExp => result = (ne.name.name == "object")
+//      }
+//      rhss foreach {
+//        rhs =>
+//          rhs match{
+//            case ne: NameExp =>
+//              val slot = ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ne, typ, false, false, global)
+//              
+//            case le: LiteralExp =>
+//              if(le.typ.name.equals("STRING")){
+//              } else if(le.typ.name.equals("NULL")){
+//              }
+//            case ne: NewExp =>
+//            case ae: AccessExp =>
+//              val fieldFQN = ASTUtil.getFieldFQN(ae, typ.get)
+//              val baseSlot = ae.exp match {
+//                case ne: NameExp => ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ne, typ, true, false, global)
+//                case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
+//              }
+//            case ie: IndexingExp =>
+//              val baseSlot = ie.exp match {
+//                case ine: NameExp =>
+//                  ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ine, typ, true, false, global)
+//                case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
+//              }
+//            case ce: CastExp =>
+//              val casttyp: JawaType = ASTUtil.getTypeFromTypeSpec(ce.typeSpec)
+//              
+//              val insopt = 
+//                if(casttyp.typ == "java.lang.String" && casttyp.dimensions == 0){
+//                  Some(PTAPointStringInstance(currentContext.copy))
+//                } else if (casttyp.isInstanceOf[ObjectType]) {
+//                  Some(PTAInstance(casttyp.asInstanceOf[ObjectType], currentContext.copy, false))
+//                } else None
+//                
+//              insopt match {
+//                case Some(ins) =>
+//                  ce.exp match{
+//                    case ne: NameExp =>
+//                      val slot = ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ne, typ, false, false, global)
+//                      val value: ISet[Instance] = ptaresult.pointsToSet(slot, currentContext)
+//                      result(i) = value.map{
+//                        v =>
+//                          if(v.isInstanceOf[UnknownInstance]){
+//                            UnknownInstance(ins.typ, v.defSite.copy)
+//                          } else {
+//                            v
+//                          }
+//                      }
+//                    case nle: NewListExp =>
+//                      System.err.println(TITLE, "NewListExp: " + nle)
+//                      result(i) = isetEmpty[Instance]// + UnknownInstance(currentContext)
+//                    case _ => throw new RuntimeException("Wrong exp: " + ce.exp)
+//                  }
 //                case _ =>
 //              }
-//            case None => 
+//            case _ =>
 //          }
-//        case cj : CallJump => result = true
-//        case _ =>
 //      }
-//      result
-//    }
-//    
-//    def apply(s : ISet[TaintFact], a : Assignment, currentNode : CGLocNode) : ISet[TaintFact] = {
-//      var result : ISet[TaintFact] = isetEmpty
-//      if(isInterestingAssignment(a)){
-//        val lhss = PilarAstHelper.getLHSs(a)
-//        val rhss = PilarAstHelper.getRHSs(a)
-//        val slots = ReachingFactsAnalysisHelper.processLHSs(lhss, s, currentNode.getContext)
-//        val fieldsFacts = getFieldsFacts(rhss, s, currentNode.getContext)
-//        result ++= fieldsFacts
-//        val values = ReachingFactsAnalysisHelper.processRHSs(rhss, s , currentNode.getContext) 
-//        slots.foreach{
-//          case(i, (slot, _)) =>
-//            if(values.contains(i))
-//              result ++= values(i).map{v => TaintFact(slot, v)}
-//        }
+//      if(isObject){ // Handle if it's an object operation
+//        
+//      } else { // Handle if it's an scala operation
+//        // TODO
 //      }
-//      result
+//      // TODO: Handle if it's a tag gen node
+//      result.toSet
 //    }
 //
-//    def apply(s : ISet[TaintFact], e : Exp, currentNode : CGLocNode) : ISet[TaintFact] = isetEmpty
+//    def apply(s: ISet[TaintFact], e: Exp, currentNode: ICFGLocNode): ISet[TaintFact] = isetEmpty
 //    
-//    def apply(s : ISet[TaintFact], a : Action, currentNode : CGLocNode) : ISet[TaintFact] = {
-//      var result : ISet[TaintFact] = isetEmpty
-//      a match{
-//        case ta : ThrowAction =>
-//          require(ta.exp.isInstanceOf[NameExp])
-//          val slot = VarSlot(ta.exp.asInstanceOf[NameExp].name.name)
-//          val value = s.filter(_.s == slot).map(_.v)
-//          result ++= value.map(TaintFact(VarSlot(ExceptionCenter.EXCEPTION_VAR_NAME), _))
-//        case _ =>
-//      }
-//      result
-//    }
+//    def apply(s: ISet[TaintFact], a: Action, currentNode: ICFGLocNode): ISet[TaintFact] = isetEmpty
 //  }
 //
+//  /**
+//   * Kill algorithm:
+//   * 1. Strong update left-hand-side taint get killed.
+//   * 2. If a sanitizing node found kill associated tag facts.
+//   */
 //  class Kill
 //      extends InterProceduralMonotonicFunction[TaintFact] {
 //    
-//    def apply(s : ISet[TaintFact], a : Assignment, currentNode : CGLocNode) : ISet[TaintFact] = {
+//    def apply(s: ISet[TaintFact], a: Assignment, currentNode: ICFGLocNode): ISet[TaintFact] = {
+//      val typ = ASTUtil.getType(a)
 //      var result = s
 //      val lhss = PilarAstHelper.getLHSs(a)
-//      val slotsWithMark = ReachingFactsAnalysisHelper.processLHSs(lhss, s, currentNode.getContext).values.toSet
-//      val rhss = PilarAstHelper.getRHSs(a)
-//      val stop = ReachingFactsAnalysisHelper.checkRHSs(rhss, s)
-//      if(stop){
-//        result = isetEmpty
-//      } else {
-//        for (rdf @ TaintFact(slot, _) <- s) {
-//          //if it is a strong definition, we can kill the existing definition
-//          if (slotsWithMark.contains(slot, true)) {
-//            result = result - rdf
-//          }
+//      val slotsWithMark = ReachingFactsAnalysisHelper.processLHSs(lhss, typ, currentNode.getContext, ptaresult, global).values.flatten.toSet
+//      for (rdf @ TaintFact(slot, _) <- s) {
+//        slot match {
+//          case pts: PrimitiveTaintSlot =>
+//            //if it is a strong definition, we can kill the existing definition
+//            if (slotsWithMark.contains((pts.s, true))) {
+//              result = result - rdf
+//            }
+//          case _ =>
 //        }
+//        
 //      }
+//      // TODO: Handle if it's a tag kill node
 //      result
 //    }
 //
-//    def apply(s : ISet[TaintFact], e : Exp, currentNode : CGLocNode) : ISet[TaintFact] = s
-//    def apply(s : ISet[TaintFact], a : Action, currentNode : CGLocNode) : ISet[TaintFact] = s
+//    def apply(s: ISet[TaintFact], e: Exp, currentNode: ICFGLocNode): ISet[TaintFact] = s
+//    def apply(s: ISet[TaintFact], a: Action, currentNode: ICFGLocNode): ISet[TaintFact] = s
 //  }
 //  
+//  /**
+//   * Call resolver algorithm:
+//   * 1. If it's a source, then it generate a TaintFact with the tags associate with the source.
+//   * 2. If it's a sink, then if any taint fact reached, generate taint path.
+//   * 3. For non-model call, map taint facts from caller to callee.
+//   * 4. For model call, mark all RFAfacts which contains tainted instance.
+//   * 5. Kill left-hand-side facts.
+//   * 6. If model call return scala value, mark the value as tainted if any of the param tainted.
+//   * 7. Map facts from callee to caller.
+//   */
 //  class Callr
 //      extends CallResolver[TaintFact] {
 //
 //    /**
 //     * It returns the facts for each callee entry node and caller return node
 //     */
-//    def resolveCall(s : ISet[TaintFact], cj : CallJump, callerContext : Context, cg : InterproceduralControlFlowGraph[CGNode]) : (IMap[CGNode, ISet[RFAFact]], ISet[RFAFact]) = {
-//      val calleeSet = ReachingFactsAnalysisHelper.getCalleeSet(s, cj, callerContext)
-//      val cgCallnode = cg.getCGCallNode(callerContext)
-//      cgCallnode.asInstanceOf[CGCallNode].setCalleeSet(calleeSet)
-//      val cgReturnnode = cg.getCGReturnNode(callerContext)
-//      cgReturnnode.asInstanceOf[CGReturnNode].setCalleeSet(calleeSet)
-//      var calleeFactsMap : IMap[CGNode, ISet[TaintFact]] = imapEmpty
-//      var returnFacts : ISet[TaintFact] = s
-//      var tmpReturnFacts : ISet[TaintFact] = isetEmpty
-//      var pureNormalFlag = true  //no mix of normal and model callee
-//      calleeSet.foreach{
-//        callee =>
-//          val calleep = callee.callee
-//          if(AndroidReachingFactsAnalysisHelper.isICCCall(calleep) || AndroidReachingFactsAnalysisHelper.isModelCall(calleep)){
-//            pureNormalFlag = false
-//            val args = cj.callExp.arg match{
-//              case te : TupleExp =>
-//                te.exps.map{
-//                  exp =>
-//                    exp match{
-//                      case ne : NameExp => ne.name.name
-//                      case _ => exp.toString()
-//                    }
-//                }.toList
-//              case _ => throw new RuntimeException("wrong exp type: " + cj.callExp.arg)
+//    def resolveCall(s: ISet[TaintFact], cj: CallJump, callerNode: ICFGNode, cg: InterproceduralControlFlowGraph[ICFGNode]): (IMap[ICFGNode, ISet[TaintFact]], ISet[TaintFact]) = {
+//      val calleeFactsMap: MMap[ICFGNode, MSet[TaintFact]] = mmapEmpty
+//      var returnFacts: ISet[TaintFact] = s
+//      val genSet: MSet[TaintFact] = msetEmpty
+//      val killSet: MSet[TaintFact] = msetEmpty
+//      val typ = ASTUtil.getType(cj)
+//      val lhss = PilarAstHelper.getLHSs(cj)
+//      val slotsWithMark = ReachingFactsAnalysisHelper.processLHSs(lhss, typ, callerNode.getContext, ptaresult, global).values.flatten.toSet
+//      for (rdf @ TaintFact(slot, value) <- s) {
+//        slot match {
+//          case pts: PrimitiveTaintSlot =>
+//            //if it is a strong definition, we can kill the existing definition
+//            if (slotsWithMark.contains(pts.s, true)) {
+//              killSet += rdf
 //            }
-//            
-//            if(AndroidReachingFactsAnalysisHelper.isICCCall(calleep)) {
-//              if(AndroidReachingFactsAnalysisConfig.resolve_icc){
-//                val factsForCallee = getFactsForICCTarget(s, cj, calleep)
-//                returnFacts --= factsForCallee
-//                val (retFacts, targets) = AndroidReachingFactsAnalysisHelper.doICCCall(factsForCallee, calleep, args, cj.lhss.map(lhs=>lhs.name.name), callerContext)
-//                tmpReturnFacts ++= retFacts
-//                targets.foreach{
-//                  target =>
-//                    if(!cg.isProcessed(target.getSignature, callerContext)){
-//                      cg.collectCfgToBaseGraph[String](target, callerContext, false)
-//                      cg.extendGraphOneWay(target.getSignature, callerContext, AndroidReachingFactsAnalysis.ICC_EDGE)
-//                    }
-//                    msg_normal(TITLE, target.getDeclaringRecord + " started!")
-//                    calleeFactsMap += (cg.entryNode(target.getSignature, callerContext) -> mapFactsToICCTarget(factsForCallee, cj, target.getProcedureBody.procedure))
-//                }
-//              }
-//            } else { // for non-ICC model call
-////              if(callee.getSubSignature == "unknown:()LCenter/Unknown;") println("callees-->" + calleeSet + "\ncontext-->" + callerContext + "\nfacts-->" + s)
-//              val factsForCallee = getFactsForCallee(s, cj, calleep)
-//              returnFacts --= factsForCallee
-//              tmpReturnFacts ++= AndroidReachingFactsAnalysisHelper.doModelCall(factsForCallee, calleep, args, cj.lhss.map(lhs=>lhs.name.name), callerContext)
-//            }
-//          } else { // for normal call
-//            if(!cg.isProcessed(calleep.getSignature, callerContext)){
-//              cg.collectCfgToBaseGraph[String](calleep, callerContext, false)
-//              cg.extendGraph(calleep.getSignature, callerContext)
-//            }
-//            val factsForCallee = getFactsForCallee(s, cj, calleep)
-//            returnFacts --= factsForCallee
-//            calleeFactsMap += (cg.entryNode(calleep.getSignature, callerContext) -> mapFactsToCallee(factsForCallee, cj, calleep.getProcedureBody.procedure))
-//          }
-//      }
-//      returnFacts ++= tmpReturnFacts
-//      if(!pureNormalFlag){
-//        if(!cg.hasEdge(cgCallnode, cgReturnnode)){
-//          cg.addEdge(cgCallnode, cgReturnnode)
+//          case _ =>
 //        }
 //      }
-//      (calleeFactsMap, returnFacts)
-//    }
-//    
-//    private def getFactsForICCTarget(s : ISet[TaintFact], cj : CallJump, callee : JawaProcedure) : ISet[RFAFact] = {
-//      val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
-//      var calleeFacts = isetEmpty[RFAFact]
-//      factMap.foreach{case (slot, v) => 
-//        if(slot.isInstanceOf[VarSlot] && slot.asInstanceOf[VarSlot].isGlobal){
-//          calleeFacts ++= v.map{r => RFAFact(slot, r)}
-//          calleeFacts ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(v, s)
-//        }
-//      }
-//      cj.callExp.arg match{
-//        case te : TupleExp => 
-//          val exp = te.exps(1) //assume intent always the first arg
-//          if(exp.isInstanceOf[NameExp]){
-//            val slot = VarSlot(exp.asInstanceOf[NameExp].name.name)
-//            var value = factMap.getOrElse(slot, isetEmpty)
-//            calleeFacts ++= value.map{r => RFAFact(slot, r)}
-//            calleeFacts ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(value, s)
-//          }
-//          calleeFacts
-//        case _ => throw new RuntimeException("wrong exp type: " + cj.callExp.arg)
-//      }
-//    }
-//    
-//    private def getFactsForCallee(s : ISet[RFAFact], cj : CallJump, callee : JawaProcedure) : ISet[RFAFact] = {
-//      val factMap = ReachingFactsAnalysisHelper.getFactMap(s)
-//      var calleeFacts = isetEmpty[RFAFact]
-//      val typ = cj.getValueAnnotation("type") match {
-//          case Some(s) => s match {
-//            case ne : NameExp => ne.name.name
-//            case _ => ""
-//          }
-//          case None => throw new RuntimeException("cannot found annotation 'type' from: " + cj)
-//        }
-//      calleeFacts ++= ReachingFactsAnalysisHelper.getGlobalFacts(s)
-//      cj.callExp.arg match{
-//        case te : TupleExp => 
-//          for(i <- 0 to te.exps.size -1){
-//            val exp = te.exps(i)
-//            if(exp.isInstanceOf[NameExp]){
-//              val slot = VarSlot(exp.asInstanceOf[NameExp].name.name)
-//              var value = factMap.getOrElse(slot, isetEmpty)
-//              if(typ != "static" && i == 0){
-//                value = 
-//                  value.filter{
-//                    r =>
-//                      !r.isInstanceOf[NullInstance] && !r.isInstanceOf[UnknownInstance] && shouldPass(r, callee, typ)
-//                  }
-//              } 
-//              calleeFacts ++= value.map{r => RFAFact(slot, r)}
-//              calleeFacts ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(value, s)
-//            }
-//          }
-//          calleeFacts
-//        case _ => throw new RuntimeException("wrong exp type: " + cj.callExp.arg)
-//      }
-//    }
-//    
-//    /**
-//     * return true if the given recv Instance should pass to the given callee
-//     */
-//    private def shouldPass(recvIns : Instance, calleeProc : JawaProcedure, typ : String) : Boolean = {
-//      val recRecv = Center.resolveRecord(recvIns.getType.name, Center.ResolveLevel.HIERARCHY)
-//      val recCallee = calleeProc.getDeclaringRecord
-//      var tmpRec = recRecv
-//      if(typ == "direct" || typ == "super" ){
-//        true
-//      } else {
-//        while(tmpRec.hasSuperClass){
-//          if(tmpRec == recCallee) return true
-//          else if(tmpRec.declaresProcedure(calleeProc.getSubSignature)) return false
-//          else tmpRec = tmpRec.getSuperClass
-//        }
-//        if(tmpRec == recCallee) return true
-//        else {
-//          err_msg_detail(TITLE, "Given recvIns: " + recvIns + " and calleeProc: " + calleeProc + " is not in the Same hierachy.")
-//          return false
-//        }
-//      }
-//    }
-//    
-//    def mapFactsToCallee(factsToCallee : ISet[RFAFact], cj : CallJump, calleeProcedure : ProcedureDecl) : ISet[RFAFact] = {
-//      val varFacts = factsToCallee.filter(f=>f.s.isInstanceOf[VarSlot] && !f.s.asInstanceOf[VarSlot].isGlobal).map{f=>RFAFact(f.s.asInstanceOf[VarSlot], f.v)}
-//      cj.callExp.arg match{
-//        case te : TupleExp =>
-//          val argSlots = te.exps.map{
+//      val slots: ISet[PTASlot] = slotsWithMark.map(_._1).toSet
+//      val isObject = isObjectAssignment(cj)
+//      val taintslots = processPTASlots(slots, callerNode.getContext, isObject)
+//      val args = cj.callExp.arg match{
+//        case te: TupleExp =>
+//          te.exps.map{
 //            exp =>
 //              exp match{
-//                case ne : NameExp => VarSlot(ne.name.name)
-//                case _ => VarSlot(exp.toString())
+//                case ne: NameExp => ne.name.name
+//                case _ => exp.toString()
 //              }
-//          }
-//          var paramSlots : List[VarSlot] = List()
-//          calleeProcedure.params.foreach{
-//            param =>
-//              require(param.typeSpec.isDefined)
-//              param.typeSpec.get match{
-//                case nt : NamedTypeSpec => 
-//                  val name = nt.name.name
-//                  if(name=="long" || name=="double")
-//                    paramSlots :+= VarSlot(param.name.name)
-//                case _ =>
-//              }
-//              paramSlots :+= VarSlot(param.name.name)
-//          }
-//          var result = isetEmpty[RFAFact]
-//          
-//          for(i <- 0 to argSlots.size - 1){
-//            if(!paramSlots.isDefinedAt(i)){
-//              err_msg_critical(TITLE, "argSlots does not adjust to paramSlots:\n" + cj.callExp.arg + "\n" + calleeProcedure.annotations)
-//            } else {
-//              val argSlot = argSlots(i)
-//              val paramSlot = paramSlots(i)
-//              varFacts.foreach{
-//                fact =>
-//                  if(fact.s == argSlot) result += (RFAFact(paramSlot, fact.v))
-//              }
-//            }
-//          }
-//          factsToCallee -- varFacts ++ result
+//          }.toList
 //        case _ => throw new RuntimeException("wrong exp type: " + cj.callExp.arg)
 //      }
-//    }
-//    
-//    def mapFactsToICCTarget(factsToCallee : ISet[RFAFact], cj : CallJump, calleeProcedure : ProcedureDecl) : ISet[RFAFact] = {
-//      val varFacts = factsToCallee.filter(f=>f.s.isInstanceOf[VarSlot] && !f.s.asInstanceOf[VarSlot].isGlobal).map{f=>RFAFact(f.s.asInstanceOf[VarSlot], f.v)}
-//      cj.callExp.arg match{
-//        case te : TupleExp =>
-//          val argSlot = te.exps(1) match{
-//            case ne : NameExp => VarSlot(ne.name.name)
-//            case exp => VarSlot(exp.toString())
-//          }
-//          var paramSlots : List[VarSlot] = List()
-//          calleeProcedure.params.foreach{
-//            param =>
-//              require(param.typeSpec.isDefined)
-//              param.typeSpec.get match{
-//                case nt : NamedTypeSpec => 
-//                  val name = nt.name.name
-//                  if(name=="long" || name=="double")
-//                    paramSlots :+= VarSlot(param.name.name)
-//                case _ =>
-//              }
-//              paramSlots :+= VarSlot(param.name.name)
-//          }
-//          var result = isetEmpty[RFAFact]
-//          val paramSlot = paramSlots(0)
-//          varFacts.foreach{
-//            fact =>
-//              if(fact.s == argSlot) result += (RFAFact(paramSlot, fact.v))
-//          }
-//          factsToCallee -- varFacts ++ result
-//        case _ => throw new RuntimeException("wrong exp type: " + cj.callExp.arg)
+//      // Handle source case
+//      val srcDescOpt = srcSet.get(callerNode)
+//      srcDescOpt.foreach {
+//        srcdesc =>
+//          taintslots.foreach (ts => genSet ++= srcdesc.tags.map(TaintFact(ts, _)))
 //      }
-//    }
-//    
-//    private def isReturnJump(loc : LocationDecl) : Boolean = {
-//      loc.isInstanceOf[JumpLocation] && loc.asInstanceOf[JumpLocation].jump.isInstanceOf[ReturnJump]
-//    }
-//    
-//    def getAndMapFactsForCaller(calleeS : ISet[RFAFact], callerNode : CGNode, calleeExitNode : CGVirtualNode) : ISet[RFAFact] ={
-//      var result = isetEmpty[RFAFact]
-//      result ++= ReachingFactsAnalysisHelper.getGlobalFacts(calleeS)
-//      callerNode match{
-//        case crn : CGReturnNode =>
-//          val calleeVarFacts = calleeS.filter(_.s.isInstanceOf[VarSlot]).map{f=>(f.s.asInstanceOf[VarSlot], f.v)}.toSet
-//          val calleeProcedure = Center.getProcedureWithoutFailing(calleeExitNode.getOwner).getProcedureBody.procedure
-//          val cj = Center.getProcedureWithoutFailing(crn.getOwner).getProcedureBody.location(crn.getLocIndex).asInstanceOf[JumpLocation].jump.asInstanceOf[CallJump]
-//          val lhsSlots : ISeq[VarSlot] = cj.lhss.map{lhs=>VarSlot(lhs.name.name)}
-//          var paramSlots : List[VarSlot] = List()
-//          calleeProcedure.params.foreach{
-//            param =>
-//              require(param.typeSpec.isDefined)
-//              param.typeSpec.get match{
-//                case nt : NamedTypeSpec => 
-//                  val name = nt.name.name
-//                  if(name=="long" || name=="double")
-//                    paramSlots :+= VarSlot(param.name.name)
-//                case _ =>
-//              }
-//              paramSlots :+= VarSlot(param.name.name)
-//          }
-//          val retSlots : MSet[MList[VarSlot]] = msetEmpty
-//          calleeProcedure.body match{
-//            case ib : ImplementedBody =>
-//              ib.locations.foreach{
-//                loc=>
-//                  if(isReturnJump(loc)){
-//                    val rj = loc.asInstanceOf[JumpLocation].jump.asInstanceOf[ReturnJump]
-//                    rj.exp match{
-//                      case Some(n) => 
-//                        n match{
-//                          case te : TupleExp => 
-//                            val tmplist : MList[VarSlot] = mlistEmpty
-//                            te.exps.foreach{
-//                              exp =>
-//                                exp match {
-//                                  case ne : NameExp =>
-//                                    tmplist += VarSlot(ne.name.name)
-//                                  case _ =>
-//                                }
-//                            }
-//                            retSlots += tmplist
-//                          case _ => 
-//                        }
-//                      case None =>
+//      // Handle sink case
+//      val sinDescOpt = sinSet.get(callerNode)
+//      sinDescOpt.foreach {
+//        sindesc =>
+//          val poss = sindesc.positions
+//          poss foreach {
+//            pos =>
+//              try {
+//                val arg = args(pos)
+//                val argSlot = VarSlot(arg, false, true)
+//                val inss = ptaresult.getRelatedInstances(argSlot, callerNode.getContext)
+//                s.foreach {
+//                  fact =>
+//                    fact.s match {
+//                      case its: InstanceTaintSlot => if(inss.contains(its.ins)) println("Found path.")
+//                      case pts: PrimitiveTaintSlot => if(pts.s.getId == argSlot.getId) println("Found path.")
+//                      case _ =>
 //                    }
+//                }
+//              } catch {
+//                case ex: Exception => global.reporter.error(TITLE, ex.getMessage)
+//              }
+//          }
+//      }
+//      // Handle normal call and model call
+//      val succs = cg.successors(callerNode)
+//      val callees = callerNode.asInstanceOf[ICFGInvokeNode].getCalleeSet
+//      succs foreach {
+//        succ =>
+//          succ match {
+//            case ien: ICFGEntryNode => // Normal call or special call case
+//              val entryPTSMap = ptaresult.getPTSMap(ien.getContext)
+//              args foreach {
+//                arg =>
+//                  val argSlot = VarSlot(arg, false, true)
+//                  val inss = ptaresult.getRelatedInstances(argSlot, callerNode.getContext)
+//                  s.foreach {
+//                    fact =>
+//                      fact.s match {
+//                        case its: InstanceTaintSlot => 
+//                          if(inss.contains(its.ins)) {
+//                            killSet += fact
+//                            entryPTSMap.foreach {
+//                              case (slot, entryinss) => if(entryinss.contains(its.ins)) calleeFactsMap.getOrElseUpdate(ien, msetEmpty) += TaintFact(InstanceTaintSlot(its.ins), fact.tag)
+//                            }
+//                          }
+//                        case pts: PrimitiveTaintSlot => 
+//                          if(pts.s.getId == argSlot.getId) {
+//                            killSet += fact
+//                            callees foreach {
+//                              callee =>
+//                                val params = callee.callee.params
+//                                val index = args.indexOf(arg)
+//                                if(params.isDefinedAt(index)) {
+//                                  val paramSlot = VarSlot(params(index)._1, false, false)
+//                                  calleeFactsMap.getOrElseUpdate(ien, msetEmpty) += TaintFact(PrimitiveTaintSlot(paramSlot), fact.tag)
+//                                } else global.reporter.error(TITLE, "args does not much params:\n" + callerNode + ":" + args + "\n" + callee.callee.getSignature + ":" + params)
+//                            }
+//                          }
+//                        case _ =>
+//                      }
+//                  }
+//              }
+//            case irn: ICFGReturnNode => // Model call case
+//              val retPTSMap = ptaresult.getPTSMap(irn.getContext)
+//              args foreach {
+//                arg =>
+//                  val argSlot = VarSlot(arg, false, true)
+//                  val inss = ptaresult.getRelatedInstances(argSlot, callerNode.getContext)
+//                  s.foreach {
+//                    fact =>
+//                      fact.s match {
+//                        case its: InstanceTaintSlot => 
+//                          retPTSMap.foreach {
+//                              case (slot, entryinss) => if(entryinss.contains(its.ins)) calleeFactsMap.getOrElseUpdate(ien, msetEmpty) += TaintFact(InstanceTaintSlot(its.ins), fact.tag)
+//                            }
+//                        case pts: PrimitiveTaintSlot => 
+//                          if(pts.s.getId == argSlot.getId) {
+//                            killSet += fact
+//                            callees foreach {
+//                              callee =>
+//                                val params = callee.callee.params
+//                                val index = args.indexOf(arg)
+//                                if(params.isDefinedAt(index)) {
+//                                  val paramSlot = VarSlot(params(index)._1, false, false)
+//                                  calleeFactsMap.getOrElseUpdate(ien, msetEmpty) += TaintFact(PrimitiveTaintSlot(paramSlot), fact.tag)
+//                                } else global.reporter.error(TITLE, "args does not much params:\n" + callerNode + ":" + args + "\n" + callee.callee.getSignature + ":" + params)
+//                            }
+//                          }
+//                        case _ =>
+//                      }
 //                  }
 //              }
 //            case _ =>
 //          }
-//          lhsSlots.foreach{
-//            lhsSlot =>
-//              var values : ISet[Instance] = isetEmpty
-//              retSlots.foreach{
-//                retSlotList =>
-//                  calleeVarFacts.foreach{
-//                    case (s, v) =>
-//                      if(s == retSlotList(lhsSlots.indexOf(lhsSlot))){
-//                        values += v
-//                      }
-//                  }
-//              }
-//              result ++= values.map(v => RFAFact(lhsSlot, v))
-//              result ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(values, calleeS)
-//          }
-//          cj.callExp.arg match{
-//            case te : TupleExp => 
-//              val argSlots = te.exps.map{
-//                exp =>
-//                  exp match{
-//                    case ne : NameExp => VarSlot(ne.name.name)
-//                    case _ => VarSlot(exp.toString)
-//                  }
-//              }
-//              for(i <- 0 to argSlots.size - 1){
-//                val argSlot = argSlots(i)
-//                var values : ISet[Instance] = isetEmpty
-//                calleeVarFacts.foreach{
-//                  case (s, v) =>
-//                    if(paramSlots.isDefinedAt(i) && paramSlots(i) == s)
-//                      values += v
-//                }
-//                result ++= values.map(v=>RFAFact(argSlot, v))
-//                result ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(values, calleeS)
-//              }
-//            case _ => throw new RuntimeException("wrong exp type: " + cj.callExp.arg)
-//          }
-//        case cnn : CGNode =>
 //      }
+//      returnFacts = returnFacts -- killSet ++ genSet
+//      (calleeFactsMap.map(fm => (fm._1, fm._2.toSet)).toMap, returnFacts)
+//    }
+//    
+//    def getAndMapFactsForCaller(calleeS: ISet[TaintFact], callerNode: ICFGNode, calleeExitNode: ICFGVirtualNode): ISet[TaintFact] ={
+//      var result = isetEmpty[TaintFact]
 //      result
 //    }
 //  }

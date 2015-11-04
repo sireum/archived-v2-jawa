@@ -43,7 +43,7 @@ class MyClassVisitor(api: Int) extends ClassVisitor(api) {
     }
     val ifs: MList[ObjectType] = mlistEmpty
     for(interface <- interfaces) {
-      ifs += JavaKnowledge.getTypeFromName(getClassName(superName)).asInstanceOf[ObjectType]
+      ifs += JavaKnowledge.getTypeFromName(getClassName(interface)).asInstanceOf[ObjectType]
     }
     val c = MyClass(accessFlag, typ, superType, ifs.toList)
     classes(typ) = c

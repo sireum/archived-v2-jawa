@@ -193,10 +193,10 @@ class InterproceduralReachingDefinitionAnalysis {
 	  /**
 		 * It returns the facts for each callee entry node and caller return node
 		 */
-	  def resolveCall(s: ISet[IRDFact], cj: CallJump, callerContext: Context, cg: InterproceduralControlFlowGraph[ICFGNode]): (IMap[ICFGNode, ISet[IRDFact]], ISet[IRDFact]) = {
+	  def resolveCall(s: ISet[IRDFact], cj: CallJump, callerNode: ICFGNode, cg: InterproceduralControlFlowGraph[ICFGNode]): (IMap[ICFGNode, ISet[IRDFact]], ISet[IRDFact]) = {
       var calleeFactsMap: IMap[ICFGNode, ISet[IRDFact]] = imapEmpty
       var returnFacts: ISet[IRDFact] = isetEmpty
-      val callNode = cg.getICFGCallNode(callerContext)
+      val callNode = cg.getICFGCallNode(callerNode.getContext)
 	    cg.successors(callNode).foreach{
 	      suc =>
 	        if(suc.isInstanceOf[ICFGEntryNode]) {

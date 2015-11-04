@@ -72,18 +72,25 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends DataDependenc
 	        case cn: ICFGCallNode =>
 	          val loc = global.getMethod(cn.getOwner).get.getBody.location(cn.getLocIndex)
 	          val argNames: MList[String] = mlistEmpty
+            val retNames: MList[String] = mlistEmpty
 	          loc match{
 	            case jumploc: JumpLocation =>
 	              argNames ++= ASTUtil.getCallArgs(jumploc)
+                retNames ++= ASTUtil.getReturnVars(jumploc)
 	            case _ =>
 	          }
-	          for(i <- 0 to (argNames.size - 1)){
+	          for(i <- 0 to argNames.size - 1) {
 	            val argName = argNames(i)
 	            val n = addIDDGCallArgNode(cn, i)
 	            n.asInstanceOf[IDDGCallArgNode].argName = argName
 	          }
-	          val rn = addIDDGReturnVarNode(cn)
-            if(cn.getCalleeSet.exists{p => p.callee.getDeclaringClass.isSystemLibraryClass || p.callee.getDeclaringClass.isUserLibraryClass || p.callee.isUnknown}){
+            for(i <- 0 to retNames.size - 1) {
+              val retName = retNames(i)
+              val rn = addIDDGReturnVarNode(cn)
+              rn.asInstanceOf[IDDGReturnVarNode].retVarName = retName
+            }
+            val succs = icfg.successors(cn)
+            if(succs.exists{succ => succ.isInstanceOf[ICFGReturnNode]}){
 	            val vn = addIDDGVirtualBodyNode(cn)
 	            vn.asInstanceOf[IDDGVirtualBodyNode].argNames = argNames.toList
 	          }

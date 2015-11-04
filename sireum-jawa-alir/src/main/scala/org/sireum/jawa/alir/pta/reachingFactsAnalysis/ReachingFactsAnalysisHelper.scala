@@ -47,7 +47,7 @@ object ReachingFactsAnalysisHelper {
     s.filter(_.s.isInstanceOf[HeapSlot]).map{f=>(f.s, f.v).asInstanceOf[(HeapSlot, Instance)]}.toSet
   }
 
-  private def getRelatedFactsForArg(slot: VarSlot, s: ISet[RFAFact]): ISet[RFAFact] = {
+  def getRelatedFactsForArg(slot: VarSlot, s: ISet[RFAFact]): ISet[RFAFact] = {
     val bFacts = s.filter(fact=> slot.getId == fact.s.getId).map(fact => RFAFact(slot, fact.v))
     val rhFacts = getRelatedHeapFactsFrom(bFacts, s)
     bFacts ++ rhFacts
@@ -164,10 +164,14 @@ object ReachingFactsAnalysisHelper {
     for(i <- 0 to argSlots.size - 1){
       val argSlot = argSlots(i)
       val argValues = s.pointsToSet(argSlot, currentContext)
+      val typ: JawaType = 
+        if(!calleeMethod.isStatic && i == 0) calleeMethod.getDeclaringClass.typ
+        else if(!calleeMethod.isStatic) calleeMethod.getSignature.getParameterTypes()(i - 1)
+        else calleeMethod.getSignature.getParameterTypes()(i)
       val influencedFields = 
         if(LibSideEffectProvider.isDefined)
           LibSideEffectProvider.getInfluencedFields(i, calleeMethod.getSignature)
-        else Set(Constants.ALL_FIELD)
+        else Set(typ.name + ":" + Constants.ALL_FIELD)
       argValues.foreach{
         ins => 
           for(f <- influencedFields) {
@@ -242,7 +246,7 @@ object ReachingFactsAnalysisHelper {
     }
   }
   
-  private def resolvePTAResultAccessExp(ae: AccessExp, typ: JawaType, currentContext: Context, s: ISet[RFAFact], ptaresult: PTAResult) = {
+  private def resolvePTAResultAccessExp(ae: AccessExp, typ: JawaType, currentContext: Context, s: ISet[RFAFact], ptaresult: PTAResult, global: Global) = {
     val fqn = ASTUtil.getFieldFQN(ae, typ)
     val baseSlot = ae.exp match {
       case ne: NameExp => VarSlot(ne.name.name, isBase = true, false)
@@ -264,10 +268,14 @@ object ReachingFactsAnalysisHelper {
             fact =>
               if(fact.s.isInstanceOf[FieldSlot] && 
                  fact.s.asInstanceOf[FieldSlot].ins == ins && 
-                 fact.s.asInstanceOf[FieldSlot].fieldName.equals(Constants.ALL_FIELD) &&
+                 fact.s.asInstanceOf[FieldSlot].fieldName.contains(Constants.ALL_FIELD) &&
                  fqn.typ.isInstanceOf[ObjectType]) {
-                val uIns = UnknownInstance(fqn.typ.asInstanceOf[ObjectType], fact.v.defSite)
-                ptaresult.addInstance(fieldSlot, currentContext, uIns)
+                val definingTypName = fact.s.asInstanceOf[FieldSlot].fieldName.split(":")(0)
+                val defCls = global.getClassOrResolve(new ObjectType(definingTypName))
+                if(defCls.hasField(fName)) {
+                  val uIns = UnknownInstance(fqn.typ.asInstanceOf[ObjectType], fact.v.defSite)
+                  ptaresult.addInstance(fieldSlot, currentContext, uIns)
+                }
               }
           }
         }
@@ -341,7 +349,7 @@ object ReachingFactsAnalysisHelper {
             s.filter { fact => fact.s == vs }.map( f => ptaresult.addInstance(slot, currentContext, f.v))
         }
       case ae: AccessExp =>
-        resolvePTAResultAccessExp(ae, typ.get, currentContext, s, ptaresult)
+        resolvePTAResultAccessExp(ae, typ.get, currentContext, s, ptaresult, global)
       case ie: IndexingExp =>
         resolvePTAResultIndexingExp(ie, currentContext, s, ptaresult)
       case ce: CastExp =>

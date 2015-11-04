@@ -26,6 +26,8 @@ object ObjectModel {
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
 	  p.getSignature.signature match{
+      case "Ljava/lang/Object;.<init>:()V" =>
+        byPassFlag = false
 	    case "Ljava/lang/Object;.getClass:()Ljava/lang/Class;" =>
         require(retVars.size == 1)
         objectGetClass(s, args, retVars(0), currentContext) match{case (n, d) => newFacts ++= n; delFacts ++= d}
