@@ -191,7 +191,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
    */
   def addField(field: JawaField) = {
     val fieldName = field.getName
-    if(declaresField(fieldName)) global.reporter.error(NoPosition, "Field " + fieldName + " in class " + getName)
+    if(declaresField(fieldName)) global.reporter.warning(NoPosition, "Field " + fieldName + " in class " + getName)
     else this.fields(fieldName) = field
   }
 
@@ -228,6 +228,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
         if(isUnknown){
           Some(JawaField(this, name, new ObjectType(JAVA_TOPLEVEL_OBJECT), AccessFlag.getAccessFlags("PUBLIC")))
         } else {
+          println(this.fields)
           global.reporter.error(NoPosition, "No field " + name + " in class " + getName)
           None
         }
@@ -244,7 +245,8 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
     }
     this.fields.get(name) match {
       case Some(f) => Some(f)
-      case None => 
+      case None =>
+        println(this.fields)
         global.reporter.error(NoPosition, "No field " + name + " in class " + getName)
         None
     }

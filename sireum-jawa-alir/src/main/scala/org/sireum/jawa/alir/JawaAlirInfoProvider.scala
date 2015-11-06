@@ -30,6 +30,7 @@ import org.sireum.jawa.alir.pta.ClassInstance
 import org.sireum.jawa.JawaResolver
 import org.sireum.jawa.Global
 import org.sireum.jawa.ObjectType
+import org.sireum.jawa.MethodBody
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -66,10 +67,10 @@ object JawaAlirInfoProvider {
   }
   
   //for building cfg
-  def siff(global: Global) : ControlFlowGraph.ShouldIncludeFlowFunction =
+  def siff(pst : ProcedureSymbolTable, global: Global) : ControlFlowGraph.ShouldIncludeFlowFunction =
     { (loc, catchclauses) => 
       	var result = isetEmpty[CatchClause]
-      	val thrownExcs = ExceptionCenter.getExceptionsMayThrow(loc)
+      	val thrownExcs = ExceptionCenter.getExceptionsMayThrow(pst, loc, catchclauses.toSet)
       	thrownExcs.foreach{
       	  thrownException =>
           val child = global.getClassOrResolve(thrownException)
@@ -80,11 +81,7 @@ object JawaAlirInfoProvider {
 			            val exc = global.getClassOrResolve(excType)
                   exc.global.getClassHierarchy.isClassRecursivelySubClassOfIncluding(child, exc)
 	      	    }
-      	    ccOpt match{
-      	      case Some(cc) => result += cc
-      	      case None =>
-      	    }
-           result ++= catchclauses
+          result ++= ccOpt
       	}
       	
       	(result, false)
@@ -128,7 +125,7 @@ object JawaAlirInfoProvider {
 	  val ENTRY_NODE_LABEL = "Entry"
 	  val EXIT_NODE_LABEL = "Exit"
 	  val pool : AlirIntraProceduralGraph.NodePool = mmapEmpty
-	  val result = ControlFlowGraph[VirtualLabel](pst, ENTRY_NODE_LABEL, EXIT_NODE_LABEL, pool, siff(global))
+	  val result = ControlFlowGraph[VirtualLabel](pst, ENTRY_NODE_LABEL, EXIT_NODE_LABEL, pool, siff(pst, global))
 	  (pool, result)
 	}
 	
@@ -153,6 +150,15 @@ object JawaAlirInfoProvider {
       }
     }
     p.getProperty(CFG)
+  }
+  
+  /**
+   * get cfg of given method body
+   */
+  def getCfg(md: MethodBody, global: Global): ControlFlowGraph[VirtualLabel] = {
+    this.synchronized{
+      buildCfg(md, global)._2
+    }
   }
 	
 	/**

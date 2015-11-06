@@ -9,6 +9,8 @@ package org.sireum.jawa
 
 import org.sireum.pilar.ast._
 import org.sireum.util._
+import org.sireum.pilar.symbol.ProcedureSymbolTable
+import org.sireum.jawa.util.ASTUtil
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -28,7 +30,7 @@ object ExceptionCenter {
   final val EXCEPTION_VAR_NAME = "Exception"  
   
   
-  def getExceptionsMayThrow(loc : LocationDecl) : ISet[ObjectType] = {
+  def getExceptionsMayThrow(pst : ProcedureSymbolTable, loc : LocationDecl, catchclauses: ISet[CatchClause]) : ISet[ObjectType] = {
     var result = isetEmpty[ObjectType]
     loc match{
       case l : ComplexLocation =>
@@ -36,6 +38,17 @@ object ExceptionCenter {
         result ++= getExceptionMayThrowFromAction(l.action)
       case l : JumpLocation =>
       case l : EmptyLocation =>
+    }
+    catchclauses.foreach {
+      cc => 
+        try {
+          val from = pst.location(cc.fromTarget.name)
+          val to = pst.location(cc.toTarget.name)
+          if(loc.index >= from.index && loc.index <= to.index) result += ASTUtil.getTypeFromTypeSpec(cc.typeSpec.get).asInstanceOf[ObjectType]
+        } catch {
+          case ex: Exception =>
+            System.err.println("ExceptionCenter:" + ex.getMessage)
+        }
     }
     result
   }

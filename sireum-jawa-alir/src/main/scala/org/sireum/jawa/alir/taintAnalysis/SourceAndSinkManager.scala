@@ -45,7 +45,7 @@ trait SourceAndSinkManager {
           case (sig, (poss, tags)) =>
             this.sinks += (sig -> (poss, tags))
         }
-  //      msg_detail(TITLE, "source size: " + this.sources.size + " sink size: " + this.sinks.size)
+//        System.err.println("source size: " + this.sources.size + " sink size: " + this.sinks.size)
     }
   
   

@@ -149,11 +149,11 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
   def getMyClass(typ: ObjectType): Option[MyClass] = {
     this.applicationClassCodes.get(typ) match {
       case Some(asrc) =>
-        SourcefileParser.parse(asrc, ResolveLevel.HIERARCHY).get(typ)
+        SourcefileParser.parse(asrc, ResolveLevel.HIERARCHY, reporter).get(typ)
       case None =>
         this.userLibraryClassCodes.get(typ) match {
           case Some(usrc) =>
-            SourcefileParser.parse(usrc, ResolveLevel.HIERARCHY).get(typ)
+            SourcefileParser.parse(usrc, ResolveLevel.HIERARCHY, reporter).get(typ)
           case None =>
             cachedClassRepresentation.get(typ) match {
               case Some(cs) =>

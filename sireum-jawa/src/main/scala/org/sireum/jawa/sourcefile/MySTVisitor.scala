@@ -28,19 +28,18 @@ class MySTVisitor {
   /**
    * resolve all the classes, fields and procedures from symbol table producer which are provided from symbol table model
    */
-  def resolveFromST(st: SymbolTable, level: ResolveLevel.Value, par: Boolean): Unit = {
+  def resolveFromST(st: SymbolTable, level: ResolveLevel.Value): Unit = {
     val stp = st.asInstanceOf[SymbolTableProducer]
-    resolveClasses(stp, level, par)
-    resolveGlobalVars(stp, level, par)
-    resolveMethods(stp, level, par)
+    resolveClasses(stp, level)
+    resolveGlobalVars(stp, level)
+    resolveMethods(stp, level)
   }
   
   /**
    * collect class info from symbol table
    */
-  def resolveClasses(stp: SymbolTableProducer, level: ResolveLevel.Value, par: Boolean) = {
-    val col: GenMap[ResourceUri, RecordDecl] = if(par) stp.tables.recordTable.par else stp.tables.recordTable
-    val classes = col.map{
+  def resolveClasses(stp: SymbolTableProducer, level: ResolveLevel.Value) = {
+    val classes = stp.tables.recordTable.map{
       case (uri, rd) =>
         val typ: ObjectType = JavaKnowledge.getTypeFromName(rd.name.name).asInstanceOf[ObjectType]
         val accessFlag: Int = AccessFlag.getAccessFlags(ASTUtil.getAccessFlag(rd))
@@ -85,9 +84,8 @@ class MySTVisitor {
   /**
    * collect global variables info from the symbol table
    */
-  def resolveGlobalVars(stp: SymbolTableProducer, level: ResolveLevel.Value, par: Boolean) = {
-    val col: GenMap[ResourceUri, GlobalVarDecl] = if(par) stp.tables.globalVarTable.par else stp.tables.globalVarTable
-    col.map{
+  def resolveGlobalVars(stp: SymbolTableProducer, level: ResolveLevel.Value) = {
+    stp.tables.globalVarTable.map{
       case (uri, gvd) =>
         require(gvd.typeSpec.isDefined)
         val globalVarType: JawaType = ASTUtil.getTypeFromTypeSpec(gvd.typeSpec.get)
@@ -103,7 +101,7 @@ class MySTVisitor {
   /**
    * collect method info from symbol table
    */
-  def resolveMethods(stp: SymbolTableProducer, level: ResolveLevel.Value, par: Boolean) = {
+  def resolveMethods(stp: SymbolTableProducer, level: ResolveLevel.Value) = {
     val ms = resolveMethodOnly(stp, level)
     ms foreach {
       m =>

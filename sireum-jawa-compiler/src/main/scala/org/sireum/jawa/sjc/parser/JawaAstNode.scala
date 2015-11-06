@@ -454,7 +454,7 @@ case class ResolvedBody(
   def getCatchClauses(index: Int): IList[CatchClause] = {
     catchClauses.filter{
       cc =>
-        index > cc.range.fromLocation.locationIndex && index < cc.range.toLocation.locationIndex
+        index >= cc.range.fromLocation.locationIndex && index <= cc.range.toLocation.locationIndex
     }
   }
 }

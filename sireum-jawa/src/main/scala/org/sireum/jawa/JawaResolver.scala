@@ -61,11 +61,11 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
     val typ = c.getType
     val mcs = this.applicationClassCodes.get(typ) match {
       case Some(asrc) =>
-        SourcefileParser.parse(asrc, ResolveLevel.BODY)
+        SourcefileParser.parse(asrc, ResolveLevel.BODY, reporter)
       case None =>
         this.userLibraryClassCodes.get(typ) match {
           case Some(usrc) =>
-            SourcefileParser.parse(usrc, ResolveLevel.BODY)
+            SourcefileParser.parse(usrc, ResolveLevel.BODY, reporter)
           case None =>
             reporter.error(TITLE, "Could not find code for " + typ)
             throw new RuntimeException("Could not find code for " + typ)

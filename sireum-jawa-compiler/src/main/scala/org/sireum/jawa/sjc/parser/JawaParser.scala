@@ -916,8 +916,10 @@ object JawaParser {
    * parse the given source as a parsable ast node
    */
   def parse[T <: ParsableAstNode : ru.TypeTag](source: Either[String, SourceFile], resolveBody: Boolean, reporter: Reporter): Option[T] = {
-    val tokens = JawaLexer.tokenise(source, reporter)
-    parse(tokens, resolveBody, reporter)
+      val tokens = JawaLexer.tokenise(source, reporter)
+      val res = parse(tokens, resolveBody, reporter)
+      if(!res.isDefined) println(source)
+      res
   }
   
   def parse[T <: ParsableAstNode : ru.TypeTag](tokens: IList[Token], resolveBody: Boolean, reporter: Reporter): Option[T] = {
@@ -940,7 +942,7 @@ object JawaParser {
     } catch {
       case e: JawaParserException ⇒
         reporter.error(e.pos, e.message)
-        e.printStackTrace()
+//        e.printStackTrace()
         None
     }
   }

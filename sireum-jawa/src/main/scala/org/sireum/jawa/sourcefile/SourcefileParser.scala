@@ -7,20 +7,29 @@ import org.sireum.jawa.MyClass
 import org.sireum.jawa.JawaResolver
 import org.sireum.jawa.ResolveLevel
 import org.sireum.jawa.LightWeightPilarParser
+import org.sireum.pilar.symbol.SymbolTable
+import org.sireum.jawa.Reporter
 
 
 /**
  * @author fgwei
  */
 object SourcefileParser {
-  def parse(file: SourceFile, level: ResolveLevel.Value): IMap[ObjectType, MyClass] = {
+  final val TITLE = "SourcefileParser"
+  def parse(file: SourceFile, level: ResolveLevel.Value, reporter: Reporter): IMap[ObjectType, MyClass] = {
     var code = file.code
     if(level < ResolveLevel.BODY) {
       code = LightWeightPilarParser.getEmptyBodyCode(code)
     }
-    val st = JawaResolver.getSymbolResolveResult(Set(code))
     val v = new MySTVisitor
-    v.resolveFromST(st, level, true)
+    try {
+      val st: SymbolTable = JawaResolver.getSymbolResolveResult(Set(code))
+      v.resolveFromST(st, level)
+    } catch {
+      case e: Exception =>
+        reporter.error(TITLE, e.getMessage)
+        reporter.error(TITLE, code)
+    }
     v.getClasses
   }
 }
