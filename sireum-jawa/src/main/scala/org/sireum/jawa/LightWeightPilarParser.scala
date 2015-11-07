@@ -114,6 +114,6 @@ object LightWeightPilarParser {
       j += 1
     }
     if (i < size && j <= size) line.substring(i + 1, j - 1)
-    else throw new RuntimeException("Doing " + TITLE + ". Cannot find name from record code: " + line)
+    else throw new RuntimeException("Doing " + TITLE + ". Cannot find name from record code: \n" + line)
   }
 }

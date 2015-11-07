@@ -170,7 +170,7 @@ trait JavaKnowledge {
   /**
    * FQN of the field. e.g. java.lang.Throwable.stackState or @@java:lang:Enum.sharedConstantsCache
    */
-  def isValidFieldFQN(fqn: String): Boolean = fqn.lastIndexOf('.') > 0
+  def isValidFieldFQN(fqn: String): Boolean = !fqn.startsWith("@@") && fqn.lastIndexOf('.') > 0
   
   /**
    * FQN of the field. e.g. java.lang.Throwable.stackState or @@java.lang.Enum.sharedConstantsCache

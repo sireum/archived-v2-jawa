@@ -81,7 +81,7 @@ class FgSourceFile(val file : AbstractFile, content0: Array[Char]) extends Sourc
 
   def getClassCodes: ISet[String] = {
     val c = code
-    c.replaceAll("(record `)", "DELIMITER$1").split("DELIMITER").tail.toSet
+    c.replaceAll("(record `)", "DELIMITER_FGWEI_HAHAHA$1").split("DELIMITER_FGWEI_HAHAHA").tail.toSet
   }
   
   override def identifier(pos: Position) =

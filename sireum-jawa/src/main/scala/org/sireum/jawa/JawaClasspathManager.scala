@@ -36,10 +36,15 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
       fileUri => 
         val source = new FgSourceFile(new PlainFile(FileUtil.toFile(fileUri)))
         val codes = source.getClassCodes
-        val classTypes: ISet[ObjectType] = codes.map{
+        val classTypes: MSet[ObjectType] = msetEmpty
+        codes.foreach{
           code =>
-            val className = LightWeightPilarParser.getClassName(code)
-            JavaKnowledge.getTypeFromName(className).asInstanceOf[ObjectType]
+            try {
+              val className = LightWeightPilarParser.getClassName(code)
+              classTypes += JavaKnowledge.getTypeFromName(className).asInstanceOf[ObjectType]
+            } catch {
+              case e: Exception => reporter.warning(TITLE, e.getMessage)
+            }
         }
         classTypes.foreach {
           typ =>

@@ -374,6 +374,9 @@ object RefactorJawa {
       case rb: ResolvedBody => rb
       case ub: UnresolvedBody => ub.resolve
     }
+    for (i <- 0 to body.locations.size - 1) {
+      locations(i) = body.locations(i).toCode
+    }
     val entry: ControlFlowGraph.Node = cfg.entryNode
     val worklist: MList[ControlFlowGraph.Node] = mlistEmpty
     worklist += entry
@@ -742,24 +745,17 @@ object RefactorJawa {
                 case "void" =>
                   linecode = linecode.replaceAll("temp:=  ", "")
                 case _ =>
-                  var nextStat: Statement = null
-                  var nextLoc: org.sireum.jawa.sjc.parser.Location = null
-                  var i = 0
-                  while(nextStat == null || nextStat.isInstanceOf[EmptyStatement]) {
-                    i += 1
-                    nextLoc = body.locations(location.locationIndex + i)
-                    nextStat = nextLoc.statement
-                  }
+                  val nextLoc: org.sireum.jawa.sjc.parser.Location = body.locations(location.locationIndex + 1)
+                  val nextStat: Statement = nextLoc.statement
                   nextStat match {
                     case as: AssignmentStatement =>
                       if(as.rhs.isInstanceOf[NameExpression] && as.rhs.asInstanceOf[NameExpression].name == "temp") {
                         val varName = as.lhs.asInstanceOf[NameExpression].varSymbol.left.get.varName
                         linecode = linecode.replaceFirst("temp:=", varName + ":=")
-                        
                         val to = location.locationUri
                         val from = nextLoc.locationUri
                         ccChange(from) = to
-                        skip = i
+                        skip = 1
                       } else {
                         linecode = linecode.replaceAll("temp:=  ", "")
                       }

@@ -6,7 +6,7 @@ import org.sireum.jawa.io.SourceFile
 import org.sireum.jawa.io.AbstractFile
 
 trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Global =>
-  final val TITLE = "JawaClassLoadManager"
+  private final val TITLE = "JawaClassLoadManager"
   
   /**
    * set of classes contained by the current Global

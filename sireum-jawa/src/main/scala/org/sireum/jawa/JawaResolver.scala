@@ -91,6 +91,8 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
             val rec = new JawaClass(this, classType, "")
             rec.setUnknown
             rec.setResolvingLevel(desiredLevel)
+            if(classType.name.contains("@@"))
+              println(classType)
             reporter.echo(TITLE, "Add phantom class " + rec)
             addClassNotFound(classType)
             rec

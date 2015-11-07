@@ -377,7 +377,7 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
       case RETURN => returnStatement()
       case GOTO => gotoStatement()
       case AT if lookahead(1) == MONITOR_ENTER || lookahead(1) == MONITOR_EXIT => monitorStatement()
-      case AT | SEMI | LOCATION_ID | RBRACE => emptyStatement()
+      case AT | SEMI | LOCATION_ID | RBRACE | CATCH => emptyStatement()
       case _ => assignmentStatement()
     }
   }

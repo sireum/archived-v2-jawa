@@ -28,7 +28,7 @@ object SourcefileParser {
     } catch {
       case e: Exception =>
         reporter.error(TITLE, e.getMessage)
-        reporter.error(TITLE, code)
+        if(true) reporter.error(TITLE, code)
     }
     v.getClasses
   }
