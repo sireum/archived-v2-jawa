@@ -13,7 +13,6 @@ import org.sireum.pilar.symbol.SymbolTable
 import org.sireum.alir.DefRef
 import org.sireum.pilar.symbol.ProcedureSymbolTable
 import org.sireum.pilar.ast.CatchClause
-import org.sireum.alir.ControlFlowGraph
 import org.sireum.jawa.ExceptionCenter
 import org.sireum.pilar.ast.NamedTypeSpec
 import org.sireum.pilar.parser.ChunkingPilarParser
@@ -31,6 +30,8 @@ import org.sireum.jawa.JawaResolver
 import org.sireum.jawa.Global
 import org.sireum.jawa.ObjectType
 import org.sireum.jawa.MethodBody
+import org.sireum.alir.{ControlFlowGraph => OrigControlFlowGraph}
+import org.sireum.jawa.alir.controlFlowGraph.{ControlFlowGraph => JawaControlFlowGraph}
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -67,7 +68,7 @@ object JawaAlirInfoProvider {
   }
   
   //for building cfg
-  def siff(pst : ProcedureSymbolTable, global: Global) : ControlFlowGraph.ShouldIncludeFlowFunction =
+  def siff(pst : ProcedureSymbolTable, global: Global) : OrigControlFlowGraph.ShouldIncludeFlowFunction =
     { (loc, catchclauses) => 
       	var result = isetEmpty[CatchClause]
       	val thrownExcs = ExceptionCenter.getExceptionsMayThrow(pst, loc, catchclauses.toSet)
@@ -125,11 +126,11 @@ object JawaAlirInfoProvider {
 	  val ENTRY_NODE_LABEL = "Entry"
 	  val EXIT_NODE_LABEL = "Exit"
 	  val pool : AlirIntraProceduralGraph.NodePool = mmapEmpty
-	  val result = ControlFlowGraph[VirtualLabel](pst, ENTRY_NODE_LABEL, EXIT_NODE_LABEL, pool, siff(pst, global))
+	  val result = JawaControlFlowGraph[VirtualLabel](pst, ENTRY_NODE_LABEL, EXIT_NODE_LABEL, pool, siff(pst, global))
 	  (pool, result)
 	}
 	
-	private def buildRda (pst : ProcedureSymbolTable, cfg : ControlFlowGraph[VirtualLabel], initialFacts : ISet[JawaReachingDefinitionAnalysis.RDFact] = isetEmpty, callref: Boolean) = {
+	private def buildRda (pst : ProcedureSymbolTable, cfg : OrigControlFlowGraph[VirtualLabel], initialFacts : ISet[JawaReachingDefinitionAnalysis.RDFact] = isetEmpty, callref: Boolean) = {
 	  val iiopp = iopp(pst)
 	  JawaReachingDefinitionAnalysis[VirtualLabel](pst,
 	    cfg,
@@ -142,7 +143,7 @@ object JawaAlirInfoProvider {
 	/**
    * get cfg of current procedure
    */
-  def getCfg(p : JawaMethod): ControlFlowGraph[VirtualLabel] = {
+  def getCfg(p : JawaMethod): OrigControlFlowGraph[VirtualLabel] = {
     if(!(p ? CFG)){
       this.synchronized{
 	      val cfg = buildCfg(p.getBody, p.declaringClass.global)._2
@@ -155,7 +156,7 @@ object JawaAlirInfoProvider {
   /**
    * get cfg of given method body
    */
-  def getCfg(md: MethodBody, global: Global): ControlFlowGraph[VirtualLabel] = {
+  def getCfg(md: MethodBody, global: Global): OrigControlFlowGraph[VirtualLabel] = {
     this.synchronized{
       buildCfg(md, global)._2
     }
@@ -164,7 +165,7 @@ object JawaAlirInfoProvider {
 	/**
    * get rda result of current procedure
    */
-  def getRda(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel]): JawaReachingDefinitionAnalysis.Result = {
+  def getRda(p : JawaMethod, cfg : OrigControlFlowGraph[VirtualLabel]): JawaReachingDefinitionAnalysis.Result = {
     if(!(p ? RDA)){
       this.synchronized{
 	      val rda = buildRda(p.getBody, cfg, callref = false)
@@ -177,7 +178,7 @@ object JawaAlirInfoProvider {
   /**
    * get rda result of current procedure
    */
-  def getRdaWithCall(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel]): JawaReachingDefinitionAnalysis.Result = {
+  def getRdaWithCall(p : JawaMethod, cfg : OrigControlFlowGraph[VirtualLabel]): JawaReachingDefinitionAnalysis.Result = {
     if(!(p ? RDA_WITH_CALL)){
       this.synchronized{
         val rda = buildRda(p.getBody, cfg, callref = true)
@@ -188,4 +189,4 @@ object JawaAlirInfoProvider {
   }
 }
 
-case class TransformIntraMethodResult(pst : ProcedureSymbolTable, cfg : ControlFlowGraph[String], rda : JawaReachingDefinitionAnalysis.Result)
+case class TransformIntraMethodResult(pst : ProcedureSymbolTable, cfg : OrigControlFlowGraph[String], rda : JawaReachingDefinitionAnalysis.Result)
