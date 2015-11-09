@@ -223,10 +223,14 @@ object ClassModel {
     var delfacts = isetEmpty[RFAFact]
     thisValue.foreach{
       cIns =>
-        require(cIns.isInstanceOf[ClassInstance])
-        val name = cIns.asInstanceOf[ClassInstance].getName
-        val strIns = PTAConcreteStringInstance(name, cIns.defSite)
-        newfacts += (RFAFact(VarSlot(retVar, false, false), strIns))
+        if(cIns.isInstanceOf[ClassInstance]) {
+          val name = cIns.asInstanceOf[ClassInstance].getName
+          val strIns = PTAConcreteStringInstance(name, cIns.defSite)
+          newfacts += (RFAFact(VarSlot(retVar, false, false), strIns))
+        } else {
+          val strIns = PTAPointStringInstance(cIns.defSite)
+          newfacts += (RFAFact(VarSlot(retVar, false, false), strIns))
+        }
     }
     (newfacts, delfacts)
 	}
