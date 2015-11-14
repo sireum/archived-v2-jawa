@@ -517,7 +517,7 @@ object ReachingFactsAnalysisHelper {
         rhs match{
           case ne: NameExp =>
             val slot = getNameSlotFromNameExp(ne, typ, false, false, global)
-            var value: ISet[Instance] = ptaresult.pointsToSet(slot, currentContext)   
+            var value: ISet[Instance] = ptaresult.pointsToSet(slot, currentContext)
             result(i) = value
           case le: LiteralExp =>
             if(le.typ.name.equals("STRING")){

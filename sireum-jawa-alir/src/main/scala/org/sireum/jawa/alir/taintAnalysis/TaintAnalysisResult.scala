@@ -44,32 +44,20 @@ case class TagTaintDescriptor(desc: String, positions: ISet[Int], typ: String, t
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */
-trait TaintNode[N <: InterProceduralNode] {
-  def node: N
-  def descriptor: TaintDescriptor
-  def isSource: Boolean
-  def isSink: Boolean
-  def isSame(tn: TaintNode[N]): Boolean
-}
-
-/**
- * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
- * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
- */
-case class TaintSource[N <: InterProceduralNode](node: N, descriptor: TaintDescriptor) extends TaintNode[N] {
+case class TaintSource[N <: InterProceduralNode](node: N, descriptor: TaintDescriptor) {
   def isSource = true
   def isSink = false
-  def isSame(tn: TaintNode[N]): Boolean = descriptor == tn.descriptor && node.getContext.getCurrentLocUri == node.getContext.getCurrentLocUri
+  def isSame(tn: TaintSource[N]): Boolean = descriptor == tn.descriptor && node.getContext.getCurrentLocUri == node.getContext.getCurrentLocUri
 }
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */
-case class TaintSink[N <: InterProceduralNode](node: N, descriptor: TaintDescriptor) extends TaintNode[N] {
+case class TaintSink[N <: InterProceduralNode](node: N, descriptor: TaintDescriptor) {
   def isSource = false
   def isSink = true
-  def isSame(tn: TaintNode[N]): Boolean = descriptor == descriptor && node.getContext.getCurrentLocUri == node.getContext.getCurrentLocUri
+  def isSame(tn: TaintSink[N]): Boolean = descriptor == descriptor && node.getContext.getCurrentLocUri == node.getContext.getCurrentLocUri
 }
 
 /**
@@ -77,8 +65,8 @@ case class TaintSink[N <: InterProceduralNode](node: N, descriptor: TaintDescrip
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 trait TaintPath[N <: InterProceduralNode, E <: AlirEdge[N]] {
-  def getSource: TaintNode[N]
-  def getSink: TaintNode[N]
+  def getSource: TaintSource[N]
+  def getSink: TaintSink[N]
   def getTypes: ISet[String]
   def getPath: IList[E]
   def isSame(tp: TaintPath[N, E]): Boolean
@@ -89,7 +77,7 @@ trait TaintPath[N <: InterProceduralNode, E <: AlirEdge[N]] {
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 trait TaintAnalysisResult[N <: InterProceduralNode, E <: AlirEdge[N]] {
-  def getSourceNodes: ISet[TaintNode[N]]
-  def getSinkNodes: ISet[TaintNode[N]]
+  def getSourceNodes: ISet[TaintSource[N]]
+  def getSinkNodes: ISet[TaintSink[N]]
   def getTaintedPaths: ISet[TaintPath[N, E]]
 }

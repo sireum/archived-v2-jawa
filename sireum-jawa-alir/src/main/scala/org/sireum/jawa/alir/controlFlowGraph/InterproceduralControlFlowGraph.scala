@@ -45,7 +45,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
   def addEdge(source: Node, target: Node, typ: String): Edge = {
     val e = addEdge(source, target)
     if(typ != null)
-    	e.setProperty(EDGE_TYPE, typ)
+      e.setProperty(EDGE_TYPE, typ)
     e
   }
   

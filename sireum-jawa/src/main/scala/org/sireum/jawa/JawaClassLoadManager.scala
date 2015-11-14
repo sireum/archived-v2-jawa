@@ -43,7 +43,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * set of entry points of the current Global
    */
-  protected val entryPoints: MSet[JawaMethod] = msetEmpty
+//  protected val entryPoints: MSet[JawaMethod] = msetEmpty
   
   /**
    * class hierarchy of all classes in the current Global
@@ -348,39 +348,32 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * get entry points
    */
-  def getEntryPoints: ISet[JawaMethod] = {
-    if(!hasEntryPoints) findEntryPoints("main")
-    this.entryPoints.toSet
-  }
-  
-  /**
-   * get entry points
-   */
   def getEntryPoints(entryMethodName: String): ISet[JawaMethod] = {
-    if(!hasEntryPoints) findEntryPoints(entryMethodName)
-    this.entryPoints.toSet
+    findEntryPoints(entryMethodName)
   }
     
   /**
    * set entry points
    */
-  def setEntryPoints(entryPoints: Set[JawaMethod]) = this.entryPoints ++= entryPoints
+//  def setEntryPoints(entryPoints: Set[JawaMethod]) = this.entryPoints ++= entryPoints
   
   /**
    * find entry points from current app/test cases
    */
-  def findEntryPoints(entryMethodName: String) = {
+  def findEntryPoints(entryMethodName: String): ISet[JawaMethod] = {
+    val ep: MSet[JawaMethod] = msetEmpty
     getApplicationClasses.foreach{
       appRec =>
         if(appRec.declaresMethodByName(entryMethodName))
-          appRec.getMethodByName(entryMethodName) foreach{this.entryPoints += _}
+          appRec.getMethodByName(entryMethodName) foreach{ep += _}
     }
+    ep.toSet
   }
   
   /**
    * has entry points
    */
-  def hasEntryPoints: Boolean = !this.entryPoints.isEmpty
+//  def hasEntryPoints: Boolean = !this.entryPoints.isEmpty
   
   /**
    * try to resolve given class and load all of the required support based on your desired resolve level.
@@ -454,7 +447,6 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     println("userLibraryClasses: " + getUserLibraryClasses)
     println("systemLibraryClasses: " + getSystemLibraryClasses)
     println("noCategorizedClasses: " + (getClasses -- getSystemLibraryClasses -- getUserLibraryClasses -- getApplicationClasses))
-    println("entryPoints: " + getEntryPoints)
     println("hierarchy: " + getClassHierarchy)
     if(false){
       getClasses.foreach{

@@ -18,8 +18,15 @@ import org.sireum.jawa.ExceptionCenter
  * @author fgwei
  */
 object RefactorJawa {
+  final val DEBUG = false
+  
   def apply(code: String): String = {
-    val newcode = resolveCallStatement(code)
+    val newcode = 
+      try {
+        resolveCallStatement(code)
+      } catch {
+        case e: Exception => code
+      }
     var sb: StringBuilder = new StringBuilder
     val reporter = new DefaultReporter
     val cuOpt1: Option[CompilationUnit] = JawaParser.parse[CompilationUnit](Left(newcode), true, reporter)
@@ -65,7 +72,7 @@ object RefactorJawa {
                   sb.append(methodcode + "\n")
                 } catch {
                   case e: Exception =>
-                    e.printStackTrace()
+                    if(DEBUG) e.printStackTrace()
                     sb.append(md.toCode + "\n")
                 }
             }

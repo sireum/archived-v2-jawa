@@ -1,3 +1,10 @@
+///*
+//Copyright (c) 2015-2016 Fengguo Wei, University of South Florida.        
+//All rights reserved. This program and the accompanying materials      
+//are made available under the terms of the Eclipse Public License v1.0 
+//which accompanies this distribution, and is available at              
+//http://www.eclipse.org/legal/epl-v10.html                             
+//*/
 //package org.sireum.jawa.alir.taintAnalysis
 //
 //import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
@@ -23,12 +30,14 @@
 //import org.sireum.jawa.alir.dataFlowAnalysis.NodeListener
 //import org.sireum.jawa.alir.pta.PTASlot
 //import org.sireum.jawa.JawaType
+//import org.sireum.jawa.alir.pta.FieldSlot
+//import org.sireum.jawa.alir.pta.Instance
 //
 //class IMDFTaintAnalysis(global: Global, ptaresult: PTAResult, ssm: SourceAndSinkManager) {
 //  final val TITLE = "IMDFTaintAnalysis"
 //  
-//  type Node = ICFGNode
-//  type Edge = (PTASlot, Context)
+//  type Node = TaintNode
+//  type Edge = AlirEdge[Node]
 //  
 //  class Tp extends TaintPath[Node, Edge] {
 //    var srcN: TaintSource[Node] = null
@@ -39,7 +48,7 @@
 //    def getSink = sinN
 //    def getTypes: ISet[String] = this.typs.toSet
 //    def getPath: IList[Edge] = {
-//      path.map(node => new Edge(edge.owner, edge.target, edge.source)).toList
+//      path.map(edge => new Edge(edge.owner, edge.target, edge.source)).toList
 //    }
 //    def isSame(tp: TaintPath[Node, Edge]): Boolean = getSource.isSame(tp.getSource) && getSink.isSame(tp.getSink)
 //    override def toString: String = {
@@ -62,12 +71,12 @@
 //    }
 //  }
 //  
-//  case class Tar() extends TaintAnalysisResult[Node, Edge] {
+//  class Tar extends TaintAnalysisResult[Node, Edge] {
 //    var sourceNodes: ISet[TaintSource[Node]] = isetEmpty
 //    var sinkNodes: ISet[TaintSink[Node]] = isetEmpty
 //    
-//    def getSourceNodes: ISet[TaintNode[Node]] = this.sourceNodes.toSet
-//    def getSinkNodes: ISet[TaintNode[Node]] = this.sinkNodes.toSet
+//    def getSourceNodes: ISet[TaintSource[Node]] = this.sourceNodes.toSet
+//    def getSinkNodes: ISet[TaintSink[Node]] = this.sinkNodes.toSet
 //    def getTaintedPaths: ISet[TaintPath[Node, Edge]] = {
 //      var tps: ISet[TaintPath[Node, Edge]] = isetEmpty
 //      sinkNodes.foreach {
@@ -101,17 +110,23 @@
 //  (icfg: InterproceduralControlFlowGraph[ICFGNode],
 //   initialFacts: ISet[TaintFact] = isetEmpty,
 //   timer: Option[MyTimer],
-//   switchAsOrderedMatch: Boolean) = {
+//   switchAsOrderedMatch: Boolean): Unit = {
 //    val gen = new Gen
 //    val kill = new Kill
 //    val callr = new Callr
 //    val ppr = new Pstr
-//    val nl = new NL
 //    val initial: ISet[TaintFact] = isetEmpty
-//    val iota: ISet[TaintFact] = initialFacts + TaintFact(PrimitiveTaintSlot(VarSlot("@@Taintiota", false, false)), "IOTA")
+//    val iota: ISet[TaintFact] = initialFacts + TaintFact(PrimitiveTaintSlot(VarSlot("@@Taintiota", false, false), new Context), "IOTA")
+//    icfg.nodes.foreach {
+//      node =>
+//        val (srcs, sins) = ssm.getSourceAndSinkNode(node, ptaresult)
+//        srcSet ++= srcs.map{src => (src.node, src.asInstanceOf[TagTaintDescriptor])}
+//        sinSet ++= sins.map{sin => (sin.node, sin.asInstanceOf[TagTaintDescriptor])}
+//    }
+//    if(srcSet.isEmpty && sinSet.isEmpty) return
 //    val result = InterProceduralMonotoneDataFlowAnalysisFramework[TaintFact](icfg,
-//      true, true, false, false, gen, kill, callr, ppr, iota, initial, timer, switchAsOrderedMatch, Some(nl))
-//    result
+//      true, true, false, false, gen, kill, callr, ppr, iota, initial, timer, switchAsOrderedMatch, None)
+//    
 //  }
 //  
 //  
@@ -121,35 +136,13 @@
 //    }
 //  }
 //  
-//  class NL extends NodeListener {
-//    def onPreVisitNode(node: InterProceduralMonotoneDataFlowAnalysisFramework.N, preds: CSet[InterProceduralMonotoneDataFlowAnalysisFramework.N]): Unit = {
-//      if(!processed.contains(node)) {
-//        processed += node
-//        val (srcs, sins) = ssm.getSourceAndSinkNode(node, ptaresult)
-//        srcSet ++= srcs.map{src => (src.node, src.asInstanceOf[TagTaintDescriptor])}
-//        sinSet ++= sins.map{sin => (sin.node, sin.asInstanceOf[TagTaintDescriptor])}
-//      }
-//    }
-//    
-//    def onPostVisitNode(node: InterProceduralMonotoneDataFlowAnalysisFramework.N, succs: CSet[InterProceduralMonotoneDataFlowAnalysisFramework.N]): Unit = {
-//      ???
-//    }
-//  }
-//  
 //  private val processed: MSet[InterProceduralMonotoneDataFlowAnalysisFramework.N] = msetEmpty
 //  private val srcSet: MMap[InterProceduralMonotoneDataFlowAnalysisFramework.N, TagTaintDescriptor] = mmapEmpty
 //  private val sinSet: MMap[InterProceduralMonotoneDataFlowAnalysisFramework.N, TagTaintDescriptor] = mmapEmpty
 //  private val sanSet: MMap[InterProceduralMonotoneDataFlowAnalysisFramework.N, ISet[String]] = mmapEmpty // TODO
 //  private val tgeSet: MMap[InterProceduralMonotoneDataFlowAnalysisFramework.N, ISet[String]] = mmapEmpty // TODO
 //  
-//  private val paths: MMap[TaintSlot, Tp] = mmapEmpty
-//  private val dataTrans: MMap[TaintSlot, TaintSlot] = mmapEmpty
-//  private def updatePath(ts: TaintSlot, ps: PTASlot, node: ICFGNode, isSource: Boolean, isSink: Boolean) = {
-//    val tp = paths.getOrElseUpdate(ts, new Tp)
-//    if(isSource) tp.srcN = TaintSource(node, srcSet(node))
-//    if(isSink) tp.sinN = TaintSink(node, sinSet(node))
-//    tp.path += ((ps, node.getContext))
-//  }
+//  private val graph: TaintGraph = new TaintGraph
 //  
 //  private def isObjectAssignment(a: Assignment): Boolean = {
 //    var result = false
@@ -179,12 +172,245 @@
 //      slots.foreach{
 //        slot =>
 //          val inss = ptaresult.pointsToSet(slot, context)
-//          result(slot) = inss.map(InstanceTaintSlot(_))
+//          result(slot) = inss.map(InstanceTaintSlot(slot, TaintSlotPosition.LHS, context, _))
 //      }
 //    } else {
-//      slots.map {s => result(s) = Set(PrimitiveTaintSlot(s))}
+//      slots.map {s => result(s) = Set(PrimitiveTaintSlot(s, TaintSlotPosition.LHS, context))}
 //    }
 //    result.toMap
+//  }
+//  
+//  private def getPrevTaintSlot(s: ISet[TaintFact], insorslot: Either[Instance, PTASlot]): IMap[TaintSlot, ISet[String]] = {
+//    val result: MMap[TaintSlot, MSet[String]] = mmapEmpty
+//    insorslot match {
+//      case Left(ins) =>
+//        s.foreach {
+//          fact => 
+//            fact.s match {
+//              case its: InstanceTaintSlot => 
+//                if(its.ins == ins) {
+//                  val tags = result.getOrElseUpdate(its, msetEmpty) 
+//                  tags += fact.tag
+//                }
+//              case _ =>
+//            }
+//        }
+//      case Right(slot) =>
+//        s.foreach {
+//          fact => 
+//            fact.s match {
+//              case pts: PrimitiveTaintSlot => 
+//                if(pts.s.getId == slot.getId) {
+//                  val tags = result.getOrElseUpdate(pts, msetEmpty) 
+//                  tags += fact.tag
+//                }
+//              case _ =>
+//            }
+//        }
+//    }
+//    result.map(r => (r._1, r._2.toSet)).toMap
+//  }
+//  
+//  private def processRHSs(s: ISet[TaintFact], rhss: IList[Exp], context: Context, typ: Option[JawaType], isObject: Boolean): ISet[(TaintSlot, ISet[String])] = {
+//    val pos = TaintSlotPosition.RHS
+//    val result: MSet[(TaintSlot, ISet[String])] = msetEmpty
+//    rhss foreach {
+//      rhs =>
+//        rhs match{
+//          case ne: NameExp =>
+//            val slot = ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ne, typ, false, false, global)
+//            if(isObject){
+//              val value = ptaresult.pointsToSet(slot, context)
+//              value.map {
+//                ins =>
+//                  getPrevTaintSlot(s, Left(ins)) foreach {
+//                    case (ptslot, tags) =>
+//                      val itslot = InstanceTaintSlot(slot, pos, context, ins)
+//                      graph.addTaintEdge(ptslot, itslot)
+//                      result += ((itslot, tags))
+//                  }
+//                    
+//              }
+//            } else {
+//              getPrevTaintSlot(s, Right(slot)) foreach {
+//                case (ptslot, tags) =>
+//                  val itslot = PrimitiveTaintSlot(slot, pos, context)
+//                  graph.addTaintEdge(ptslot, itslot)
+//                  result += ((itslot, tags))
+//              }
+//            }
+//          case le: LiteralExp =>
+//          case ne: NewExp =>
+//          case ae: AccessExp =>
+//            val fieldFQN = ASTUtil.getFieldFQN(ae, typ.get)
+//            val baseSlot = ae.exp match {
+//              case ne: NameExp => ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ne, typ, true, false, global)
+//              case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
+//            }
+//            val baseValue = ptaresult.pointsToSet(baseSlot, context)
+//            baseValue.map{
+//              ins =>
+//                if(ins.isNull){}
+//                else {
+//                  getPrevTaintSlot(s, Left(ins)) foreach {
+//                    case (ptslot, tags) =>
+//                      val itslot = InstanceTaintSlot(baseSlot, pos, context, ins)
+//                      graph.addTaintEdge(ptslot, itslot)
+//                      result += ((itslot, tags))
+//                  }
+//                  val fName = fieldFQN.fieldName
+//                  val fieldSlot = FieldSlot(ins, fName)
+//                  if(isObject) {
+//                    val fieldValue = ptaresult.pointsToSet(fieldSlot, context)
+//                    fieldValue.foreach {
+//                      fins => 
+//                        getPrevTaintSlot(s, Left(fins)) foreach {
+//                          case (ptslot, tags) =>
+//                            val itslot = InstanceTaintSlot(fieldSlot, pos, context, fins)
+//                            graph.addTaintEdge(ptslot, itslot)
+//                            result += ((itslot, tags))
+//                        }
+//                    }
+//                  } else {
+//                    getPrevTaintSlot(s, Right(fieldSlot)) foreach {
+//                      case (ptslot, tags) =>
+//                        val itslot = PrimitiveTaintSlot(fieldSlot, pos, context)
+//                        graph.addTaintEdge(ptslot, itslot)
+//                        result += ((itslot, tags))
+//                    }
+//                  }
+//                }
+//            }
+//          case ie: IndexingExp =>
+//            val baseSlot = ie.exp match {
+//              case ine: NameExp =>
+//                ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ine, typ, true, false, global)
+//              case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
+//            }
+//            val baseValue = ptaresult.pointsToSet(baseSlot, context)
+//            baseValue.map{
+//              ins =>
+//                if(ins.isNull){}
+//                else {
+//                  getPrevTaintSlot(s, Left(ins)) foreach {
+//                    case (ptslot, tags) =>
+//                      val itslot = InstanceTaintSlot(baseSlot, pos, context, ins)
+//                      graph.addTaintEdge(ptslot, itslot)
+//                      result += ((itslot, tags))
+//                  }
+//                }
+//            }
+//          case ce: CastExp =>
+//            ce.exp match{
+//              case ne: NameExp =>
+//                val slot = ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ne, typ, false, false, global)
+//                val value: ISet[Instance] = ptaresult.pointsToSet(slot, context)
+//                value.foreach {
+//                  ins =>
+//                    getPrevTaintSlot(s, Left(ins)) foreach {
+//                      case (ptslot, tags) =>
+//                        val itslot = InstanceTaintSlot(slot, pos, context, ins)
+//                        graph.addTaintEdge(ptslot, itslot)
+//                        result += ((itslot, tags))
+//                    }
+//                }
+//              case nle: NewListExp =>
+//                System.err.println(TITLE, "NewListExp: " + nle)
+//              case _ => throw new RuntimeException("Wrong exp: " + ce.exp)
+//            }
+//          case _ =>
+//        }
+//    }
+//    result.toSet
+//  }
+//  
+//  private def processLHSs(s: ISet[TaintFact], lhss: IList[Exp], rhsslot: ISet[(TaintSlot, ISet[String])], context: Context, typ: Option[JawaType], isObject: Boolean): ISet[(TaintSlot, ISet[String])] = {
+//    val pos = TaintSlotPosition.RHS
+//    val result: MSet[(TaintSlot, ISet[String])] = msetEmpty
+//    if(rhsslot.isEmpty) return result.toSet
+//    lhss.foreach{
+//      lhs =>
+//        lhs match{
+//          case ne: NameExp =>
+//            val slot = ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ne, typ, false, false, global)
+//            if(isObject){
+//              val value = ptaresult.pointsToSet(slot, context)
+//              value.map {
+//                ins =>
+//                  val itslot = InstanceTaintSlot(slot, pos, context, ins)
+//                  val ta = rhsslot.map{
+//                    case (slot, tags) =>
+//                      graph.addTaintEdge(slot, itslot)
+//                      tags
+//                  }.reduce(iunion[String] _)
+//                  result += ((itslot,ta))
+//              }
+//            } else {
+//              val itslot = PrimitiveTaintSlot(slot, pos, context)
+//              val ta = rhsslot.map{
+//                case (slot, tags) =>
+//                  graph.addTaintEdge(slot, itslot)
+//                  tags
+//              }.reduce(iunion[String] _)
+//              result += ((itslot,ta))
+//            }
+//          case ae: AccessExp =>
+//            val fieldFQN = ASTUtil.getFieldFQN(ae, typ.get)
+//            val baseSlot = ae.exp match {
+//              case ne: NameExp => VarSlot(ne.name.name, true, false)
+//              case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
+//            }
+//            val baseValue = ptaresult.pointsToSet(baseSlot, context)
+//            baseValue.map{
+//              ins =>
+//                if(ins.isNull) {}
+//                else{
+//                  val fName = fieldFQN.fieldName
+//                  val fieldSlot = FieldSlot(ins, fName)
+//                  if(isObject) {
+//                    val fieldValue = ptaresult.pointsToSet(fieldSlot, context)
+//                    fieldValue.foreach {
+//                      fins => 
+//                        val itslot = InstanceTaintSlot(fieldSlot, pos, context, fins)
+//                        val ta = rhsslot.map{
+//                          case (slot, tags) =>
+//                            graph.addTaintEdge(slot, itslot)
+//                            tags
+//                        }.reduce(iunion[String] _)
+//                        result += ((itslot,ta))
+//                    }
+//                  } else {
+//                    val itslot = PrimitiveTaintSlot(fieldSlot, pos, context)
+//                    val ta = rhsslot.map{
+//                      case (slot, tags) =>
+//                        graph.addTaintEdge(slot, itslot)
+//                        tags
+//                    }.reduce(iunion[String] _)
+//                    result += ((itslot,ta))
+//                  }
+//                }
+//            }
+//          case ie: IndexingExp =>
+//            val baseSlot = ie.exp match {
+//              case ine: NameExp =>
+//                VarSlot(ine.name.name, true, false)
+//              case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
+//            }
+//            val baseValue = ptaresult.pointsToSet(baseSlot, context)
+//            baseValue.map{
+//              ins =>
+//                val itslot = InstanceTaintSlot(baseSlot, pos, context, ins)
+//                val ta = rhsslot.map{
+//                  case (slot, tags) =>
+//                    graph.addTaintEdge(slot, itslot)
+//                    tags
+//                }.reduce(iunion[String] _)
+//                result += ((itslot,ta))
+//            }
+//          case _=>
+//        }
+//    }
+//    result.toSet
 //  }
 //  
 //  /**
@@ -213,72 +439,16 @@
 //            case (ps, tss) =>
 //              tss foreach {
 //                ts =>
-//                  updatePath(ts, ps, currentNode, true, false)
+//                  graph.addSource(TaintNode(ts))
 //                  result ++= desc.tags.map(TaintFact(ts, _))
 //              }
 //          }
 //      }
-//      rhss foreach {
-//        rhs =>
-//          rhs match{
-//            case ne: NameExp =>
-//              val slot = ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ne, typ, false, false, global)
-//              
-//            case le: LiteralExp =>
-//              if(le.typ.name.equals("STRING")){
-//              } else if(le.typ.name.equals("NULL")){
-//              }
-//            case ne: NewExp =>
-//            case ae: AccessExp =>
-//              val fieldFQN = ASTUtil.getFieldFQN(ae, typ.get)
-//              val baseSlot = ae.exp match {
-//                case ne: NameExp => ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ne, typ, true, false, global)
-//                case _ => throw new RuntimeException("Wrong exp: " + ae.exp)
-//              }
-//            case ie: IndexingExp =>
-//              val baseSlot = ie.exp match {
-//                case ine: NameExp =>
-//                  ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ine, typ, true, false, global)
-//                case _ => throw new RuntimeException("Wrong exp: " + ie.exp)
-//              }
-//            case ce: CastExp =>
-//              val casttyp: JawaType = ASTUtil.getTypeFromTypeSpec(ce.typeSpec)
-//              
-//              val insopt = 
-//                if(casttyp.typ == "java.lang.String" && casttyp.dimensions == 0){
-//                  Some(PTAPointStringInstance(currentContext.copy))
-//                } else if (casttyp.isInstanceOf[ObjectType]) {
-//                  Some(PTAInstance(casttyp.asInstanceOf[ObjectType], currentContext.copy, false))
-//                } else None
-//                
-//              insopt match {
-//                case Some(ins) =>
-//                  ce.exp match{
-//                    case ne: NameExp =>
-//                      val slot = ReachingFactsAnalysisHelper.getNameSlotFromNameExp(ne, typ, false, false, global)
-//                      val value: ISet[Instance] = ptaresult.pointsToSet(slot, currentContext)
-//                      result(i) = value.map{
-//                        v =>
-//                          if(v.isInstanceOf[UnknownInstance]){
-//                            UnknownInstance(ins.typ, v.defSite.copy)
-//                          } else {
-//                            v
-//                          }
-//                      }
-//                    case nle: NewListExp =>
-//                      System.err.println(TITLE, "NewListExp: " + nle)
-//                      result(i) = isetEmpty[Instance]// + UnknownInstance(currentContext)
-//                    case _ => throw new RuntimeException("Wrong exp: " + ce.exp)
-//                  }
-//                case _ =>
-//              }
-//            case _ =>
-//          }
-//      }
-//      if(isObject){ // Handle if it's an object operation
-//        
-//      } else { // Handle if it's an scala operation
-//        // TODO
+//      val rhsslots = processRHSs(s, rhss, currentNode.getContext, typ, isObject)
+//      val lhsslots = processLHSs(s, lhss, rhsslots, currentNode.getContext, typ, isObject)
+//      (lhsslots ++ rhsslots).foreach {
+//        case (slot, tags) =>
+//          result ++= tags.map(TaintFact(slot, _))
 //      }
 //      // TODO: Handle if it's a tag gen node
 //      result.toSet

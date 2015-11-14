@@ -23,7 +23,6 @@ class Global(val projectName: String, val reporter: Reporter) extends JawaClassL
     this.applicationClasses.clear()
     this.systemLibraryClasses.clear()
     this.userLibraryClasses.clear()
-    this.entryPoints.clear()
     this.hierarchy.reset
     this.applicationClassCodes.clear()
     this.userLibraryClassCodes.clear()

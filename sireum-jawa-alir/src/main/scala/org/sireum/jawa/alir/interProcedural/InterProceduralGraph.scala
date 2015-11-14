@@ -100,7 +100,7 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
     import scala.collection.JavaConversions._
 	  val path = DijkstraShortestPath.findPathBetween(this.graph, srcNode, tarNode)
 	  if(path != null) path.toList
-	  else null
+	  else ilistEmpty
 	}
 }
 
