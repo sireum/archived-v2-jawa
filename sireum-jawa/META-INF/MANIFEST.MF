@@ -5,7 +5,8 @@ Bundle-SymbolicName: sireum-jawa;singleton:=true
 Bundle-Version: 1.0
 Bundle-ClassPath: .,
  lib/blueprints-core.jar,
- lib/commons-configuration.jar
+ lib/commons-configuration.jar,
+ lib/ini4j.jar
 Export-Package: com.tinkerpop.blueprints,
  com.tinkerpop.blueprints.impls.tg,
  com.tinkerpop.blueprints.util,
@@ -32,10 +33,16 @@ Export-Package: com.tinkerpop.blueprints,
  org.apache.commons.configuration.tree,
  org.apache.commons.configuration.tree.xpath,
  org.apache.commons.configuration.web,
+ org.ini4j,
+ org.ini4j.spi,
  org.sireum.jawa,
+ org.sireum.jawa.backend,
+ org.sireum.jawa.classfile,
+ org.sireum.jawa.classpath,
  org.sireum.jawa.io,
  org.sireum.jawa.pilarCodeGenerator,
  org.sireum.jawa.resources.pilarCodeGenerator,
+ org.sireum.jawa.sourcefile,
  org.sireum.jawa.symbolResolver,
  org.sireum.jawa.util,
  org.sireum.jawa.xml

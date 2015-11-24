@@ -119,7 +119,7 @@ abstract class MethodGenerator(global: Global) {
     (global.resolveMethodCode(signature, code), code)
   }
   
-  def generateWithParam(params: List[JawaType], name: String): JawaMethod = {
+  def generateWithParam(params: List[JawaType], name: String): (JawaMethod, String) = {
     val className = this.currentComponent.jawaName
     val methodName = className + "." + name
     val annotations = new ArrayList[ST]
@@ -145,7 +145,7 @@ abstract class MethodGenerator(global: Global) {
     val code = generateInternal(List())
     global.reporter.echo(TITLE, "Environment code:\n" + code)
 //    global.addApplicationClassCode(className, code)
-    global.resolveMethodCode(signature, code)
+    (global.resolveMethodCode(signature, code), code)
   }
   
   protected def generateExpAnnotation(flag: String, exps: List[String]): ST = {

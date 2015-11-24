@@ -35,35 +35,31 @@ trait PAGConstraint{
         lhs match {
           case pfl: PointFieldL =>
             flowMap.getOrElseUpdate(EdgeType.FIELD_STORE, mmapEmpty).getOrElseUpdate(rhs, msetEmpty) += pfl
-            udChain(pfl.baseP, ps, cfg, rda).foreach(
-              point => {
+            udChain(pfl.baseP, ps, cfg, rda).foreach {
+              point =>
                 flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += pfl.baseP
-              }
-            )
+            }
             rhs match {
               case pr: PointR =>
-                udChain(pr, ps, cfg, rda).foreach(
-                  point => {
+                udChain(pr, ps, cfg, rda).foreach {
+                  point =>
                     flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += pr
-                  }
-                )
+                }
               case _ =>
             }
           //if an array point in lhs, then have flow from this array point to most recent array var shadowing place
           case pal: PointArrayL =>
             flowMap.getOrElseUpdate(EdgeType.ARRAY_STORE, mmapEmpty).getOrElseUpdate(rhs, msetEmpty) += pal
-            udChain(pal, ps, cfg, rda).foreach(
-              point => {
+            udChain(pal, ps, cfg, rda).foreach {
+              point =>
                 flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += pal
-              }
-            )
+            }
             rhs match {
               case pr: PointR =>
-                udChain(pr, ps, cfg, rda).foreach(
-                  point => {
+                udChain(pr, ps, cfg, rda).foreach {
+                  point =>
                     flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += pr
-                  }
-                )
+                }
               case _ =>
             }
           case pgl: PointStaticFieldL =>
@@ -95,15 +91,16 @@ trait PAGConstraint{
                 )
               case pgr: PointStaticFieldR =>
                 flowMap.getOrElseUpdate(EdgeType.STATIC_FIELD_LOAD, mmapEmpty).getOrElseUpdate(pgr, msetEmpty) += lhs
+              case per: PointExceptionR =>
+                flowMap.getOrElseUpdate(EdgeType.ALLOCATION, mmapEmpty).getOrElseUpdate(rhs, msetEmpty) += lhs
               case po: Point with Right with NewObj =>
                 flowMap.getOrElseUpdate(EdgeType.ALLOCATION, mmapEmpty).getOrElseUpdate(rhs, msetEmpty) += lhs
               case pr: Point with Loc with Right =>
                 flowMap.getOrElseUpdate(EdgeType.ASSIGNMENT, mmapEmpty).getOrElseUpdate(pr, msetEmpty) += lhs
-                udChain(pr, ps, cfg, rda, true).foreach(
-                  point => {
+                udChain(pr, ps, cfg, rda, true).foreach {
+                  point =>
                     flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += pr
-                  }
-                )
+                }
             }
         }
       case pc: PointCall =>
@@ -117,19 +114,17 @@ trait PAGConstraint{
           case psi: PointStaticI =>
             psi.argPsCall.foreach{
               case (i, cp) =>
-                udChain(cp, ps, cfg, rda, true).foreach(
-                  point => {
+                udChain(cp, ps, cfg, rda, true).foreach {
+                  point =>
                     flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += cp
-                  }
-                )
+                }
                 flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(cp, msetEmpty) += psi.argPsReturn(i)
             }
           case pi: PointI =>
-            udChain(pi.recvPCall, ps, cfg, rda, true).foreach(
-              point => {
+            udChain(pi.recvPCall, ps, cfg, rda, true).foreach {
+              point =>
                 flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += pi.recvPCall
-              }
-            )
+            }
             flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(pi.recvPCall, msetEmpty) += pi.recvPReturn
             pi.argPsCall.foreach{
               case (i, cp) => 
@@ -145,16 +140,14 @@ trait PAGConstraint{
         val t_exit = procP.thisPExit
         val ps_exit = procP.paramPsExit
         udChainForMethodExit(t_exit, ps, cfg, rda, true).foreach{
-          point =>{
+          point =>
             flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += t_exit
-          }
         }
         ps_exit.foreach{
           case (i, p_exit) =>
             udChainForMethodExit(p_exit, ps, cfg, rda, true).foreach{
-              point =>{
+              point =>
                 flowMap.getOrElseUpdate(EdgeType.TRANSFER, mmapEmpty).getOrElseUpdate(point, msetEmpty) += p_exit
-              }
             }
         }
       case retP: PointRet =>
@@ -210,6 +203,7 @@ trait PAGConstraint{
           p match {
             case pl: PointL => pl.varname
             case pr: PointR => pr.varname
+            case pc: PointCastR => pc.varname
             case pr: PointRet => pr.retname
             case gl: Point with Static_Field => gl.staticFieldFQN.toString()
             case ba: Point with Base => ba.baseName
@@ -220,8 +214,8 @@ trait PAGConstraint{
             case _ => ""
           }
         if(varName.equals(slot.toString)){
-          if(defDesc.toString.equals("*")){
-            if(!varName.startsWith("@@")){
+          if(defDesc.toString.equals("*")) {
+            if(!varName.startsWith("@@")) {
               val tp = getPointFromEntry(varName, points, avoidMode)
               if(tp!=null)
                 ps += tp
@@ -229,7 +223,7 @@ trait PAGConstraint{
           } else {
             defDesc match {
               case pdd: ParamDefDesc =>
-                pdd.locUri match{
+                pdd.locUri match {
                   case Some(locU) =>
                     val tp = getParamPoint_Return(varName, pdd.paramIndex, locU, pdd.locIndex, points, avoidMode)
                     if(tp!=null)
@@ -240,7 +234,7 @@ trait PAGConstraint{
                 ldd.locUri match {
                   case Some(locU) =>
                     val tp = getPoint(varName, locU, ldd.locIndex, points, avoidMode)
-                    if(tp!=null)
+                    if(tp != null)
                       ps += tp
                   case None =>
                 }
@@ -257,6 +251,19 @@ trait PAGConstraint{
     ps.foreach{
       p =>
         p match {
+          case callP: PointCall =>
+            callP.lhsOpt match {
+              case Some(lhs) =>
+                lhs match {
+                  case iP: PointL =>
+                    val locationUri = iP.loc
+                    val locationIndex = iP.locIndex
+                    if(iP.varname.equals(uri) && locUri.equals(locationUri) && locIndex == locationIndex)
+                      point = lhs
+                  case _ =>
+                }
+              case _ =>
+            }
           case asmtP: PointAsmt =>
             val lhs = asmtP.lhs
             lhs match {

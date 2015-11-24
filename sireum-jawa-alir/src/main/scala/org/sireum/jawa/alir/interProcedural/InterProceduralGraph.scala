@@ -71,6 +71,16 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
 		}
   }
   
+  protected val vLDProvider = new VertexNameProvider[Node]() {
+    def filterLabel(uri : String) = {
+      uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
+    }
+      
+    def getVertexName(v : Node) : String = {
+      filterLabel(v.toString())
+    }
+  }
+  
   protected val eIDProvider = new EdgeNameProvider[Edge]() {
     def filterLabel(uri : String) = {
       uri.filter(_.isUnicodeIdentifierPart)  // filters out the special characters like '/', '.', '%', etc.  
@@ -86,12 +96,12 @@ trait InterProceduralGraph[Node <: InterProceduralNode]
     de.export(w, graph)
   }
   
-  def toGraphML(w : Writer, vip : VertexNameProvider[Node] = vIDProvider, vlp : VertexNameProvider[Node] = null, eip : EdgeNameProvider[Edge] = eIDProvider, elp : EdgeNameProvider[Edge] = null) = {
+  def toGraphML(w : Writer, vip : VertexNameProvider[Node] = vIDProvider, vlp : VertexNameProvider[Node] = vLDProvider, eip : EdgeNameProvider[Edge] = eIDProvider, elp : EdgeNameProvider[Edge] = null) = {
     val graphml = new GraphMLExporter[Node, Edge](vip, vlp, eip, elp)
     graphml.export(w, graph)
   }
   
-  def toGML(w : Writer, vip : VertexNameProvider[Node] = vIDProvider, vlp : VertexNameProvider[Node] = null, eip : EdgeNameProvider[Edge] = eIDProvider, elp : EdgeNameProvider[Edge] = null) = {
+  def toGML(w : Writer, vip : VertexNameProvider[Node] = vIDProvider, vlp : VertexNameProvider[Node] = vLDProvider, eip : EdgeNameProvider[Edge] = eIDProvider, elp : EdgeNameProvider[Edge] = null) = {
     val gml = new GmlExporter[Node, Edge](vip, vlp, eip, elp)
     gml.export(w, graph)
   }

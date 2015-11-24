@@ -183,15 +183,15 @@ class PointerAssignmentGraph[Node <: PtaNode]
   
   final case class PTACallee(callee: JawaMethod, pi: Point with Invoke, node: Node) extends Callee
   
-  def processStaticCall(global: Global): ISet[PTACallee] = {
-    val staticCallees = msetEmpty[PTACallee]
+  def processStaticCall(global: Global): ISet[(Point with Invoke, PTACallee, Context)] = {
+    val staticCallees = msetEmpty[(Point with Invoke, PTACallee, Context)]
     newNodes.foreach{
       node =>
         if(node.point.isInstanceOf[Point with Invoke]){
           val pi = node.point.asInstanceOf[Point with Invoke]
           if(pi.invokeTyp.equals("static")){
             val callee = getStaticCallee(global, pi)
-            staticCallees += PTACallee(callee.callee, pi, node)
+            staticCallees += ((pi, PTACallee(callee.callee, pi, node), node.context))
           }
         }
     }
@@ -212,6 +212,19 @@ class PointerAssignmentGraph[Node <: PtaNode]
         }
     }
     newEdges = isetEmpty
+  }
+  
+  def handleModelCall(pi: Point with Invoke, context: Context, callee: Callee) = {
+    callee.callee.getReturnType match {
+      case ot: ObjectType =>
+        val pinode = getNode(pi, context.copy)
+        pinode.getSlots(pointsToMap).foreach {
+          s =>
+            pointsToMap.addInstance(s, context.copy, PTAInstance(ot.toUnknown, context.copy, false))
+            worklist += pinode
+        }
+      case _ =>
+    }
   }
   
   def addEdge(source: Node, target: Node, typ: EdgeType.Value): Edge = {
@@ -315,6 +328,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
                 nodes += argNode
                 argNode.setProperty(PARAM_NUM, pa.index)
             }
+          case _ =>
         }
       case asmtP: PointAsmt =>
         val lhs = asmtP.lhs
@@ -346,6 +360,9 @@ class PointerAssignmentGraph[Node <: PtaNode]
 //            fieldNode.asInstanceOf[PtaFieldNode].baseNode = baseNode.asInstanceOf[PtaFieldBaseNode]
           case pcr: PointClassR =>
             val ins = ClassInstance(pcr.classtyp, context.copy)
+            pointsToMap.addInstance(InstanceSlot(ins), context.copy, ins)
+          case per: PointExceptionR =>
+            val ins = PTAInstance(per.typ, context.copy, false)
             pointsToMap.addInstance(InstanceSlot(ins), context.copy, ins)
           case pso: PointStringO =>
             val ins = PTAConcreteStringInstance(pso.text, context.copy)
@@ -619,6 +636,8 @@ final case class PtaNode(point: Point, context: Context) extends InterProcedural
         Set(InstanceSlot(PTAInstance(new ObjectType(po.obj), context.copy, false)))
       case pso: PointStringO =>
         Set(InstanceSlot(PTAConcreteStringInstance(pso.text, context.copy)))
+      case per: PointExceptionR =>
+        Set(InstanceSlot(PTAInstance(per.typ, context.copy, false)))
       case gla: Point with Loc with Static_Field with Array =>
         val pts = ptaresult.pointsToSet(StaticFieldSlot(gla.staticFieldFQN), context)
         pts.map{
@@ -649,6 +668,8 @@ final case class PtaNode(point: Point, context: Context) extends InterProcedural
         Set(VarSlot(bas.baseName, true, false))
       case pl: PointL =>
         Set(VarSlot(pl.varname, false, false))
+      case pc: PointCastR =>
+        Set(VarSlot(pc.varname, false, false))
       case pr: PointR =>
         Set(VarSlot(pr.varname, false, false))
       case pla: Point with Loc with Arg =>

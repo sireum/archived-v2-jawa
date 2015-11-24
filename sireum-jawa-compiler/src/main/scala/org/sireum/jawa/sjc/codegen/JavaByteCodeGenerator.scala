@@ -326,7 +326,7 @@ class JavaByteCodeGenerator {
   }
   
   private def visitCallStatement(mv: MethodVisitor, cs: CallStatement): Unit = {
-    val isReturnObject: Boolean = cs.signature.isReturnNonNomal()
+    val isReturnObject: Boolean = cs.signature.isReturnObject
     val isReturnVoid: Boolean = cs.signature.getReturnType().name == "void"
     val isStatic: Boolean = cs.isStatic
     cs.recvOpt match {

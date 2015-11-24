@@ -76,13 +76,22 @@ object InterproceduralSuperSpark {
     pag.processObjectAllocation
     val staticCallees = pag.processStaticCall(global)
     staticCallees.foreach{
-      callee=>
-        if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringClass))
-        extendGraphWithConstructGraph(callee, callee.pi, callee.node.getContext.copy, pag, icfg)
+      case (pi, callee, context) =>
+        var bypassFlag = false
+        icfg.getCallGraph.addCall(pi.ownerSig, callee.callee.getSignature)
+        if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringClass)) {
+          extendGraphWithConstructGraph(callee, callee.pi, callee.node.getContext.copy, pag, icfg)
+        } else {
+          pag.handleModelCall(pi, context, callee)
+          bypassFlag = true
+        }
         val callNode = icfg.getICFGCallNode(callee.node.context).asInstanceOf[ICFGInvokeNode]
         callNode.addCallee(callee)
         val returnNode = icfg.getICFGReturnNode(callee.node.context).asInstanceOf[ICFGInvokeNode]
         returnNode.addCallee(callee)
+        if(!bypassFlag) {
+          icfg.deleteEdge(callNode, returnNode)
+        }
     }
   }
   
@@ -113,7 +122,7 @@ object InterproceduralSuperSpark {
             pag.getEdgeType(edge) match {
               case pag.EdgeType.TRANSFER => // e.g. L0: p = q; L1:  r = p; edge is p@L0 -> p@L1
                 val dstNode = pag.successor(edge)
-                if(pag.pointsToMap.isDiff(srcNode, dstNode)){
+                if(pag.pointsToMap.isDiff(srcNode, dstNode)) {
                   pag.worklist += dstNode
                   val d = pag.pointsToMap.getDiff(srcNode, dstNode)
                   pag.pointsToMap.transferPointsToSet(srcNode, dstNode)
@@ -224,27 +233,30 @@ object InterproceduralSuperSpark {
         } else {
           calleeSet ++= pag.getVirtualCalleeSet(global, d, pi)
         }
-        var bypassflag = true
+        var bypassflag = false
         calleeSet.foreach(
           callee => {
-            if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringClass))
+            icfg.getCallGraph.addCall(pi.ownerSig, callee.callee.getSignature)
+            if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringClass)) {
               extendGraphWithConstructGraph(callee, pi, callerContext.copy, pag, icfg)
-            else bypassflag = false
-          }  
+            } else {
+              pag.handleModelCall(pi, callerContext, callee)
+              bypassflag = true
+            }
+          }
         )
+        if(calleeSet.isEmpty) bypassflag = true
         val callNode = icfg.getICFGCallNode(callerContext).asInstanceOf[ICFGInvokeNode]
         callNode.addCallees(calleeSet.toSet)
         val returnNode = icfg.getICFGReturnNode(callerContext).asInstanceOf[ICFGInvokeNode]
         returnNode.addCallees(calleeSet.toSet)
-
         if(!bypassflag){
-          icfg.addEdge(callNode, returnNode)
+          icfg.deleteEdge(callNode, returnNode)
         }
         processStaticInfo(global, pag, icfg)
       case None =>
     }
   }
-  
   
   def extendGraphWithConstructGraph(callee: Callee, 
       pi: Point with Invoke, 

@@ -4,6 +4,9 @@ import org.sireum.util._
 import org.sireum.jawa.io.Position
 import org.sireum.jawa.io.NoPosition
 import org.sireum.jawa.io.AbstractFile
+import java.io.FileWriter
+import java.io.PrintWriter
+import java.io.BufferedWriter
 
 /** Report information, warnings and errors.
  *
@@ -112,5 +115,48 @@ class PrintReporter(msglevel: MsgLevel.Value) extends ReporterImpl {
       case WARNING => if(msglevel <= MsgLevel.WARNING) System.err.println(severity + "@" + title + ":" + msg)
       case ERROR   => if(msglevel <= MsgLevel.ERROR) System.err.println(severity + "@" + title + ":" + msg)
     }
+  }
+}
+
+class NoReporter() extends ReporterImpl {
+  
+  def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
+    
+  }
+  def info1(title: String, msg: String, severity: Severity, force: Boolean): Unit = {
+    
+  }
+}
+
+class FileReporter(outputUri: FileResourceUri, msglevel: MsgLevel.Value) extends ReporterImpl {
+  val f = FileUtil.toFile(outputUri + "/.report")
+  f.getParentFile.mkdirs
+  f.delete()
+  
+  def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
+    val fw = new FileWriter(f, true)
+    val pw = new PrintWriter(new BufferedWriter(fw))
+    severity.count += 1
+    severity match {
+      case INFO    => if(msglevel <= MsgLevel.INFO) pw.println(severity + "@" + pos + ":" + msg)
+      case WARNING => if(msglevel <= MsgLevel.WARNING) pw.println(severity + "@" + pos + ":" + msg)
+      case ERROR   => if(msglevel <= MsgLevel.ERROR) pw.println(severity + "@" + pos + ":" + msg)
+    }
+    pw.flush
+    fw.close
+    pw.close
+  }
+  def info1(title: String, msg: String, severity: Severity, force: Boolean): Unit = {
+    val fw = new FileWriter(f, true)
+    val pw = new PrintWriter(new BufferedWriter(fw))
+    severity.count += 1
+    severity match {
+      case INFO    => if(msglevel <= MsgLevel.INFO) pw.println(severity + "@" + title + ":" + msg)
+      case WARNING => if(msglevel <= MsgLevel.WARNING) pw.println(severity + "@" + title + ":" + msg)
+      case ERROR   => if(msglevel <= MsgLevel.ERROR) pw.println(severity + "@" + title + ":" + msg)
+    }
+    pw.flush
+    fw.close
+    pw.close
   }
 }

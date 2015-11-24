@@ -25,6 +25,7 @@ import org.sireum.jawa.alir.interProcedural.InterProceduralNode
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 trait SourceAndSinkManager {
+  def sasFilePath: String
   /**
    * it's a map from source API sig to it's category
    */
@@ -34,7 +35,7 @@ trait SourceAndSinkManager {
    */
   protected val sinks: MMap[String, (ISet[Int], ISet[String])] = mmapEmpty
 
-  def parse(sasFilePath: String) =
+  def parse =
     SSParser.parse(sasFilePath) match {
       case (sources, sinks) => 
         sources.foreach{

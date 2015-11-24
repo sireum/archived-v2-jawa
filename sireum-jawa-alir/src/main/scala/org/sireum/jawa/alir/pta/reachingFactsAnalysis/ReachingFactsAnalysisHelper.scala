@@ -135,6 +135,10 @@ object ReachingFactsAnalysisHelper {
                 }
               }
         }
+        if(recvValue.isEmpty) {
+          val ps = CallHandler.getUnknownVirtualCalleeMethods(global, sig.getClassType.toUnknown, subSig)
+          calleeSet ++= ps.map{p=> UnknownCallee(p)}
+        }
       case "static" =>
         calleeSet ++= CallHandler.getStaticCalleeMethod(global, sig).map(StaticCallee(_))
       case _ => 
@@ -525,7 +529,7 @@ object ReachingFactsAnalysisHelper {
               val value: ISet[Instance] = Set(ins)
               result(i) = value
             } else if(le.typ.name.equals("NULL")){
-              val ins = PTAInstance(JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE, currentContext, isNull_ = true)
+              val ins = PTAInstance(JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE.toUnknown, currentContext, isNull_ = true)
               val value: ISet[Instance] = Set(ins)
               result(i) = value
             }
@@ -581,8 +585,8 @@ object ReachingFactsAnalysisHelper {
                   val arrayValue: MSet[Instance] = msetEmpty
                   arrayValue ++= ptaresult.pointsToSet(arraySlot, currentContext)
                   val originalType = ins.typ
-                  if(originalType.dimensions == 0) throw new RuntimeException("Some problem must be happened for " + ins + " because indexing cannot happen on 0 dimension object. @" + currentContext)
-                  val newType = ObjectType(originalType.typ, originalType.dimensions - 1)
+                  val dim = if(originalType.dimensions == 0) 0 else originalType.dimensions - 1
+                  val newType = ObjectType(originalType.typ, dim)
                   val newUnknown = 
                     if(newType.name == "java.lang.String") PTAPointStringInstance(currentContext)
                     else UnknownInstance(newType, currentContext)

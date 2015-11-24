@@ -55,7 +55,7 @@ class PointsCollector {
     )
     
     var retP: Option[PointMethodRet] = None
-    if(methodSig.isReturnObject || methodSig.isReturnArray){
+    if(methodSig.isReturnObject){
       retP = Some(PointMethodRet(methodSig))
     }
     
@@ -167,6 +167,8 @@ class PointsCollector {
             }
             val typ: JawaType = ASTUtil.getType(e).get
             PointInstanceOfR(varname, typ, loc, locIndex, ownerSig)
+          } else if (n.name.name == Constants.EXCEPTION) {
+            PointExceptionR(typ.get.asInstanceOf[ObjectType].toUnknown, loc, locIndex, ownerSig)
           } else if(isStaticField(n.name.name)){
             val fqn = new FieldFQN(n.name.name.replace("@@", ""), typ.get)
             PointStaticFieldR(fqn, loc, locIndex, ownerSig)
@@ -196,6 +198,13 @@ class PointsCollector {
           val pfr = PointFieldR(pBase, fName, loc, locIndex, ownerSig)
           pBase.setFieldPoint(pfr)
           pfr
+        case ce: CastExp =>
+          val name = ce.exp match {
+            case ne: NameExp => ne.name.name
+            case _ => ""
+          }
+          val typ = ASTUtil.getTypeFromTypeSpec(ce.typeSpec)
+          PointCastR(typ, name, loc, locIndex, ownerSig)
         case _ => null
       }
     }
@@ -217,6 +226,10 @@ class PointsCollector {
             if(le.typ.name.equals("STRING")){
               pl = processLHS(as.lhs, typ)
               pr = PointStringO(le.text, "java.lang.String", loc, locIndex, ownerSig)
+            }
+            if(le.typ.name.equals("null")) {
+              pl = processLHS(as.lhs, typ)
+              pr = PointO(JavaKnowledge.JAVA_TOPLEVEL_OBJECT, loc, locIndex, ownerSig)
             }
           case n: NewExp =>
             pl = processLHS(as.lhs, typ)
@@ -246,6 +259,9 @@ class PointsCollector {
           case ie: IndexingExp =>
             pl = processLHS(as.lhs, typ)
             pr = processRHS(ie, typ)
+          case ce: CastExp =>
+            pl = processLHS(as.lhs, typ)
+            pr = processRHS(ce, typ)
           case _ =>
         }
         if(pl != null && pr != null){
@@ -377,6 +393,11 @@ final case class PointR(varname: String, loc: ResourceUri, locIndex: Int, ownerS
 final case class PointClassR(classtyp: ObjectType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
 
 /**
+ * Set of program points corresponding to const class value. 
+ */
+final case class PointCastR(casttyp: JawaType, varname: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
+
+/**
  * Set of program points corresponding to length. 
  */
 final case class PointLengthR(varname: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
@@ -385,6 +406,11 @@ final case class PointLengthR(varname: String, loc: ResourceUri, locIndex: Int, 
  * Set of program points corresponding to length. 
  */
 final case class PointInstanceOfR(varname: String, typ: JawaType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
+
+/**
+ * Set of program points corresponding to length. 
+ */
+final case class PointExceptionR(typ: ObjectType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
 
 /**
  * Set of program points corresponding to l-value field access expressions. 

@@ -130,14 +130,9 @@ case class Signature(signature: String) extends JavaKnowledge {
     } else None
   }
   
-  def isReturnNonNomal(): Boolean = {
-    val ret = getReturnTypeSignature()
-    ret.startsWith("L") || ret.startsWith("[")
-  }
-  
   def isReturnObject(): Boolean = {
     val ret = getReturnTypeSignature()
-    ret.startsWith("L")
+    ret.startsWith("L") || isReturnArray
   }
   
   def isReturnArray(): Boolean = {

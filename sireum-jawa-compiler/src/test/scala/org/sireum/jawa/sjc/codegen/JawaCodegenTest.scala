@@ -26,7 +26,6 @@ import scala.tools.asm.util.TraceClassVisitor
 import java.lang.reflect.InvocationTargetException
 import org.sireum.jawa.sjc.util.ReadClassFile.CustomClassLoader
 import org.sireum.jawa.io.SourceFile
-import org.sireum.jawa.sjc.refactoring.RefactorJawa
 
 class JawaCodegenTest extends FlatSpec with ShouldMatchers {
   
@@ -199,7 +198,7 @@ class JawaCodegenTest extends FlatSpec with ShouldMatchers {
   }
   
   private def genCode(s: SourceFile) = {    
-    val newcode = RefactorJawa(s.code)
+    val newcode = s.code
     println(newcode)
     val cu = parser(Left(newcode)).compilationUnit(true)
     val css = new JavaByteCodeGenerator().generate(cu)

@@ -312,7 +312,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 	              r.asInstanceOf[ICFGLocNode].setLocIndex(ln.locIndex)
                 r.asInstanceOf[ICFGInvokeNode].setCalleeSig(sig)
 	              nodes += r
-	//              addEdge(c, r)
+	              addEdge(c, r)
 		          } else {
 		            val node = addICFGNormalNode(callerContext.copy.setContext(calleeSig, ln.locUri))
 		            node.setOwner(calleeProc.getSignature)
@@ -428,7 +428,6 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     val targetNode = getICFGEntryNode(calleeEntryContext)
     val retSrcNode = getICFGExitNode(calleeExitContext)
     this.synchronized{
-      this.cg.addCall(callNode.getOwner, targetNode.getOwner)
       if(!hasEdge(callNode, targetNode))
       	addEdge(callNode, targetNode)
       if(!hasEdge(retSrcNode, returnNode))
@@ -618,7 +617,7 @@ sealed abstract class ICFGNode(context: Context) extends InterProceduralNode(con
 abstract class ICFGVirtualNode(context: Context) extends ICFGNode(context) {
   def getVirtualLabel: String
   
-  override def toString: String = getVirtualLabel + "@" + context
+  override def toString: String = getVirtualLabel + "@" + context.getMethodSig
 }
 
 final case class ICFGEntryNode(context: Context) extends ICFGVirtualNode(context){

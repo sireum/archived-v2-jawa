@@ -276,6 +276,7 @@ sealed abstract class IDDGNode(icfgN: ICFGNode) extends InterProceduralNode(icfg
   def getOwner = icfgN.getOwner
 //  def getCode: String = icfgN.getCode
   override def getContext = icfgN.getContext
+  override def toString = icfgN.toString()
 }
 
 /**
@@ -314,6 +315,7 @@ final case class IDDGNormalNode(icfgN: ICFGNormalNode) extends IDDGLocNode(icfgN
 final case class IDDGEntryParamNode(icfgN: ICFGEntryNode, position: Int) extends IDDGVirtualNode(icfgN){
   var paramName: String = null
   def getVirtualLabel: String = "EntryParam:" + position
+  override def toString: String = icfgN.toString() + "p" + position
 }
 
 /**
@@ -337,6 +339,7 @@ final case class IDDGEntryNode(icfgN: ICFGEntryNode) extends IDDGVirtualNode(icf
 final case class IDDGExitParamNode(icfgN: ICFGExitNode, position: Int) extends IDDGVirtualNode(icfgN){
   var paramName: String = null
   def getVirtualLabel: String = "ExitParam:" + position
+  override def toString: String = icfgN.toString() + "p" + position
 }
 
 /**
@@ -346,6 +349,7 @@ final case class IDDGExitParamNode(icfgN: ICFGExitNode, position: Int) extends I
 final case class IDDGVirtualBodyNode(icfgN: ICFGCallNode) extends IDDGInvokeNode(icfgN){
   var argNames: List[String] = null
   def getInvokeLabel: String = "VirtualBody"
+  override def toString: String = getInvokeLabel + "@" + icfgN.context
 }
 
 /**
@@ -355,6 +359,7 @@ final case class IDDGVirtualBodyNode(icfgN: ICFGCallNode) extends IDDGInvokeNode
 final case class IDDGCallArgNode(icfgN: ICFGCallNode, position: Int) extends IDDGInvokeNode(icfgN){
   var argName: String = null
   def getInvokeLabel: String = "CallArg:" + position
+  override def toString: String = icfgN.toString() + "p" + position
 }
 
 /**
@@ -364,6 +369,7 @@ final case class IDDGCallArgNode(icfgN: ICFGCallNode, position: Int) extends IDD
 final case class IDDGReturnArgNode(icfgN: ICFGReturnNode, position: Int) extends IDDGInvokeNode(icfgN){
   var argName: String = null
   def getInvokeLabel: String = "ReturnArg:" + position
+  override def toString: String = icfgN.toString() + "p" + position
 }
 
 /**
@@ -373,4 +379,5 @@ final case class IDDGReturnArgNode(icfgN: ICFGReturnNode, position: Int) extends
 final case class IDDGReturnVarNode(icfgN: ICFGCallNode) extends IDDGInvokeNode(icfgN){
   var retVarName: String = null
   def getInvokeLabel: String = "ReturnVar"
+  override def toString: String = getInvokeLabel + "@" + icfgN.context
 }
