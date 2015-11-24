@@ -1,7 +1,8 @@
 /bin
 /target
 /.cache
+/.cache-main
+/.cache-tests
 /.scala_dependencies
 .DS_Store
 *.apk
-*.pilar

@@ -1,6 +1,6 @@
 package org.sireum.jawa.util
 
-class MyTimer(second : Int) {
+class MyTimer(val second : Int) {
   private var starttime : Long = 0
   def start = {
     starttime = System.currentTimeMillis()
@@ -14,5 +14,7 @@ class MyTimer(second : Int) {
       throw MyTimeoutException("Task running exceed " + second + "s!")
   }
 }
+
+class PerComponentTimer(second: Int) extends MyTimer(second)
 
 case class MyTimeoutException(message : String) extends Exception

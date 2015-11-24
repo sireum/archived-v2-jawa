@@ -11,8 +11,6 @@ import org.sireum.jawa._
 import org.sireum.util._
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.util.StringFormConverter
-import org.sireum.jawa.MessageCenter._
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.alir.pta._
 
@@ -27,7 +25,7 @@ object ClassModel {
 	  var newFacts = isetEmpty[RFAFact]
 	  var delFacts = isetEmpty[RFAFact]
 	  var byPassFlag = true
-	  p.getSignature match{
+	  p.getSignature.signature match{
 	    case "Ljava/lang/Class;.<init>:()V" =>  //private constructor
 		  case "Ljava/lang/Class;.arraycopy:([Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;)[Ljava/lang/Object;" =>  //private static
 		  case "Ljava/lang/Class;.asSubclass:(Ljava/lang/Class;)Ljava/lang/Class;" =>  //public
@@ -129,6 +127,9 @@ object ClassModel {
 		  case "Ljava/lang/Class;.isPrimitive:()Z" =>  //public native
 		  case "Ljava/lang/Class;.isSynthetic:()Z" =>  //public
 		  case "Ljava/lang/Class;.newInstance:()Ljava/lang/Object;" =>  //public
+        require(retVars.size == 1)
+        classNewInstance(s, args, retVars(0), currentContext) match{case (n, d) => newFacts ++= n; delFacts ++= d}
+        byPassFlag = false
 		  case "Ljava/lang/Class;.newInstanceImpl:()Ljava/lang/Object;" =>  //private native
 		  case "Ljava/lang/Class;.toString:()Ljava/lang/String;" =>  //public
 	  }
@@ -141,13 +142,13 @@ object ClassModel {
    */
   private def classAsSubClass(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
     require(args.size >1)
-    val thisSlot = VarSlot(args(0))
+    val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  var newfacts = isetEmpty[RFAFact]
     var delfacts = isetEmpty[RFAFact]
 	  thisValue.foreach{
 	    tv =>
-	      newfacts += RFAFact(VarSlot(retVar), tv)
+	      newfacts += RFAFact(VarSlot(retVar, false, false), tv)
 	  }
     (newfacts, delfacts)
   }
@@ -157,13 +158,13 @@ object ClassModel {
    */
   private def classCast(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
     require(args.size >1)
-    val paramSlot = VarSlot(args(1))
+    val paramSlot = VarSlot(args(1), false, true)
 	  val paramValue = s.pointsToSet(paramSlot, currentContext)
 	  var newfacts = isetEmpty[RFAFact]
     var delfacts = isetEmpty[RFAFact]
 	  paramValue.foreach{
 	    pv =>
-	      newfacts += RFAFact(VarSlot(retVar), pv)
+	      newfacts += RFAFact(VarSlot(retVar, false, false), pv)
 	  }
     (newfacts, delfacts)
   }
@@ -174,7 +175,7 @@ object ClassModel {
 	private def classForName(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
 	  // algo:thisValue.foreach.{ cIns => get value of (cIns.name") and create fact (retVar, value)}
     require(args.size > 0)
-    val clazzNameSlot = VarSlot(args(0))
+    val clazzNameSlot = VarSlot(args(0), false, true)
     val clazzNameValue = s.pointsToSet(clazzNameSlot, currentContext)
     var newfacts = isetEmpty[RFAFact]
     var delfacts = isetEmpty[RFAFact]
@@ -182,22 +183,33 @@ object ClassModel {
       cIns =>
         cIns match{
           case cstr @ PTAConcreteStringInstance(text, c) =>
-            val classType = StringFormConverter.formatClassNameToType(text)
-            val classOpt = Center.tryLoadClass(classType.name, Center.ResolveLevel.HIERARCHY)
-            classOpt match{
-              case Some(clazz) =>
-            		newfacts += RFAFact(VarSlot(retVar), JawaAlirInfoProvider.getClassInstance(clazz))
-              case None =>
-                err_msg_normal(TITLE, "Given class name probably come from another app: " + cIns)
-            }
+            val classType = JavaKnowledge.getTypeFromName(text).asInstanceOf[ObjectType]
+            newfacts += RFAFact(VarSlot(retVar, false, false), ClassInstance(classType, currentContext))
           case pstr @ PTAPointStringInstance(c) => 
-            err_msg_normal(TITLE, "Get class use point string: " + pstr)
+//            System.err.println(TITLE, "Get class use point string: " + pstr)
           case _ =>
-            err_msg_normal(TITLE, "Get class use unknown instance: " + cIns)
+//            System.err.println(TITLE, "Get class use unknown instance: " + cIns)
         }
     }
     (newfacts, delfacts)
 	}
+  
+  private def classNewInstance(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
+    require(args.size > 0)
+    val classSlot = VarSlot(args(0), false, true)
+    val classValue = s.pointsToSet(classSlot, currentContext)
+    var newfacts = isetEmpty[RFAFact]
+    var delfacts = isetEmpty[RFAFact]
+    classValue.foreach{
+      cIns =>
+        cIns match{
+          case ci @ ClassInstance(typ, c) =>
+            newfacts += RFAFact(VarSlot(retVar, false, false), PTAInstance(typ, currentContext, false))
+          case _ =>
+        }
+    }
+    (newfacts, delfacts)
+  }
 	
 	/**
 	 * Ljava/lang/Class;.getName:()Ljava/lang/String;
@@ -205,16 +217,20 @@ object ClassModel {
 	private def classGetName(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
 	  // algo:thisValue.foreach.{ cIns => get value of (cIns.name") and create fact (retVar, value)}
     require(args.size > 0)
-    val thisSlot = VarSlot(args(0))
+    val thisSlot = VarSlot(args(0), false, true)
     val thisValue = s.pointsToSet(thisSlot, currentContext)
     var newfacts = isetEmpty[RFAFact]
     var delfacts = isetEmpty[RFAFact]
     thisValue.foreach{
       cIns =>
-        require(cIns.isInstanceOf[ClassInstance])
-        val name = cIns.asInstanceOf[ClassInstance].getName
-        val strIns = PTAConcreteStringInstance(name, cIns.defSite)
-        newfacts += (RFAFact(VarSlot(retVar), strIns))
+        if(cIns.isInstanceOf[ClassInstance]) {
+          val name = cIns.asInstanceOf[ClassInstance].getName
+          val strIns = PTAConcreteStringInstance(name, cIns.defSite)
+          newfacts += (RFAFact(VarSlot(retVar, false, false), strIns))
+        } else {
+          val strIns = PTAPointStringInstance(cIns.defSite)
+          newfacts += (RFAFact(VarSlot(retVar, false, false), strIns))
+        }
     }
     (newfacts, delfacts)
 	}

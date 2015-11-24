@@ -10,7 +10,6 @@ package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 import org.sireum.jawa.JawaMethod
 import org.sireum.util._
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
-import org.sireum.jawa.Center
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.alir.pta.ClassInstance
 import org.sireum.jawa.alir.JawaAlirInfoProvider

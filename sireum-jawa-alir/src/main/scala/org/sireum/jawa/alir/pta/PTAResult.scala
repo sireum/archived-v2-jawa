@@ -9,11 +9,16 @@ package org.sireum.jawa.alir.pta
 
 import org.sireum.util._
 import org.sireum.jawa.alir.Context
-import org.sireum.alir.Slot
+
+object PTAResult {
+  type PTSMap = IMap[PTASlot, ISet[Instance]]
+}
 
 class PTAResult {
-  private val ptMap : MMap[Context, MMap[Slot, MSet[Instance]]] = mmapEmpty
-  def pointsToMap : IMap[Context, IMap[Slot, ISet[Instance]]] = {
+  import PTAResult._
+  
+  private val ptMap : MMap[Context, MMap[PTASlot, MSet[Instance]]] = mmapEmpty
+  def pointsToMap : IMap[Context, PTSMap] = {
     ptMap.map{
       case (c, m) =>
         (c, m.map{
@@ -22,32 +27,44 @@ class PTAResult {
         }.toMap)
     }.toMap
   }
-  def setInstance(s : Slot, context : Context, i : Instance) = {
+  
+  def merge(result: PTAResult): PTAResult = {
+    result.pointsToMap.foreach {
+      case (c, m) =>
+        m.foreach {
+          case (str, s) =>
+            addInstances(str, c, s)
+        }
+    }
+    this
+  }
+  
+  def setInstance(s : PTASlot, context : Context, i : Instance) = {
     ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty).clear()
     ptMap(context.copy)(s) += i
   }
-  def setInstances(s : Slot, context : Context, is : ISet[Instance]) = {
+  def setInstances(s : PTASlot, context : Context, is : ISet[Instance]) = {
     ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty).clear()
     ptMap(context.copy)(s) ++= is
   }
-  def addInstance(s : Slot, context : Context, i : Instance) = ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty) += i
-  def addInstances(s : Slot, context : Context, is : ISet[Instance]) = ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty) ++= is
-  def removeInstance(s : Slot, context : Context, i : Instance) = {
+  def addInstance(s : PTASlot, context : Context, i : Instance) = ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty) += i
+  def addInstances(s : PTASlot, context : Context, is : ISet[Instance]) = ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty) ++= is
+  def removeInstance(s : PTASlot, context : Context, i : Instance) = {
     ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty) -= i
   }
-  def removeInstances(s : Slot, context : Context, is : ISet[Instance]) = ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty) --= is
+  def removeInstances(s : PTASlot, context : Context, is : ISet[Instance]) = ptMap.getOrElseUpdate(context.copy, mmapEmpty).getOrElseUpdate(s, msetEmpty) --= is
   
-  def pointsToSet(s : Slot, context : Context) : ISet[Instance] = {
+  def pointsToSet(s : PTASlot, context : Context) : ISet[Instance] = {
     ptMap.getOrElse(context.copy, mmapEmpty).getOrElse(s, msetEmpty).toSet
   }
-  def getPTSMap(context : Context) : IMap[Slot, ISet[Instance]] = {
+  def getPTSMap(context : Context) : PTSMap = {
     ptMap.getOrElseUpdate(context.copy, mmapEmpty).map{
       case (str, s) =>
         (str, s.toSet)
     }.toMap
   }
   
-  def getRelatedInstances(s : Slot, context : Context) : ISet[Instance] = {
+  def getRelatedInstances(s : PTASlot, context : Context) : ISet[Instance] = {
     val bValue = pointsToSet(s, context)
     val rhValue = getRelatedHeapInstances(bValue, context)
     bValue ++ rhValue

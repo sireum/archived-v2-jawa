@@ -8,11 +8,10 @@ http://www.eclipse.org/legal/epl-v10.html
 package org.sireum.jawa.sjc.lexer
 
 import org.sireum.jawa.sjc.lexer.Tokens._
-import org.sireum.jawa.sjc.util.Range
+import org.sireum.jawa.io.Range
 import org.sireum.util.FileResourceUri
-import org.sireum.jawa.sjc.util.RangePosition
-import org.sireum.jawa.sjc.util.SourceFile
-import org.sireum.jawa.sjc.io.AbstractFile
+import org.sireum.jawa.io.RangePosition
+import org.sireum.jawa.io.SourceFile
 
 /**
  * A token of Pilar source.

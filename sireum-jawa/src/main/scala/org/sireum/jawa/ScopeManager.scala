@@ -14,9 +14,9 @@ import org.sireum.util.ISet
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 trait ScopeManager {
-	/**
-	 * return true if given record needs to be bypassed
-	 */
+  /**
+   * return true if given record needs to be bypassed
+   */
   def shouldBypass(rec : JawaClass) : Boolean
 }
 

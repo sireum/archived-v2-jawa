@@ -11,15 +11,16 @@ package org.sireum.jawa
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 trait ResolveLevel {
-	/**
+  
+  /**
    * resolving level of current class
    */
-  protected var resolvingLevel : Center.ResolveLevel.Value = null
+  protected var resolvingLevel: ResolveLevel.Value = ResolveLevel.NOT_LOADED
   
   /**
    * check whether we already resolved to desired level
    */
-  def checkLevelAndThrowException(level : Center.ResolveLevel.Value, message : String) = {
+  def checkLevelAndThrowException(level: ResolveLevel.Value, message: String) = {
     if(this.resolvingLevel < level) {
       val msg = "desired level: " + level + ". resolving level: " + this.resolvingLevel + " message: " + message 
       throw new RuntimeException(msg)
@@ -29,7 +30,7 @@ trait ResolveLevel {
   /**
    * check whether we already resolved to desired level
    */
-  def checkLevel(level : Center.ResolveLevel.Value) = this.resolvingLevel >= level
+  def checkLevel(level: ResolveLevel.Value) = this.resolvingLevel >= level
   
   /**
    * return resolving level
@@ -39,7 +40,13 @@ trait ResolveLevel {
   /**
    * set resolving level
    */
-  def setResolvingLevel(level : Center.ResolveLevel.Value) = {
-    this.resolvingLevel = level
-  }
+  def setResolvingLevel(level: ResolveLevel.Value)
+}
+
+/**
+ * enum of all the valid resolve level of class
+ */
+  
+object ResolveLevel extends Enumeration {
+  val NOT_LOADED, HIERARCHY, BODY = Value
 }

@@ -10,10 +10,7 @@ package org.sireum.jawa.alir.pta.reachingFactsAnalysis.model
 import org.sireum.jawa.JawaMethod
 import org.sireum.util._
 import org.sireum.jawa.JawaClass
-import org.sireum.jawa.Type
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.Center
-import org.sireum.jawa.NormalType
 import org.sireum.alir.Slot
 import org.sireum.jawa.alir.pta.Instance
 import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
@@ -27,47 +24,61 @@ trait ModelCallHandler {
   /**
    * return true if the given callee procedure needs to be modeled
    */
-  def isModelCall(calleeProc : JawaMethod) : Boolean = {
-	  val r = calleeProc.getDeclaringClass
-	  StringBuilderModel.isStringBuilder(r) ||
-	  StringModel.isString(r) || 
-	  HashSetModel.isHashSet(r) || 
-	  HashtableModel.isHashtable(r) ||
-	  HashMapModel.isHashMap(r) ||
-	  ClassModel.isClass(r) ||
-    ConstructorModel.isConstructor(calleeProc) ||
+  def isModelCall(calleeProc: JawaMethod): Boolean = {
+    val r = calleeProc.getDeclaringClass
+    StringBuilderModel.isStringBuilder(r) ||
+    StringModel.isString(r) ||
+    ListModel.isList(r) ||
+    SetModel.isSet(r) || 
+    MapModel.isMap(r) ||
+    ClassModel.isClass(r) ||
+//    ConstructorModel.isConstructor(calleeProc) ||
     ObjectModel.isObject(r) ||
-	  NativeCallModel.isNativeCall(calleeProc) ||
+    NativeCallModel.isNativeCall(calleeProc) ||
     UnknownCallModel.isUnknownCall(calleeProc)
   }
       
   /**
    * instead of doing operation inside callee procedure's real code, we do it manually and return the result. 
    */
-	def doModelCall(s : PTAResult, calleeProc : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact]) = {
-	  var (newFacts, delFacts, byPassFlag) = caculateResult(s, calleeProc, args, retVars, currentContext)
-	  if(byPassFlag){
-	  	val (newF, delF) = ReachingFactsAnalysisHelper.getUnknownObject(calleeProc, s, args, retVars, currentContext)
-	  	newFacts ++= newF
-	  	delFacts ++= delF
-	  }
-	  (newFacts, delFacts)
-	}
-	
-	def caculateResult(s : PTAResult, calleeProc : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
-	  val r = calleeProc.getDeclaringClass
-	  if(StringModel.isString(r)) StringModel.doStringCall(s, calleeProc, args, retVars, currentContext)
-	  else if(StringBuilderModel.isStringBuilder(r)) StringBuilderModel.doStringBuilderCall(s, calleeProc, args, retVars, currentContext)
-	  else if(HashSetModel.isHashSet(r)) HashSetModel.doHashSetCall(s, calleeProc, args, retVars, currentContext)
-	  else if(HashtableModel.isHashtable(r)) HashtableModel.doHashtableCall(s, calleeProc, args, retVars, currentContext)
-	  else if(HashMapModel.isHashMap(r)) HashMapModel.doHashMapCall(s, calleeProc, args, retVars, currentContext)
-	  else if(ClassModel.isClass(r)) ClassModel.doClassCall(s, calleeProc, args, retVars, currentContext)
-    else if(ConstructorModel.isConstructor(calleeProc)) ConstructorModel.doConstructorCall(s, calleeProc, args, retVars, currentContext)
+  def doModelCall[T](
+      s: PTAResult,
+      calleeProc: JawaMethod, 
+      args: List[String], 
+      retVars: Seq[String], 
+      currentContext: Context,
+      addition: Option[T]): (ISet[RFAFact], ISet[RFAFact]) = {
+    val hackVars = if(retVars.size != 1) retVars :+ "hack" else retVars
+    
+    var (newFacts, delFacts, byPassFlag) = caculateResult(s, calleeProc, args, hackVars, currentContext, addition)
+    if(byPassFlag){
+      val (newF, delF) = ReachingFactsAnalysisHelper.getUnknownObject(calleeProc, s, args, hackVars, currentContext)
+      newFacts ++= newF
+      delFacts ++= delF
+    }
+    (newFacts, delFacts)
+  }
+
+  def caculateResult[T](
+      s: PTAResult, 
+      calleeProc: JawaMethod, 
+      args: List[String], 
+      retVars: Seq[String], 
+      currentContext: Context,
+      addition: Option[T]): (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+    val r = calleeProc.getDeclaringClass
+    if(StringModel.isString(r)) StringModel.doStringCall(s, calleeProc, args, retVars, currentContext)
+    else if(StringBuilderModel.isStringBuilder(r)) StringBuilderModel.doStringBuilderCall(s, calleeProc, args, retVars, currentContext)
+    else if(ListModel.isList(r)) ListModel.doListCall(s, calleeProc, args, retVars, currentContext)
+    else if(SetModel.isSet(r)) SetModel.doSetCall(s, calleeProc, args, retVars, currentContext)
+    else if(MapModel.isMap(r)) MapModel.doMapCall(s, calleeProc, args, retVars, currentContext)
+    else if(ClassModel.isClass(r)) ClassModel.doClassCall(s, calleeProc, args, retVars, currentContext)
+//    else if(ConstructorModel.isConstructor(calleeProc)) ConstructorModel.doConstructorCall(s, calleeProc, args, retVars, currentContext)
     else if(ObjectModel.isObject(r)) ObjectModel.doObjectCall(s, calleeProc, args, retVars, currentContext)
-	  else if(NativeCallModel.isNativeCall(calleeProc)) NativeCallModel.doNativeCall(s, calleeProc, args, retVars, currentContext)
+    else if(NativeCallModel.isNativeCall(calleeProc)) NativeCallModel.doNativeCall(s, calleeProc, args, retVars, currentContext)
     else if(UnknownCallModel.isUnknownCall(calleeProc)) UnknownCallModel.doUnknownCall(s, calleeProc, args, retVars, currentContext)
-	  else throw new RuntimeException("given callee is not a model call: " + calleeProc)
-	}
+    else throw new RuntimeException("given callee is not a model call: " + calleeProc)
+  }
 }
 
 object NormalModelCallHandler extends ModelCallHandler

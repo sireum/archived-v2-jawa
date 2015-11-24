@@ -9,18 +9,18 @@ package org.sireum.jawa.test.framework.pilar
 
 import org.sireum.jawa.test.framework.TestFramework
 import org.sireum.util.FileResourceUri
-import org.sireum.jawa.MessageCenter._
 import java.io.File
 import java.net.URI
 import org.sireum.pilar.parser.Parser
 import org.sireum.pilar.ast.PilarAstNode
 import org.sireum.pilar.ast.Model
-import org.sireum.jawa.Transform
 import org.sireum.jawa.symbolResolver.JawaSymbolTableBuilder
 import org.sireum.jawa.symbolResolver.JawaSymbolTable
 import org.sireum.jawa.JawaResolver
 import org.sireum.jawa.alir.JawaAlirInfoProvider
-import org.sireum.jawa.Center
+import org.sireum.jawa.DefaultReporter
+import org.sireum.jawa.Global
+import org.sireum.jawa.io.NoPosition
 
 class PilarTestFramework extends TestFramework {
   
@@ -44,18 +44,19 @@ class PilarTestFramework extends TestFramework {
    srcRes : FileResourceUri) {
 
     test(title) {
-    	msg_critical(TITLE, "####" + title + "#####")
-    	
-    	val pilarFileUri = srcRes
-    	val reporter = new Parser.StringErrorReporter
-	    val modelOpt = Parser.parse[Model](Right(pilarFileUri), reporter, false)
-	    if(modelOpt.isDefined){
-	      msg_critical(TITLE, "Parsing OK!")
-	      val st = JawaSymbolTableBuilder.apply(List(modelOpt.get), { _ : Unit => new JawaSymbolTable }, false)
-	    } else {
-	      err_msg_critical(TITLE, reporter.errorAsString)
-	    }
-    	msg_critical(TITLE, "************************************\n")
+      val global = new Global("test", new DefaultReporter)
+      	global.reporter.echo(NoPosition, "####" + title + "#####")
+      	
+      	val pilarFileUri = srcRes
+      	val reporter = new Parser.StringErrorReporter
+  	    val modelOpt = Parser.parse[Model](Right(pilarFileUri), reporter, false)
+  	    if(modelOpt.isDefined){
+  	      global.reporter.echo(NoPosition, "Parsing OK!")
+  	      val st = JawaSymbolTableBuilder.apply(List(modelOpt.get), { _ : Unit => new JawaSymbolTable }, false)
+  	    } else {
+  	      global.reporter.error(NoPosition, reporter.errorAsString)
+  	    }
+      	global.reporter.echo(NoPosition, "************************************\n")
     }
   }
 

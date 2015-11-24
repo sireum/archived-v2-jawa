@@ -13,7 +13,6 @@ import org.sireum.pilar.symbol.SymbolTable
 import org.sireum.alir.DefRef
 import org.sireum.pilar.symbol.ProcedureSymbolTable
 import org.sireum.pilar.ast.CatchClause
-import org.sireum.alir.ControlFlowGraph
 import org.sireum.jawa.ExceptionCenter
 import org.sireum.pilar.ast.NamedTypeSpec
 import org.sireum.pilar.parser.ChunkingPilarParser
@@ -21,16 +20,18 @@ import org.sireum.pilar.ast.Model
 import org.sireum.jawa.symbolResolver.JawaSymbolTableBuilder
 import org.sireum.alir.AlirIntraProceduralGraph
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaReachingDefinitionAnalysis
-import org.sireum.jawa.GlobalConfig
-import org.sireum.jawa.Center
 import org.sireum.jawa.JawaMethod
 import org.sireum.jawa.JawaClass
-import org.sireum.jawa.util.StringFormConverter
-import org.sireum.jawa.Transform
 import org.sireum.pilar.ast.NameExp
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaDefRef
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaVarAccesses
 import org.sireum.jawa.alir.pta.ClassInstance
+import org.sireum.jawa.JawaResolver
+import org.sireum.jawa.Global
+import org.sireum.jawa.ObjectType
+import org.sireum.jawa.MethodBody
+import org.sireum.alir.{ControlFlowGraph => OrigControlFlowGraph}
+import org.sireum.jawa.alir.controlFlowGraph.{ControlFlowGraph => JawaControlFlowGraph}
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -40,27 +41,12 @@ object JawaAlirInfoProvider {
   
   final val CFG = "cfg"
   final val RDA = "rda"
+  final val RDA_WITH_CALL = "rda_with_call"
   
   //for building cfg
   type VirtualLabel = String
   
-  val ERROR_TAG_TYPE = MarkerType(
-  "org.sireum.pilar.tag.error.symtab",
-  None,
-  "Pilar Symbol Resolution Error",
-  MarkerTagSeverity.Error,
-  MarkerTagPriority.Normal,
-  ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
-  
-  val WARNING_TAG_TYPE = MarkerType(
-  "org.sireum.pilar.tag.error.symtab",
-  None,
-  "Pilar Symbol Resolution Warning",
-  MarkerTagSeverity.Warning,
-  MarkerTagPriority.Normal,
-  ilist(MarkerTagKind.Problem, MarkerTagKind.Text))
-  
-  var dr : SymbolTable => DefRef = { st => new JawaDefRef(st, new JawaVarAccesses(st)) }
+  var dr : (SymbolTable, Boolean) => DefRef = { (st, b) => new JawaDefRef(st, new JawaVarAccesses(st), b) }
   
   val iopp : ProcedureSymbolTable => (ResourceUri => Boolean, ResourceUri => Boolean) = { pst =>
     val params = pst.params.toSet[ResourceUri]
@@ -70,72 +56,62 @@ object JawaAlirInfoProvider {
   
   val saom : Boolean = true
   
-  def init(dr : SymbolTable => DefRef) = {
+  def init(dr : (SymbolTable, Boolean) => DefRef) = {
     this.dr = dr
   }
   
-  def getExceptionName(cc : CatchClause) : String = {
+  protected[jawa] def getExceptionType(cc : CatchClause) : ObjectType = {
     require(cc.typeSpec.isDefined)
     require(cc.typeSpec.get.isInstanceOf[NamedTypeSpec])
-    cc.typeSpec.get.asInstanceOf[NamedTypeSpec].name.name
+    val name = cc.typeSpec.get.asInstanceOf[NamedTypeSpec].name.name
+    new ObjectType(name)
   }
   
   //for building cfg
-  val siff : ControlFlowGraph.ShouldIncludeFlowFunction =
+  def siff(pst : ProcedureSymbolTable, global: Global) : OrigControlFlowGraph.ShouldIncludeFlowFunction =
     { (loc, catchclauses) => 
       	var result = isetEmpty[CatchClause]
-      	val thrownExcNames = ExceptionCenter.getExceptionsMayThrow(loc)
-      	if(thrownExcNames.forall(_ != ExceptionCenter.ANY_EXCEPTION)){
-	      	val thrownExceptions = thrownExcNames.map(Center.resolveClass(_, Center.ResolveLevel.HIERARCHY))
-	      	thrownExceptions.foreach{
-	      	  thrownException=>
-	      	    val ccOpt = 
-		      	    catchclauses.find{
-				          catchclause =>
-				            val excName = if(getExceptionName(catchclause) == ExceptionCenter.ANY_EXCEPTION) Center.DEFAULT_TOPLEVEL_OBJECT else getExceptionName(catchclause)
-				            val exc = Center.resolveClass(excName, Center.ResolveLevel.HIERARCHY)
-				          	thrownException == exc || thrownException.isChildOf(exc)
-		      	    }
-	      	    ccOpt match{
-	      	      case Some(cc) => result += cc
-	      	      case None =>
+      	val thrownExcs = ExceptionCenter.getExceptionsMayThrow(pst, loc, catchclauses.toSet)
+      	thrownExcs.foreach{
+      	  thrownException =>
+          val child = global.getClassOrResolve(thrownException)
+      	    val ccOpt = 
+	      	    catchclauses.find{
+			          catchclause =>
+			            val excType = getExceptionType(catchclause)
+			            val exc = global.getClassOrResolve(excType)
+                  exc.global.getClassHierarchy.isClassRecursivelySubClassOfIncluding(child, exc)
 	      	    }
-	      	}
-      	} else {
-      	  result ++= catchclauses
+          result ++= ccOpt
       	}
       	
       	(result, false)
-    } 
-  
-  def parseCodes(codes : Set[String]) : List[Model] = {
-	  codes.map{v => ChunkingPilarParser(Left(v), reporter) match{case Some(m) => m; case None => null}}.filter(v => v != null).toList
-	}
+    }
   
   def reporter = {
 	  new org.sireum.pilar.parser.PilarParser.ErrorReporter {
       def report(source : Option[FileResourceUri], line : Int,
                  column : Int, message : String) =
-        System.err.println("source:" + source + ".line:" + line + ".column:" + column + "message" + message)
+        System.err.println("source:" + source + ".line:" + line + ".column:" + column + ".message:" + message)
     }
 	}
   
-	def getIntraMethodResult(code : String) : Map[ResourceUri, TransformIntraMethodResult] = {
-	  val newModels = parseCodes(Set(code))
-	  doGetIntraMethodResult(newModels)
+	def getIntraMethodResult(code : String, global: Global) : Map[ResourceUri, TransformIntraMethodResult] = {
+	  val newModel = JawaResolver.parseCodes(Set(code))
+	  doGetIntraMethodResult(newModel, global)
 	}
 	
-	def getIntraMethodResult(codes : Set[String]) : Map[ResourceUri, TransformIntraMethodResult] = {
-	  val newModels = parseCodes(codes)
-	  doGetIntraMethodResult(newModels)
+	def getIntraMethodResult(codes : Set[String], global: Global) : Map[ResourceUri, TransformIntraMethodResult] = {
+	  val newModel = JawaResolver.parseCodes(codes)
+	  doGetIntraMethodResult(newModel, global)
 	}
 	
-	private def doGetIntraMethodResult(models : List[Model]) : Map[ResourceUri, TransformIntraMethodResult] = {
-	  val result = JawaSymbolTableBuilder(models, Transform.fst, GlobalConfig.jawaResolverParallel)
+	private def doGetIntraMethodResult(model: Model, global: Global) : Map[ResourceUri, TransformIntraMethodResult] = {
+	  val result = JawaSymbolTableBuilder(List(model), JawaResolver.fst, true)
 	  result.procedureSymbolTables.map{
 	    pst=>
-	      val (pool, cfg) = buildCfg(pst)
-	      val rda = buildRda(pst, cfg)
+	      val (pool, cfg) = buildCfg(pst, global)
+	      val rda = buildRda(pst, cfg, callref = false)
 	      val procSig = 
 	        pst.procedure.getValueAnnotation("signature") match {
 			      case Some(exp : NameExp) =>
@@ -146,19 +122,19 @@ object JawaAlirInfoProvider {
 	  }.toMap
 	}
   
-  private def buildCfg(pst : ProcedureSymbolTable) = {
+  private def buildCfg(pst : ProcedureSymbolTable, global: Global) = {
 	  val ENTRY_NODE_LABEL = "Entry"
 	  val EXIT_NODE_LABEL = "Exit"
 	  val pool : AlirIntraProceduralGraph.NodePool = mmapEmpty
-	  val result = ControlFlowGraph[VirtualLabel](pst, ENTRY_NODE_LABEL, EXIT_NODE_LABEL, pool, siff)
+	  val result = JawaControlFlowGraph[VirtualLabel](pst, ENTRY_NODE_LABEL, EXIT_NODE_LABEL, pool, siff(pst, global))
 	  (pool, result)
 	}
 	
-	private def buildRda (pst : ProcedureSymbolTable, cfg : ControlFlowGraph[VirtualLabel], initialFacts : ISet[JawaReachingDefinitionAnalysis.RDFact] = isetEmpty) = {
+	private def buildRda (pst : ProcedureSymbolTable, cfg : OrigControlFlowGraph[VirtualLabel], initialFacts : ISet[JawaReachingDefinitionAnalysis.RDFact] = isetEmpty, callref: Boolean) = {
 	  val iiopp = iopp(pst)
 	  JawaReachingDefinitionAnalysis[VirtualLabel](pst,
 	    cfg,
-	    dr(pst.symbolTable),
+	    dr(pst.symbolTable, callref),
 	    first2(iiopp),
 	    saom,
 	    initialFacts)
@@ -167,36 +143,50 @@ object JawaAlirInfoProvider {
 	/**
    * get cfg of current procedure
    */
-  
-  def getCfg(p : JawaMethod) = {
+  def getCfg(p : JawaMethod): OrigControlFlowGraph[VirtualLabel] = {
     if(!(p ? CFG)){
       this.synchronized{
-	      val cfg = buildCfg(p.getMethodBody)._2
+	      val cfg = buildCfg(p.getBody, p.declaringClass.global)._2
 	      p.setProperty(CFG, cfg)
       }
     }
-    p.getProperty(CFG).asInstanceOf[ControlFlowGraph[VirtualLabel]]
+    p.getProperty(CFG)
+  }
+  
+  /**
+   * get cfg of given method body
+   */
+  def getCfg(md: MethodBody, global: Global): OrigControlFlowGraph[VirtualLabel] = {
+    this.synchronized{
+      buildCfg(md, global)._2
+    }
   }
 	
 	/**
    * get rda result of current procedure
    */
-  
-  def getRda(p : JawaMethod, cfg : ControlFlowGraph[VirtualLabel]) = {
+  def getRda(p : JawaMethod, cfg : OrigControlFlowGraph[VirtualLabel]): JawaReachingDefinitionAnalysis.Result = {
     if(!(p ? RDA)){
       this.synchronized{
-	      val rda = buildRda(p.getMethodBody, cfg)
+	      val rda = buildRda(p.getBody, cfg, callref = false)
 	      p.setProperty(RDA, rda)
       }
     }
-    p.getProperty(RDA).asInstanceOf[JawaReachingDefinitionAnalysis.Result]
+    p.getProperty(RDA)
   }
-  
-  def getClassInstance(r : JawaClass) : ClassInstance = {
-    val mainContext = new Context(GlobalConfig.ICFG_CONTEXT_K)
-    mainContext.setContext("Center", "L0000")
-    ClassInstance(r.getName, mainContext)
+
+  /**
+   * get rda result of current procedure
+   */
+  def getRdaWithCall(p : JawaMethod, cfg : OrigControlFlowGraph[VirtualLabel]): JawaReachingDefinitionAnalysis.Result = {
+    if(!(p ? RDA_WITH_CALL)){
+      this.synchronized{
+        val rda = buildRda(p.getBody, cfg, callref = true)
+        p.setProperty(RDA_WITH_CALL, rda)
+      }
+    }
+    p.getProperty(RDA_WITH_CALL)
   }
 }
 
-case class TransformIntraMethodResult(pst : ProcedureSymbolTable, cfg : ControlFlowGraph[String], rda : JawaReachingDefinitionAnalysis.Result)
+case class TransformIntraMethodResult(pst : ProcedureSymbolTable, cfg : OrigControlFlowGraph[String], rda : JawaReachingDefinitionAnalysis.Result)

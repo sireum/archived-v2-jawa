@@ -21,35 +21,36 @@ import org.sireum.jawa.alir.controlFlowGraph.ICFGReturnNode
 import org.jgrapht.ext.VertexNameProvider
 import org.jgrapht.ext.EdgeNameProvider
 import com.tinkerpop.blueprints.impls.tg.TinkerGraph
-import org.sireum.jawa.util.StringFormConverter
-import org.sireum.jawa.util.SignatureParser
 import com.tinkerpop.blueprints.Vertex
 import org.sireum.jawa.alir.interProcedural.Callee
 import com.tinkerpop.blueprints.Edge
+import org.sireum.jawa.Signature
+import org.sireum.jawa.JawaType
+import org.sireum.jawa.ObjectType
 
 class CallGraph {
   /**
    * map from methods to it's callee methods
    * map from caller sig to callee sigs
    */
-  private val callMap: MMap[String, ISet[String]] = mmapEmpty
+  private val callMap: MMap[Signature, ISet[Signature]] = mmapEmpty
   
-  def addCall(from: String, to: String) = this.callMap(from) = this.callMap.getOrElse(from, isetEmpty) + to
-  def addCalls(from: String, to: ISet[String]) = this.callMap(from) = this.callMap.getOrElse(from, isetEmpty) ++ to
+  def addCall(from: Signature, to: Signature) = this.callMap(from) = this.callMap.getOrElse(from, isetEmpty) + to
+  def addCalls(from: Signature, to: ISet[Signature]) = this.callMap(from) = this.callMap.getOrElse(from, isetEmpty) ++ to
   
-  def getCallMap: IMap[String, ISet[String]] = this.callMap.toMap
+  def getCallMap: IMap[Signature, ISet[Signature]] = this.callMap.toMap
 
-  def getReachableMethods(procs: Set[String]): Set[String] = {
+  def getReachableMethods(procs: Set[Signature]): Set[Signature] = {
     calculateReachableMethods(procs, isetEmpty) ++ procs
   }
   
-  private def calculateReachableMethods(procs: Set[String], processed: Set[String]): Set[String] = {
+  private def calculateReachableMethods(procs: Set[Signature], processed: Set[Signature]): Set[Signature] = {
     if(procs.isEmpty) Set()
     else
       procs.map{
         proc =>
           if(processed.contains(proc)){
-            Set[String]()
+            Set[Signature]()
           } else {
             val callees = this.callMap.getOrElse(proc, isetEmpty)
             callees ++ calculateReachableMethods(callees, processed + proc)
@@ -62,8 +63,8 @@ class CallGraph {
     if(v == null){
       v = tg.addVertex(node.hashCode())
       v.setProperty("method", node.getMethodName)
-      v.setProperty("class", node.getClassName)
-      v.setProperty("returnType", node.getReturnType)
+      v.setProperty("class", node.getClassType.name)
+      v.setProperty("returnType", node.getReturnType.name)
       for(i <- 0 to node.getParamTypes.size - 1){
         v.setProperty("param" + i + "Type", node.getParamTypes(i))
       }
@@ -95,14 +96,14 @@ class CallGraph {
     
     this.callMap.foreach {
       case (caller, callees) =>
-        val callerContext = new Context(0)
-        callerContext.setContext(caller, caller)
+        val callerContext = new Context
+        callerContext.setContext(caller, caller.signature)
         val callerNode = CGSimpleCallNode(callerContext)
         val callerV = addNode(header, scg, callerNode)
         callees foreach {
           case callee =>
-            val calleeContext = new Context(0)
-            calleeContext.setContext(callee, callee)
+            val calleeContext = new Context
+            calleeContext.setContext(callee, callee.signature)
             val calleeNode = CGSimpleCallNode(calleeContext)
             val calleeV = addNode(header, scg, calleeNode)
             addEdge(header, scg, callerV, calleeV, "calls")
@@ -160,7 +161,7 @@ class CallGraph {
         n match{
           case cn: ICFGCallNode =>
             val callees: ISet[Callee] = cn.getCalleeSet
-            val calleesig: String = cn.getCalleeSig
+            val calleesig: Signature = cn.getCalleeSig
             val source = CGDetailCallNode(calleesig, callees, cn.context)
             val sourceV = addNode(header, dcg, source)
             icfg.successors(cn).foreach { 
@@ -176,7 +177,7 @@ class CallGraph {
                     addEdge(header, dcg, sourceV, targetV, "leadsto")
                   case scn: ICFGCallNode =>
                     val callees: ISet[Callee] = scn.getCalleeSet
-                    val calleesig: String = scn.getCalleeSig
+                    val calleesig: Signature = scn.getCalleeSig
                     val target = CGDetailCallNode(calleesig, callees, scn.context)
                     val targetV = addNode(header, dcg, target)
                     addEdge(header, dcg, sourceV, targetV, "leadsto")
@@ -196,7 +197,7 @@ class CallGraph {
                     addEdge(header, dcg, sourceV, targetV, "leadsto")
                   case scn: ICFGCallNode =>
                     val callees: ISet[Callee] = scn.getCalleeSet
-                    val calleesig: String = scn.getCalleeSig
+                    val calleesig: Signature = scn.getCalleeSig
                     val target = CGDetailCallNode(calleesig, callees, scn.context)
                     val targetV = addNode(header, dcg, target)
                     addEdge(header, dcg, sourceV, targetV, "leadsto")
@@ -211,7 +212,7 @@ class CallGraph {
                 s match {
                   case cn: ICFGCallNode =>
                     val callees: ISet[Callee] = cn.getCalleeSet
-                    val calleesig: String = cn.getCalleeSig
+                    val calleesig: Signature = cn.getCalleeSig
                     val target = CGDetailCallNode(calleesig, callees, cn.context)
                     val targetV = addNode(header, dcg, target)
                     addEdge(header, dcg, sourceV, targetV, "return")
@@ -228,10 +229,10 @@ class CallGraph {
 
 sealed abstract class CGNode(context: Context) {
   def getID: String = this.hashCode().toLong.toString()
-  def getMethodName: String = StringFormConverter.getMethodShortNameFromMethodSignature(context.getMethodSig)
-  def getClassName: String = StringFormConverter.getClassNameFromMethodSignature(context.getMethodSig)
-  def getReturnType: String = new SignatureParser(context.getMethodSig).getReturnType().name
-  def getParamTypes: ISeq[String] = new SignatureParser(context.getMethodSig).getParamSig.getParameterTypes().map(_.name)
+  def getMethodName: String = context.getMethodSig.methodNamePart
+  def getClassType: ObjectType = context.getMethodSig.getClassType
+  def getReturnType: JawaType = context.getMethodSig.getReturnType()
+  def getParamTypes: ISeq[JawaType] = context.getMethodSig.getParameterTypes()
   def getType: String
   def getLocation: String = context.getCurrentLocUri
 }
@@ -256,10 +257,10 @@ final case class CGSimpleCallNode(context: Context) extends CGCallNode(context){
   override def toString: String = getID
 }
 
-final case class CGDetailCallNode(sig: String, callees: ISet[Callee], context: Context) extends CGCallNode(context){
-  override def getMethodName: String = StringFormConverter.getMethodShortNameFromMethodSignature(sig)
-  override def getClassName: String = StringFormConverter.getClassNameFromMethodSignature(sig)
-  override def getReturnType: String = new SignatureParser(sig).getReturnType().name
-  override def getParamTypes: ISeq[String] = new SignatureParser(sig).getParamSig.getParameterTypes().map(_.name)
+final case class CGDetailCallNode(sig: Signature, callees: ISet[Callee], context: Context) extends CGCallNode(context){
+  override def getMethodName: String = sig.methodNamePart
+  override def getClassType: ObjectType = sig.getClassType
+  override def getReturnType: JawaType = sig.getReturnType()
+  override def getParamTypes: ISeq[JawaType] = sig.getParameterTypes()
   override def toString: String = getID + ":" + getType + "@" + getLocation
 }

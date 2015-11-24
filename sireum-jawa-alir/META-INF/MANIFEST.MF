@@ -1,0 +1,25 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Sireum Jawa Alir
+Bundle-SymbolicName: sireum-jawa-alir
+Bundle-Version: 2.0.0
+Export-Package: org.sireum.jawa.alir,
+ org.sireum.jawa.alir.callGraph,
+ org.sireum.jawa.alir.compressedControlFlowGraph,
+ org.sireum.jawa.alir.controlFlowGraph,
+ org.sireum.jawa.alir.dataDependenceAnalysis,
+ org.sireum.jawa.alir.dataFlowAnalysis,
+ org.sireum.jawa.alir.graphdb,
+ org.sireum.jawa.alir.interProcedural,
+ org.sireum.jawa.alir.pta,
+ org.sireum.jawa.alir.pta.reachingFactsAnalysis,
+ org.sireum.jawa.alir.pta.reachingFactsAnalysis.model,
+ org.sireum.jawa.alir.pta.suspark,
+ org.sireum.jawa.alir.reachability,
+ org.sireum.jawa.alir.reachingDefinitionAnalysis,
+ org.sireum.jawa.alir.sideEffectAnalysis,
+ org.sireum.jawa.alir.taintAnalysis,
+ org.sireum.jawa.alir.util
+Bundle-Vendor: sireum.org
+Require-Bundle: org.sireum;bundle-version="2.0.0",
+ sireum-jawa;bundle-version="1.0.0"

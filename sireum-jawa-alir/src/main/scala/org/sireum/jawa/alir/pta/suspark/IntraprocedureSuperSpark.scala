@@ -12,7 +12,6 @@ import java.io._
 import org.sireum.jawa.PointsCollector
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.JawaMethod
-import org.sireum.jawa.GlobalConfig
 import org.sireum.jawa.PointBaseR
 
 /**
@@ -32,8 +31,8 @@ class IntraprocedureSuperSpark {
   
   def doPTA(ap : JawaMethod,
             pag : PointerAssignmentGraph[PtaNode]) : Unit = {
-    val points = new PointsCollector().points(ap.getSignature, ap.getMethodBody)
-    val context : Context = new Context(GlobalConfig.ICFG_CONTEXT_K)
+    val points = new PointsCollector().points(ap.getSignature, ap.getBody)
+    val context : Context = new Context
     pag.constructGraph(ap, points, context.copy)
     workListPropagation(pag)
   }

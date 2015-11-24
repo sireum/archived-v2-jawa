@@ -12,378 +12,266 @@ import org.sireum.pilar.ast._
 import org.sireum.util._
 import scala.collection.GenMap
 import org.sireum.pilar.symbol.ProcedureSymbolTable
-import org.sireum.jawa.util.StringFormConverter
 import org.sireum.pilar.symbol.SymbolTable
-import org.sireum.jawa.MessageCenter._
 import scala.collection.Parallel
+import org.sireum.jawa.io.SourceFile
+import org.sireum.jawa.symbolResolver.JawaSymbolTable
+import org.sireum.pilar.parser.Parser
+import org.sireum.jawa.symbolResolver.JawaSymbolTableBuilder
+import org.sireum.jawa.io.NoPosition
+import org.sireum.jawa.io.AbstractFile
+import org.sireum.jawa.sourcefile.SourcefileParser
+import org.sireum.jawa.sourcefile.MySTVisitor
 
 /**
  * this object collects info from the symbol table and builds Center, JawaClass, and JawaMethod
  *
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
- *
  */
-object JawaResolver {
+trait JawaResolver extends JavaKnowledge { self: Global =>
   
-  val DEBUG : Boolean = false
-  private final val TITLE : String = "JawaResolver"
+  import JawaResolver._
+  
+  private val DEBUG: Boolean = false
+  private final val TITLE: String = "JawaResolver"
   
   /**
    * resolve the given method code. Normally only for dummyMain i.e. environment method
    */
-    
-  def resolveMethodCode(procSig : String, code : String) : JawaMethod = {
-    val st = Transform.getSymbolResolveResult(Set(code))
-    resolveFromST(st, Center.ResolveLevel.BODY, GlobalConfig.jawaResolverParallel)
-    Center.getMethodWithoutFailing(procSig)
+  def resolveMethodCode(sig: Signature, code: String): JawaMethod = {
+    val st = getSymbolResolveResult(Set(code))
+    val v = new MySTVisitor
+    val ms = v.resolveMethodOnly(st.asInstanceOf[SymbolTableProducer], ResolveLevel.BODY)
+    val clazz = getClass(sig.getClassType) match {
+      case Some(c) => c
+      case None => resolveToBody(sig.getClassType)
+    }
+    ms foreach {
+      m =>
+        val method = resolveFromMyMethod(clazz, m)
+        method.setBody(m.body.get) //here assume the body already resolved
+    }
+    getMethod(sig).get
   }
   
   /**
    * resolve the given method's body to body level. 
    */
-    
-  def resolveMethodBody(procSig : String) : MethodBody = {
-    val code = JawaCodeSource.getMethodCodeWithoutFailing(procSig)
-    val st = Transform.getSymbolResolveResult(Set(code))
-    st.procedureSymbolTables.foreach{
-      pst =>
-        val sig = 
-	        pst.procedure.getValueAnnotation("signature") match {
-			      case Some(exp : NameExp) =>
-			        exp.name.name
-			      case _ => throw new RuntimeException("Doing " + TITLE + ": Can not find signature from: " + pst.procedureUri)
-			    }
-        if(procSig == sig) return pst.asInstanceOf[MethodBody]
+  def resolveMethodBody(c: JawaClass) = {
+    val typ = c.getType
+    val mcs = this.applicationClassCodes.get(typ) match {
+      case Some(asrc) =>
+        SourcefileParser.parse(asrc, ResolveLevel.BODY, reporter)
+      case None =>
+        this.userLibraryClassCodes.get(typ) match {
+          case Some(usrc) =>
+            SourcefileParser.parse(usrc, ResolveLevel.BODY, reporter)
+          case None =>
+            reporter.error(TITLE, "Could not find code for " + typ)
+            throw new RuntimeException("Could not find code for " + typ)
+        }
     }
-    throw new RuntimeException("Doing " + TITLE + ": Can not resolve procedure body for " + procSig)
-  }
-    
-  /**
-   * resolve the given classes to desired level. 
-   */
-    
-  def tryResolveClass(className : String, desiredLevel : Center.ResolveLevel.Value) : Option[JawaClass] = {
-    if(JawaCodeSource.containsClass(className)){
-	    val r = desiredLevel match{
-	      case Center.ResolveLevel.BODY => resolveToBody(className)
-	      case Center.ResolveLevel.HIERARCHY => resolveToHierarchy(className)
-	    }
-	    Some(r)
-    } else {
-      None
+    val mc = mcs(typ)
+    mc.methods foreach {
+      m =>
+        c.getMethod(m.signature.getSubSignature) foreach(_.setBody(m.body.get))
     }
   }
     
   /**
    * resolve the given classes to desired level. 
    */
-    
-  def resolveClass(className : String, desiredLevel : Center.ResolveLevel.Value) : JawaClass = {
-    val typ = StringFormConverter.getTypeFromName(className)
-    if(!typ.isArray && !JawaCodeSource.containsClass(className)){
-      if(!Center.containsClass(className) || Center.getClass(className).getResolvingLevel < desiredLevel){
-	      val rec = new JawaClass().init(className)
-	      rec.setUnknown
-	      rec.setResolvingLevel(desiredLevel)
-	      Center.tryRemoveClass(className)
-	      Center.addClass(rec)
-	      msg_detail(TITLE, "add phantom class " + rec)
-	      rec
-      } else Center.getClass(className)
-    } else {
-	    desiredLevel match{
-	      case Center.ResolveLevel.BODY => resolveToBody(className)
-	      case Center.ResolveLevel.HIERARCHY => resolveToHierarchy(className)
-	    }
-    }
+  protected[jawa] def resolveClass(classType: ObjectType, desiredLevel: ResolveLevel.Value, allowUnknown: Boolean): JawaClass = {
+    val clazz =
+      if(!classType.isArray && !containsClassFile(classType)) {
+        if(!allowUnknown) throw JawaResolverError("Does not find class " + classType + " and don't allow unknown.")
+        if(desiredLevel >= ResolveLevel.BODY) throw JawaResolverError("Does not allow unknown class " + classType + " resolve to body level.")
+        getClass(classType) match {
+          case None =>
+            val rec = new JawaClass(this, classType, "")
+            rec.setUnknown
+            rec.setResolvingLevel(desiredLevel)
+            if(classType.name.contains("@@"))
+              println(classType)
+            reporter.echo(TITLE, "Add phantom class " + rec)
+            addClassNotFound(classType)
+            rec
+          case Some(c) =>
+            c
+        }
+      } else {
+        getClass(classType) match {
+          case None =>
+            desiredLevel match{
+              case ResolveLevel.BODY => forceResolveToBody(classType)
+              case ResolveLevel.HIERARCHY => forceResolveToHierarchy(classType)
+            }
+          case Some(c) =>
+            if(c.getResolvingLevel < desiredLevel) escalateReolvingLevel(c, desiredLevel)
+            else c
+        }
+      }
+    resolveClassesRelationWholeProgram
+    clazz
   }
   
   /**
    * resolve the given classes to desired level. 
    */
-    
-  def forceResolveClass(className : String, desiredLevel : Center.ResolveLevel.Value) : JawaClass = {
-    desiredLevel match{
-      case Center.ResolveLevel.BODY => forceResolveToBody(className)
-      case Center.ResolveLevel.HIERARCHY => forceResolveToHierarchy(className)
+//  def forceResolveClass(classType: ObjectType, desiredLevel: ResolveLevel.Value): JawaClass = {
+//    desiredLevel match{
+//      case ResolveLevel.BODY => forceResolveToBody(classType)
+//      case ResolveLevel.HIERARCHY => forceResolveToHierarchy(classType)
+//    }
+//  }
+  
+  protected[jawa] def getClassCode(file: AbstractFile, level: ResolveLevel.Value) : String = {
+    var code: String = file.text
+    if(level < ResolveLevel.BODY) {
+      code = LightWeightPilarParser.getEmptyBodyCode(code)
     }
+    code
   }
   
   /**
    * resolve the given class to hierarchy level
    */
-  
-  def resolveToHierarchy(className : String) : JawaClass = {
-    if(!Center.containsClass(className) || Center.getClass(className).getResolvingLevel < Center.ResolveLevel.HIERARCHY) forceResolveToHierarchy(className)
-    Center.getClass(className)
+  @throws(classOf[JawaResolverError])
+  def resolveToHierarchy(classType: ObjectType, allowUnknown: Boolean = true): JawaClass = {
+    resolveClass(classType, ResolveLevel.HIERARCHY, allowUnknown)
   }
   
   /**
    * force resolve the given class to hierarchy level
    */
-  
-  private def forceResolveToHierarchy(className : String) : JawaClass = {
-    val typ = StringFormConverter.getTypeFromName(className)
-    if(typ.isArray){
-      resolveArrayClass(typ)
+  private def forceResolveToHierarchy(classType: ObjectType): JawaClass = {
+    val clazz = if(classType.isArray){
+      resolveArrayClass(classType)
     } else {
-	    val code = JawaCodeSource.getClassCode(className, Center.ResolveLevel.HIERARCHY)
-	    val st = Transform.getSymbolResolveResult(Set(code))
-	    Center.tryRemoveClass(className)
-	    resolveFromST(st, Center.ResolveLevel.HIERARCHY, GlobalConfig.jawaResolverParallel)
+      val mc = getMyClass(classType).get
+      removeClass(classType)
+      resolveFromMyClass(mc)
     }
-    Center.getClass(className)
+    clazz
   }
   
   /**
-   * resolve the given class to body level
+   * resolve the given class to body level. Unknown class cannot resolve to body level.
+   * It will throw JawaResolverError if violate.
    */
-  
-  def resolveToBody(className : String) : JawaClass = {
-    if(!Center.containsClass(className)) forceResolveToBody(className)
-    else if(Center.getClass(className).getResolvingLevel < Center.ResolveLevel.BODY) escalateReolvingLevel(Center.getClass(className), Center.ResolveLevel.BODY)
-    else Center.getClass(className)
+  @throws(classOf[JawaResolverError])
+  def resolveToBody(classType: ObjectType): JawaClass = {
+    resolveClass(classType, ResolveLevel.BODY, false)
   }
   
   /**
    * escalate resolving level
    */
-  
-  private def escalateReolvingLevel(rec : JawaClass, desiredLevel : Center.ResolveLevel.Value) : JawaClass = {
-    require(rec.getResolvingLevel < desiredLevel)
-    if(desiredLevel == Center.ResolveLevel.BODY){
-      rec.getMethods.foreach(_.tryResolveBody)
-      rec.setResolvingLevel(Center.ResolveLevel.BODY)
+  private def escalateReolvingLevel(clazz: JawaClass, desiredLevel: ResolveLevel.Value): JawaClass = {
+    require(clazz.getResolvingLevel < desiredLevel)
+    if(desiredLevel == ResolveLevel.BODY){
+      clazz.getMethods.foreach(m => m.getBody)
+      clazz.setResolvingLevel(ResolveLevel.BODY)
     }
-    rec
+    clazz
   }
   
   /**
    * force resolve the given class to body level
    */
-  
-  private def forceResolveToBody(className : String) : JawaClass = {
-    val typ = StringFormConverter.getTypeFromName(className)
-    if(typ.isArray){
-      resolveArrayClass(typ)
-    } else {
-	    val code = JawaCodeSource.getClassCode(className, Center.ResolveLevel.BODY)
-	    val st = Transform.getSymbolResolveResult(Set(code))
-	    Center.tryRemoveClass(className)
-	    resolveFromST(st, Center.ResolveLevel.BODY, GlobalConfig.jawaResolverParallel)
-    }
-    Center.getClass(className)
+  private def forceResolveToBody(classType: ObjectType): JawaClass = {
+    val clazz =
+      if(classType.isArray){
+        resolveArrayClass(classType)
+      } else {
+        val mc = getMyClass(classType).get
+        removeClass(classType)
+        resolveFromMyClass(mc)
+      }
+    clazz
   }
   
   /**
    * resolve array class
    */
-  
-  def resolveArrayClass(typ : Type) : Unit = {
-    val recName = typ.name
-    val recAccessFlag =	
-      if(Center.isJavaPrimitiveType(typ.typ)){
-      	"FINAL_PUBLIC"
-	    } else {
-	      val base = resolveClass(typ.typ, Center.ResolveLevel.HIERARCHY)
-	      val baseaf = base.getAccessFlagString
-	      if(baseaf.contains("FINAL")) baseaf else "FINAL_" + baseaf
-	    }
-    val rec : JawaClass = new JawaClass
-    rec.init(recName)
-    rec.setAccessFlags(recAccessFlag)
-    rec.addNeedToResolveExtends(Set(Center.DEFAULT_TOPLEVEL_OBJECT))
-    if(Center.isInnerClassName(recName)) rec.needToResolveOuterName = Some(Center.getOuterNameFrom(recName))
-    rec.setResolvingLevel(Center.ResolveLevel.BODY)
-    Center.addClass(rec)
-    rec.addField(createClassField(rec))
-    val field : JawaField = new JawaField
-    val fSig = StringFormConverter.generateFieldSignature(rec.getName, "length", false)
-    field.init(fSig, NormalType("int", 0))
-    field.setAccessFlags("FINAL")
-    rec.addField(field)
-	  Center.resolveClassesRelationWholeProgram
+  private def resolveArrayClass(typ: ObjectType): JawaClass = {
+    val recAccessFlag =
+      if(isJavaPrimitive(typ.typ)){
+        "FINAL_PUBLIC"
+      } else {
+        val base = resolveClass(new ObjectType(typ.typ), ResolveLevel.HIERARCHY, true)
+        val baseaf = base.getAccessFlagsStr
+        if(baseaf.contains("FINAL")) baseaf else "FINAL_" + baseaf
+      }
+    val clazz: JawaClass = new JawaClass(this, typ, recAccessFlag)
+    addNeedToResolveExtend(clazz, JAVA_TOPLEVEL_OBJECT_TYPE)
+    clazz.setResolvingLevel(ResolveLevel.BODY)
+    new JawaField(clazz, "class", new ObjectType("java.lang.Class"), "FINAL_STATIC")
+    new JawaField(clazz, "length", PrimitiveType("int"), "FINAL")
+    clazz
   }
     
-  /**
-   * resolve all the classes, fields and procedures from symbol table producer which are provided from symbol table model
-   */
-	
-	def resolveFromST(st : SymbolTable, level : Center.ResolveLevel.Value, par : Boolean) : Unit = {
-    if(!JawaCodeSource.isPreLoaded) throw new RuntimeException("In whole program mode but library code did not been pre-loaded, call JawaCodeSource.preLoad first.")
-    val stp = st.asInstanceOf[SymbolTableProducer]
-	  resolveClasses(stp, level, par)
-	  resolveGlobalVars(stp, level, par)
-	  resolveMethods(stp, level, par)
-	  if(DEBUG){
-	    Center.printDetails
-	  }
-	}
-	
-	/**
-	 * collect class info from symbol table
-	 */
-	
-	def resolveClasses(stp : SymbolTableProducer, level : Center.ResolveLevel.Value, par : Boolean) = {
-	  if(DEBUG) println("Doing " + TITLE + ". Resolve classes parallel: " + par)
-	  val col : GenMap[ResourceUri, RecordDecl] = if(par) stp.tables.recordTable.par else stp.tables.recordTable
-	  val classes = col.map{
-	    case (uri, rd) =>
-	      val recName = rd.name.name
-	      val recAccessFlag =					// It can be PUBLIC ... or empty (which means no access flag class)
-	        rd.getValueAnnotation("AccessFlag") match {
-            case Some(exp : NameExp) =>
-              exp.name.name
-            case _ => ""
-          }
-	      val rec : JawaClass = new JawaClass
-	      rec.init(recName)
-	      rec.setAccessFlags(recAccessFlag)
-	      var exs = rd.extendsClauses.map {_.name.name}.toSet
-	      rec.addNeedToResolveExtends(exs)
-	      if(Center.isInnerClassName(recName)) rec.needToResolveOuterName = Some(Center.getOuterNameFrom(recName))
-	      rd.attributes.foreach{
-	        field =>
-	          val fieldSig = field.name.name
-	          val fieldAccessFlag =					// It can be PRIVATE ...
-			        rd.getValueAnnotation("AccessFlag") match {
-		            case Some(exp : NameExp) =>
-		              exp.name.name
-		            case _ => ""
-		          }
-	          require(field.typeSpec.isDefined)
-	          var d = 0
-			      var tmpTs = field.typeSpec.get
-			      while(tmpTs.isInstanceOf[SeqTypeSpec]){
-		          d += 1
-		          tmpTs = tmpTs.asInstanceOf[SeqTypeSpec].elementType
-		        }
-			      require(tmpTs.isInstanceOf[NamedTypeSpec])
-			      val fieldType : NormalType = new NormalType(tmpTs.asInstanceOf[NamedTypeSpec].name.name, d)
-	          val f : JawaField = new JawaField
-	          f.init(fieldSig, fieldType)
-	          f.setAccessFlags(fieldAccessFlag)
-	          rec.addField(f)
-	      }
-	      rec.setResolvingLevel(level)
-	      rec
-	  }.toSet
-	  classes.foreach(Center.addClass(_))
-	  Center.resolveClassesRelationWholeProgram
-//	  else Center.resolveClassesRelation
-	  // now we generate a special Amandroid Method for each class; this proc would represent the const-class operation
-	  classes.foreach{
-	    rec =>
-	      rec.addField(createClassField(rec))
-	  }
-	}
-	
-	private def createClassField(rec : JawaClass) : JawaField = {
-	  val field : JawaField = new JawaField
-    val fSig = StringFormConverter.generateFieldSignature(rec.getName, "class", false)
-    field.init(fSig, NormalType("java.lang.Class", 0))
-    field.setAccessFlags("FINAL_STATIC")
-    field
-	}
-	
-	/**
-	 * collect global variables info from the symbol table
-	 */
-	
-	def resolveGlobalVars(stp : SymbolTableProducer, level : Center.ResolveLevel.Value, par : Boolean) = {
-	  if(DEBUG) println("Doing " + TITLE + ". Resolve global variables parallel: " + par)
-	  val col : GenMap[ResourceUri, GlobalVarDecl] = if(par) stp.tables.globalVarTable.par else stp.tables.globalVarTable
-	  val ownerRelation = col.map{
-	    case (uri, gvd) =>
-	      val globalVarSig = gvd.name.name // e.g. @@java.lang.Enum.serialVersionUID
-	      import org.sireum.pilar.symbol.Symbol.pp2r
-	      Center.setGlobalVarSigToUri(gvd.name.name, gvd.name.uri)
-	      val globalVarAccessFlag = 
-	        gvd.getValueAnnotation("AccessFlag") match {
-			      case Some(exp : NameExp) =>
-			        exp.name.name
-			      case _ => ""
-			    }
-	      require(gvd.typeSpec.isDefined)
-	      var d = 0
-	      var tmpTs = gvd.typeSpec.get
-	      while(tmpTs.isInstanceOf[SeqTypeSpec]){
-          d += 1
-          tmpTs = tmpTs.asInstanceOf[SeqTypeSpec].elementType
-        }
-	      require(tmpTs.isInstanceOf[NamedTypeSpec])
-	      val globalVarType : NormalType = new NormalType(tmpTs.asInstanceOf[NamedTypeSpec].name.name, d)
-	      val ownerName = StringFormConverter.getClassNameFromFieldSignature(globalVarSig)
-	      
-	      val f : JawaField = new JawaField
-	      f.init(globalVarSig, globalVarType)
-	      f.setAccessFlags(globalVarAccessFlag)
-	      val ownerClass = Center.getClass(ownerName)
-	      (f, ownerClass)
-	  }
-	  if(ownerRelation.isInstanceOf[Parallel]) throw new RuntimeException("Doing " + TITLE + ": ownerRelation is parallel, but we are trying to add things to JawaClass.")
-	  ownerRelation.foreach{
-	    case (f, own) =>
-	      own.addField(f)
-	  }
-	}
-	
-	/**
-	 * collect method info from symbol table
-	 */
-	
-	def resolveMethods(stp : SymbolTableProducer, level : Center.ResolveLevel.Value, par : Boolean) = {
-	  if(DEBUG) println("Doing " + TITLE + ". Resolve methods parallel: " + par)
-	  val col : GenMap[ResourceUri, ProcedureDecl] = if(par) stp.tables.procedureAbsTable.par else stp.tables.procedureAbsTable
-	  val ownerRelation = col.map{
-	    case (uri, pd) =>
-	      val procName = pd.name.name
-	      val procSig = 
-	        pd.getValueAnnotation("signature") match {
-			      case Some(exp : NameExp) =>
-			        exp.name.name
-			      case _ => throw new RuntimeException("Doing " + TITLE + ": Can not find signature from: " + procName)
-			    }
-	      val procAccessFlag = 
-	        pd.getValueAnnotation("Access") match {
-			      case Some(exp : NameExp) =>
-			        exp.name.name
-			      case _ => ""
-			    }
-	      val ownerName =
-          pd.getValueAnnotation("owner") match {
-            case Some(exp : NameExp) => 
-              exp.name.name
-            case _ => throw new RuntimeException("Doing " + TITLE + ": Can not find owner from: " + procName)
-          }
-	      val paramNames = pd.params.map{_.name.name}.toList
-	      val proc : JawaMethod = new JawaMethod
-	      proc.init(procName, procSig)
-	      proc.setAccessFlags(procAccessFlag)
-	      proc.setParameterNames(paramNames)
-	      proc.setResolvingLevel(level)
-	      val ownerClass = Center.getClass(ownerName)
-	      if(level >= Center.ResolveLevel.BODY){
-	      	proc.setMethodBody(stp.procedureSymbolTableProducer(uri).asInstanceOf[MethodBody])
-		      if(pd.body.isInstanceOf[ImplementedBody]){
-		        val body = pd.body.asInstanceOf[ImplementedBody]
-		        val catchclauses = body.catchClauses
-		        catchclauses.foreach{
-		          catchclause =>
-		            require(catchclause.typeSpec.isDefined)
-		            require(catchclause.typeSpec.get.isInstanceOf[NamedTypeSpec])
-		            val excName = catchclause.typeSpec.get.asInstanceOf[NamedTypeSpec].name.name
-			          proc.addExceptionHandler(excName, catchclause.fromTarget.name, catchclause.toTarget.name, catchclause.jump.target.name)
-		        }
-		      }
-	      }
-	      (proc, ownerClass)
-	  }
-	  if(ownerRelation.isInstanceOf[Parallel]) throw new RuntimeException("Doing " + TITLE + ": ownerRelation is parallel, but we are trying to add things to JawaClass.")
-	  ownerRelation.foreach{
-	    case (proc, own) =>
-	      own.addMethod(proc)
-	  }
-	}
-	
+  protected def resolveFromMyClass(mc: MyClass): JawaClass = {
+    val typ = mc.typ
+    val accessFlag = mc.accessFlag
+    val clazz: JawaClass = JawaClass(this, typ, accessFlag)
+    mc.fields foreach{
+      f =>
+        val fname = f.FQN.fieldName
+        val ftyp = f.FQN.typ
+        val faccessFlag = f.accessFlag
+        JawaField(clazz, fname, ftyp, faccessFlag)
+    }
+    mc.methods foreach {
+      m =>
+        resolveFromMyMethod(clazz, m)
+    }
+    mc.superType.foreach(addNeedToResolveExtend(clazz, _))
+    mc.outerType.foreach(addNeedToResolveOuterClass(clazz, _))
+    mc.interfaces.foreach(addNeedToResolveExtend(clazz, _))
+    clazz
+  }
+  
+  protected def resolveFromMyMethod(clazz: JawaClass, m: MyMethod): JawaMethod = {
+    val sig = m.signature
+    val mname = sig.methodNamePart
+    var paramNames = m.params
+    val thisOpt: Option[String] = (AccessFlag.isStatic(m.accessFlag) || AccessFlag.isNative(m.accessFlag) || AccessFlag.isAbstract(m.accessFlag)) match {
+      case true => None
+      case false => 
+        val t = paramNames.head
+        paramNames = paramNames.tail
+        Some(t)
+    }
+    val paramsize = paramNames.size
+    val params: MList[(String, JawaType)] = mlistEmpty
+    val paramtyps = sig.getParameterTypes()
+    for(i <- 0 to paramsize - 1){
+      val pname = paramNames(i)
+      val paramtyp = paramtyps(i)
+      params += ((pname, paramtyp))
+    }
+    val retTyp = sig.getReturnType()
+    val accessFlag = m.accessFlag
+    
+    JawaMethod(clazz, mname, thisOpt, params.toList, retTyp, accessFlag)
+  }
+}
+
+object JawaResolver{
+  var fst = { _: Unit => new JawaSymbolTable }
+  
+  def parseCodes(codes: Set[String]): Model = {
+    val sb = new StringBuilder
+    codes.foreach{
+      code => sb.append(code + "\n")
+    }
+    val (modelopt, err) = Parser.parseWithErrorAsString[Model](Left(sb.toString)) 
+    modelopt match{case Some(m) => m; case None => throw new RuntimeException(err + "\n" + sb.toString)}
+  }
+  
+  def getSymbolResolveResult(codes: Set[String]): SymbolTable = {
+    val newModel = parseCodes(codes)
+    JawaSymbolTableBuilder(List(newModel), fst, true)
+  }
 }

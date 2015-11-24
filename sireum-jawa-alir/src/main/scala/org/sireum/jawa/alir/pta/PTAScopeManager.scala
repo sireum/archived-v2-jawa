@@ -15,12 +15,12 @@ import org.sireum.jawa.JawaClass
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 object PTAScopeManager extends ScopeManager{
-  private var passFramework = true
-  private var passThirdPartyLib = true
+  private var passSystemLibrary = true
+  private var passUserLibrary = true
   private var passApplication = false
-  def setMode(passFramework : Boolean, passThirdPartyLib : Boolean, passApplication : Boolean) = {
-    this.passFramework = passFramework
-    this.passThirdPartyLib = passThirdPartyLib
+  def setMode(passSystemLibrary: Boolean, passUserLibrary: Boolean, passApplication : Boolean) = {
+    this.passSystemLibrary = passSystemLibrary
+    this.passUserLibrary = passUserLibrary
     this.passApplication = passApplication
   }
   
@@ -28,8 +28,8 @@ object PTAScopeManager extends ScopeManager{
    * return true if given record needs to be bypassed
    */
   def shouldBypass(rec : JawaClass) : Boolean = {
-    if(this.passFramework && rec.isFrameworkClass) true
-    else if(this.passThirdPartyLib && rec.isThirdPartyLibClass) true
+    if(this.passSystemLibrary && rec.isSystemLibraryClass) true
+    else if(this.passUserLibrary && rec.isUserLibraryClass) true
     else if(this.passApplication && rec.isApplicationClass) true
     else false
   }

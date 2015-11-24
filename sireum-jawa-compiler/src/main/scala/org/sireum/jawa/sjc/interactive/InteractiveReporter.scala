@@ -1,10 +1,9 @@
 package org.sireum.jawa.sjc.interactive
 
-import org.sireum.jawa.sjc.ReporterImpl
-import org.sireum.jawa.sjc.util.Position
+import org.sireum.jawa.ReporterImpl
+import org.sireum.jawa.io.Position
 import org.sireum.util._
-
-case class Problem(pos: Position, msg: String, severityLevel: Int)
+import org.sireum.jawa.Problem
 
 abstract class InteractiveReporter extends ReporterImpl {
 
@@ -31,6 +30,8 @@ abstract class InteractiveReporter extends ReporterImpl {
   } catch {
     case ex: UnsupportedOperationException =>
   }
+  
+  override def info1(title: String, msg: String, severity: Severity, force: Boolean): Unit = {}
 
   override def reset() {
     super.reset()

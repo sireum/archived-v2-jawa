@@ -24,14 +24,13 @@ import scala.collection.mutable.SynchronizedMap
 import scala.collection.mutable.HashMap
 import org.jgrapht.alg.DijkstraShortestPath
 import org.sireum.jawa.alir.JawaAlirInfoProvider
-import org.sireum.jawa.GlobalConfig
-import org.sireum.jawa.Center
 import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.JawaMethod
-import org.sireum.jawa.JawaCodeSource
 import java.util.regex.Pattern
 import org.sireum.jawa.alir.callGraph.CallGraph
 import org.jgrapht.ext.EdgeNameProvider
+import org.sireum.jawa.Signature
+import org.sireum.jawa.util.ASTUtil
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -46,7 +45,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
   def addEdge(source: Node, target: Node, typ: String): Edge = {
     val e = addEdge(source, target)
     if(typ != null)
-    	e.setProperty(EDGE_TYPE, typ)
+      e.setProperty(EDGE_TYPE, typ)
     e
   }
   
@@ -58,13 +57,15 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 
   protected var exitN: ICFGNode = null
   
-  val centerContext = new Context(GlobalConfig.ICFG_CONTEXT_K)
-  centerContext.setContext("Center", "L0000")
-  private val cNode = addICFGCenterNode(centerContext)
-  cNode.setOwner(Center.CENTER_PROCEDURE_SIG)
-  protected var centerN: ICFGNode = cNode
+  def addEntryNode(en: ICFGEntryNode) = this.entryN = en
+  def addExitNode(en: ICFGExitNode) = this.exitN = en
+//  val centerContext = new Context(GlobalConfig.ICFG_CONTEXT_K)
+//  centerContext.setContext("Center", "L0000")
+//  private val cNode = addICFGCenterNode(centerContext)
+//  cNode.setOwner(Center.CENTER_PROCEDURE_SIG)
+//  protected var centerN: ICFGNode = cNode
   
-  def centerNode: Node = this.centerN.asInstanceOf[Node]
+//  def centerNode: Node = this.centerN.asInstanceOf[Node]
   
   def entryNode: Node = this.entryN.asInstanceOf[Node]
   
@@ -74,17 +75,17 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
   
   def getCallGraph: CallGraph = this.cg
   
-  private val processed: MMap[(String, Context), ISet[Node]] = new HashMap[(String, Context), ISet[Node]] with SynchronizedMap[(String, Context), ISet[Node]]
+  private val processed: MMap[(Signature, Context), ISet[Node]] = new HashMap[(Signature, Context), ISet[Node]] with SynchronizedMap[(Signature, Context), ISet[Node]]
   
-  def isProcessed(proc: String, callerContext: Context): Boolean = processed.contains(proc, callerContext)
+  def isProcessed(proc: Signature, callerContext: Context): Boolean = processed.contains(proc, callerContext)
   
-  def addProcessed(jp: String, c: Context, nodes: ISet[Node]) = {
+  def addProcessed(jp: Signature, c: Context, nodes: ISet[Node]) = {
     this.processed += ((jp, c) -> nodes)
   }
   
   def getProcessed = this.processed
   
-  def entryNode(proc: String, callerContext: Context): Node = {
+  def entryNode(proc: Signature, callerContext: Context): Node = {
     require(isProcessed(proc, callerContext))
     processed(proc, callerContext).foreach{
       n => if(n.isInstanceOf[ICFGEntryNode]) return n
@@ -98,7 +99,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     for (e <- edges) result.addEdge(e.target, e.source)
     result.entryN = this.exitNode
     result.exitN = this.entryNode
-    result.centerN = this.centerN
+//    result.centerN = this.centerN
     result
   }
   
@@ -262,23 +263,24 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
         cg.addCalls(src, cg.getCallMap.getOrElse(src, isetEmpty) ++ dsts)
     }
     this.processed ++= icfg.processed
-    this.predBranchMap ++= icfg.predBranchMap
-    this.succBranchMap ++= icfg.succBranchMap
+    if(this.predBranchMap != null && icfg.predBranchMap != null)
+      this.predBranchMap ++= icfg.predBranchMap
+    if(this.succBranchMap != null && icfg.succBranchMap != null)
+      this.succBranchMap ++= icfg.succBranchMap
   }
   
   def collectCfgToBaseGraph[VirtualLabel](calleeProc: JawaMethod, callerContext: Context, isFirst: Boolean = false) = {
     this.synchronized{
 	    val calleeSig = calleeProc.getSignature
-	    if(!calleeProc.checkLevel(Center.ResolveLevel.BODY)) calleeProc.resolveBody
-	    val body = calleeProc.getMethodBody
-	    val rawcode = JawaCodeSource.getMethodCodeWithoutFailing(calleeProc.getSignature)
-	    val codes = rawcode.split("\\r?\\n")
+	    val body = calleeProc.getBody
+//	    val rawcode = JawaCodeSource.getMethodCodeWithoutFailing(calleeProc.getSignature)
+//	    val codes = rawcode.split("\\r?\\n")
 	    val cfg = JawaAlirInfoProvider.getCfg(calleeProc)
 	    var nodes = isetEmpty[Node]
 	    cfg.nodes map{
 	      n =>
 		      n match{
-		        case vn: AlirVirtualNode[VirtualLabel] =>
+		        case vn @ AlirVirtualNode(label) =>
 		          vn.label.toString match{
 		            case "Entry" => 
 		              val entryNode = addICFGEntryNode(callerContext.copy.setContext(calleeSig, "Entry"))
@@ -294,33 +296,27 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 		          }
 		        case ln: AlirLocationUriNode=>
 		          val l = body.location(ln.locIndex)
-		          val code = codes.find(_.contains("#" + ln.locUri + ".")).getOrElse(throw new RuntimeException("Could not find " + ln.locUri + " from \n" + rawcode))
+//		          val code = codes.find(_.contains("#" + ln.locUri + ".")).getOrElse(throw new RuntimeException("Could not find " + ln.locUri + " from \n" + rawcode))
 		          if(isCall(l)){
                 val cj = l.asInstanceOf[JumpLocation].jump.asInstanceOf[CallJump]
-                val sig = cj.getValueAnnotation("signature") match {
-                  case Some(s) => s match {
-                    case ne: NameExp => ne.name.name
-                    case _ => ""
-                  }
-                  case None => throw new RuntimeException("cannot found annotation 'signature' from: " + cj)
-                }
+                val sig = ASTUtil.getSignature(cj).get
 	              val c = addICFGCallNode(callerContext.copy.setContext(calleeSig, ln.locUri))
 	              c.setOwner(calleeProc.getSignature)
-	              c.setCode(code)
+//	              c.setCode(code)
 	              c.asInstanceOf[ICFGLocNode].setLocIndex(ln.locIndex)
                 c.asInstanceOf[ICFGInvokeNode].setCalleeSig(sig)
 	              nodes += c
 	              val r = addICFGReturnNode(callerContext.copy.setContext(calleeSig, ln.locUri))
 	              r.setOwner(calleeProc.getSignature)
-	              r.setCode(code)
+//	              r.setCode(code)
 	              r.asInstanceOf[ICFGLocNode].setLocIndex(ln.locIndex)
                 r.asInstanceOf[ICFGInvokeNode].setCalleeSig(sig)
 	              nodes += r
-	//              addEdge(c, r)
+	              addEdge(c, r)
 		          } else {
 		            val node = addICFGNormalNode(callerContext.copy.setContext(calleeSig, ln.locUri))
 		            node.setOwner(calleeProc.getSignature)
-		            node.setCode(code)
+//		            node.setCode(code)
 		            node.asInstanceOf[ICFGLocNode].setLocIndex(ln.locIndex)
 		            nodes += node
 		          }
@@ -328,7 +324,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 		          // should not have a chance to reach here.
 		          val node = addICFGNormalNode(callerContext.copy.setContext(calleeSig, a.locIndex.toString))
 		          node.setOwner(calleeProc.getSignature)
-		          node.setCode("unknown")
+//		          node.setCode("unknown")
 		          node.asInstanceOf[ICFGLocNode].setLocIndex(a.locIndex)
 		          nodes += node
 		      }
@@ -337,9 +333,9 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 	      val entryNode = getICFGEntryNode(callerContext.copy.setContext(calleeSig, "Entry"))
 	      val exitNode = getICFGExitNode(callerContext.copy.setContext(calleeSig, "Exit"))
 	      e.source match{
-	        case vns: AlirVirtualNode[VirtualLabel] =>
+	        case AlirVirtualNode(label) =>
 	          e.target match{
-	            case vnt: AlirVirtualNode[VirtualLabel] =>
+	            case AlirVirtualNode(label) =>
 	              addEdge(entryNode, exitNode)
 	            case lnt: AlirLocationUriNode =>
 	              val lt = body.location(lnt.locIndex)
@@ -357,7 +353,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 	        case lns: AlirLocationUriNode =>
 	          val ls = body.location(lns.locIndex)
 	          e.target match{
-	            case vnt: AlirVirtualNode[VirtualLabel] =>
+	            case AlirVirtualNode(label) =>
 	              if(isCall(ls)){
 	                val returnNodeSource = getICFGReturnNode(callerContext.copy.setContext(calleeSig, lns.locUri))
 	                addEdge(returnNodeSource, exitNode)
@@ -399,7 +395,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 	        case ns =>
 	          val sourceNode = getICFGNormalNode(callerContext.copy.setContext(calleeSig, ns.toString))
 	          e.target match{
-	            case vnt: AlirVirtualNode[VirtualLabel] =>
+	            case AlirVirtualNode(label) =>
 	              addEdge(sourceNode, exitNode)
 	            case lnt: AlirLocationUriNode =>
 	              val lt = body.location(lnt.locIndex)
@@ -422,7 +418,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     }
   }
   
-  def extendGraph(calleeSig : String, callerContext: Context): Node = {
+  def extendGraph(calleeSig: Signature, callerContext: Context): Node = {
     val callNode = getICFGCallNode(callerContext)
     val returnNode = getICFGReturnNode(callerContext)
     val calleeEntryContext = callerContext.copy
@@ -432,7 +428,6 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     val targetNode = getICFGEntryNode(calleeEntryContext)
     val retSrcNode = getICFGExitNode(calleeExitContext)
     this.synchronized{
-      this.cg.addCall(callNode.getOwner, targetNode.getOwner)
       if(!hasEdge(callNode, targetNode))
       	addEdge(callNode, targetNode)
       if(!hasEdge(retSrcNode, returnNode))
@@ -441,7 +436,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     targetNode
   }
   
-  def extendGraphOneWay(calleeSig : String, callerContext: Context, typ: String = null): Node = {
+  def extendGraphOneWay(calleeSig : Signature, callerContext: Context, typ: String = null): Node = {
     val callNode = getICFGCallNode(callerContext)
     val calleeEntryContext = callerContext.copy
     calleeEntryContext.setContext(calleeSig, "Entry")
@@ -459,7 +454,7 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
       n =>
         n match{
           case cn: ICFGCallNode =>
-            cn.getCalleeSet.exists { c => !c.callee.getDeclaringClass.isFrameworkClass }
+            cn.getCalleeSet.exists { c => !c.callee.getDeclaringClass.isSystemLibraryClass }
           case _ => true
         }
     }
@@ -603,13 +598,13 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 }
 
 sealed abstract class ICFGNode(context: Context) extends InterProceduralNode(context){
-  protected var owner: String = null
+  protected var owner: Signature = null
   protected var loadedClassBitSet: BitSet = BitSet.empty
-  protected var code: String = null
-  def setOwner(owner: String)  = this.owner = owner
+//  protected var code: String = null
+  def setOwner(owner: Signature)  = this.owner = owner
   def getOwner = this.owner
-  def setCode(code: String) = this.code = code
-  def getCode: String = this.code
+//  def setCode(code: String) = this.code = code
+//  def getCode: String = this.code
   def setLoadedClassBitSet(bitset: BitSet) = this.loadedClassBitSet = bitset
   def getLoadedClassBitSet = this.loadedClassBitSet
   
@@ -622,21 +617,21 @@ sealed abstract class ICFGNode(context: Context) extends InterProceduralNode(con
 abstract class ICFGVirtualNode(context: Context) extends ICFGNode(context) {
   def getVirtualLabel: String
   
-  override def toString: String = getVirtualLabel + "@" + context
+  override def toString: String = getVirtualLabel + "@" + context.getMethodSig
 }
 
 final case class ICFGEntryNode(context: Context) extends ICFGVirtualNode(context){
-  this.code = "Entry: " + context.getMethodSig
+//  this.code = "Entry: " + context.getMethodSig
   def getVirtualLabel: String = "Entry"
 }
 
 final case class ICFGExitNode(context: Context) extends ICFGVirtualNode(context){
-  this.code = "Exit: " + context.getMethodSig
+//  this.code = "Exit: " + context.getMethodSig
   def getVirtualLabel: String = "Exit"
 }
 
 final case class ICFGCenterNode(context: Context) extends ICFGVirtualNode(context){
-  this.code = "L0000: Center;"
+//  this.code = "L0000: Center;"
   def getVirtualLabel: String = "Center"
 }
 
@@ -655,10 +650,10 @@ abstract class ICFGInvokeNode(context: Context) extends ICFGLocNode(context) {
   def addCallee(callee: Callee) = this.setProperty(CALLEES, getCalleeSet + callee)
   def addCallees(calleeSet: ISet[Callee]) = this.setProperty(CALLEES, getCalleeSet ++ calleeSet)
   def getCalleeSet: ISet[Callee] = this.getPropertyOrElse(CALLEES, isetEmpty)
-  def setCalleeSig(calleeSig: String) = {
+  def setCalleeSig(calleeSig: Signature) = {
     this.setProperty(CALLEE_SIG, calleeSig)
   }
-  def getCalleeSig: String = this.getPropertyOrElse(CALLEE_SIG, throw new RuntimeException("Callee sig did not set for " + this))
+  def getCalleeSig: Signature = this.getPropertyOrElse(CALLEE_SIG, throw new RuntimeException("Callee sig did not set for " + this))
   override def toString: String = getInvokeLabel + "@" + context
 }
 

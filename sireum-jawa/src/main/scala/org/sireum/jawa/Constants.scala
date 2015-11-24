@@ -11,15 +11,11 @@ package org.sireum.jawa
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
 object Constants {
-	
-  /**
-   * following is the exception constant list
-   */
-  final val THROWABLE = "java.lang.Throwable"
-  final val EXCEPTION = "java.lang.Exception"
-  final val RUNTIME_EXCEPTION = "java.lang.RuntimeException"
-  final val ARITHMETIC_EXCEPTION = "java.lang.ArithmeticException"
-  final val ARRAYINDEXOUTOFBOUNDS_EXCEPTION = "java.lang.ArrayIndexOutOfBoundsException"
-  final val CLASSCAST_EXCEPTION = "java.lang.ClassCastException"
-			  
+  final val CONST_CLASS = "constclass"
+  final val LENGTH = "length"
+  final val INSTANCEOF = "instanceof"
+  final val EXCEPTION = "Exception"
+  final val ALL_FIELD = "ALL.FIELD"
+  
+  final val PILAR_FILE_EXT = "pilar"
 }
