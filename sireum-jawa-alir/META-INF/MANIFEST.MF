@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Sireum Jawa Alir
 Bundle-SymbolicName: sireum-jawa-alir
-Bundle-Version: 1.0
+Bundle-Version: 2.0.0
 Export-Package: org.sireum.jawa.alir,
  org.sireum.jawa.alir.callGraph,
  org.sireum.jawa.alir.compressedControlFlowGraph,
