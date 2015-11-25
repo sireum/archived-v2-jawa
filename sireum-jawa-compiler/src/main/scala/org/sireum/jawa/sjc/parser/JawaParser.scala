@@ -20,7 +20,7 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
 
   import JawaParser._
 
-  def safeParse[T <: ParsableAstNode](production: ⇒ T): Option[T] = try Some(production) catch { case e: JawaParserException ⇒ None }
+  def safeParse[T <: ParsableAstNode](production: => T): Option[T] = try Some(production) catch { case e: JawaParserException => None }
 
   require(!tokens.isEmpty) // at least EOF
   
@@ -892,7 +892,7 @@ class JawaParser(tokens: Array[Token], reporter: Reporter) extends JavaKnowledge
 
   private def lookahead(n: Int): TokenType = this(pos + n).tokenType
 
-  private def log[T](s: String)(f: ⇒ T): T = {
+  private def log[T](s: String)(f: => T): T = {
     if (logging) {
       println("Enter " + s + " [" + currentToken + "]")
       val result = f
@@ -940,7 +940,7 @@ object JawaParser {
         }).asInstanceOf[T]
       Some(pasable)
     } catch {
-      case e: JawaParserException ⇒
+      case e: JawaParserException =>
         reporter.error(e.pos, e.message)
 //        e.printStackTrace()
         None

@@ -17,9 +17,9 @@ case class HiddenTokens(tokens: List[HiddenToken]) extends Iterable[HiddenToken]
 
   def iterator: Iterator[HiddenToken] = tokens.iterator
 
-  val comments: List[Comment] = tokens collect { case comment: Comment ⇒ comment }
+  val comments: List[Comment] = tokens collect { case comment: Comment => comment }
 
-  val whitespaces: List[Whitespace] = tokens collect { case whitespace @ Whitespace(_) ⇒ whitespace }
+  val whitespaces: List[Whitespace] = tokens collect { case whitespace @ Whitespace(_) => whitespace }
 
   def firstTokenOption = tokens.headOption
 
@@ -30,14 +30,14 @@ case class HiddenTokens(tokens: List[HiddenToken]) extends Iterable[HiddenToken]
   def containsComment = comments.nonEmpty
 
   def containsUnicodeEscape: Boolean = {
-    for (token ← tokens if token.token.containsUnicodeEscape)
+    for (token <- tokens if token.token.containsUnicodeEscape)
       return true
     false
   }
 
   lazy val text: String = {
     val sb = new StringBuilder
-    for (token ← tokens) sb.append(token.text)
+    for (token <- tokens) sb.append(token.text)
     sb.toString
   }
   

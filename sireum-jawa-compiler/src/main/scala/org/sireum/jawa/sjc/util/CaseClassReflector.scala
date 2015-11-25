@@ -9,11 +9,11 @@ trait CaseClassReflector extends Product {
 
   private def getFieldsOld: List[(String, Any)] = {
     var fieldValueToName: Map[Any, String] = Map()
-    for (field ← getClass.getDeclaredFields) {
+    for (field <- getClass.getDeclaredFields) {
       field.setAccessible(true)
       fieldValueToName += (field.get(this) -> field.getName)
     }
-    productIterator.toList map { value ⇒ fieldValueToName(value) -> value }
+    productIterator.toList map { value => fieldValueToName(value) -> value }
   }
 
 }

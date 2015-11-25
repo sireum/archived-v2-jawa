@@ -73,8 +73,8 @@ sealed trait JawaAstNode extends CaseClassReflector with JavaKnowledge {
   protected implicit def tripleToFlattenable[T1 <% Flattenable, T2 <% Flattenable, T3 <% Flattenable](triple: (T1, T2, T3)): Flattenable = new Flattenable { val tokens = triple._1.tokens ++ triple._2.tokens ++ triple._3.tokens }
   protected implicit def eitherToFlattenable[T1 <% Flattenable, T2 <% Flattenable](either: T1 Either T2): Flattenable = new Flattenable {
     val tokens = either match {
-      case Left(f)  ⇒ f.tokens
-      case Right(f) ⇒ f.tokens
+      case Left(f)  => f.tokens
+      case Right(f) => f.tokens
     }
   }
   protected implicit def tokenToFlattenable(token: Token): Flattenable = new Flattenable { val tokens = List(token) }
@@ -84,15 +84,15 @@ sealed trait JawaAstNode extends CaseClassReflector with JavaKnowledge {
   def immediateChildren: IList[JawaAstNode] = productIterator.toList flatten immediateAstNodes
 
   private def immediateAstNodes(n: Any): IList[JawaAstNode] = n match {
-    case a: JawaAstNode            ⇒ List(a)
-    case t: Token                  ⇒ Nil
-    case Some(x)                   ⇒ immediateAstNodes(x)
-    case xs @ (_ :: _)             ⇒ xs flatMap { immediateAstNodes(_) }
-    case Left(x)                   ⇒ immediateAstNodes(x)
-    case Right(x)                  ⇒ immediateAstNodes(x)
-    case (l, r)                    ⇒ immediateAstNodes(l) ++ immediateAstNodes(r)
-    case (x, y, z)                 ⇒ immediateAstNodes(x) ++ immediateAstNodes(y) ++ immediateAstNodes(z)
-    case true | false | Nil | None ⇒ Nil
+    case a: JawaAstNode            => List(a)
+    case t: Token                  => Nil
+    case Some(x)                   => immediateAstNodes(x)
+    case xs @ (_ :: _)             => xs flatMap { immediateAstNodes(_) }
+    case Left(x)                   => immediateAstNodes(x)
+    case Right(x)                  => immediateAstNodes(x)
+    case (l, r)                    => immediateAstNodes(l) ++ immediateAstNodes(r)
+    case (x, y, z)                 => immediateAstNodes(x) ++ immediateAstNodes(y) ++ immediateAstNodes(z)
+    case true | false | Nil | None => Nil
   }
 
   def toCode: String = {

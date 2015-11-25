@@ -32,14 +32,14 @@ class AstSelector(source: String) {
     JawaParser.parse(tokens, true, reporter)
   }
   
-  private val allTokens: List[Token] = tokens.flatMap { token ⇒
+  private val allTokens: List[Token] = tokens.flatMap { token =>
     token.associatedWhitespaceAndComments.rawTokens :+ token
   }
 
   private def previousToken(token: Token): Option[Token] =
     tokens.indexOf(token) match {
-      case 0 | -1 ⇒ None
-      case n      ⇒ Some(tokens(n - 1))
+      case 0 | -1 => None
+      case n      => Some(tokens(n - 1))
     }
   
   def expandSelection(initialSelection: Range): Option[Range] =
@@ -49,22 +49,22 @@ class AstSelector(source: String) {
    * If the selection is a strict subrange of some token, expand to the entire token.
    */
   private def expandToToken(initialSelection: Range): Option[Range] =
-    allTokens.find { token ⇒
+    allTokens.find { token =>
       isSelectableToken(token) && (token.range contains initialSelection) && initialSelection.length < token.length
     }.map(_.range)
     
 //  private def findAssociatedAstNode: Option[JawaAstNode] =
-//    compilationUnitOpt.flatMap { cu ⇒ findAssociatedAstNode(cu) }
+//    compilationUnitOpt.flatMap { cu => findAssociatedAstNode(cu) }
 //
 //  private def findAssociatedAstNode(nodeToSearch: JawaAstNode): Option[JawaAstNode] =
-//    nodeToSearch.firstTokenOption flatMap { firstToken ⇒
+//    nodeToSearch.firstTokenOption flatMap { firstToken =>
 //      val hiddenTokens = getPriorHiddenTokens(firstToken)
 //      if (hiddenTokens.rawTokens.contains(scaladocCommentToken) && !nodeToSearch.isInstanceOf[CompilationUnit])
 //        Some(nodeToSearch)
 //      else {
 //        for {
-//          childNode ← nodeToSearch.immediateChildren
-//          result ← findAssociatedAstNode(childNode)
+//          childNode <- nodeToSearch.immediateChildren
+//          result <- findAssociatedAstNode(childNode)
 //        } return Some(result)
 //        None
 //      }
@@ -83,8 +83,8 @@ class AstSelector(source: String) {
 //    if (!nodeRange.contains(initialSelection)) { return None }
 //
 //    for {
-//      childNode ← node.immediateChildren
-//      descendantRange ← expandToEnclosingAst(childNode, initialSelection, enclosingNodes = node :: enclosingNodes)
+//      childNode <- node.immediateChildren
+//      descendantRange <- expandToEnclosingAst(childNode, initialSelection, enclosingNodes = node :: enclosingNodes)
 //    } return Some(descendantRange)
 //
 //    if (nodeRange.strictlyContains(initialSelection) && isSelectableAst(node :: enclosingNodes))
