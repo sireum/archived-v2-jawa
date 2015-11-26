@@ -21,6 +21,7 @@ object JVMUtil {
     val path = System.getProperty("java.home") + separator + "bin" + separator + "java"
     import scala.collection.JavaConversions._
     val commands : java.util.List[String] = List(path, javaHeapSize, "-cp", classpath, clazz.getCanonicalName().stripSuffix("$")) ::: args
+    println(commands)
     val processBuilder = new ProcessBuilder(commands)
     processBuilder.redirectErrorStream(redirectStream)
     val process = processBuilder.start()
