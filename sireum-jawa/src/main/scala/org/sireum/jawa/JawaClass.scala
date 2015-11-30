@@ -269,14 +269,14 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
   /**
    * get method from this class by the given name
    */
-  def getMethodByName(methodName: String): Option[JawaMethod] = {
+  def getDeclaredMethodByName(methodName: String): Option[JawaMethod] = {
     if(!declaresMethodByName(methodName)){
       global.reporter.error(NoPosition, "No method " + methodName + " in class " + getName)
       return None
     }
     var found = false
     var foundMethod: JawaMethod = null
-    getMethods.foreach{
+    getDeclaredMethods.foreach{
       proc=>
         if(proc.getName == methodName){
           if(found) throw new RuntimeException("ambiguous method" + methodName)
@@ -296,14 +296,14 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
   /**
    * get method from this class by the given method name
    */
-  def getMethodsByName(methodName: String): Set[JawaMethod] = {
-    getMethods.filter(method=> method.getName == methodName)
+  def getDeclaredMethodsByName(methodName: String): Set[JawaMethod] = {
+    getDeclaredMethods.filter(method=> method.getName == methodName)
   }
 
   /**
    * get static initializer of this class
    */
-  def getStaticInitializer: Option[JawaMethod] = getMethodByName(this.staticInitializerName)
+  def getStaticInitializer: Option[JawaMethod] = getDeclaredMethodByName(this.staticInitializerName)
 
   /**
    * whether this method exists in the class or not
@@ -318,14 +318,14 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
   /**
    * get methods of this class
    */
-  def getMethods: ISet[JawaMethod] = this.methods.values.toSet
+  def getDeclaredMethods: ISet[JawaMethod] = this.methods.values.toSet
 
   /**
    * get method by the given name, parameter types and return type
    */
-  def getMethod(name: String, paramTyps: List[String], returnTyp: JawaType): JawaMethod = {
+  def getDeclaredMethod(name: String, paramTyps: List[String], returnTyp: JawaType): JawaMethod = {
     var ap: JawaMethod = null
-    getMethods.foreach{
+    getDeclaredMethods.foreach{
       method=>
         if(method.getName == name && method.getParamTypes == paramTyps && method.getReturnType == returnTyp) ap = method
     }
@@ -338,7 +338,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
    */
   def declaresMethod(name: String, paramTyps: List[String], returnTyp: JawaType): Boolean = {
     var find: Boolean = false
-    getMethods.foreach{
+    getDeclaredMethods.foreach{
       method=>
         if(method.getName == name && method.getParamTypes == paramTyps && method.getReturnType == returnTyp) find = true
     }
@@ -350,7 +350,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
    */
   def declaresMethod(name: String, paramTyps: List[String]): Boolean = {
     var find: Boolean = false
-    getMethods.foreach{
+    getDeclaredMethods.foreach{
       method=>
         if(method.getName == name && method.getParamTypes == paramTyps) find = true
     }
@@ -361,7 +361,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
    * does method exists with the given name?
    */
   def declaresMethodByName(name: String): Boolean = {
-    getMethods.exists(_.getName == name)
+    getDeclaredMethods.exists(_.getName == name)
   }
 
   /**
@@ -574,7 +574,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
    * update resolving level for current class
    */
   def updateResolvingLevel = {
-    setResolvingLevel(getMethods.map(_.getResolvingLevel).reduceLeft((x, y) => if(x < y) x else y))
+    setResolvingLevel(getDeclaredMethods.map(_.getResolvingLevel).reduceLeft((x, y) => if(x < y) x else y))
   }
 
   def printDetail = {
@@ -588,8 +588,8 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
     println("interfaces: " + getInterfaces)
     println("accessFlags: " + getAccessFlagsStr)
     println("isLoaded: " + isLoaded)
-    println("fields: " + getFields)
-    println("methods: " + getMethods)
+    println("fields: " + getDeclaredFields)
+    println("methods: " + getDeclaredMethods)
     println("++++++++++++++++++++++++++++++++")
   }
 

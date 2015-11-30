@@ -170,7 +170,7 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
   private def escalateReolvingLevel(clazz: JawaClass, desiredLevel: ResolveLevel.Value): JawaClass = {
     require(clazz.getResolvingLevel < desiredLevel)
     if(desiredLevel == ResolveLevel.BODY){
-      clazz.getMethods.foreach(m => m.getBody)
+      clazz.getDeclaredMethods.foreach(m => m.getBody)
       clazz.setResolvingLevel(ResolveLevel.BODY)
     }
     clazz

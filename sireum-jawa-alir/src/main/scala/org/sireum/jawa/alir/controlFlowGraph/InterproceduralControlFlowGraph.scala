@@ -300,14 +300,26 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
 		          if(isCall(l)){
                 val cj = l.asInstanceOf[JumpLocation].jump.asInstanceOf[CallJump]
                 val sig = ASTUtil.getSignature(cj).get
+                val argNames: MList[String] = mlistEmpty
+                val retNames: MList[String] = mlistEmpty
+                l match{
+                  case jumploc: JumpLocation =>
+                    argNames ++= ASTUtil.getCallArgs(jumploc)
+                    retNames ++= ASTUtil.getReturnVars(jumploc)
+                  case _ =>
+                }
 	              val c = addICFGCallNode(callerContext.copy.setContext(calleeSig, ln.locUri))
 	              c.setOwner(calleeProc.getSignature)
+                c.asInstanceOf[ICFGInvokeNode].argNames = argNames.toList
+                c.asInstanceOf[ICFGInvokeNode].retNames = retNames.toList
 //	              c.setCode(code)
 	              c.asInstanceOf[ICFGLocNode].setLocIndex(ln.locIndex)
                 c.asInstanceOf[ICFGInvokeNode].setCalleeSig(sig)
 	              nodes += c
 	              val r = addICFGReturnNode(callerContext.copy.setContext(calleeSig, ln.locUri))
 	              r.setOwner(calleeProc.getSignature)
+                r.asInstanceOf[ICFGInvokeNode].argNames = argNames.toList
+                r.asInstanceOf[ICFGInvokeNode].retNames = retNames.toList
 //	              r.setCode(code)
 	              r.asInstanceOf[ICFGLocNode].setLocIndex(ln.locIndex)
                 r.asInstanceOf[ICFGInvokeNode].setCalleeSig(sig)
@@ -655,6 +667,8 @@ abstract class ICFGInvokeNode(context: Context) extends ICFGLocNode(context) {
   }
   def getCalleeSig: Signature = this.getPropertyOrElse(CALLEE_SIG, throw new RuntimeException("Callee sig did not set for " + this))
   override def toString: String = getInvokeLabel + "@" + context
+  var argNames: IList[String] = ilistEmpty
+  var retNames: IList[String] = ilistEmpty
 }
 
 final case class ICFGCallNode(context: Context) extends ICFGInvokeNode(context){

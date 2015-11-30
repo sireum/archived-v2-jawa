@@ -327,7 +327,7 @@ case class JawaMethod(declaringClass: JawaClass,
   }
   
   private def computeImplementsOrOverrides(clazz: JawaClass): Unit = {
-    clazz.getMethods foreach {
+    clazz.getDeclaredMethods foreach {
       m =>
         if(m.getSubSignature == this.getSubSignature){
           setImplementsOrOverrides(m)

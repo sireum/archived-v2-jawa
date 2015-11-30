@@ -70,29 +70,20 @@ class InterProceduralDataDependenceGraph[Node <: IDDGNode] extends DataDependenc
             }
 	        case en: ICFGCenterNode =>
 	        case cn: ICFGCallNode =>
-	          val loc = global.getMethod(cn.getOwner).get.getBody.location(cn.getLocIndex)
-	          val argNames: MList[String] = mlistEmpty
-            val retNames: MList[String] = mlistEmpty
-	          loc match{
-	            case jumploc: JumpLocation =>
-	              argNames ++= ASTUtil.getCallArgs(jumploc)
-                retNames ++= ASTUtil.getReturnVars(jumploc)
-	            case _ =>
-	          }
-	          for(i <- 0 to argNames.size - 1) {
-	            val argName = argNames(i)
+	          for(i <- 0 to cn.argNames.size - 1) {
+	            val argName = cn.argNames(i)
 	            val n = addIDDGCallArgNode(cn, i)
 	            n.asInstanceOf[IDDGCallArgNode].argName = argName
 	          }
-            for(i <- 0 to retNames.size - 1) {
-              val retName = retNames(i)
+            for(i <- 0 to cn.retNames.size - 1) {
+              val retName = cn.retNames(i)
               val rn = addIDDGReturnVarNode(cn)
               rn.asInstanceOf[IDDGReturnVarNode].retVarName = retName
             }
             val succs = icfg.successors(cn)
             if(succs.exists{succ => succ.isInstanceOf[ICFGReturnNode]}){
 	            val vn = addIDDGVirtualBodyNode(cn)
-	            vn.asInstanceOf[IDDGVirtualBodyNode].argNames = argNames.toList
+	            vn.asInstanceOf[IDDGVirtualBodyNode].argNames = cn.argNames
 	          }
 	        case rn: ICFGReturnNode =>
 	          val loc =  global.getMethod(rn.getOwner).get.getBody.location(rn.getLocIndex)

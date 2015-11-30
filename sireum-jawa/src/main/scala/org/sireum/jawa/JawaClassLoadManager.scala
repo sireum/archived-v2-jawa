@@ -365,7 +365,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     getApplicationClasses.foreach{
       appRec =>
         if(appRec.declaresMethodByName(entryMethodName))
-          appRec.getMethodByName(entryMethodName) foreach{ep += _}
+          appRec.getDeclaredMethodByName(entryMethodName) foreach{ep += _}
     }
     ep.toSet
   }
@@ -452,8 +452,8 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
       getClasses.foreach{
         case r=>
           r.printDetail
-          r.getFields.foreach(_.printDetail)
-          r.getMethods.foreach(_.printDetail)
+          r.getDeclaredFields.foreach(_.printDetail)
+          r.getDeclaredMethods.foreach(_.printDetail)
       }
       getClassHierarchy.printDetails
     }

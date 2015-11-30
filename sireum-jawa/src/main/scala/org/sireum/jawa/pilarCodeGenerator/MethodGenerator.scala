@@ -201,7 +201,7 @@ abstract class MethodGenerator(global: Global) {
 
   def generateClassConstructor(r: JawaClass, constructionStack: MSet[JawaType], codefg: CodeFragmentGenerator): Signature = {
     constructionStack.add(r.getType)
-    val ps = r.getMethods
+    val ps = r.getDeclaredMethods
     var cons: Signature = null
     val conMethods = ps.filter(p => p.isConstructor && !p.isStatic && !p.getParamTypes.contains(ObjectType("java.lang.Class", 0)))
     if(!conMethods.isEmpty){
