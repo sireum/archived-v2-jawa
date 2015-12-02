@@ -68,6 +68,21 @@ trait JavaKnowledge {
   }
   
   /**
+   * input: "java.lang.String"  output: ("java.lang", "String")
+   */
+  def separatePkgAndTyp(pkgAndTyp: String): (JawaPackage, String) = {
+    val parts = pkgAndTyp.split("\\.")
+    val size = parts.size
+    val pkgs: MList[JawaPackage] = mlistEmpty
+    var currentPkg: JawaPackage = null
+    for(i <- 0 to size - 2) {
+      currentPkg = JawaPackage(parts(i), pkgs.toList)
+      pkgs += currentPkg
+    }
+    (currentPkg, parts(size - 1))
+  }
+  
+  /**
    * input ("java.lang.String", 1) output Type
    */
   protected def getType(typ: String, dimentions: Int): JawaType = {

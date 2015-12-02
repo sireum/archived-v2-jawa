@@ -36,7 +36,7 @@ trait JawaType extends JavaKnowledge {
   def isArray: Boolean
 }
 
-final case class PrimitiveType(val typ: String) extends JawaType {
+final case class PrimitiveType(typ: String) extends JawaType {
   require(isJavaPrimitive(this))
   def name: String = typ
   def simpleName: String = name
@@ -50,8 +50,11 @@ final case class PrimitiveType(val typ: String) extends JawaType {
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class ObjectType(val typ: String, val dimensions: Int) extends JawaType {
-  def this(typ: String) = this(typ, 0)
+final case class ObjectType(pkg: JawaPackage, typ: String, dimensions: Int) extends JawaType {
+  def this(pkg: JawaPackage, typ: String) = this(pkg, typ, 0)
+  def this(pkgAndTyp: String, dimensions: Int) = (
+      )
+  
   require(!isJavaPrimitive(typ) || dimensions != 0)
   def isArray = dimensions > 0
   def name: String = formatObjectTypeToObjectName(this)
