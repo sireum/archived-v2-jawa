@@ -37,18 +37,12 @@
 	<classpathentry exported="true" kind="lib" path="lib/xstream.jar"/>
 	<classpathentry exported="true" kind="lib" path="elib/akka-actor_2.11-2.3.10.jar"/>
 	<classpathentry exported="true" kind="lib" path="elib/config-1.2.1.jar"/>
-	<classpathentry exported="true" kind="lib" path="elib/jline-2.12.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="elib/scala-actors-2.11.0.jar"/>
 	<classpathentry exported="true" kind="lib" path="elib/scala-actors-migration_2.11-1.1.0.jar"/>
 	<classpathentry exported="true" kind="lib" path="elib/scala-compiler.jar"/>
-	<classpathentry exported="true" kind="lib" path="elib/scala-continuations-library_2.11-1.0.2.jar"/>
-	<classpathentry exported="true" kind="lib" path="elib/scala-continuations-plugin_2.11.7-1.0.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="elib/scala-library.jar"/>
-	<classpathentry exported="true" kind="lib" path="elib/scala-parser-combinators_2.11-1.0.4.jar"/>
 	<classpathentry exported="true" kind="lib" path="elib/scala-reflect.jar"/>
-	<classpathentry exported="true" kind="lib" path="elib/scala-swing_2.11-1.0.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="elib/scala-xml_2.11-1.0.4.jar"/>
-	<classpathentry exported="true" kind="lib" path="elib/scalap-2.11.7.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="output" path="bin"/>
