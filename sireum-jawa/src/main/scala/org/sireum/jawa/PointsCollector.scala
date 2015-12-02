@@ -37,19 +37,17 @@ class PointsCollector {
     var thisPExit: PointThisExit = null
     val paramPsEntry: MMap[Int, PointParamEntry] = mmapEmpty
     val paramPsExit: MMap[Int, PointParamExit] = mmapEmpty
-    var i = 0 // control param index to be the exact position (including this) 
     var j = 0 // control type traversal
     pst.procedure.params.foreach(
       param => {
         if(is("this", param.annotations)){
-          thisPEntry = PointThisEntry(param.name.name, thisTyp, i, ownerSig)
-          thisPExit = PointThisExit(param.name.name, thisTyp, i, ownerSig)
+          thisPEntry = PointThisEntry(param.name.name, thisTyp, ownerSig)
+          thisPExit = PointThisExit(param.name.name, thisTyp, ownerSig)
           j -= 1
         } else if(is("object", param.annotations)){
-          paramPsEntry += (i -> PointParamEntry(param.name.name, types(j), i, ownerSig))
-          paramPsExit += (i -> PointParamExit(param.name.name, types(j), i, ownerSig))
+          paramPsEntry += (j -> PointParamEntry(param.name.name, types(j), j, ownerSig))
+          paramPsExit += (j -> PointParamExit(param.name.name, types(j), j, ownerSig))
         }
-        i += 1
         j += 1
       }
     )
@@ -151,7 +149,7 @@ class PointsCollector {
       e match {
         case n: NameExp =>
           if(n.name.name == Constants.CONST_CLASS){
-            PointClassR(typ.get.asInstanceOf[ObjectType], loc, locIndex, ownerSig)
+            PointClassO(ObjectType("java.lang.Class", 0), typ.get.asInstanceOf[ObjectType], loc, locIndex, ownerSig)
           } else if (n.name.name == Constants.LENGTH) {
             val varname: String = e.getValueAnnotation("variable") match {
               case Some(NameExp(name)) =>
@@ -225,11 +223,11 @@ class PointsCollector {
           case le: LiteralExp =>
             if(le.typ.name.equals("STRING")){
               pl = processLHS(as.lhs, typ)
-              pr = PointStringO(le.text, "java.lang.String", loc, locIndex, ownerSig)
+              pr = PointStringO(new ObjectType("java.lang.String"), le.text , loc, locIndex, ownerSig)
             }
             if(le.typ.name.equals("null")) {
               pl = processLHS(as.lhs, typ)
-              pr = PointO(JavaKnowledge.JAVA_TOPLEVEL_OBJECT, loc, locIndex, ownerSig)
+              pr = PointO(JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE, loc, locIndex, ownerSig)
             }
           case n: NewExp =>
             pl = processLHS(as.lhs, typ)
@@ -241,11 +239,7 @@ class PointsCollector {
                 name = nt.name.name
               case _ =>
             }
-            if(dimensions == 0){
-              pr = PointO(name, loc, locIndex, ownerSig)
-            } else {
-              pr = PointArrayO(name, dimensions, loc, locIndex, ownerSig)
-            }
+            pr = PointO(ObjectType(name, dimensions), loc, locIndex, ownerSig)
           case n: NameExp =>
             if(is("object", as.annotations)){
               pl = processLHS(as.lhs, typ)
@@ -361,21 +355,21 @@ final case class PointCall(lhsOpt: Option[Point with Left], rhs: Point with Righ
  * An object creating program point abstracts all the objects created
  * at that particular program point.
  */
-final case class PointO(obj: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj
+final case class PointO(obj: ObjectType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj
 
 /**
  * Set of program points corresponding to array object creating expressions. 
  * An array object creating program point abstracts all the objects created
  * at that particular program point.
  */
-final case class PointArrayO(obj: String, dimensions: Int, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj with Array
+//final case class PointArrayO(obj: ObjectType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj with Array
 
 /**
  * Set of program points corresponding to string object creating expressions. 
  * An string object creating program point abstracts all the objects created
  * at that particular program point.
  */
-final case class PointStringO(obj: String, text: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj
+final case class PointStringO(obj: ObjectType, text: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj
 
 /**
  * Set of program points corresponding to l-value. 
@@ -390,7 +384,7 @@ final case class PointR(varname: String, loc: ResourceUri, locIndex: Int, ownerS
 /**
  * Set of program points corresponding to const class value. 
  */
-final case class PointClassR(classtyp: ObjectType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
+final case class PointClassO(obj: ObjectType, classtyp: ObjectType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj
 
 /**
  * Set of program points corresponding to const class value. 
@@ -501,7 +495,9 @@ final case class PointStaticI(sig: Signature, invokeTyp: String, retTyp: JawaTyp
 /**
  * Set of program points corresponding to this variable .
  */
-final case class PointThisEntry(paramName: String, paramTyp: JawaType, index: Int, ownerSig: Signature) extends Point with Param with Entry
+final case class PointThisEntry(paramName: String, paramTyp: JawaType, ownerSig: Signature) extends Point with Param with Entry {
+  def index = -1
+}
 
 /**
  * Set of program points corresponding to params.
@@ -511,7 +507,9 @@ final case class PointParamEntry(paramName: String, paramTyp: JawaType, index: I
 /**
  * Set of program points corresponding to this variable .
  */
-final case class PointThisExit(paramName: String, paramTyp: JawaType, index: Int, ownerSig: Signature) extends Point with Param with Exit
+final case class PointThisExit(paramName: String, paramTyp: JawaType, ownerSig: Signature) extends Point with Param with Exit {
+  def index = -1
+}
 
 /**
  * Set of program points corresponding to params.

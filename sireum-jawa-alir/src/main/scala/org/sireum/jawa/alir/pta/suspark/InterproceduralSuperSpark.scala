@@ -22,6 +22,7 @@ import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralDataFlowGraph
 import org.sireum.jawa.alir.controlFlowGraph.ICFGInvokeNode
 import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.alir.interProcedural.InstanceCallee
+import org.sireum.jawa.alir.pta.InstanceSlot
 
 
 /**
@@ -67,7 +68,7 @@ object InterproceduralSuperSpark {
       timer: Option[MyTimer]): Unit = {
     val points = new PointsCollector().points(ep.getSignature, ep.getBody)
     val context: Context = new Context
-    pag.constructGraph(ep, points, context.copy)
+    pag.constructGraph(ep, points, context.copy, true)
     icfg.collectCfgToBaseGraph(ep, context.copy)
     workListPropagation(global, pag, icfg, timer)
   }
@@ -237,7 +238,7 @@ object InterproceduralSuperSpark {
         calleeSet.foreach(
           callee => {
             icfg.getCallGraph.addCall(pi.ownerSig, callee.callee.getSignature)
-            if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringClass)) {
+            if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringClass) && !callee.callee.isNative) {
               extendGraphWithConstructGraph(callee, pi, callerContext.copy, pag, icfg)
             } else {
               pag.handleModelCall(pi, callerContext, callee)
@@ -267,7 +268,7 @@ object InterproceduralSuperSpark {
     val calleeSig = calleeProc.getSignature
     if(!pag.isProcessed(calleeProc, callerContext)){
       val points = new PointsCollector().points(calleeProc.getSignature, calleeProc.getBody)
-      pag.constructGraph(calleeProc, points, callerContext.copy)
+      pag.constructGraph(calleeProc, points, callerContext.copy, false)
       icfg.collectCfgToBaseGraph(calleeProc, callerContext.copy)
     }
     val methodPoint = pag.getPointMethod(calleeProc, callerContext)

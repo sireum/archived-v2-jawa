@@ -14,6 +14,12 @@ object JawaType {
     if(dimensions == 0 && JavaKnowledge.isJavaPrimitive(typ)) PrimitiveType(typ)
     else ObjectType(typ, dimensions)
   }
+  
+  def addDimensions(typ: JawaType, dimensions: Int): JawaType = {
+    if(dimensions > 0) {
+      ObjectType(typ.typ, typ.dimensions + dimensions)
+    } else typ
+  }
 }
 
 /**

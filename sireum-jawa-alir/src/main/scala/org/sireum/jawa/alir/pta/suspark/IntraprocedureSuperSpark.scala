@@ -33,7 +33,7 @@ class IntraprocedureSuperSpark {
             pag : PointerAssignmentGraph[PtaNode]) : Unit = {
     val points = new PointsCollector().points(ap.getSignature, ap.getBody)
     val context : Context = new Context
-    pag.constructGraph(ap, points, context.copy)
+    pag.constructGraph(ap, points, context.copy, true)
     workListPropagation(pag)
   }
   

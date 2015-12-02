@@ -25,12 +25,12 @@ import org.sireum.util._
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */
-case class JawaMethod(declaringClass: JawaClass, 
-                      name: String,
-                      thisOpt: Option[String],
-                      params: ISeq[(String, JawaType)], 
-                      returnType: JawaType, 
-                      accessFlags: Int) extends JawaElement with JavaKnowledge with ResolveLevel {
+case class JawaMethod(declaringClass: JawaClass,
+    name: String,
+    thisOpt: Option[String],
+    params: ISeq[(String, JawaType)],
+    returnType: JawaType,
+    accessFlags: Int) extends JawaElement with JavaKnowledge with ResolveLevel {
   
   import JawaMethod._
   

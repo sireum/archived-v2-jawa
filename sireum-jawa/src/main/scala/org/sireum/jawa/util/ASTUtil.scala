@@ -73,8 +73,10 @@ object ASTUtil {
   
   def getType[T <: Annotable[T]](ast: Annotable[T]): Option[JawaType] = {
     ast.getValueAnnotation("type") match {
-      case Some(NewExp(typespec, _, _)) =>
-        Some(getTypeFromTypeSpec(typespec))
+      case Some(NewExp(typespec, _, typeFragments)) =>
+        val typ = getTypeFromTypeSpec(typespec)
+        val dim = typeFragments.size
+        Some(JawaType.addDimensions(typ, dim))
       case _ => None
     }
   }
