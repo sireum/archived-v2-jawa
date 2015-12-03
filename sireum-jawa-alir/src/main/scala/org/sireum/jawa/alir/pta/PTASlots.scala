@@ -3,7 +3,7 @@ package org.sireum.jawa.alir.pta
 import org.sireum.alir.Slot
 import org.sireum.jawa.Signature
 import org.sireum.jawa.FieldFQN
-import org.sireum.jawa.ObjectType
+import org.sireum.jawa.JawaType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -35,7 +35,7 @@ final case class VarSlot(varName: String, isBase: Boolean, isArg: Boolean) exten
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */
-final case class ClassSlot(classtyp: ObjectType) extends NameSlot(classtyp.jawaName)
+final case class ClassSlot(classtyp: JawaType) extends NameSlot(classtyp.jawaName)
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>

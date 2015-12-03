@@ -9,33 +9,34 @@ package org.sireum.jawa
 
 import org.sireum.util._
 
+object Signature extends JavaKnowledge {
+  def getClassTyp(sig: String): JawaType = {
+    formatSignatureToType(sig.substring(0, sig.indexOf(".")))
+  }
+  def getMethodName(sig: String): String = {
+    sig.substring(sig.indexOf(".") + 1, sig.indexOf(":"))
+  }
+  def getProto(sig: String): String = {
+    sig.substring(sig.indexOf(":") + 1)
+  }
+}
+
 /**
  * This class providing all helper methods for signature e.g., Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
  * 
- * @param signature should be following form: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */
-case class Signature(signature: String) extends JavaKnowledge {
+case class Signature(classTyp: JawaType, methodName: String, proto: String) extends JavaKnowledge {
   
-  require(signature.indexOf('.') > 0 &&
-          signature.indexOf(':') > 0 &&
-          signature.indexOf(':') > signature.indexOf('.'))
+  def this(sig: String) = this(Signature.getClassTyp(sig), Signature.getMethodName(sig), Signature.getProto(sig))
   
-  /**
-   * class signature part of this signature: Ljava/lang/Object;
-   */
-  def classSigPart: String = signature.substring(0, signature.indexOf("."))
-  
-  /**
-   * method name part of this signature
-   */
-  def methodNamePart: String = signature.substring(signature.indexOf(".") + 1, signature.indexOf(":"))
+  def signature: String = formatTypeToSignature(classTyp) + "." + methodName + ":" + proto
   
   def FQMN: String = {
     val sb = new StringBuilder
     sb.append(getClassType.canonicalName)
     sb.append(".")
-    sb.append(methodNamePart)
+    sb.append(methodName)
     sb.append("(")
     var i = 0
     val params = getParameterTypes
@@ -52,16 +53,11 @@ case class Signature(signature: String) extends JavaKnowledge {
     sb.toString().intern()
   }
   
-  /**
-   * param signature part of this signature
-   */
-  def paramSigPart: String = signature.substring(signature.indexOf(":") + 1)
-  
   private class ParameterSignatureIterator extends Iterator[String] {
     private var index = 1;
 
     def hasNext(): Boolean = {
-      return index < paramSigPart.length() && paramSigPart.charAt(index) != ')';
+      return index < proto.length() && proto.charAt(index) != ')';
     }
 
     def next(): String = {
@@ -71,23 +67,23 @@ case class Signature(signature: String) extends JavaKnowledge {
       var done: Boolean = false;
       do {
         done = true;
-        val ch = paramSigPart.charAt(index);
+        val ch = proto.charAt(index);
         ch match {
           case 'B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z' =>
-            result.append(paramSigPart.charAt(index));
+            result.append(proto.charAt(index));
             index+=1;
           case 'L' =>
-            val semi = paramSigPart.indexOf(';', index + 1);
+            val semi = proto.indexOf(';', index + 1);
             if (semi < 0)
-              throw new IllegalStateException("Invalid method paramSig: " + paramSigPart);
-            result.append(paramSigPart.substring(index, semi + 1));
+              throw new IllegalStateException("Invalid method paramSig: " + proto);
+            result.append(proto.substring(index, semi + 1));
             index = semi + 1;
           case '[' =>
             result.append('[');
             index+=1;
             done = false;
           case _ =>
-            throw new IllegalStateException("Invalid method paramSig: " + paramSigPart);
+            throw new IllegalStateException("Invalid method paramSig: " + proto);
         }
       } while (!done);
 
@@ -179,14 +175,14 @@ case class Signature(signature: String) extends JavaKnowledge {
     count
   }
   
-  def getObjectParameters(): MMap[Int, ObjectType] = {
+  def getObjectParameters(): MMap[Int, JawaType] = {
     var count = 0
-    val params: MMap[Int, ObjectType] = mmapEmpty
+    val params: MMap[Int, JawaType] = mmapEmpty
     val iterator = new ParameterSignatureIterator
     while(iterator.hasNext){
       val p = iterator.next()
       if(p.startsWith("L") || p.startsWith("[")){
-        params(count) = formatSignatureToType(p).asInstanceOf[ObjectType]
+        params(count) = formatSignatureToType(p)
       }
       count+=1
     }
@@ -201,8 +197,8 @@ case class Signature(signature: String) extends JavaKnowledge {
   /**
    * get class type from method signature. e.g. Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z -> (java.lang.Object, 0)
    */
-  def getClassType: ObjectType = {
-    formatSignatureToType(classSigPart).asInstanceOf[ObjectType]
+  def getClassType: JawaType = {
+    classTyp
   }
   
   def getDescriptor: String = {

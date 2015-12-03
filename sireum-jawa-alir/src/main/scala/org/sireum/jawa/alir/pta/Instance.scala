@@ -9,24 +9,25 @@ package org.sireum.jawa.alir.pta
 
 import org.sireum.util._
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.ObjectType
+import org.sireum.jawa.JawaType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 abstract class Instance{
-  def typ: ObjectType
+  def typ: JawaType
   def defSite: Context
   def isNull: Boolean = false
+  def isUnknown: Boolean = false
   def ===(ins: Instance): Boolean = this == ins
   def clone(newDefSite: Context): Instance
 }
 
 
-final case class ClassInstance(classtyp: ObjectType, defSite: Context) extends Instance{
+final case class ClassInstance(classtyp: JawaType, defSite: Context) extends Instance{
   override def clone(newDefSite: Context): Instance = ClassInstance(classtyp, newDefSite)
-  def typ = ObjectType("java.lang.Class", 0)
+  def typ = new JawaType("java.lang.Class")
   def getName = classtyp.jawaName
   override def ===(ins: Instance): Boolean = {
     if(ins.isInstanceOf[ClassInstance]) ins.asInstanceOf[ClassInstance].getName.equals(getName)
@@ -35,19 +36,20 @@ final case class ClassInstance(classtyp: ObjectType, defSite: Context) extends I
   override def toString: String = getName + ".class@" + this.defSite.getCurrentLocUri
 }
 
-final case class UnknownInstance(baseTyp: ObjectType, defSite: Context) extends Instance{
-  override def clone(newDefSite: Context): Instance = UnknownInstance(baseTyp, newDefSite)
-  def typ: ObjectType = baseTyp
-  override def toString: String = baseTyp + "*" + "@" + defSite.getCurrentLocUri
-}
+//final case class UnknownInstance(baseTyp: JawaType, defSite: Context) extends Instance{
+//  override def clone(newDefSite: Context): Instance = UnknownInstance(baseTyp, newDefSite)
+//  def typ: JawaType = baseTyp
+//  override def toString: String = baseTyp + "*" + "@" + defSite.getCurrentLocUri
+//}
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class PTAInstance(typ: ObjectType, defSite: Context, isNull_ : Boolean) extends Instance{
+final case class PTAInstance(typ: JawaType, defSite: Context, isNull_ : Boolean) extends Instance{
   override def clone(newDefSite: Context): Instance = PTAInstance(typ, newDefSite, isNull_)
   override def isNull: Boolean = isNull_
+  override def isUnknown: Boolean = typ.baseType.unknown
   override def toString: String = {
     val sb = new StringBuilder
     sb.append(this.typ + "@")
@@ -62,7 +64,7 @@ final case class PTAInstance(typ: ObjectType, defSite: Context, isNull_ : Boolea
  */ 
 final case class PTATupleInstance(left: Instance, right: Instance, defSite: Context) extends Instance{
   override def clone(newDefSite: Context): Instance = PTATupleInstance(left, right, newDefSite)
-  def typ: ObjectType = new ObjectType("Tuple")
+  def typ: JawaType = new JawaType("Tuple")
   override def toString: String = {
     val sb = new StringBuilder
     sb.append(this.typ + "@")
@@ -76,7 +78,7 @@ final case class PTATupleInstance(left: Instance, right: Instance, defSite: Cont
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 abstract class PTAAbstractStringInstance(defSite: Context) extends Instance{
-  def typ: ObjectType = ObjectType("java.lang.String", 0) 
+  def typ: JawaType = new JawaType("java.lang.String") 
   override def toString: String = this.typ + ":abstract@" + this.defSite.getCurrentLocUri
 }
 

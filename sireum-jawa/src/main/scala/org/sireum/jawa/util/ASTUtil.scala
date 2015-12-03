@@ -58,7 +58,7 @@ object ASTUtil {
   def getSignature[T <: Annotable[T]](ast: Annotable[T]): Option[Signature] = {
     ast.getValueAnnotation("signature") match {
       case Some(NameExp(name)) =>
-        Some(Signature(name.name))
+        Some(new Signature(name.name))
       case _ => None
     }
   }

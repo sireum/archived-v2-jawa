@@ -20,13 +20,15 @@ import org.sireum.jawa.io.NoPosition
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */
-case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends JawaElement with JavaKnowledge with ResolveLevel {
+case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends JawaElement with JavaKnowledge with ResolveLevel {
   
-  def this(global: Global, typ: ObjectType, accessStr: String) = {
+  def this(global: Global, typ: JawaType, accessStr: String) = {
     this(global, typ, AccessFlag.getAccessFlags(accessStr))
   }
   
-  def getType: ObjectType = this.typ
+  require(typ.isObject, "JawaClass should be object type.")
+  
+  def getType: JawaType = this.typ
   
   /**
    * full name of this class: java.lang.Object or [Ljava.lang.Object;
@@ -43,7 +45,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
   /**
    * package name of this class: java.lang
    */
-  def getPackage: String = getType.pkg
+  def getPackage: Option[JawaPackage] = getType.getPackage
   
   /**
    * is this class loaded or not
@@ -80,7 +82,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
   /**
    * return true if it's a child of given record
    */
-  def isChildOf(typ : ObjectType): Boolean = {
+  def isChildOf(typ : JawaType): Boolean = {
     global.getClass(typ) match {
       case Some(c) => isChildOf(c)
       case None => false
@@ -226,7 +228,7 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
       case Some(f) => Some(f)
       case None => 
         if(isUnknown){
-          Some(JawaField(this, name, new ObjectType(JAVA_TOPLEVEL_OBJECT), AccessFlag.getAccessFlags("PUBLIC")))
+          Some(JawaField(this, name, JAVA_TOPLEVEL_OBJECT_TYPE, AccessFlag.getAccessFlags("PUBLIC")))
         } else {
           println(this.fields)
           global.reporter.error(NoPosition, "No field " + name + " in class " + getName)
@@ -537,13 +539,18 @@ case class JawaClass(global: Global, typ: ObjectType, accessFlags: Int) extends 
   /**
    * whether this class is a java library class
    */
-  def isJavaLibraryClass: Boolean = 
-    getPackage.startsWith("java.") ||
-    getPackage.startsWith("sun.") ||
-    getPackage.startsWith("javax.") ||
-    getPackage.startsWith("com.sun.") ||
-    getPackage.startsWith("org.omg.") ||
-    getPackage.startsWith("org.xml.")
+  def isJavaLibraryClass: Boolean = {
+    val packageName = getPackage match {
+      case Some(pkg) => pkg.toPkgString(".")
+      case None => ""
+    }
+    packageName.startsWith("java.") ||
+    packageName.startsWith("sun.") ||
+    packageName.startsWith("javax.") ||
+    packageName.startsWith("com.sun.") ||
+    packageName.startsWith("org.omg.") ||
+    packageName.startsWith("org.xml.")
+  }
   
   /**
    * Jawa AST node for this JawaClass. Unless unknown, it should not be null.

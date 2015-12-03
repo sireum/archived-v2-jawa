@@ -183,7 +183,7 @@ object ClassModel {
       cIns =>
         cIns match{
           case cstr @ PTAConcreteStringInstance(text, c) =>
-            val classType = JavaKnowledge.getTypeFromName(text).asInstanceOf[ObjectType]
+            val classType = JavaKnowledge.getTypeFromName(text)
             newfacts += RFAFact(VarSlot(retVar, false, false), ClassInstance(classType, currentContext))
           case pstr @ PTAPointStringInstance(c) => 
 //            System.err.println(TITLE, "Get class use point string: " + pstr)

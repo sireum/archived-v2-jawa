@@ -81,7 +81,7 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
   /**
    * resolve the given classes to desired level. 
    */
-  protected[jawa] def resolveClass(classType: ObjectType, desiredLevel: ResolveLevel.Value, allowUnknown: Boolean): JawaClass = {
+  protected[jawa] def resolveClass(classType: JawaType, desiredLevel: ResolveLevel.Value, allowUnknown: Boolean): JawaClass = {
     val clazz =
       if(!classType.isArray && !containsClassFile(classType)) {
         if(!allowUnknown) throw JawaResolverError("Does not find class " + classType + " and don't allow unknown.")
@@ -91,10 +91,12 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
             val rec = new JawaClass(this, classType, "")
             rec.setUnknown
             rec.setResolvingLevel(desiredLevel)
-            if(classType.name.contains("@@"))
-              println(classType)
-            reporter.echo(TITLE, "Add phantom class " + rec)
-            addClassNotFound(classType)
+            if(classType.baseType.unknown) {
+              addNeedToResolveExtend(rec, classType.removeUnknown)
+            } else {
+              reporter.echo(TITLE, "Add phantom class " + rec)
+              addClassNotFound(classType)
+            }
             rec
           case Some(c) =>
             c
@@ -137,14 +139,14 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
    * resolve the given class to hierarchy level
    */
   @throws(classOf[JawaResolverError])
-  def resolveToHierarchy(classType: ObjectType, allowUnknown: Boolean = true): JawaClass = {
+  def resolveToHierarchy(classType: JawaType, allowUnknown: Boolean = true): JawaClass = {
     resolveClass(classType, ResolveLevel.HIERARCHY, allowUnknown)
   }
   
   /**
    * force resolve the given class to hierarchy level
    */
-  private def forceResolveToHierarchy(classType: ObjectType): JawaClass = {
+  private def forceResolveToHierarchy(classType: JawaType): JawaClass = {
     val clazz = if(classType.isArray){
       resolveArrayClass(classType)
     } else {
@@ -160,7 +162,7 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
    * It will throw JawaResolverError if violate.
    */
   @throws(classOf[JawaResolverError])
-  def resolveToBody(classType: ObjectType): JawaClass = {
+  def resolveToBody(classType: JawaType): JawaClass = {
     resolveClass(classType, ResolveLevel.BODY, false)
   }
   
@@ -179,7 +181,7 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
   /**
    * force resolve the given class to body level
    */
-  private def forceResolveToBody(classType: ObjectType): JawaClass = {
+  private def forceResolveToBody(classType: JawaType): JawaClass = {
     val clazz =
       if(classType.isArray){
         resolveArrayClass(classType)
@@ -194,20 +196,20 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
   /**
    * resolve array class
    */
-  private def resolveArrayClass(typ: ObjectType): JawaClass = {
+  private def resolveArrayClass(typ: JawaType): JawaClass = {
     val recAccessFlag =
-      if(isJavaPrimitive(typ.typ)){
+      if(isJavaPrimitive(typ.baseTyp)){
         "FINAL_PUBLIC"
       } else {
-        val base = resolveClass(new ObjectType(typ.typ), ResolveLevel.HIERARCHY, true)
+        val base = resolveClass(new JawaType(typ.baseType), ResolveLevel.HIERARCHY, true)
         val baseaf = base.getAccessFlagsStr
         if(baseaf.contains("FINAL")) baseaf else "FINAL_" + baseaf
       }
     val clazz: JawaClass = new JawaClass(this, typ, recAccessFlag)
     addNeedToResolveExtend(clazz, JAVA_TOPLEVEL_OBJECT_TYPE)
     clazz.setResolvingLevel(ResolveLevel.BODY)
-    new JawaField(clazz, "class", new ObjectType("java.lang.Class"), "FINAL_STATIC")
-    new JawaField(clazz, "length", PrimitiveType("int"), "FINAL")
+    new JawaField(clazz, "class", new JawaType("java.lang.Class"), "FINAL_STATIC")
+    new JawaField(clazz, "length", new JawaType("int"), "FINAL")
     clazz
   }
     
@@ -234,7 +236,7 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
   
   protected def resolveFromMyMethod(clazz: JawaClass, m: MyMethod): JawaMethod = {
     val sig = m.signature
-    val mname = sig.methodNamePart
+    val mname = sig.methodName
     var paramNames = m.params
     val thisOpt: Option[String] = (AccessFlag.isStatic(m.accessFlag) || AccessFlag.isAbstract(m.accessFlag)) match {
       case true => None

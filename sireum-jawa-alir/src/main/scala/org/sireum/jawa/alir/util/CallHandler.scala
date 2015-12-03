@@ -11,7 +11,7 @@ import org.sireum.jawa.JawaClass
 import org.sireum.jawa.JawaMethod
 import org.sireum.util._
 import org.sireum.jawa.MethodInvisibleException
-import org.sireum.jawa.ObjectType
+import org.sireum.jawa.JawaType
 import org.sireum.jawa.JavaKnowledge
 import org.sireum.jawa.Signature
 import org.sireum.jawa.Global
@@ -24,7 +24,7 @@ object CallHandler {
   /**
    * get callee procedure from Center. Input: .equals:(Ljava/lang/Object;)Z
    */
-  //def getCalleeMethod(from : JawaClass, pSubSig : String) : JawaMethod = {
+  //def getCalleeMethod(from: JawaClass, pSubSig: String): JawaMethod = {
   //  Center.getClassHierarchy.resolveConcreteDispatch(from, pSubSig) match{
   //    case Some(ap) => ap
   //    case None => Center.getMethodWithoutFailing(Center.UNKNOWN_PROCEDURE_SIG)
@@ -34,9 +34,9 @@ object CallHandler {
   /**
    * check and get virtual callee procedure from Center. Input: equals:(Ljava/lang/Object;)Z
    */
-  def getVirtualCalleeMethod(global: Global, fromType : ObjectType, pSubSig : String) : Option[JawaMethod] = {
+  def getVirtualCalleeMethod(global: Global, fromType: JawaType, pSubSig: String): Option[JawaMethod] = {
     val typ =
-      if(JavaKnowledge.isJavaPrimitive(fromType.typ)) JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE  // any array in java is an Object, so primitive type array is an object, object's method can be called
+      if(fromType.isArray) JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE  // any array in java is an Object, so primitive type array is an object, object's method can be called
       else fromType
     val from = global.getClassOrResolve(typ)
     global.getClassHierarchy.resolveConcreteDispatch(from, pSubSig)
@@ -45,10 +45,10 @@ object CallHandler {
   /**
    * check and get virtual callee procedure from Center. Input: equals:(Ljava/lang/Object;)Z
    */
-  def getUnknownVirtualCalleeMethods(global: Global, baseType : ObjectType, pSubSig : String) : Set[JawaMethod] = {
+  def getUnknownVirtualCalleeMethods(global: Global, baseType: JawaType, pSubSig: String): Set[JawaMethod] = {
     val typ =
-      if(JavaKnowledge.isJavaPrimitive(baseType.typ)) JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE  // any array in java is an Object, so primitive type array is an object, object's method can be called
-      else baseType  
+      if(baseType.isArray) JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE  // any array in java is an Object, so primitive type array is an object, object's method can be called
+      else baseType.removeUnknown
     val baseRec = global.getClassOrResolve(typ)
     global.getClassHierarchy.resolveAbstractDispatch(baseRec, pSubSig)
   }
@@ -56,7 +56,7 @@ object CallHandler {
   /**
    * check and get super callee procedure from Center. Input: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
    */
-  def getSuperCalleeMethod(global: Global, pSig : Signature) : Option[JawaMethod] = {
+  def getSuperCalleeMethod(global: Global, pSig: Signature): Option[JawaMethod] = {
     val fromType = pSig.getClassType
     val pSubSig = pSig.getSubSignature
     val from = global.getClassOrResolve(fromType)
@@ -66,7 +66,7 @@ object CallHandler {
   /**
    * check and get static callee procedure from Center. Input: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
    */
-  def getStaticCalleeMethod(global: Global, procSig : Signature) : Option[JawaMethod] = {
+  def getStaticCalleeMethod(global: Global, procSig: Signature): Option[JawaMethod] = {
     val recType = procSig.getClassType
     val pSubSig = procSig.getSubSignature
     val from = global.getClassOrResolve(recType)
@@ -76,7 +76,7 @@ object CallHandler {
   /**
    * check and get direct callee procedure from Center. Input: Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
    */
-  def getDirectCalleeMethod(global: Global, procSig : Signature) : Option[JawaMethod] = {
+  def getDirectCalleeMethod(global: Global, procSig: Signature): Option[JawaMethod] = {
     val pSubSig = procSig.getSubSignature
     val recType = procSig.getClassType
     val rec = global.getClassOrResolve(recType)
@@ -93,8 +93,8 @@ object CallHandler {
     }
   }
 
-  def resolveSignatureBasedCall(global: Global, callSig : Signature, typ : String) : ISet[JawaMethod] = {
-    val result : MSet[JawaMethod] = msetEmpty
+  def resolveSignatureBasedCall(global: Global, callSig: Signature, typ: String): ISet[JawaMethod] = {
+    val result: MSet[JawaMethod] = msetEmpty
     val classType = callSig.getClassType
     val subSig = callSig.getSubSignature
     val rec = global.getClassOrResolve(classType)
@@ -110,9 +110,9 @@ object CallHandler {
                 try{
                   callee = getVirtualCalleeMethod(global, fromType, subSig)
                 } catch {
-                  case pe : MethodInvisibleException =>
+                  case pe: MethodInvisibleException =>
                     println(pe.getMessage)
-                  case a : Throwable =>
+                  case a: Throwable =>
                     throw a
                 }
                 if(callee.isDefined)
@@ -129,9 +129,9 @@ object CallHandler {
                 try{
                   callee = getVirtualCalleeMethod(global, fromType, subSig)
                 } catch {
-                  case pe : MethodInvisibleException =>
+                  case pe: MethodInvisibleException =>
                     println(pe.getMessage)
-                  case a : Throwable =>
+                  case a: Throwable =>
                     throw a
                 }
                 if(callee.isDefined)

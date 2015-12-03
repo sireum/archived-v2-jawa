@@ -21,8 +21,8 @@ import org.sireum.jawa.io.SourceFile
 import org.sireum.jawa.io.NoPosition
 import org.sireum.jawa.JawaClass
 import org.sireum.jawa.Reporter
-import org.sireum.jawa.ObjectType
 import org.sireum.jawa.io.AbstractFile
+import org.sireum.jawa.JawaType
 
 /**
  * this object collects info from the symbol table and builds Global, JawaClass, and JawaMethod
@@ -57,7 +57,7 @@ trait JawaResolver extends JavaKnowledge {self: Global =>
     md
   }
   
-  def getClassTypes(file: SourceFile, reporter: Reporter): ISet[ObjectType] = {
+  def getClassTypes(file: SourceFile, reporter: Reporter): ISet[JawaType] = {
     val cuOpt = JawaParser.parse[CompilationUnit](Right(file), false, reporter)
     cuOpt match {
       case Some(cu) => cu.topDecls.map(_.typ).toSet

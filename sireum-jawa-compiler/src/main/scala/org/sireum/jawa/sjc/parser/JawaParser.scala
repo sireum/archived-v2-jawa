@@ -11,7 +11,6 @@ import org.sireum.jawa.sjc.lexer._
 import org.sireum.jawa.sjc.lexer.Tokens._
 import org.sireum.util._
 import org.sireum.jawa.Reporter
-import org.sireum.jawa.ObjectType
 import org.sireum.jawa.JavaKnowledge
 import org.sireum.jawa.io.SourceFile
 

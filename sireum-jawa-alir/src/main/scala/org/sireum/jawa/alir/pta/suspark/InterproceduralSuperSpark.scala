@@ -238,7 +238,7 @@ object InterproceduralSuperSpark {
         calleeSet.foreach(
           callee => {
             icfg.getCallGraph.addCall(pi.ownerSig, callee.callee.getSignature)
-            if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringClass) && !callee.callee.isNative) {
+            if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringClass) && callee.callee.isConcrete) {
               extendGraphWithConstructGraph(callee, pi, callerContext.copy, pag, icfg)
             } else {
               pag.handleModelCall(pi, callerContext, callee)

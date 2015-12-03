@@ -78,7 +78,7 @@ class Context {
     var sb = new StringBuilder
     this.callStack.foreach{
       case(sig, str) =>
-        sb.append("(" + sig.methodNamePart)
+        sb.append("(" + sig.methodName)
           
         if(str.lastIndexOf('.') > 0)
           sb.append("," + str.substring(str.lastIndexOf('.') + 1, str.lastIndexOf(':')) + ")")

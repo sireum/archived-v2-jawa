@@ -11,24 +11,24 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * set of classes contained by the current Global
    */
-  protected val classes: MMap[ObjectType, JawaClass] = mmapEmpty
+  protected val classes: MMap[JawaType, JawaClass] = mmapEmpty
   
   /**
    * set of application classes contained by the current Global
    */
-  protected val applicationClasses: MMap[ObjectType, JawaClass] = mmapEmpty
+  protected val applicationClasses: MMap[JawaType, JawaClass] = mmapEmpty
   
   /**
    * set of system library classes contained by the current Global
    */
-  protected val systemLibraryClasses: MMap[ObjectType, JawaClass] = mmapEmpty
+  protected val systemLibraryClasses: MMap[JawaType, JawaClass] = mmapEmpty
   
   /**
    * set of third party lib classes contained by the current Global
    */
-  protected val userLibraryClasses: MMap[ObjectType, JawaClass] = mmapEmpty
+  protected val userLibraryClasses: MMap[JawaType, JawaClass] = mmapEmpty
   
-  protected def getClassType(typ: ObjectType): ClassCategory.Value = {
+  protected def getClassCategory(typ: JawaType): ClassCategory.Value = {
     this.applicationClasses.contains(typ) match {
       case true => ClassCategory.APPLICATION
       case false =>
@@ -68,17 +68,17 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * get all the application classes
    */
-  def isApplicationClasses(typ: ObjectType): Boolean = this.applicationClasses.contains(typ)
+  def isApplicationClasses(typ: JawaType): Boolean = this.applicationClasses.contains(typ)
   
   /**
    * get all the system library classes
    */
-  def isSystemLibraryClasses(typ: ObjectType): Boolean = this.systemLibraryClasses.contains(typ)
+  def isSystemLibraryClasses(typ: JawaType): Boolean = this.systemLibraryClasses.contains(typ)
   
   /**
    * get all the third party lib classes
    */
-  def isUserLibraryClasses(typ: ObjectType): Boolean = this.userLibraryClasses.contains(typ)
+  def isUserLibraryClasses(typ: JawaType): Boolean = this.userLibraryClasses.contains(typ)
   
   /**
    * add an application class
@@ -107,7 +107,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * has class
    */
-  def hasClass(typ: ObjectType) = this.classes.contains(typ)
+  def hasClass(typ: JawaType) = this.classes.contains(typ)
   
   /**
    * get classes
@@ -117,14 +117,14 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * get class by type; if it does not exist, return None
    */
-  def getClass(typ: ObjectType): Option[JawaClass] = {
+  def getClass(typ: JawaType): Option[JawaClass] = {
     this.classes.get(typ)
   }
   
   /**
    * get class by type, if not present resolve it, if it still not exist, return None
    */
-  def getClassOrResolve(typ: ObjectType): JawaClass = {
+  def getClassOrResolve(typ: JawaType): JawaClass = {
     getClass(typ) match {
       case None =>
         resolveToHierarchy(typ)
@@ -132,7 +132,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     }
   }
   
-  def tryLoadClass(typ: ObjectType): Option[JawaClass] = {
+  def tryLoadClass(typ: JawaType): Option[JawaClass] = {
     containsClassFile(typ) match {
       case true => Some(getClassOrResolve(typ))
       case false => None
@@ -209,7 +209,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   
   protected[jawa] def addClassInternal(ar: JawaClass) = {
     if(containsClass(ar) && getClass(ar.typ).get.getResolvingLevel >= ar.getResolvingLevel) 
-      reporter.error(TITLE, "duplicate class: " + ar.getName)
+      reporter.warning(TITLE, "duplicate class: " + ar.getName)
     else {
       this.classes(ar.getType) = ar
       if(ar.isArray){
@@ -226,7 +226,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     }
   }
   
-  def removeClass(typ: ObjectType): Unit = {
+  def removeClass(typ: JawaType): Unit = {
     getClass(typ) foreach{removeClass(_)}
   }
   
@@ -256,7 +256,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * current Global contains the given class or not
    */
-  def containsJawaClass(typ: ObjectType) = this.classes.contains(typ)
+  def containsJawaClass(typ: JawaType) = this.classes.contains(typ)
   
   /**
    * grab field from Global. Input example is java.lang.Throwable.stackState
@@ -464,19 +464,19 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * didn't resolve this extends-relation list. It's a set of record names.
    */
-  private val needToResolveExtends: MMap[JawaClass, MSet[ObjectType]] = mmapEmpty
+  private val needToResolveExtends: MMap[JawaClass, MSet[JawaType]] = mmapEmpty
   
   /**
    * didn't resolve this outer class name. 
    */
-  private val needToResolveOuterClass: MMap[JawaClass, ObjectType] = mmapEmpty
+  private val needToResolveOuterClass: MMap[JawaClass, JawaType] = mmapEmpty
 
   private val classesNeedUpdateInHierarchy: MSet[JawaClass] = msetEmpty
   
   /**
    * set of class names which not found in current environment
    */
-  private val classNotFound: MSet[ObjectType] = msetEmpty
+  private val classNotFound: MSet[JawaType] = msetEmpty
   
   /**
    * dirty flag to indicate whether the manager is clean
@@ -485,17 +485,17 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   
   def isDirty: Boolean = this.dirty
   
-  def addNeedToResolveOuterClass(innerclass: JawaClass, outerType: ObjectType) = {
+  def addNeedToResolveOuterClass(innerclass: JawaClass, outerType: JawaType) = {
     this.dirty = true
     needToResolveOuterClass(innerclass) = outerType
   }
   
-  def addNeedToResolveExtend(childClass: JawaClass, parent: ObjectType) = {
+  def addNeedToResolveExtend(childClass: JawaClass, parent: JawaType) = {
     this.dirty = true
     needToResolveExtends.getOrElseUpdate(childClass, msetEmpty) += parent
   }
   
-  def addNeedToResolveExtends(childClass: JawaClass, parents: ISet[ObjectType]) = {
+  def addNeedToResolveExtends(childClass: JawaClass, parents: ISet[JawaType]) = {
     this.dirty = true
     needToResolveExtends.getOrElseUpdate(childClass, msetEmpty) ++= parents
   }
@@ -504,8 +504,8 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   def getClassesNeedUpdateInHierarchy: ISet[JawaClass] = this.classesNeedUpdateInHierarchy.toSet
   def clearClassesNeedUpdateInHierarchy = this.classesNeedUpdateInHierarchy.clear()
   
-  def addClassNotFound(typ: ObjectType) = this.classNotFound += typ
-  def getClassNotFound: ISet[ObjectType] = this.classNotFound.toSet
+  def addClassNotFound(typ: JawaType) = this.classNotFound += typ
+  def getClassNotFound: ISet[JawaType] = this.classNotFound.toSet
   
   /**
    * resolve classes relation of the whole program

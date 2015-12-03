@@ -1,3 +1,10 @@
+/*
+Copyright (c) 2013-2014 Fengguo Wei & Sankardas Roy, Kansas State University.        
+All rights reserved. This program and the accompanying materials      
+are made available under the terms of the Eclipse Public License v1.0 
+which accompanies this distribution, and is available at              
+http://www.eclipse.org/legal/epl-v10.html                             
+*/
 package org.sireum.jawa.classfile
 
 import org.objectweb.asm.ClassVisitor
@@ -8,7 +15,7 @@ import org.sireum.util._
 import org.sireum.jawa.MyMethod
 import org.sireum.jawa.MyField
 import org.sireum.jawa.MyClass
-import org.sireum.jawa.ObjectType
+import org.sireum.jawa.JawaType
 import org.sireum.jawa.JavaKnowledge
 import org.sireum.jawa.JawaType
 import org.sireum.jawa.Signature
@@ -19,9 +26,9 @@ import org.sireum.jawa.FieldFQN
  * @author fgwei
  */
 class MyClassVisitor(api: Int) extends ClassVisitor(api) {
-  private val classes: MMap[ObjectType, MyClass] = mmapEmpty
+  private val classes: MMap[JawaType, MyClass] = mmapEmpty
   private var currentClass: MyClass = null
-  def getClasses: IMap[ObjectType, MyClass] = classes.toMap
+  def getClasses: IMap[JawaType, MyClass] = classes.toMap
   
   private def getClassName(name: String): String = {
     name.replaceAll("/", ".")
@@ -34,16 +41,16 @@ class MyClassVisitor(api: Int) extends ClassVisitor(api) {
             superName: String,
             interfaces: Array[String]): Unit = {
     val accessFlag: Int = AccessFlag.getJawaFlags(access, FlagKind.CLASS, false)
-    val typ: ObjectType = JavaKnowledge.getTypeFromName(getClassName(name)).asInstanceOf[ObjectType]
-    val superType: Option[ObjectType] = {
+    val typ: JawaType = JavaKnowledge.getTypeFromName(getClassName(name))
+    val superType: Option[JawaType] = {
       superName == null match {
         case true => None
-        case false => Some(JavaKnowledge.getTypeFromName(getClassName(superName)).asInstanceOf[ObjectType])
+        case false => Some(JavaKnowledge.getTypeFromName(getClassName(superName)))
       }
     }
-    val ifs: MList[ObjectType] = mlistEmpty
+    val ifs: MList[JawaType] = mlistEmpty
     for(interface <- interfaces) {
-      ifs += JavaKnowledge.getTypeFromName(getClassName(interface)).asInstanceOf[ObjectType]
+      ifs += JavaKnowledge.getTypeFromName(getClassName(interface))
     }
     val c = MyClass(accessFlag, typ, superType, ifs.toList)
     classes(typ) = c
@@ -51,7 +58,7 @@ class MyClassVisitor(api: Int) extends ClassVisitor(api) {
   }
   
   override def visitOuterClass(owner: String, name: String, desc: String): Unit = {
-    val o: ObjectType = JavaKnowledge.getTypeFromName(getClassName(name)).asInstanceOf[ObjectType]
+    val o: JawaType = JavaKnowledge.getTypeFromName(getClassName(name))
     currentClass.setOuter(o)
   }
   

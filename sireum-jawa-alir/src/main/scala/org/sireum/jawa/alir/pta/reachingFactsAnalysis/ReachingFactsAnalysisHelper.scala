@@ -13,7 +13,6 @@ import org.sireum.jawa.alir.pta.Instance
 import org.sireum.pilar.ast._
 import org.sireum.jawa.alir.Context
 import org.sireum.jawa.JawaMethod
-import org.sireum.jawa.alir.pta.UnknownInstance
 import org.sireum.jawa.alir.JawaAlirInfoProvider
 import org.sireum.jawa.alir.util.CallHandler
 import org.sireum.jawa.alir.interProcedural.Callee
@@ -24,10 +23,8 @@ import org.sireum.jawa.alir.interProcedural.UnknownCallee
 import org.sireum.jawa.PilarAstHelper
 import org.sireum.jawa.alir.pta._
 import org.sireum.jawa.Signature
-import org.sireum.jawa.ObjectType
 import org.sireum.jawa.JawaType
 import org.sireum.jawa.JavaKnowledge
-import org.sireum.jawa.PrimitiveType
 import org.sireum.jawa.util.ASTUtil
 import org.sireum.jawa.Global
 import org.sireum.jawa.FieldFQN
@@ -122,7 +119,7 @@ object ReachingFactsAnalysisHelper {
               } else if(typ == "direct"){
                 calleeSet ++= CallHandler.getDirectCalleeMethod(global, sig).map(InstanceCallee(_, ins))
               } else {
-                if(ins.isInstanceOf[UnknownInstance]){
+                if(ins.isUnknown){
                   val ps = CallHandler.getUnknownVirtualCalleeMethods(global, ins.typ, subSig)
                   calleeSet ++= ps.map{p=> UnknownCallee(p)}
                 } else {
@@ -148,10 +145,10 @@ object ReachingFactsAnalysisHelper {
 
   def getInstanceFromType(typ: JawaType, currentContext: Context): Option[Instance] = {
     typ match{
-      case pt: PrimitiveType => None
-      case ot: ObjectType if (ot.typ == "java.lang.String" && !ot.isArray)  =>
+      case pt if pt.isPrimitive => None
+      case ot if ot.jawaName == "java.lang.String" =>
         Some(PTAPointStringInstance(currentContext.copy))
-      case ot: ObjectType =>
+      case ot if ot.isObject =>
         Some(PTAInstance(ot, currentContext.copy, false))
     }
   }
@@ -176,31 +173,25 @@ object ReachingFactsAnalysisHelper {
         if(LibSideEffectProvider.isDefined)
           LibSideEffectProvider.getInfluencedFields(i, calleeMethod.getSignature)
         else Set(typ.name + ":" + Constants.ALL_FIELD)
-      argValues.foreach{
+      argValues.foreach {
         ins => 
           for(f <- influencedFields) {
             val fs = FieldSlot(ins, f)
-//            global.getField(f) match {
-//              case Some(field) =>
-//                val ins = UnknownInstance(field.getType, currentContext)
-//                genFacts += RFAFact(fs, ins)
-//              case None =>
-            val uins = UnknownInstance(JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE, currentContext)
+            val uins = PTAInstance(JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE.toUnknown, currentContext, false)
             genFacts += RFAFact(fs, uins)
-//            }
           }
       }
     }
 //    killFacts ++= ReachingFactsAnalysisHelper.getRelatedHeapFacts(argValues, s)
     val retTyp = calleeMethod.getReturnType
     retTyp match {
-      case ot: ObjectType =>
-        retVars.foreach{
+      case ot if ot.isObject =>
+        retVars.foreach {
           retVar =>
             val slot = VarSlot(retVar, isBase = false, false)
             val value = 
-              if(retTyp.name == "java.lang.String") PTAPointStringInstance(currentContext)
-              else UnknownInstance(ot, currentContext)
+              if(retTyp.jawaName == "java.lang.String") PTAPointStringInstance(currentContext)
+              else PTAInstance(ot.toUnknown, currentContext, false)
             genFacts += RFAFact(slot, value)
         }
       case _ =>
@@ -213,7 +204,7 @@ object ReachingFactsAnalysisHelper {
     val record = calleeMethod.getDeclaringClass
     record.getDeclaredStaticObjectTypeFields.foreach{
       field =>
-        result += RFAFact(StaticFieldSlot(field.FQN), UnknownInstance(field.getType.asInstanceOf[ObjectType], currentContext))
+        result += RFAFact(StaticFieldSlot(field.FQN), PTAInstance(field.getType.toUnknown, currentContext, false))
     }
     result
   }
@@ -273,11 +264,11 @@ object ReachingFactsAnalysisHelper {
               if(fact.s.isInstanceOf[FieldSlot] && 
                  fact.s.asInstanceOf[FieldSlot].ins == ins && 
                  fact.s.asInstanceOf[FieldSlot].fieldName.contains(Constants.ALL_FIELD) &&
-                 fqn.typ.isInstanceOf[ObjectType]) {
+                 fqn.typ.isObject) {
                 val definingTypName = fact.s.asInstanceOf[FieldSlot].fieldName.split(":")(0)
-                val defCls = global.getClassOrResolve(new ObjectType(definingTypName))
+                val defCls = global.getClassOrResolve(new JawaType(definingTypName))
                 if(defCls.hasField(fName)) {
-                  val uIns = UnknownInstance(fqn.typ.asInstanceOf[ObjectType], fact.v.defSite)
+                  val uIns = PTAInstance(fqn.typ.toUnknown, fact.v.defSite, false)
                   ptaresult.addInstance(fieldSlot, currentContext, uIns)
                 }
               }
@@ -300,7 +291,7 @@ object ReachingFactsAnalysisHelper {
     baseValue.map{
       ins =>
         if(ins.isNull){}
-        else if(ins.isInstanceOf[UnknownInstance]){
+        else if(ins.isUnknown){
           val arraySlot = ArraySlot(ins)
           val temp = s.filter { fact => fact.s == arraySlot }.map{
             f => 
@@ -308,8 +299,8 @@ object ReachingFactsAnalysisHelper {
               f.v
           }
           if(temp.isEmpty){
-            if(!(JavaKnowledge.isJavaPrimitive(ins.typ.typ) && ins.typ.dimensions <= 1)) {
-              val uIns = UnknownInstance(ObjectType(ins.typ.typ, ins.typ.dimensions-1), currentContext)
+            if(!(JavaKnowledge.isJavaPrimitive(ins.typ.baseTyp) && ins.typ.dimensions <= 1)) {
+              val uIns = PTAInstance(JawaType(ins.typ.baseType, ins.typ.dimensions - 1), currentContext, false)
               ptaresult.addInstance(arraySlot, currentContext, uIns)
             }
           }
@@ -345,7 +336,7 @@ object ReachingFactsAnalysisHelper {
         val slot = getNameSlotFromNameExp(ne, typ, false, false, global)
         slot match {
           case cs: ClassSlot => 
-            val ci = ClassInstance(typ.get.asInstanceOf[ObjectType], currentContext)
+            val ci = ClassInstance(typ.get, currentContext)
             ptaresult.addInstance(cs, currentContext, ci)
           case ss: StaticFieldSlot =>
             s.filter { fact => fact.s == ss }.map( f => ptaresult.addInstance(ss, currentContext, f.v))
@@ -419,12 +410,12 @@ object ReachingFactsAnalysisHelper {
         baseValue.map{
           ins =>
             if(ins.isNull){}
-            else if(ins.isInstanceOf[UnknownInstance]){
+            else if(ins.isUnknown){
               val arraySlot = ArraySlot(ins)
               val arrayValue = ptaresult.pointsToSet(arraySlot, currentContext)
               arrayValue.foreach{
                 ins =>
-                  if(ins.isInstanceOf[UnknownInstance]) result += RFAFact(arraySlot, ins)
+                  if(ins.isUnknown) result += RFAFact(arraySlot, ins)
               }
             }
         }
@@ -546,7 +537,7 @@ object ReachingFactsAnalysisHelper {
               if(name == "java.lang.String" && dimensions == 0){
                 PTAConcreteStringInstance("", currentContext.copy)
               } else {
-                PTAInstance(ObjectType(name, dimensions), currentContext.copy, false)
+                PTAInstance(new JawaType(name, dimensions), currentContext.copy, false)
               }
             val value: ISet[Instance] = Set(ins)
             result(i) = value
@@ -564,8 +555,8 @@ object ReachingFactsAnalysisHelper {
                   val fName = fieldFQN.fieldName
                   val fieldSlot = FieldSlot(ins, fName)
                   var fieldValue: ISet[Instance] = ptaresult.pointsToSet(fieldSlot, currentContext)
-                  if(ins.isInstanceOf[UnknownInstance] && fieldFQN.typ.isInstanceOf[ObjectType]) {
-                    fieldValue += UnknownInstance(fieldFQN.typ.asInstanceOf[ObjectType], currentContext)
+                  if(ins.isUnknown && fieldFQN.typ.isObject) {
+                    fieldValue += PTAInstance(fieldFQN.typ.toUnknown, currentContext, false)
                   }
                   result(i) = fieldValue
                 }
@@ -580,16 +571,16 @@ object ReachingFactsAnalysisHelper {
             baseValue.map{
               ins =>
                 if(ins.isNull){}
-                else if(ins.isInstanceOf[UnknownInstance]){
+                else if(ins.isUnknown){
                   val arraySlot = ArraySlot(ins)
                   val arrayValue: MSet[Instance] = msetEmpty
                   arrayValue ++= ptaresult.pointsToSet(arraySlot, currentContext)
                   val originalType = ins.typ
                   val dim = if(originalType.dimensions == 0) 0 else originalType.dimensions - 1
-                  val newType = ObjectType(originalType.typ, dim)
+                  val newType = JawaType(originalType.baseType, dim)
                   val newUnknown = 
                     if(newType.name == "java.lang.String") PTAPointStringInstance(currentContext)
-                    else UnknownInstance(newType, currentContext)
+                    else PTAInstance(newType.toUnknown, currentContext, false)
                   arrayValue += newUnknown
                   result(i) = arrayValue.toSet
                 }
@@ -603,12 +594,11 @@ object ReachingFactsAnalysisHelper {
             val casttyp: JawaType = ASTUtil.getTypeFromTypeSpec(ce.typeSpec)
             
             val insopt = 
-              if(casttyp.typ == "java.lang.String" && casttyp.dimensions == 0){
+              if(casttyp.jawaName == "java.lang.String"){
                 Some(PTAPointStringInstance(currentContext.copy))
-              } else if (casttyp.isInstanceOf[ObjectType]) {
-                Some(PTAInstance(casttyp.asInstanceOf[ObjectType], currentContext.copy, false))
+              } else if (casttyp.isObject) {
+                Some(PTAInstance(casttyp, currentContext.copy, false))
               } else None
-              
             insopt match {
               case Some(ins) =>
                 ce.exp match{
@@ -617,8 +607,8 @@ object ReachingFactsAnalysisHelper {
                     val value: ISet[Instance] = ptaresult.pointsToSet(slot, currentContext)
                     result(i) = value.map{
                       v =>
-                        if(v.isInstanceOf[UnknownInstance]){
-                          UnknownInstance(ins.typ, v.defSite.copy)
+                        if(v.isUnknown){
+                          PTAInstance(ins.typ.toUnknown, v.defSite.copy, false)
                         } else {
                           v
                         }
@@ -692,7 +682,7 @@ object ReachingFactsAnalysisHelper {
   
   def getNameSlotFromNameExp(ne: NameExp, typ: Option[JawaType], isBase: Boolean, isArg: Boolean, global: Global): NameSlot = {
     val name = ne.name.name
-    if(name == Constants.CONST_CLASS) ClassSlot(typ.get.asInstanceOf[ObjectType])
+    if(name == Constants.CONST_CLASS) ClassSlot(typ.get)
     else if(name.startsWith("@@")){
       val fqn = new FieldFQN(name.replace("@@", ""), typ.get)
       global.getClassOrResolve(fqn.owner).getField(fqn.fieldName) match{

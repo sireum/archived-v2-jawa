@@ -20,18 +20,18 @@ object ExceptionCenter {
   /**
    * following is the exception constant list
    */
-  final val THROWABLE = new ObjectType("java.lang.Throwable")
-  final val EXCEPTION = new ObjectType("java.lang.Exception")
-  final val RUNTIME_EXCEPTION = new ObjectType("java.lang.RuntimeException")
-  final val ARITHMETIC_EXCEPTION = new ObjectType("java.lang.ArithmeticException")
-  final val ARRAYINDEXOUTOFBOUNDS_EXCEPTION = new ObjectType("java.lang.ArrayIndexOutOfBoundsException")
-  final val CLASSCAST_EXCEPTION = new ObjectType("java.lang.ClassCastException")
+  final val THROWABLE = new JawaType("java.lang.Throwable")
+  final val EXCEPTION = new JawaType("java.lang.Exception")
+  final val RUNTIME_EXCEPTION = new JawaType("java.lang.RuntimeException")
+  final val ARITHMETIC_EXCEPTION = new JawaType("java.lang.ArithmeticException")
+  final val ARRAYINDEXOUTOFBOUNDS_EXCEPTION = new JawaType("java.lang.ArrayIndexOutOfBoundsException")
+  final val CLASSCAST_EXCEPTION = new JawaType("java.lang.ClassCastException")
   
   final val EXCEPTION_VAR_NAME = "Exception"  
   
   
-  def getExceptionsMayThrow(pst : ProcedureSymbolTable, loc : LocationDecl, catchclauses: ISet[CatchClause]) : ISet[ObjectType] = {
-    var result = isetEmpty[ObjectType]
+  def getExceptionsMayThrow(pst : ProcedureSymbolTable, loc : LocationDecl, catchclauses: ISet[CatchClause]) : ISet[JawaType] = {
+    val result = msetEmpty[JawaType]
     loc match{
       case l : ComplexLocation =>
       case l : ActionLocation =>
@@ -44,28 +44,28 @@ object ExceptionCenter {
         try {
           val from = pst.location(cc.fromTarget.name)
           val to = pst.location(cc.toTarget.name)
-          if(loc.index >= from.index && loc.index <= to.index) result += ASTUtil.getTypeFromTypeSpec(cc.typeSpec.get).asInstanceOf[ObjectType]
+          if(loc.index >= from.index && loc.index <= to.index) result += ASTUtil.getTypeFromTypeSpec(cc.typeSpec.get)
         } catch {
           case ex: Exception =>
             System.err.println("ExceptionCenter:" + ex.getMessage)
         }
     }
-    result
+    result.toSet
   }
   
-  def getExceptionMayThrowFromAssignment(a : Assignment) : ISet[ObjectType] = {
-    var result = isetEmpty[ObjectType]
+  def getExceptionMayThrowFromAssignment(a : Assignment) : ISet[JawaType] = {
+    val result = msetEmpty[JawaType]
     a match{
       case aa : AssignAction =>
         result ++= getExceptionMayThrowFromAction(aa)
       case cj : CallJump =>
       case _ =>
     }
-    result
+    result.toSet
   }
   
-  def getExceptionMayThrowFromAction(a : Action) : ISet[ObjectType] = {
-    var result = isetEmpty[ObjectType]
+  def getExceptionMayThrowFromAction(a : Action) : ISet[JawaType] = {
+    val result = msetEmpty[JawaType]
     a match{
       case aa : AssignAction =>
         aa.op match{
@@ -89,6 +89,6 @@ object ExceptionCenter {
         result += THROWABLE
       case _ =>
     }
-    result
+    result.toSet
   }
 }

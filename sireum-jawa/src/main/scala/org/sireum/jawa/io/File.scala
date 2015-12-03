@@ -2,8 +2,7 @@ package org.sireum.jawa.io
 
 import java.io.{
   FileInputStream, FileOutputStream, BufferedReader, BufferedWriter, InputStreamReader, OutputStreamWriter,
-  BufferedInputStream, BufferedOutputStream, IOException, PrintStream, PrintWriter, Closeable => JCloseable,
-  File => JFile
+  BufferedInputStream, BufferedOutputStream, IOException, PrintStream, PrintWriter, Closeable => JCloseable
 }
 
 import java.nio.channels.{ Channel, FileChannel }

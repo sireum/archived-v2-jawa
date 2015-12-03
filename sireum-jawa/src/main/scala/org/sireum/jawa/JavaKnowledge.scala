@@ -4,12 +4,12 @@ import org.sireum.util._
 
 trait JavaKnowledge {
   def JAVA_TOPLEVEL_OBJECT: String = "java.lang.Object"
-  def JAVA_TOPLEVEL_OBJECT_TYPE: ObjectType = ObjectType(JAVA_TOPLEVEL_OBJECT, 0)
+  def JAVA_TOPLEVEL_OBJECT_TYPE: JawaType = new JawaType(JAVA_TOPLEVEL_OBJECT, 0)
   def JAVA_PRIMITIVES = Set("byte", "short", "int", "long", "float", "double", "boolean", "char", "void")
   /**
    * return whether given type is java primitive type
    */
-  def isJavaPrimitive(typ: JawaType): Boolean = typ.isInstanceOf[PrimitiveType]
+  def isJavaPrimitive(typ: JawaType): Boolean = typ.isPrimitive
   
   /**
    * return whether given type is java primitive type
@@ -20,9 +20,10 @@ trait JavaKnowledge {
     val APPLICATION, USER_LIBRARY, SYSTEM_LIBRARY = Value
   }
   
-  def formatObjectTypeToObjectName(typ: ObjectType): String = {
+  def formatTypeToName(typ: JawaType): String = {
     val d = typ.dimensions
-    typ.typ match{
+    if(d <= 0) return typ.baseTyp
+    typ.baseTyp match{
       case "byte" =>    assign("B", d, "[", true)
       case "char" =>    assign("C", d, "[", true)
       case "double" =>  assign("D", d, "[", true)
@@ -31,16 +32,14 @@ trait JavaKnowledge {
       case "long" =>    assign("J", d, "[", true)
       case "short" =>   assign("S", d, "[", true)
       case "boolean" => assign("Z", d, "[", true)
-      case "void" =>    "V"
       case _ =>
-        if(d <= 0) typ.typ
-        else assign("L" + typ.typ + ";", d, "[", true)
+        assign("L" + typ.baseTyp + ";", d, "[", true)
     }
   }
   
   def formatTypeToSignature(typ: JawaType): String = {
-    val d = typ match{case ot: ObjectType => ot.dimensions; case _ => 0}
-    typ.typ match{
+    val d = typ.dimensions
+    typ.baseTyp match{
       case "byte" =>    assign("B", d, "[", true)
       case "char" =>    assign("C", d, "[", true)
       case "double" =>  assign("D", d, "[", true)
@@ -51,7 +50,7 @@ trait JavaKnowledge {
       case "boolean" => assign("Z", d, "[", true)
       case "void" =>    "V"
       case _ =>
-        assign("L" + typ.typ.replaceAll("\\.", "/") + ";", d, "[", true)
+        assign("L" + typ.baseTyp.replaceAll("\\.", "/") + ";", d, "[", true)
     }
   }
   
@@ -68,26 +67,27 @@ trait JavaKnowledge {
   }
   
   /**
-   * input: "java.lang.String"  output: ("java.lang", "String")
+   * input: "java.lang.String"  output: (Some("java.lang"), "String")
+   * input: "int" output: (None, "int")
    */
-  def separatePkgAndTyp(pkgAndTyp: String): (JawaPackage, String) = {
+  def separatePkgAndTyp(pkgAndTyp: String): JawaBaseType = {
+    if(isJavaPrimitive(pkgAndTyp)) return JawaBaseType(None, pkgAndTyp)
     val parts = pkgAndTyp.split("\\.")
     val size = parts.size
-    val pkgs: MList[JawaPackage] = mlistEmpty
-    var currentPkg: JawaPackage = null
+    val pkg: MList[JawaPackage] = mlistEmpty
+    var currentPkg: Option[JawaPackage] = None
     for(i <- 0 to size - 2) {
-      currentPkg = JawaPackage(parts(i), pkgs.toList)
-      pkgs += currentPkg
+      currentPkg = Some(JawaPackage(parts(i), pkg.toList))
+      pkg ++= currentPkg
     }
-    (currentPkg, parts(size - 1))
+    JawaBaseType(currentPkg, parts(size - 1))
   }
   
   /**
    * input ("java.lang.String", 1) output Type
    */
   protected def getType(typ: String, dimentions: Int): JawaType = {
-    if(dimentions == 0 && isJavaPrimitive(typ)) PrimitiveType(typ)
-    else ObjectType(typ, dimentions)
+    new JawaType(typ, dimentions)
   }
   
   /**
@@ -117,7 +117,7 @@ trait JavaKnowledge {
       case "J" =>   getType("long", d)
       case "S" =>   getType("short", d)
       case "Z" =>   getType("boolean", d)
-      case "V" =>   getType("void", d)
+      case "V" =>   new JawaType("void")
       case _ =>
         getType(tmp.substring(1, tmp.length() - 1).replaceAll("\\/", "."), d)
     }
@@ -126,15 +126,15 @@ trait JavaKnowledge {
   /**
    * get outer class name from inner class name. e.g. android.os.Handler$Callback -> android.os.Handler
    */
-  def getOuterTypeFrom(innerType: ObjectType): ObjectType = {
-    if(!isInnerClass(innerType)) throw new RuntimeException("wrong innerType: " + innerType)
-    new ObjectType(innerType.name.substring(0, innerType.name.lastIndexOf("$")))
+  def getOuterTypeFrom(innerType: JawaType): JawaType = {
+    if(!isInnerClass(innerType)) throw new InvalidTypeException("wrong innerType: " + innerType)
+    new JawaType(innerType.name.substring(0, innerType.name.lastIndexOf("$")))
   }
   
   /**
    * return true if the given typ is a inner class or not
    */
-  def isInnerClass(typ: ObjectType): Boolean = !typ.isArray && typ.name.lastIndexOf("$") > 0
+  def isInnerClass(typ: JawaType): Boolean = !typ.isArray && typ.name.lastIndexOf("$") > 0
   
   /**
    * input ("Ljava/lang/String;", 1, "[", true) output "[Ljava/lang/String;"
@@ -152,20 +152,18 @@ trait JavaKnowledge {
   }
   
   def genSignature(classSigPart: String, methodNamePart: String, paramSigPart: String): Signature = {
-    Signature((classSigPart + "." + methodNamePart + ":" + paramSigPart).trim)
+    new Signature((classSigPart + "." + methodNamePart + ":" + paramSigPart).trim)
   }
   
-  def genSignature(classTyp: ObjectType, methodName: String, paramTyps: IList[JawaType], retTyp: JawaType): Signature = {
-    val classSigPart = formatTypeToSignature(classTyp)
-    val methodNamePart = methodName
+  def genSignature(classTyp: JawaType, methodName: String, paramTyps: IList[JawaType], retTyp: JawaType): Signature = {
     val paramPartSB = new StringBuilder
     paramTyps foreach{
       pTyp =>
         paramPartSB.append(formatTypeToSignature(pTyp))
     }
     val retPart = formatTypeToSignature(retTyp)
-    val paramSigPart = "(" + paramPartSB.toString + ")" + retPart
-    Signature((classSigPart + "." + methodNamePart + ":" + paramSigPart).trim)
+    val proto = "(" + paramPartSB.toString + ")" + retPart
+    Signature(classTyp, methodName, proto)
   }
   
   /********************** JawaField related op **************************/
@@ -178,7 +176,7 @@ trait JavaKnowledge {
   /**
    * generate signature of this field. input: ("java.lang.Throwable", "stackState") output: "java.lang.Throwable.stackState"
    */
-  def generateFieldFQN(owner: ObjectType, name: String, typ: JawaType): FieldFQN = {
+  def generateFieldFQN(owner: JawaType, name: String, typ: JawaType): FieldFQN = {
     FieldFQN(owner, name, typ)
   }
   
@@ -205,9 +203,9 @@ trait JavaKnowledge {
    * get class name from field signature. e.g. java.lang.Throwable.stackState -> java.lang.Throwable
    * [Ljava.lang.String;.length -> [Ljava.lang.String;
    */
-  def getClassTypeFromFieldFQN(fqn: String): ObjectType = {
+  def getClassTypeFromFieldFQN(fqn: String): JawaType = {
     val cn = getClassNameFromFieldFQN(fqn)
-    getTypeFromName(cn).asInstanceOf[ObjectType]
+    getTypeFromName(cn)
   }
   
   /**
@@ -232,9 +230,9 @@ trait JavaKnowledge {
     else mfn.substring(mfn.lastIndexOf('.') + 1)
   }
   
-  def getClassTypeFromMethodFullName(mfn: String): ObjectType = {
+  def getClassTypeFromMethodFullName(mfn: String): JawaType = {
     val cn = getClassNameFromMethodFullName(mfn)
-    getTypeFromName(cn).asInstanceOf[ObjectType]
+    getTypeFromName(cn)
   }
   
   def getMethodNameFromMethodFullName(mfn: String): String = {
@@ -246,21 +244,19 @@ trait JavaKnowledge {
    * generate signature of this method
    */
   def generateSignature(method: JawaMethod): Signature = {
-    val sb: StringBuffer = new StringBuffer
     val dc = method.getDeclaringClass
-    sb.append(method.formatTypeToSignature(dc.getType))
-    sb.append("." + generateSubSignature(method))
-    Signature(sb.toString().intern())
+    val proto = generateProto(method)
+    Signature(dc.getType, method.getName, proto)
   }
   
   /**
    * generate sub-signature of this method
    */
-  private def generateSubSignature(method: JawaMethod): String = {
+  private def generateProto(method: JawaMethod): String = {
     val sb: StringBuffer = new StringBuffer
     val rt = method.getReturnType
     val pts = method.getParamTypes
-    sb.append(method.getName + ":(")
+    sb.append("(")
     for(i <- 0 to pts.size - 1){
       val pt = pts(i) 
       sb.append(method.formatTypeToSignature(pt))
@@ -272,11 +268,11 @@ trait JavaKnowledge {
   
   def generateSignatureFromOwnerAndMethodSubSignature(clazz: JawaClass, subSig: String) : Signature = {
     val sig = clazz.formatTypeToSignature(clazz.getType) + "." + subSig
-    Signature(sig)
+    new Signature(sig)
   }
   
   def generateUnknownJawaMethod(declaringClass: JawaClass, signature: Signature): JawaMethod = {
-    val name = signature.methodNamePart
+    val name = signature.methodName
     val thisOpt: Option[String] = Some("unknownThis")
     val paramTypes: IList[JawaType] = signature.getParameterTypes()
     val params: ISeq[(String, JawaType)] = Array.tabulate(paramTypes.length){ i => ("unknownParam" + i, paramTypes(i)) }.toList

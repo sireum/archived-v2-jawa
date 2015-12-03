@@ -216,7 +216,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
   
   def handleModelCall(pi: Point with Invoke, context: Context, callee: Callee) = {
     callee.callee.getReturnType match {
-      case ot: ObjectType =>
+      case ot: JawaType =>
         val pinode = getNode(pi, context.copy)
         pinode.getSlots(pointsToMap).foreach {
           s =>
@@ -405,7 +405,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
             if(entryPoint) {
               val (pName, pType) = ap.params(pa.index)
               pType match {
-                case ot: ObjectType =>
+                case ot: JawaType =>
                   val ins = PTAInstance(ot.toUnknown, context.copy, false)
                   pointsToMap.addInstance(VarSlot(pName, false, false), context.copy, ins)
                   worklist += paramNode
@@ -597,8 +597,14 @@ class PointerAssignmentGraph[Node <: PtaNode]
     val subSig = pi.sig.getSubSignature
     diff.foreach{
       d =>
-        val p = CallHandler.getVirtualCalleeMethod(global, d.typ, subSig)
-        calleeSet ++= p.map(InstanceCallee(_, d))
+        d match {
+          case un if un.isUnknown => 
+            val p = CallHandler.getUnknownVirtualCalleeMethods(global, un.typ, subSig)
+            calleeSet ++= p.map(InstanceCallee(_, d))
+          case _ => 
+            val p = CallHandler.getVirtualCalleeMethod(global, d.typ, subSig)
+            calleeSet ++= p.map(InstanceCallee(_, d))
+        }
     }
     calleeSet.toSet
   }

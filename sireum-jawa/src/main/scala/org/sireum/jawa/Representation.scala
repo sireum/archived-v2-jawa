@@ -5,13 +5,13 @@ import org.sireum.util._
 
 case class MyClass(
             accessFlag: Int, 
-            typ: ObjectType,
-            superType: Option[ObjectType],
-            interfaces: IList[ObjectType],
-            var outerType: Option[ObjectType] = None,
+            typ: JawaType,
+            superType: Option[JawaType],
+            interfaces: IList[JawaType],
+            var outerType: Option[JawaType] = None,
             var fields: IList[MyField] = ilistEmpty,
             var methods: IList[MyMethod] = ilistEmpty) {
-  protected[jawa] def setOuter(o: ObjectType) = this.outerType = Some(o)
+  protected[jawa] def setOuter(o: JawaType) = this.outerType = Some(o)
   protected[jawa] def addField(f: MyField) = this.fields :+= f
   protected[jawa] def addMethod(m: MyMethod) = this.methods :+= m
 }

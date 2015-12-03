@@ -14,7 +14,7 @@ import org.sireum.jawa.alir.pta.reachingFactsAnalysis._
 import org.sireum.jawa.alir.pta._
 import org.sireum.jawa.JawaMethod
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.ObjectType
+import org.sireum.jawa.JawaType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -23,7 +23,7 @@ object SetModel {
 	def isSet(r : JawaClass) : Boolean = {
     if(r.isApplicationClass) false
     else {
-      val set = r.global.getClassOrResolve(new ObjectType("java.util.Set"))
+      val set = r.global.getClassOrResolve(new JawaType("java.util.Set"))
       r.global.getClassHierarchy.getAllImplementersOf(set).contains(r)  
     }
   }

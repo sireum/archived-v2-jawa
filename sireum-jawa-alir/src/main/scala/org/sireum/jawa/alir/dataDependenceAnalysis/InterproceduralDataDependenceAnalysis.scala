@@ -9,7 +9,6 @@ package org.sireum.jawa.alir.dataDependenceAnalysis
 
 import org.sireum.pilar.ast._
 import org.sireum.util._
-import org.sireum.jawa.alir.pta.UnknownInstance
 import org.sireum.jawa.JawaMethod
 import org.sireum.alir.ReachingDefinitionAnalysis
 import org.sireum.alir.ControlFlowGraph

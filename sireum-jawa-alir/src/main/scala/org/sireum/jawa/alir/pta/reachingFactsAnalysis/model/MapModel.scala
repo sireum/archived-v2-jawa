@@ -20,7 +20,7 @@ object MapModel {
 	def isMap(r : JawaClass) : Boolean = {
     if(r.isApplicationClass) false
     else {
-      val map = r.global.getClassOrResolve(new ObjectType("java.util.Map"))
+      val map = r.global.getClassOrResolve(new JawaType("java.util.Map"))
       val res = r.global.getClassHierarchy.getAllImplementersOf(map).contains(r)
       res
     }
@@ -44,7 +44,7 @@ object MapModel {
     val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
-	  val rf = ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashSet", 0), retVar, currentContext).get
+	  val rf = ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.util.HashSet"), retVar, currentContext).get
 	  result += rf
 	  result ++= strValue.map{s => RFAFact(FieldSlot(rf.v, "items"), s)}
 	  result
@@ -56,7 +56,7 @@ object MapModel {
     val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
-	  val rf = ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashSet", 0), retVar, currentContext).get
+	  val rf = ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.util.HashSet"), retVar, currentContext).get
 	  result += rf
 	  strValue.foreach{
 	    s =>
@@ -72,7 +72,7 @@ object MapModel {
     val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
 	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
-	  val rf = ReachingFactsAnalysisHelper.getReturnFact(ObjectType("java.util.HashSet", 0), retVar, currentContext).get
+	  val rf = ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.util.HashSet"), retVar, currentContext).get
 	  result += rf
 	  result ++= strValue.map{
 	    s => 

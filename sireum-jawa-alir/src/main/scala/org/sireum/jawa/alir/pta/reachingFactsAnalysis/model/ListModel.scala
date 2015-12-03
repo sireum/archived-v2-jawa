@@ -15,7 +15,7 @@ import org.sireum.jawa.alir.pta.reachingFactsAnalysis.RFAFact
 import org.sireum.jawa.alir.pta.VarSlot
 import org.sireum.jawa.alir.pta.FieldSlot
 import org.sireum.jawa.JawaMethod
-import org.sireum.jawa.ObjectType
+import org.sireum.jawa.JawaType
 
 /**
  * @author fgwei
@@ -24,7 +24,7 @@ object ListModel {
   def isList(r: JawaClass): Boolean = {
     if(r.isApplicationClass) false
     else {
-      val list = r.global.getClassOrResolve(new ObjectType("java.util.List"))
+      val list = r.global.getClassOrResolve(new JawaType("java.util.List"))
       r.global.getClassHierarchy.getAllImplementersOf(list).contains(r)
     }
   }

@@ -2,7 +2,6 @@ package org.sireum.jawa.io
 
 import java.net.URL
 import java.io.{ IOException, InputStream, ByteArrayInputStream, FilterInputStream }
-import java.io.{ File => JFile }
 import java.util.zip.{ ZipEntry, ZipFile, ZipInputStream }
 import java.util.jar.Manifest
 import scala.collection.{ immutable, mutable }

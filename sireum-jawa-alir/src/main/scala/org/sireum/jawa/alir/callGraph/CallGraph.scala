@@ -26,7 +26,6 @@ import org.sireum.jawa.alir.interProcedural.Callee
 import com.tinkerpop.blueprints.Edge
 import org.sireum.jawa.Signature
 import org.sireum.jawa.JawaType
-import org.sireum.jawa.ObjectType
 
 class CallGraph {
   /**
@@ -229,8 +228,8 @@ class CallGraph {
 
 sealed abstract class CGNode(context: Context) {
   def getID: String = this.hashCode().toLong.toString()
-  def getMethodName: String = context.getMethodSig.methodNamePart
-  def getClassType: ObjectType = context.getMethodSig.getClassType
+  def getMethodName: String = context.getMethodSig.methodName
+  def getClassType: JawaType = context.getMethodSig.getClassType
   def getReturnType: JawaType = context.getMethodSig.getReturnType()
   def getParamTypes: ISeq[JawaType] = context.getMethodSig.getParameterTypes()
   def getType: String
@@ -258,8 +257,8 @@ final case class CGSimpleCallNode(context: Context) extends CGCallNode(context){
 }
 
 final case class CGDetailCallNode(sig: Signature, callees: ISet[Callee], context: Context) extends CGCallNode(context){
-  override def getMethodName: String = sig.methodNamePart
-  override def getClassType: ObjectType = sig.getClassType
+  override def getMethodName: String = sig.methodName
+  override def getClassType: JawaType = sig.getClassType
   override def getReturnType: JawaType = sig.getReturnType()
   override def getParamTypes: ISeq[JawaType] = sig.getParameterTypes()
   override def toString: String = getID + ":" + getType + "@" + getLocation

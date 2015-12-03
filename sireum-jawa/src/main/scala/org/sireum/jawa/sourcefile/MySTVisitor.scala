@@ -1,3 +1,10 @@
+/*
+Copyright (c) 2013-2014 Fengguo Wei & Sankardas Roy, Kansas State University.        
+All rights reserved. This program and the accompanying materials      
+are made available under the terms of the Eclipse Public License v1.0 
+which accompanies this distribution, and is available at              
+http://www.eclipse.org/legal/epl-v10.html                             
+*/
 package org.sireum.jawa.sourcefile
 
 import org.sireum.pilar.symbol.SymbolTable
@@ -6,7 +13,6 @@ import org.sireum.jawa.ResolveLevel
 import scala.collection.GenMap
 import org.sireum.util._
 import org.sireum.pilar.ast._
-import org.sireum.jawa.ObjectType
 import org.sireum.jawa.JavaKnowledge
 import org.sireum.jawa.util.ASTUtil
 import org.sireum.jawa.AccessFlag
@@ -22,8 +28,8 @@ import org.sireum.jawa.FieldFQN
  * @author fgwei
  */
 class MySTVisitor {
-  private val classes: MMap[ObjectType, MyClass] = mmapEmpty
-  def getClasses: IMap[ObjectType, MyClass] = classes.toMap
+  private val classes: MMap[JawaType, MyClass] = mmapEmpty
+  def getClasses: IMap[JawaType, MyClass] = classes.toMap
   
   /**
    * resolve all the classes, fields and procedures from symbol table producer which are provided from symbol table model
@@ -41,21 +47,21 @@ class MySTVisitor {
   def resolveClasses(stp: SymbolTableProducer, level: ResolveLevel.Value) = {
     val classes = stp.tables.recordTable.map{
       case (uri, rd) =>
-        val typ: ObjectType = JavaKnowledge.getTypeFromName(rd.name.name).asInstanceOf[ObjectType]
+        val typ: JawaType = JavaKnowledge.getTypeFromName(rd.name.name)
         val accessFlag: Int = AccessFlag.getAccessFlags(ASTUtil.getAccessFlag(rd))
-        var superType: Option[ObjectType] = None
-        val interfaces: MList[ObjectType] = mlistEmpty
+        var superType: Option[JawaType] = None
+        val interfaces: MList[JawaType] = mlistEmpty
         rd.extendsClauses.foreach {
           ec =>
             val isInterface: Boolean = ASTUtil.getKind(ec) == "interface"
             if(isInterface){
-              interfaces += JavaKnowledge.getTypeFromName(ec.name.name).asInstanceOf[ObjectType]
+              interfaces += JavaKnowledge.getTypeFromName(ec.name.name)
             } else {
               if(superType != None) throw InheritanceError(ec.name.name + " should be interface") 
-              superType = Some(JavaKnowledge.getTypeFromName(ec.name.name).asInstanceOf[ObjectType])
+              superType = Some(JavaKnowledge.getTypeFromName(ec.name.name))
             }
         }
-        var outerType: Option[ObjectType] = None
+        var outerType: Option[JawaType] = None
         if(JavaKnowledge.isInnerClass(typ)) outerType = Some(JavaKnowledge.getOuterTypeFrom(typ))
         
         val myclass = MyClass(accessFlag, typ, superType, interfaces.toList, outerType)
@@ -78,7 +84,7 @@ class MySTVisitor {
   }
   
   private def createClassField(rec: MyClass): MyField = {
-    MyField(AccessFlag.getAccessFlags("FINAL_STATIC"), FieldFQN(rec.typ, "class", new ObjectType("java.lang.Class")))
+    MyField(AccessFlag.getAccessFlags("FINAL_STATIC"), FieldFQN(rec.typ, "class", new JawaType("java.lang.Class")))
   }
   
   /**

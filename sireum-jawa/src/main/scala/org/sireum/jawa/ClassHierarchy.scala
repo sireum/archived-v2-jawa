@@ -479,10 +479,11 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
           case None => // It's an unknown method since we cannot find any implementer of this interface and such method is getting invoked.
         }
         if(results.isEmpty){
-          val unknownrec = r.global.getClass(r.getType.toUnknown) match {
+          val unknowntyp = r.getType.toUnknown
+          val unknownrec = r.global.getClass(unknowntyp) match {
             case Some(c) => c
             case None =>
-              val rec = new JawaClass(r.global, r.getType.toUnknown, "")
+              val rec = new JawaClass(r.global, unknowntyp, "")
               rec.setApplicationClass
               rec.setUnknown
               if(r.isInterface) rec.addInterface(r)

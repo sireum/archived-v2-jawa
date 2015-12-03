@@ -19,7 +19,7 @@ import org.sireum.jawa.Signature
  */
 class MultiDataDependenceGraph[Node <: IDDGNode] extends DataDependenceBaseGraph[Node] {
   val icfg: InterproceduralControlFlowGraph[ICFGNode] = new InterproceduralControlFlowGraph[ICFGNode]
-  val encontext = new Context().setContext(Signature("LMDDGEntry;.entry:()V"), "L0000")
+  val encontext = new Context().setContext(new Signature("LMDDGEntry;.entry:()V"), "L0000")
   icfg.addEntryNode(icfg.addICFGEntryNode(encontext).asInstanceOf[ICFGEntryNode])
   val entryNode: Node = addIDDGEntryNode(icfg.entryNode.asInstanceOf[ICFGEntryNode])
   

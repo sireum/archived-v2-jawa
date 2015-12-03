@@ -41,7 +41,7 @@ trait Array{def dimensions: Int}
 /**
  * object creation
  */
-trait NewObj{def obj: ObjectType}
+trait NewObj{def obj: JawaType}
 
 /**
  * base variable

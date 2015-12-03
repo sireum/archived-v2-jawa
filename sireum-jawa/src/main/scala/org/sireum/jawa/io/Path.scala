@@ -2,7 +2,7 @@ package org.sireum.jawa.io
 
 import java.io.{
   FileInputStream, FileOutputStream, BufferedReader, BufferedWriter, InputStreamReader, OutputStreamWriter,
-  BufferedInputStream, BufferedOutputStream, RandomAccessFile, File => JFile }
+  BufferedInputStream, BufferedOutputStream, RandomAccessFile}
 import java.net.{ URI, URL }
 import scala.util.Random.alphanumeric
 import scala.language.implicitConversions

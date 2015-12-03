@@ -17,7 +17,7 @@ trait LibraryAPISummary {
    */
   def isLibraryAPI(apiName : String): Boolean
   
-  def isLibraryClass(typ: ObjectType): Boolean
+  def isLibraryClass(typ: JawaType): Boolean
 }
 
 /**
@@ -25,5 +25,5 @@ trait LibraryAPISummary {
  */
 object DefaultLibraryAPISummary extends LibraryAPISummary {
   def isLibraryAPI(apiName : String) : Boolean = false
-  def isLibraryClass(typ: ObjectType): Boolean = false
+  def isLibraryClass(typ: JawaType): Boolean = false
 }

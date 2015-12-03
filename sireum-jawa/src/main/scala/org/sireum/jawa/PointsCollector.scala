@@ -149,7 +149,7 @@ class PointsCollector {
       e match {
         case n: NameExp =>
           if(n.name.name == Constants.CONST_CLASS){
-            PointClassO(ObjectType("java.lang.Class", 0), typ.get.asInstanceOf[ObjectType], loc, locIndex, ownerSig)
+            PointClassO(new JawaType("java.lang.Class"), typ.get, loc, locIndex, ownerSig)
           } else if (n.name.name == Constants.LENGTH) {
             val varname: String = e.getValueAnnotation("variable") match {
               case Some(NameExp(name)) =>
@@ -166,7 +166,7 @@ class PointsCollector {
             val typ: JawaType = ASTUtil.getType(e).get
             PointInstanceOfR(varname, typ, loc, locIndex, ownerSig)
           } else if (n.name.name == Constants.EXCEPTION) {
-            PointExceptionR(typ.get.asInstanceOf[ObjectType].toUnknown, loc, locIndex, ownerSig)
+            PointExceptionR(typ.get.toUnknown, loc, locIndex, ownerSig)
           } else if(isStaticField(n.name.name)){
             val fqn = new FieldFQN(n.name.name.replace("@@", ""), typ.get)
             PointStaticFieldR(fqn, loc, locIndex, ownerSig)
@@ -223,7 +223,7 @@ class PointsCollector {
           case le: LiteralExp =>
             if(le.typ.name.equals("STRING")){
               pl = processLHS(as.lhs, typ)
-              pr = PointStringO(new ObjectType("java.lang.String"), le.text , loc, locIndex, ownerSig)
+              pr = PointStringO(new JawaType("java.lang.String"), le.text , loc, locIndex, ownerSig)
             }
             if(le.typ.name.equals("null")) {
               pl = processLHS(as.lhs, typ)
@@ -239,7 +239,7 @@ class PointsCollector {
                 name = nt.name.name
               case _ =>
             }
-            pr = PointO(ObjectType(name, dimensions), loc, locIndex, ownerSig)
+            pr = PointO(new JawaType(name, dimensions), loc, locIndex, ownerSig)
           case n: NameExp =>
             if(is("object", as.annotations)){
               pl = processLHS(as.lhs, typ)
@@ -355,7 +355,7 @@ final case class PointCall(lhsOpt: Option[Point with Left], rhs: Point with Righ
  * An object creating program point abstracts all the objects created
  * at that particular program point.
  */
-final case class PointO(obj: ObjectType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj
+final case class PointO(obj: JawaType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj
 
 /**
  * Set of program points corresponding to array object creating expressions. 
@@ -369,7 +369,7 @@ final case class PointO(obj: ObjectType, loc: ResourceUri, locIndex: Int, ownerS
  * An string object creating program point abstracts all the objects created
  * at that particular program point.
  */
-final case class PointStringO(obj: ObjectType, text: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj
+final case class PointStringO(obj: JawaType, text: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj
 
 /**
  * Set of program points corresponding to l-value. 
@@ -384,7 +384,7 @@ final case class PointR(varname: String, loc: ResourceUri, locIndex: Int, ownerS
 /**
  * Set of program points corresponding to const class value. 
  */
-final case class PointClassO(obj: ObjectType, classtyp: ObjectType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj
+final case class PointClassO(obj: JawaType, classtyp: JawaType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with NewObj
 
 /**
  * Set of program points corresponding to const class value. 
@@ -404,7 +404,7 @@ final case class PointInstanceOfR(varname: String, typ: JawaType, loc: ResourceU
 /**
  * Set of program points corresponding to length. 
  */
-final case class PointExceptionR(typ: ObjectType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
+final case class PointExceptionR(typ: JawaType, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right
 
 /**
  * Set of program points corresponding to l-value field access expressions. 

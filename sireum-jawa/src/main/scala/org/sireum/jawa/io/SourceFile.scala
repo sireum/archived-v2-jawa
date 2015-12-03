@@ -3,7 +3,6 @@ package org.sireum.jawa.io
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import org.sireum.util._
-import org.sireum.jawa.ObjectType
 import org.sireum.jawa.Reporter
 import org.sireum.jawa.Chars._
 

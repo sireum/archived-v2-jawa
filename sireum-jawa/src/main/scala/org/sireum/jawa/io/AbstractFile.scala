@@ -1,9 +1,7 @@
 package org.sireum.jawa.io
 
 import java.io.{IOException, InputStream, OutputStream, BufferedOutputStream, ByteArrayOutputStream}
-import java.io.{ File => JFile }
 import java.net.URL
-import java.io.{File => JFile}
 import java.io.IOException
 
 object AbstractFile {

@@ -36,12 +36,12 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
       fileUri => 
         val source = new FgSourceFile(new PlainFile(FileUtil.toFile(fileUri)))
         val codes = source.getClassCodes
-        val classTypes: MSet[ObjectType] = msetEmpty
+        val classTypes: MSet[JawaType] = msetEmpty
         codes.foreach{
           code =>
             try {
               val className = LightWeightPilarParser.getClassName(code)
-              classTypes += JavaKnowledge.getTypeFromName(className).asInstanceOf[ObjectType]
+              classTypes += JavaKnowledge.getTypeFromName(className)
             } catch {
               case e: Exception => reporter.warning(TITLE, e.getMessage)
             }
@@ -56,7 +56,7 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
     }
   }
   
-  def getClassCategoryFromClassPath(typ: ObjectType): ClassCategory.Value = {
+  def getClassCategoryFromClassPath(typ: JawaType): ClassCategory.Value = {
     this.applicationClassCodes.contains(typ) match {
       case true => ClassCategory.APPLICATION
       case false =>
@@ -71,16 +71,16 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
   /**
    * map from class name to pilar code of library. E.g. class type java.lang.Object to its file
    */
-  protected val userLibraryClassCodes: MMap[ObjectType, SourceFile] = mmapEmpty
+  protected val userLibraryClassCodes: MMap[JawaType, SourceFile] = mmapEmpty
   
   /**
    * map from class name to pilar code of app. E.g. record name java.lang.MyObject to its file
    */
-  protected val applicationClassCodes: MMap[ObjectType, SourceFile] = mmapEmpty
+  protected val applicationClassCodes: MMap[JawaType, SourceFile] = mmapEmpty
   
-  def getUserLibraryClassCodes: IMap[ObjectType, SourceFile] = this.userLibraryClassCodes.toMap
+  def getUserLibraryClassCodes: IMap[JawaType, SourceFile] = this.userLibraryClassCodes.toMap
   
-  def getApplicationClassCodes: IMap[ObjectType, SourceFile] = this.applicationClassCodes.toMap
+  def getApplicationClassCodes: IMap[JawaType, SourceFile] = this.applicationClassCodes.toMap
   
   // platform specific elements
 
@@ -110,9 +110,9 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
 
   private def flatClassPath: FlatClasspath = platform.flatClassPath
   
-  protected val cachedClassRepresentation: MMap[ObjectType, ClassRepresentation] = mmapEmpty
+  protected val cachedClassRepresentation: MMap[JawaType, ClassRepresentation] = mmapEmpty
   
-  def containsClassFile(typ: ObjectType): Boolean = {
+  def containsClassFile(typ: JawaType): Boolean = {
     this.applicationClassCodes.contains(typ) ||
     this.userLibraryClassCodes.contains(typ) ||
     cachedClassRepresentation.contains(typ)  ||
@@ -151,7 +151,7 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
     }
   }
   
-  def getMyClass(typ: ObjectType): Option[MyClass] = {
+  def getMyClass(typ: JawaType): Option[MyClass] = {
     this.applicationClassCodes.get(typ) match {
       case Some(asrc) =>
         SourcefileParser.parse(asrc, ResolveLevel.HIERARCHY, reporter).get(typ)
@@ -176,7 +176,7 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
     }
   }
   
-  def getClassRepresentation(typ: ObjectType): Option[ClassRepresentation] = {
+  def getClassRepresentation(typ: JawaType): Option[ClassRepresentation] = {
     this.cachedClassRepresentation.get(typ) match {
       case None =>
         classPath.findClass(typ.name) match {

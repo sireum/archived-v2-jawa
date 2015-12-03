@@ -28,10 +28,10 @@ import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaVarAccesses
 import org.sireum.jawa.alir.pta.ClassInstance
 import org.sireum.jawa.JawaResolver
 import org.sireum.jawa.Global
-import org.sireum.jawa.ObjectType
 import org.sireum.jawa.MethodBody
 import org.sireum.alir.{ControlFlowGraph => OrigControlFlowGraph}
 import org.sireum.jawa.alir.controlFlowGraph.{ControlFlowGraph => JawaControlFlowGraph}
+import org.sireum.jawa.JawaType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -60,11 +60,11 @@ object JawaAlirInfoProvider {
     this.dr = dr
   }
   
-  protected[jawa] def getExceptionType(cc : CatchClause) : ObjectType = {
+  protected[jawa] def getExceptionType(cc : CatchClause) : JawaType = {
     require(cc.typeSpec.isDefined)
     require(cc.typeSpec.get.isInstanceOf[NamedTypeSpec])
     val name = cc.typeSpec.get.asInstanceOf[NamedTypeSpec].name.name
-    new ObjectType(name)
+    new JawaType(name)
   }
   
   //for building cfg

@@ -18,11 +18,9 @@ import org.sireum.jawa.sjc.lexer.TokenType
 import org.sireum.jawa.sjc.lexer.Tokens
 import org.sireum.jawa.io.Range
 import org.sireum.jawa.DefaultReporter
-import org.sireum.jawa.ObjectType
 import org.sireum.jawa.io.NoPosition
 import org.sireum.jawa.io.Position
 import org.sireum.jawa.Signature
-import org.sireum.jawa.PrimitiveType
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -172,14 +170,14 @@ sealed trait DefSymbol extends JawaSymbol
 sealed trait RefSymbol extends JawaSymbol
 
 sealed trait ClassSym {
-  def typ: ObjectType
+  def typ: JawaType
 }
 sealed trait MethodSym {
   def signature: Signature
 }
 sealed trait FieldSym{
   def FQN: String
-  def baseType: ObjectType
+  def baseType: JawaType
   def fieldName: String
 }
 sealed trait VarSym{
@@ -194,24 +192,24 @@ sealed trait LocationSym{
 
 case class TypeDefSymbol(id: Token) extends DefSymbol with ClassSym {
   lazy val tokens = flatten(id)
-  def typ: ObjectType = getTypeFromName(id.text).asInstanceOf[ObjectType]
+  def typ: JawaType = getTypeFromName(id.text)
 }
 
 case class TypeSymbol(id: Token) extends RefSymbol with ClassSym {
   lazy val tokens = flatten(id)
-  def typ: ObjectType = getTypeFromName(id.text).asInstanceOf[ObjectType]
+  def typ: JawaType = getTypeFromName(id.text)
 }
 
 case class MethodDefSymbol(id: Token) extends DefSymbol with MethodSym {
   lazy val tokens = flatten(id)
-  def baseType: ObjectType = getClassTypeFromMethodFullName(id.text)
+  def baseType: JawaType = getClassTypeFromMethodFullName(id.text)
   var signature: Signature = null
   def methodName: String = getMethodNameFromMethodFullName(id.text)
 }
 
 case class MethodNameSymbol(id: Token) extends RefSymbol with MethodSym {
   lazy val tokens = flatten(id)
-  def baseType: ObjectType = getClassTypeFromMethodFullName(id.text)
+  def baseType: JawaType = getClassTypeFromMethodFullName(id.text)
   var signature: Signature = null
   def methodName: String = getMethodNameFromMethodFullName(id.text)
 }
@@ -219,22 +217,22 @@ case class MethodNameSymbol(id: Token) extends RefSymbol with MethodSym {
 case class FieldDefSymbol(id: Token) extends DefSymbol with FieldSym {
   lazy val tokens = flatten(id)
   def FQN: String = id.text.replaceAll("@@", "")
-  def baseType: ObjectType = getClassTypeFromFieldFQN(FQN)
+  def baseType: JawaType = getClassTypeFromFieldFQN(FQN)
   def fieldName: String = getFieldNameFromFieldFQN(FQN)
 }
 
 case class FieldNameSymbol(id: Token) extends RefSymbol with FieldSym {
   lazy val tokens = flatten(id)
   def FQN: String = id.text.replaceAll("@@", "")
-  def baseType: ObjectType = getClassTypeFromFieldFQN(FQN)
+  def baseType: JawaType = getClassTypeFromFieldFQN(FQN)
   def fieldName: String = getFieldNameFromFieldFQN(FQN)
 }
 
 case class SignatureSymbol(id: Token) extends RefSymbol with MethodSym {
   lazy val tokens = flatten(id)
-  def signature: Signature = Signature(id.text)
+  def signature: Signature = new Signature(id.text)
 //  def FQMN: String = signature.FQMN
-  def methodName: String = signature.methodNamePart
+  def methodName: String = signature.methodName
 }
 
 case class VarDefSymbol(id: Token) extends DefSymbol with VarSym {
@@ -282,12 +280,12 @@ case class ClassOrInterfaceDeclaration(
   def isInterface: Boolean = {
     annotations.exists { a => a.key == "kind" && a.value == "interface" }
   }
-  def parents: IList[ObjectType] = extendsAndImplimentsClausesOpt match {case Some(e) => e.parents; case None => ilistEmpty}
-  def superClassOpt: Option[ObjectType] = extendsAndImplimentsClausesOpt match{case Some(e) => e.superClassOpt; case None => None}
-  def interfaces: IList[ObjectType] = extendsAndImplimentsClausesOpt match {case Some(e) => e.interfaces; case None => ilistEmpty}
+  def parents: IList[JawaType] = extendsAndImplimentsClausesOpt match {case Some(e) => e.parents; case None => ilistEmpty}
+  def superClassOpt: Option[JawaType] = extendsAndImplimentsClausesOpt match{case Some(e) => e.superClassOpt; case None => None}
+  def interfaces: IList[JawaType] = extendsAndImplimentsClausesOpt match {case Some(e) => e.interfaces; case None => ilistEmpty}
   def fields: IList[Field with Declaration] = instanceFieldDeclarationBlock.instanceFields ++ staticFields
   def instanceFields: IList[InstanceFieldDeclaration] = instanceFieldDeclarationBlock.instanceFields
-  def typ: ObjectType = cityp.typ.asInstanceOf[ObjectType]
+  def typ: JawaType = cityp.typ
 }
 
 case class Annotation(
@@ -326,16 +324,16 @@ case class ExtendsAndImplimentsClauses(
     parentTyps: IList[(ExtendAndImpliment, Option[Token])]) extends JawaAstNode {
   require(parentTyps.filter(_._1.isExtend).size <= 1)
   lazy val tokens = flatten(extendsAndImplementsToken, parentTyps)
-  def parents: IList[ObjectType] = parentTyps.map(_._1.typ.asInstanceOf[ObjectType])
-  def superClassOpt: Option[ObjectType] = parentTyps.find(_._1.isExtend).map(_._1.typ)
-  def interfaces: IList[ObjectType] = parentTyps.filter(_._1.isImplement).map(_._1.typ)
+  def parents: IList[JawaType] = parentTyps.map(_._1.typ)
+  def superClassOpt: Option[JawaType] = parentTyps.find(_._1.isExtend).map(_._1.typ)
+  def interfaces: IList[JawaType] = parentTyps.filter(_._1.isImplement).map(_._1.typ)
 }
 
 case class ExtendAndImpliment(
     parenttyp: TypeSymbol,
     annotations: IList[Annotation])extends JawaAstNode {
   lazy val tokens = flatten(parenttyp, annotations)
-  def typ: ObjectType = parenttyp.typ
+  def typ: JawaType = parenttyp.typ
   def isExtend: Boolean = annotations.exists { a => a.key == "kind" && a.value == "class" }
   def isImplement: Boolean = annotations.exists { a => a.key == "kind" && a.value == "interface" }
 }
@@ -389,7 +387,7 @@ case class Type(base: Either[TypeSymbol, Token], typeFragments: IList[TypeFragme
       case Left(ts) => ts.typ
       case Right(t) => getTypeFromName(t.text)
     }
-  def typ: JawaType = getType(baseType.typ, dimentions)
+  def typ: JawaType = getType(baseType.baseTyp, dimentions)
 }
 
 case class TypeFragment(lbracket: Token, rbracket: Token) extends JawaAstNode {
@@ -407,7 +405,7 @@ case class MethodDeclaration(
   def isConstructor: Boolean = isJawaConstructor(name)
   def name: String = methodSymbol.id.text.substring(methodSymbol.id.text.lastIndexOf(".") + 1)
   def owner: String = annotations.find { a => a.key == "owner" }.get.value
-  def signature: Signature = Signature(annotations.find { a => a.key == "signature" }.get.value)
+  def signature: Signature = new Signature(annotations.find { a => a.key == "signature" }.get.value)
   def thisParam: Option[Param] = paramClause.thisParam
   def param(i: Int): Param = paramClause.param(i)
   def paramlist: IList[Param] = paramClause.paramlist
@@ -494,7 +492,7 @@ case class CallStatement(
   lazy val tokens = flatten(callToken, lhsOpt, methodNameSymbol, argClause, annotations)
   //default is virtual call
   def kind: String = annotations.find { a => a.key == "kind" }.map(_.value).getOrElse("virtual")
-  def signature: Signature = Signature(annotations.find { a => a.key == "signature" }.get.value)
+  def signature: Signature = new Signature(annotations.find { a => a.key == "signature" }.get.value)
   def classDescriptor: String = annotations.find { a => a.key == "classDescriptor" }.get.value
   def isStatic: Boolean = kind == "static"
   def isVirtual: Boolean = kind == "virtual"
@@ -714,7 +712,7 @@ case class NewExpression(
       case Left(ts) => ts.typ
       case Right(t) => getTypeFromName(t.text)
     }
-  def typ: ObjectType = getType(baseType.typ, dimentions).asInstanceOf[ObjectType]
+  def typ: JawaType = getType(baseType.baseTyp, dimentions)
 }
 
 case class TypeFragmentWithInit(lbracket: Token, varSymbols: IList[(VarSymbol, Option[Token])], rbracket: Token) extends JawaAstNode {
@@ -791,11 +789,11 @@ case class CmpExpression(
     var2Symbol: VarSymbol,
     rparen: Token) extends Expression with RHS {
   lazy val tokens = flatten(cmp, lparen, var1Symbol, comma, var2Symbol, rparen)
-  def paramType: PrimitiveType = {
+  def paramType: JawaType = {
     cmp.text match {
-      case "fcmpl" | "fcmpg" => PrimitiveType("float")
-      case "dcmpl" | "dcmpg" => PrimitiveType("double")
-      case "lcmp" => PrimitiveType("long")
+      case "fcmpl" | "fcmpg" => new JawaType("float")
+      case "dcmpl" | "dcmpg" => new JawaType("double")
+      case "lcmp" => new JawaType("long")
     }
   }
 }

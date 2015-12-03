@@ -46,7 +46,7 @@ object StringModel {
 
   private def getPointStringForRet(retVar : String, currentContext : Context) :ISet[RFAFact] ={
     
-    ReachingFactsAnalysisHelper.getReturnFact(new ObjectType("java.lang.String"), retVar, currentContext) match{
+    ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.lang.String"), retVar, currentContext) match{
       case Some(fact) =>           
         //deleteFacts += fact
         val value = PTAPointStringInstance(currentContext.copy)
@@ -58,7 +58,7 @@ object StringModel {
   
   private def getFactFromThisForRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) :ISet[RFAFact] ={
     require(args.size > 0)
-    ReachingFactsAnalysisHelper.getReturnFact(new ObjectType("java.lang.String"), retVar, currentContext) match{
+    ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.lang.String"), retVar, currentContext) match{
       case Some(fact) => 
         val thisSlot = VarSlot(args(0), false, true)
         s.pointsToSet(thisSlot, currentContext).map(v => RFAFact(fact.s, v))  
@@ -162,7 +162,7 @@ object StringModel {
           newFacts ++= getPointStringForRet(retVars(0), currentContext)
           byPassFlag = false
       case "Ljava/lang/String;.failedBoundsCheck:(III)Ljava/lang/StringIndexOutOfBoundsException;" =>
-        ReachingFactsAnalysisHelper.getReturnFact(new ObjectType("java.lang.StringIndexOutOfBoundsException"), retVars(0), currentContext) match{
+        ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.lang.StringIndexOutOfBoundsException"), retVars(0), currentContext) match{
           case Some(fact) => 
             newFacts += fact
           case None =>
@@ -179,7 +179,7 @@ object StringModel {
         newFacts ++= getPointStringForRet(retVars(0), currentContext)
         byPassFlag = false
       case "Ljava/lang/String;.indexAndLength:(I)Ljava/lang/StringIndexOutOfBoundsException;" =>
-        ReachingFactsAnalysisHelper.getReturnFact(new ObjectType("java.lang.StringIndexOutOfBoundsException"), retVars(0), currentContext) match{
+        ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.lang.StringIndexOutOfBoundsException"), retVars(0), currentContext) match{
           case Some(fact) => 
             newFacts += fact
           case None =>
@@ -189,7 +189,7 @@ object StringModel {
       case "Ljava/lang/String;.indexOfSupplementary:(II)I" =>
       case "Ljava/lang/String;.lastIndexOfSupplementary:(II)I" =>
       case "Ljava/lang/String;.startEndAndLength:(II)Ljava/lang/StringIndexOutOfBoundsException;" =>
-        ReachingFactsAnalysisHelper.getReturnFact(new ObjectType("java.lang.StringIndexOutOfBoundsException"), retVars(0), currentContext) match{
+        ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.lang.StringIndexOutOfBoundsException"), retVars(0), currentContext) match{
           case Some(fact) => 
             newFacts += fact
           case None =>

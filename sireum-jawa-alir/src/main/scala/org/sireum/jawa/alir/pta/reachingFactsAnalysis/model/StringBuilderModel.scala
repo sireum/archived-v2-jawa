@@ -47,7 +47,7 @@ object StringBuilderModel {
 	
   private def getPointStringForRet(retVar: String, currentContext: Context) :ISet[RFAFact] ={
     
-	  ReachingFactsAnalysisHelper.getReturnFact(new ObjectType("java.lang.String"), retVar, currentContext) match{
+	  ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.lang.String"), retVar, currentContext) match{
 		  case Some(fact) =>           
 		      //deleteFacts += fact
 		      val value = PTAPointStringInstance(currentContext.copy)
@@ -59,7 +59,7 @@ object StringBuilderModel {
   
   private def getFactFromThisForRet(s: PTAResult, args: List[String], retVarOpt: Option[String], currentContext: Context) :ISet[RFAFact] ={
   	require(args.size > 0)
-    ReachingFactsAnalysisHelper.getReturnFact(new ObjectType("java.lang.String"), retVarOpt.get, currentContext) match{
+    ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.lang.String"), retVarOpt.get, currentContext) match{
       case Some(fact) => 
         val thisSlot = VarSlot(args(0), false, true)
 		    s.pointsToSet(thisSlot, currentContext).map(v => RFAFact(fact.s, v))   
@@ -118,7 +118,7 @@ object StringBuilderModel {
 	      ins =>
 	        newfacts += (RFAFact(FieldSlot(ins, "value"), newStringIns))
       }
-		  val facts = getReturnFactsWithAlias(new ObjectType("java.lang.StringBuilder"), retVar, currentContext, thisValue)
+		  val facts = getReturnFactsWithAlias(new JawaType("java.lang.StringBuilder"), retVar, currentContext, thisValue)
 		  newfacts ++= facts
       newfacts
     }

@@ -1,6 +1,6 @@
 package org.sireum.jawa.io
 
-import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, InputStream, OutputStream, File => JFile }
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, InputStream, OutputStream}
 import scala.collection.mutable
 
 /** This class implements an in-memory file.

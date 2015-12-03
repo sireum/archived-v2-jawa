@@ -16,7 +16,6 @@ import org.sireum.jawa.JawaMethod
 import org.sireum.jawa.JawaResolver
 import java.util.Arrays
 import org.sireum.jawa.Signature
-import org.sireum.jawa.ObjectType
 import org.sireum.jawa.JavaKnowledge
 import org.sireum.jawa.Global
 import org.sireum.jawa.io.NoPosition
@@ -30,12 +29,12 @@ abstract class MethodGenerator(global: Global) {
   
   private final val TITLE = "MethodGenerator"
   
-  protected var currentComponent: ObjectType = null
-  protected var classes: Set[ObjectType] = Set()
+  protected var currentComponent: JawaType = null
+  protected var classes: ISet[JawaType] = isetEmpty
   /**
    * Map from class (i.e. container class) to list of callback method
    */
-  protected var callbackFunctions: Map[ObjectType, Set[Signature]] = Map()
+  protected var callbackFunctions: Map[JawaType, Set[Signature]] = Map()
   protected var conditionCounter: Int = 0
   protected var codeCounter: Int = 0
   protected val template = new STGroupFile("org/sireum/jawa/resources/pilarCodeGenerator/PilarCode.stg")
@@ -49,7 +48,7 @@ abstract class MethodGenerator(global: Global) {
   /**
    * map from a clazz to it's substitute clazz
    */
-  protected var substituteClassMap: IMap[ObjectType, ObjectType] = imapEmpty
+  protected var substituteClassMap: IMap[JawaType, JawaType] = imapEmpty
   
   /**
    * Map of it's local variables
@@ -64,7 +63,7 @@ abstract class MethodGenerator(global: Global) {
   /**
    * set the substituteClassMap
    */
-  def setSubstituteClassMap(map: IMap[ObjectType, ObjectType]) = this.substituteClassMap = map
+  def setSubstituteClassMap(map: IMap[JawaType, JawaType]) = this.substituteClassMap = map
   
   /**
    * Registers a list of classes to be automatically scanned for Android
@@ -72,11 +71,11 @@ abstract class MethodGenerator(global: Global) {
    * @param androidClasses The list of classes to be automatically scanned for
    * Android lifecycle methods
    */
-  def setEntryPointClasses(classes: Set[ObjectType]) = {
+  def setEntryPointClasses(classes: ISet[JawaType]) = {
     this.classes = classes
   }
   
-  def setCurrentComponent(clazz: ObjectType) = {
+  def setCurrentComponent(clazz: JawaType) = {
     this.currentComponent = clazz
   }
   
@@ -97,7 +96,7 @@ abstract class MethodGenerator(global: Global) {
    * class (activity, service, etc.) to the list of callback methods for that
    * element.
    */
-  def setCallbackFunctions(callbackFunctions: Map[ObjectType, Set[Signature]]) {
+  def setCallbackFunctions(callbackFunctions: Map[JawaType, Set[Signature]]) {
     this.callbackFunctions = callbackFunctions
   }
   
@@ -176,7 +175,7 @@ abstract class MethodGenerator(global: Global) {
     body
   }
 
-  protected def generateInstanceCreation(classType: ObjectType, codefg: CodeFragmentGenerator): String = {
+  protected def generateInstanceCreation(classType: JawaType, codefg: CodeFragmentGenerator): String = {
     val rhs =
       if(classType.jawaName == "java.lang.String"){
         val stringAnnot = generateExpAnnotation("kind", List("object"))
@@ -203,7 +202,7 @@ abstract class MethodGenerator(global: Global) {
     constructionStack.add(r.getType)
     val ps = r.getDeclaredMethods
     var cons: Signature = null
-    val conMethods = ps.filter(p => p.isConstructor && !p.isStatic && !p.getParamTypes.contains(ObjectType("java.lang.Class", 0)))
+    val conMethods = ps.filter(p => p.isConstructor && !p.isStatic && !p.getParamTypes.contains(new JawaType("java.lang.Class")))
     if(!conMethods.isEmpty){
       val p = conMethods.minBy(_.getParamTypes.size)
       cons = p.getSignature
@@ -247,7 +246,7 @@ abstract class MethodGenerator(global: Global) {
         }
     }
     val invokeStmt = template.getInstanceOf("InvokeStmtWithoutReturn")
-    invokeStmt.add("funcName", pSig.getClassName + "." + pSig.methodNamePart)
+    invokeStmt.add("funcName", pSig.getClassName + "." + pSig.methodName)
     val finalParamVars: ArrayList[String] = new ArrayList[String]
     finalParamVars.add(0, localClassVar)
     var index = 0
