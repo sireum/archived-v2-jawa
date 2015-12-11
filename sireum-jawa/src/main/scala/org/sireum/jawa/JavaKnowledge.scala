@@ -74,13 +74,21 @@ trait JavaKnowledge {
     if(isJavaPrimitive(pkgAndTyp)) return JawaBaseType(None, pkgAndTyp)
     val parts = pkgAndTyp.split("\\.")
     val size = parts.size
-    val pkg: MList[JawaPackage] = mlistEmpty
     var currentPkg: Option[JawaPackage] = None
     for(i <- 0 to size - 2) {
-      currentPkg = Some(JawaPackage(parts(i), pkg.toList))
-      pkg ++= currentPkg
+      currentPkg = Some(JawaPackage(parts(i), currentPkg))
     }
     JawaBaseType(currentPkg, parts(size - 1))
+  }
+  
+  def formatPackageStringToPackage(pkg: String): JawaPackage = {
+    val parts = pkg.split("\\.")
+    val size = parts.size
+    var currentPkg: Option[JawaPackage] = None
+    for(i <- 0 to size - 1) {
+      currentPkg = Some(JawaPackage(parts(i), currentPkg))
+    }
+    currentPkg.get
   }
   
   /**

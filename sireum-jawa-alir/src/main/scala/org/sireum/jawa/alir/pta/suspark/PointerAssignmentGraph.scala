@@ -190,8 +190,11 @@ class PointerAssignmentGraph[Node <: PtaNode]
         if(node.point.isInstanceOf[Point with Invoke]){
           val pi = node.point.asInstanceOf[Point with Invoke]
           if(pi.invokeTyp.equals("static")){
-            val callee = getStaticCallee(global, pi)
-            staticCallees += ((pi, PTACallee(callee.callee, pi, node), node.context))
+            getStaticCallee(global, pi) match {
+              case Some(callee) =>
+                staticCallees += ((pi, PTACallee(callee.callee, pi, node), node.context))
+              case None =>
+            }
           }
         }
     }
@@ -572,8 +575,11 @@ class PointerAssignmentGraph[Node <: PtaNode]
     }
   }
   
-  def getStaticCallee(global: Global, pi: Point with Invoke): StaticCallee = {
-    StaticCallee(CallHandler.getStaticCalleeMethod(global, pi.sig).get)
+  def getStaticCallee(global: Global, pi: Point with Invoke): Option[StaticCallee] = {
+    CallHandler.getStaticCalleeMethod(global, pi.sig) match {
+      case Some(callee) => Some(StaticCallee(callee))
+      case None => None
+    }
   }
   
   def getSuperCalleeSet(

@@ -23,6 +23,7 @@ import org.sireum.jawa.JawaType
  */
 object SourcefileParser {
   final val TITLE = "SourcefileParser"
+  final val debug = false
   def parse(file: SourceFile, level: ResolveLevel.Value, reporter: Reporter): IMap[JawaType, MyClass] = {
     var code = file.code
     if(level < ResolveLevel.BODY) {
@@ -35,7 +36,10 @@ object SourcefileParser {
     } catch {
       case e: Exception =>
         reporter.error(TITLE, e.getMessage)
-        if(true) reporter.error(TITLE, code)
+        reporter.error(TITLE, code)
+        if(debug) {
+          e.printStackTrace()
+        }
     }
     v.getClasses
   }

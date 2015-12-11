@@ -7,13 +7,25 @@ http://www.eclipse.org/legal/epl-v10.html
 */
 package org.sireum.jawa
 
-import org.sireum.util.IList
+import org.sireum.util._
 
 /**
  * @author fgwei
  */
-case class JawaPackage(name: String, parents: IList[JawaPackage]) extends JavaKnowledge {
+case class JawaPackage(name: String, parent: Option[JawaPackage]) extends JavaKnowledge {
+  def getPkgList: IList[JawaPackage] = {
+    var pkgs: IList[JawaPackage] = List(this)
+    var parentpkg = parent
+    while(parentpkg.isDefined) {
+      pkgs = parentpkg.get :: pkgs
+      parentpkg = parentpkg.get.parent
+    }
+    pkgs
+  }
+  def getPkgNameList: IList[String] = {
+    getPkgList.map(_.name)
+  }
   def toPkgString(sep: String): String = {
-    (parents.map(_.name) :+ name).mkString(sep)
+    getPkgNameList.mkString(sep)
   }
 }

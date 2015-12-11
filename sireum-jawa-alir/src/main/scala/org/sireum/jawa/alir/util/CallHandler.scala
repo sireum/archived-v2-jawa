@@ -70,7 +70,17 @@ object CallHandler {
     val recType = procSig.getClassType
     val pSubSig = procSig.getSubSignature
     val from = global.getClassOrResolve(recType)
-    global.getClassHierarchy.resolveConcreteDispatch(from, pSubSig)
+    if(from.isUnknown) {
+      this.synchronized{
+        global.getMethod(procSig) match {
+          case None => 
+            Some(global.generateUnknownJawaMethod(from, procSig))
+          case a => a
+        }
+      }
+    } else {
+      global.getClassHierarchy.resolveConcreteDispatch(from, pSubSig)
+    }
   }
 
   /**

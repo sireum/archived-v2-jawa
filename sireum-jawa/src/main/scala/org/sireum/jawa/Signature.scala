@@ -206,7 +206,7 @@ case class Signature(classTyp: JawaType, methodName: String, proto: String) exte
   }
   
   def getSubSignature: String = {
-    this.signature.substring(this.signature.indexOf(";.") + 2)
+    this.signature.substring(this.signature.indexOf(".") + 1)
   }
   
   override def toString: String = this.signature

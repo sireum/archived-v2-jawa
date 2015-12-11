@@ -26,7 +26,7 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
     this(global, typ, AccessFlag.getAccessFlags(accessStr))
   }
   
-  require(typ.isObject, "JawaClass should be object type.")
+  require(typ.isObject, "JawaClass should be object type, but get: " + typ)
   
   def getType: JawaType = this.typ
   
