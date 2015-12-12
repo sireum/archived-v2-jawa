@@ -15,7 +15,7 @@ object JawaType {
   }
   
   def addDimensions(typ: JawaType, dimensions: Int): JawaType = {
-    if(dimensions > 0) {
+    if(typ.dimensions + dimensions >= 0) {
       JawaType(typ.baseType, typ.dimensions + dimensions)
     } else typ
   }

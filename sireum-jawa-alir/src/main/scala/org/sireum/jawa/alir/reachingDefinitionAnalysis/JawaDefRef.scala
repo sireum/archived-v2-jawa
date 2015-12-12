@@ -114,8 +114,9 @@ final class JawaDefRef(st: SymbolTable, val varAccesses: VarAccesses, callref: B
       val lhss = PilarAstUtil.getLHSs(a)
       var result = isetEmpty[Slot]
       for (ne @ NameExp(_) <- lhss.keys) {
-        if(!ne.name.name.contains("@@"))
+        if(!ne.name.name.contains("@@")) {
           result = result + VarSlot(ne.name.uri)
+        }
       }
       result
     })
