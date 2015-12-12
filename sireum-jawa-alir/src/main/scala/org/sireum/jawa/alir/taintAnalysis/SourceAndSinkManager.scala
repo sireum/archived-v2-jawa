@@ -19,6 +19,7 @@ import java.util.regex.Matcher
 import org.sireum.jawa.Global
 import org.sireum.jawa.alir.controlFlowGraph.ICFGNode
 import org.sireum.jawa.alir.interProcedural.InterProceduralNode
+import org.sireum.jawa.Signature
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -29,11 +30,11 @@ trait SourceAndSinkManager {
   /**
    * it's a map from source API sig to it's category
    */
-  protected val sources: MMap[String, ISet[String]] = mmapEmpty
+  protected val sources: MMap[Signature, ISet[String]] = mmapEmpty
   /**
    * it's a map from sink API sig to it's category
    */
-  protected val sinks: MMap[String, (ISet[Int], ISet[String])] = mmapEmpty
+  protected val sinks: MMap[Signature, (ISet[Int], ISet[String])] = mmapEmpty
 
   def parse =
     SSParser.parse(sasFilePath) match {
@@ -50,11 +51,11 @@ trait SourceAndSinkManager {
     }
   
   
-  def addSource(source: String, tags: ISet[String]) = {
+  def addSource(source: Signature, tags: ISet[String]) = {
     this.sources += (source -> tags)
   }
 
-  def addSink(sink: String, positions: ISet[Int], tags: ISet[String]) = {
+  def addSink(sink: Signature, positions: ISet[Int], tags: ISet[String]) = {
     this.sinks += (sink -> (positions, tags))
   }
   
@@ -75,10 +76,10 @@ object SSParser{
   final val DEBUG = false
   //                           1            2                   3            4
   private val regex = "([^\\s]+)\\s+([^\\s]+)?\\s*->\\s+([^\\s]+)\\s*([^\\s]+)?\\s*"
-  def parse(filePath: String): (IMap[String, ISet[String]], IMap[String, (ISet[Int], ISet[String])]) = {
+  def parse(filePath: String): (IMap[Signature, ISet[String]], IMap[Signature, (ISet[Int], ISet[String])]) = {
     def readFile: BufferedReader = new BufferedReader(new FileReader(filePath))
-    val sources: MMap[String, ISet[String]] = mmapEmpty
-    val sinks: MMap[String, (ISet[Int], ISet[String])] = mmapEmpty
+    val sources: MMap[Signature, ISet[String]] = mmapEmpty
+    val sinks: MMap[Signature, (ISet[Int], ISet[String])] = mmapEmpty
     val p: Pattern = Pattern.compile(regex)
     val rdr = readFile
     var line = rdr.readLine()
@@ -106,9 +107,9 @@ object SSParser{
     (sources.toMap, sinks.toMap)
   }
   
-  def parseLine(m: Matcher): (String, String, ISet[Int], ISet[String]) = {
+  def parseLine(m: Matcher): (String, Signature, ISet[Int], ISet[String]) = {
     require(m.group(1) != null && m.group(3) != null)
-    val apiSig = m.group(1)
+    val apiSig = new Signature(m.group(1))
     val taintTag = m.group(2)
     val taintTags: ISet[String] = if(taintTag == null) isetEmpty else taintTag.split("\\|").toSet
     val tag = m.group(3)

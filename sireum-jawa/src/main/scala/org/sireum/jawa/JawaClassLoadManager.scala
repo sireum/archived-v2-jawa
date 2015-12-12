@@ -290,60 +290,10 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     r.getMethod(subSig)
   }
   
-//  def getMethodDeclarations(signature: Signature): Set[JawaMethod] = {
-//    val result: MSet[JawaMethod] = msetEmpty
-//    val rType = signature.getClassType
-//    val subSig = signature.getSubSignature
-//    if(!containsClass(rType)) resolveClass(rType, ResolveLevel.HIERARCHY)
-//    val r = getClass(rType).get
-//    val worklist: MList[JawaClass] = mlistEmpty
-//    worklist += r
-//    while(!worklist.isEmpty){
-//      val rec = worklist.remove(0)
-//      rec.getMethod(subSig) match{
-//        case Some(proc) => result += proc
-//        case None =>
-//          if(rec.hasSuperClass) rec.getSuperClass foreach(worklist += _)
-//          worklist ++= rec.getInterfaces
-//      }
-//    }
-//    result.toSet
-//  }
-  
   /**
    * return true if contains the given procedure. Input example is Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
    */
   def containsMethod(signature: Signature): Boolean = getMethod(signature).isDefined
-  
-  /**
-   * find field from Global. Input: stackState
-   */
-//  def findField(baseType: ObjectType, fieldName: String): Option[JawaField] = {
-//    tryLoadClass(baseType, ResolveLevel.HIERARCHY)
-//    if(!containsClass(baseType)) return None
-//    val r = getClass(baseType).get
-//    r.getField(fieldName)
-//  }
-  
-  /**
-   * find field from Global. Input: @@java.lang.Throwable.stackState
-   */
-//  def findStaticField(fieldFQN: String): Option[JawaField] = {
-//    val rName = getClassNameFromFieldFQN(fieldFQN)
-//    val rType = getTypeFromName(rName).asInstanceOf[ObjectType]
-//    val fieldName = getFieldNameFromFieldFQN(fieldFQN)
-//    val classOpt = tryLoadClass(rType, ResolveLevel.HIERARCHY)
-//    if(!classOpt.isDefined) return None
-//    val r = classOpt.get
-//    r.getField(fieldName) match {
-//      case Some(f) =>  
-//        if(f.isStatic)
-//          Some(f)
-//        else None
-//      case None => None
-//    }
-//    
-//  }
   
   /**
    * get entry points
@@ -351,11 +301,6 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   def getEntryPoints(entryMethodName: String): ISet[JawaMethod] = {
     findEntryPoints(entryMethodName)
   }
-    
-  /**
-   * set entry points
-   */
-//  def setEntryPoints(entryPoints: Set[JawaMethod]) = this.entryPoints ++= entryPoints
   
   /**
    * find entry points from current app/test cases
@@ -369,77 +314,6 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     }
     ep.toSet
   }
-  
-  /**
-   * has entry points
-   */
-//  def hasEntryPoints: Boolean = !this.entryPoints.isEmpty
-  
-  /**
-   * try to resolve given class and load all of the required support based on your desired resolve level.
-   */
-//  def tryLoadClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): Option[JawaClass] = {
-//    this.synchronized{
-//      tryResolveClass(typ, desiredLevel)
-//    }
-//  }
-  
-  /**
-   * resolve given class and load all of the required support.
-   */
-//  def loadClassAndSupport(typ: ObjectType): JawaClass = {
-//    this.synchronized{
-//      resolveClass(typ, ResolveLevel.BODY)
-//    }
-//  }
-  
-  /**
-   * resolve given class.
-   */
-//  override def resolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): JawaClass = {
-//    this.synchronized{
-//      super.resolveClass(typ, desiredLevel)
-//    }
-//  }
-  
-  /**
-   * resolve given class.
-   */
-//  override def resolveClassFromSource(file: SourceFile, desiredLevel: ResolveLevel.Value): ISet[JawaClass] = {
-//    this.synchronized{
-//      super.resolveClassFromSource(file, desiredLevel)
-//    }
-//  }
-  
-  /**
-   * resolve given class.
-   */
-//  def resolveClassFromSource(typ: ObjectType, file: SourceFile, desiredLevel: ResolveLevel.Value): Option[JawaClass] = {
-//    this.synchronized{
-//      val classes = resolveClassFromSource(file, desiredLevel)
-//      classes.find { x => x.typ == typ }
-//    }
-//  }
-  
-  /**
-   * softly resolve given class.
-   */
-//  def softlyResolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): Option[JawaClass] = {
-//    this.synchronized{
-//      if(containsClass(typ))
-//        Some(resolveClass(typ, desiredLevel))
-//      else None
-//    }
-//  }
-  
-  /**
-   * force resolve given class to given level
-   */
-//  override def forceResolveClass(typ: ObjectType, desiredLevel: ResolveLevel.Value): JawaClass = {
-//    this.synchronized{
-//      super.forceResolveClass(typ, desiredLevel)
-//    }
-//  }
   
   def printDetails = {
     println("***************Global***************")

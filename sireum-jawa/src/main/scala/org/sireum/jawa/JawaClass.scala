@@ -82,18 +82,23 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
   /**
    * return true if it's a child of given record
    */
-  def isChildOf(typ : JawaType): Boolean = {
-    global.getClass(typ) match {
-      case Some(c) => isChildOf(c)
-      case None => false
-    }
+  def isChildOf(typ: JawaType): Boolean = {
+    isChildOf(global.getClassOrResolve(typ))
   }
   
   /**
    * return true if it's a child of given record
    */
-  def isChildOf(clazz : JawaClass): Boolean = {
+  def isChildOf(clazz: JawaClass): Boolean = {
     global.getClassHierarchy.getAllSuperClassesOf(this).contains(clazz)
+  }
+  
+  def isImplementerOf(typ: JawaType): Boolean = {
+    isImplementerOf(global.getClassOrResolve(typ))
+  }
+  
+  def isImplementerOf(clazz: JawaClass): Boolean = {
+    global.getClassHierarchy.getAllImplementersOf(clazz).contains(this)
   }
   
   /**

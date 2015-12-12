@@ -113,19 +113,10 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
             else c
         }
       }
+    addClassesNeedUpdateInHierarchy(clazz)
     resolveClassesRelationWholeProgram
     clazz
   }
-  
-  /**
-   * resolve the given classes to desired level. 
-   */
-//  def forceResolveClass(classType: ObjectType, desiredLevel: ResolveLevel.Value): JawaClass = {
-//    desiredLevel match{
-//      case ResolveLevel.BODY => forceResolveToBody(classType)
-//      case ResolveLevel.HIERARCHY => forceResolveToHierarchy(classType)
-//    }
-//  }
   
   protected[jawa] def getClassCode(file: AbstractFile, level: ResolveLevel.Value) : String = {
     var code: String = file.text

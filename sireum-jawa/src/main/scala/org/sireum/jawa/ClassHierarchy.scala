@@ -61,8 +61,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
       clazz =>
         if(clazz.isInterface){
           val imps = this.interfaceToImplememters.getOrElseUpdate(clazz, msetEmpty)
-          if(!imps.isEmpty)
-          imps ++= imps.map{getAllSubClassesOfIncluding(_)}.reduce((s1, s2) => s1 ++ s2)
+          imps ++= imps.map{getAllSubClassesOfIncluding(_)}.fold(isetEmpty)(_ ++ _)
         }
     }
     global.clearClassesNeedUpdateInHierarchy
@@ -184,9 +183,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
       isetEmpty
     } else {
       val ins = r.getInterfaces
-      if(!ins.isEmpty)
-        ins.map{getAllSuperInterfacesOf(_)}.reduce((s1, s2) => s1 ++ s2) ++ ins
-      else ins
+      ins.map{getAllSuperInterfacesOf(_)}.fold(isetEmpty)(_ ++ _) ++ ins
     }
   }
   
@@ -271,9 +268,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
       isetEmpty
     } else {
       val subI = getSubInterfacesOfIncluding(r)
-      if(!subI.isEmpty)
-      subI.map{getImplementersOf(_)}.reduce((s1, s2) => s1 ++ s2)
-      else isetEmpty
+      subI.map{getImplementersOf(_)}.fold(isetEmpty)(_ ++ _)
     }
   }
   
@@ -480,17 +475,7 @@ class ClassHierarchy(reporter: Reporter) extends JavaKnowledge {
         }
         if(results.isEmpty){
           val unknowntyp = r.getType.toUnknown
-          val unknownrec = r.global.getClass(unknowntyp) match {
-            case Some(c) => c
-            case None =>
-              val rec = new JawaClass(r.global, unknowntyp, "")
-              rec.setApplicationClass
-              rec.setUnknown
-              if(r.isInterface) rec.addInterface(r)
-              else if(r.isAbstract) rec.setSuperClass(r)
-              rec
-          }
-          
+          val unknownrec = r.global.getClassOrResolve(unknowntyp)
           val unknownSig = generateSignatureFromOwnerAndMethodSubSignature(unknownrec, pSubSig)
           val unknownMethod = unknownrec.getMethod(pSubSig) match {
             case Some(m) => m
