@@ -10,6 +10,7 @@ package org.sireum.jawa.util
 import java.io.InputStreamReader
 import java.io.BufferedReader
 import java.net.URLClassLoader
+import java.text.NumberFormat
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -33,5 +34,21 @@ object JVMUtil {
       line = br.readLine()
     }
     process.waitFor()
+  }
+  
+  def showMemoryUsage = {
+    val runtime = Runtime.getRuntime()
+    val format = NumberFormat.getInstance()
+    
+    val sb = new StringBuilder()
+    val maxMemory = runtime.maxMemory()
+    val allocatedMemory = runtime.totalMemory()
+    val freeMemory = runtime.freeMemory()
+    
+    sb.append("free memory: " + format.format(freeMemory / 1024 / 1024) + " ")
+    sb.append("allocated memory: " + format.format(allocatedMemory / 1024 / 1024) + " ")
+    sb.append("max memory: " + format.format(maxMemory / 1024 / 1024) + " ")
+    sb.append("total free memory: " + format.format((freeMemory + (maxMemory - allocatedMemory)) / 1024 / 1024) + " ")
+    println(sb.toString())
   }
 }
