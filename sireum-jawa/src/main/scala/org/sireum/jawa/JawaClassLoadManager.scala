@@ -265,10 +265,10 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     try{
       val rType = fieldFQN.owner
       val fName = fieldFQN.fieldName
-      if(!containsJawaClass(rType)) return None
-      val r = getClass(rType).get
-      if(!r.hasField(fName)) return None
-      r.getField(fName)
+      getClass(rType) match {
+        case Some(c) => c.getField(fName, fieldFQN.typ)
+        case None => None
+      }
     } catch {
       case t: Throwable => None
     }

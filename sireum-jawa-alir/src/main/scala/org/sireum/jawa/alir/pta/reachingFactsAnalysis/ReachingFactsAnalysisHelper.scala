@@ -685,7 +685,7 @@ object ReachingFactsAnalysisHelper {
     if(name == Constants.CONST_CLASS) ClassSlot(typ.get)
     else if(name.startsWith("@@")){
       val fqn = new FieldFQN(name.replace("@@", ""), typ.get)
-      global.getClassOrResolve(fqn.owner).getField(fqn.fieldName) match{
+      global.getClassOrResolve(fqn.owner).getField(fqn.fieldName, fqn.typ) match{
         case Some(af) =>
           StaticFieldSlot(af.FQN)
         case None =>

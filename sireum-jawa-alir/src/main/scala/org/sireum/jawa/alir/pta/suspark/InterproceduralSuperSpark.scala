@@ -23,6 +23,7 @@ import org.sireum.jawa.alir.controlFlowGraph.ICFGInvokeNode
 import org.sireum.jawa.alir.interProcedural.Callee
 import org.sireum.jawa.alir.interProcedural.InstanceCallee
 import org.sireum.jawa.alir.pta.InstanceSlot
+import org.sireum.jawa.alir.pta.FieldSlot
 
 
 /**
@@ -166,7 +167,6 @@ object InterproceduralSuperSpark {
               case pag.EdgeType.STATIC_FIELD_STORE => // e.g. @@r = q; Edge: q -> @@r
                 val dstNode = pag.successor(edge)
                 if(!pag.pointsToMap.contained(srcNode, dstNode)){
-                  pag.worklist += dstNode
                   pag.pointsToMap.propagatePointsToSet(srcNode, dstNode)
                 }
               case _ =>
@@ -196,6 +196,21 @@ object InterproceduralSuperSpark {
         edge =>
           pag.getEdgeType(edge) match{
             case pag.EdgeType.FIELD_LOAD => // p.f -> q
+              if(pag.pointsToMap.pointsToSet(edge.source).isEmpty) {
+                edge.source.point match {
+                  case fie: Point with Loc with Field =>
+                    fie.fqn.typ match {
+                      case obj if obj.isObject =>
+                        val ins = PTAInstance(obj.toUnknown, edge.source.context, false)
+                        edge.source.getSlots(pag.pointsToMap) foreach {
+                          slot =>
+                            pag.pointsToMap.addInstance(slot, pag.pointsToMap.heapContext, ins)
+                        }
+                      case _ =>
+                    }
+                  case _ =>
+                }
+              }
               if(pag.pointsToMap.isDiff(edge.source, edge.target)){
                 pag.worklist += edge.target
                 pag.pointsToMap.propagatePointsToSet(edge.source, edge.target)
@@ -206,6 +221,21 @@ object InterproceduralSuperSpark {
                 pag.pointsToMap.propagatePointsToSet(edge.source, edge.target)
               }
             case pag.EdgeType.STATIC_FIELD_LOAD => // e.g. q = @@p; Edge: @@p -> q
+              if(pag.pointsToMap.pointsToSet(edge.source).isEmpty) {
+                edge.source.point match {
+                  case fie: Point with Loc with Static_Field =>
+                    fie.staticFieldFQN.typ match {
+                      case obj if obj.isObject =>
+                        val ins = PTAInstance(obj.toUnknown, edge.source.context, false)
+                        edge.source.getSlots(pag.pointsToMap) foreach {
+                          slot =>
+                            pag.pointsToMap.addInstance(slot, pag.pointsToMap.heapContext, ins)
+                        }
+                      case _ =>
+                    }
+                  case _ =>
+                }
+              }
               if(pag.pointsToMap.isDiff(edge.source, edge.target)){
                 pag.worklist += edge.target
                 pag.pointsToMap.propagatePointsToSet(edge.source, edge.target)

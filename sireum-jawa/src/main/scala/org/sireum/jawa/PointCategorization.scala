@@ -58,7 +58,7 @@ trait Base{
  */
 trait Field{
   def baseP: Point with Base
-  def fieldName: String
+  def fqn: FieldFQN
 }
 
 /**

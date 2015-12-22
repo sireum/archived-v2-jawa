@@ -9,6 +9,7 @@ package org.sireum.jawa.alir.pta
 
 import org.sireum.util._
 import org.sireum.jawa.alir.Context
+import org.sireum.jawa.Signature
 
 object PTAResult {
   type PTSMap = IMap[PTASlot, ISet[Instance]]
@@ -70,7 +71,7 @@ class PTAResult {
     bValue ++ rhValue
   }
   
-  def getRelatedHeapInstances(insts : ISet[Instance], context : Context) : ISet[Instance] ={
+  def getRelatedHeapInstances(insts : ISet[Instance], context: Context) : ISet[Instance] ={
     val worklist : MList[Instance] = mlistEmpty ++ insts
     val processed : MSet[Instance] = msetEmpty
     val result : MSet[Instance] = msetEmpty

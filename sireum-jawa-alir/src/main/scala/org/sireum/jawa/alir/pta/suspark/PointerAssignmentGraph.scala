@@ -71,6 +71,9 @@ class PointsToMap extends PTAResult {
     }
   }
   
+  val heapContext: Context = new Context
+  heapContext.setContext(new Signature("LPAG;.heap:()V"), "heap")
+  
   /**
    * n1 -> n2 or n1.f -> n2 or n1[] -> n2, n1 -> n2.f, n1 -> n2[]
    */
@@ -79,9 +82,9 @@ class PointsToMap extends PTAResult {
       slot =>
         slot match {
           case arr: ArraySlot =>
-            addInstances(arr, n2.getContext, pointsToSet(n1))
+            addInstances(arr, heapContext, pointsToSet(n1))
           case fie: FieldSlot =>
-            addInstances(fie, n2.getContext, pointsToSet(n1))
+            addInstances(fie, heapContext, pointsToSet(n1))
           case _ =>
             setInstances(slot, n2.getContext, pointsToSet(n1))
         }
@@ -96,7 +99,11 @@ class PointsToMap extends PTAResult {
     if(!slots.isEmpty){
       slots.map {
         s =>
-          pointsToSet(s, n.getContext)
+          s match {
+            case arr: ArraySlot => pointsToSet(s, heapContext)
+            case fie: FieldSlot => pointsToSet(s, heapContext)
+            case _ => pointsToSet(s, n.getContext)
+          }
       }.reduce(iunion[Instance])
     } else isetEmpty
   }
@@ -693,7 +700,7 @@ final case class PtaNode(point: Point, context: Context) extends InterProcedural
         val pts = ptaresult.pointsToSet(VarSlot(fie.baseP.baseName, true, false), context)
         pts.map{
           ins =>
-            FieldSlot(ins, fie.fieldName)
+            FieldSlot(ins, fie.fqn.fieldName)
         }
       case bas: Point with Loc with Base =>
         Set(VarSlot(bas.baseName, true, false))

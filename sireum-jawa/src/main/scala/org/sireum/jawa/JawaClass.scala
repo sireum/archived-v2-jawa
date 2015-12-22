@@ -223,7 +223,7 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
   /**
    * get field from this class by the given name
    */
-  def getField(name: String): Option[JawaField] = {
+  def getField(name: String, typ: JawaType): Option[JawaField] = {
     if(!isValidFieldName(name)){
       global.reporter.error(NoPosition, "field name is not valid " + name)
       return None
@@ -233,9 +233,8 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
       case Some(f) => Some(f)
       case None => 
         if(isUnknown){
-          Some(JawaField(this, name, JAVA_TOPLEVEL_OBJECT_TYPE, AccessFlag.getAccessFlags("PUBLIC")))
+          Some(JawaField(this, name, typ, AccessFlag.getAccessFlags("PUBLIC")))
         } else {
-          println(this.fields)
           global.reporter.error(NoPosition, "No field " + name + " in class " + getName)
           None
         }

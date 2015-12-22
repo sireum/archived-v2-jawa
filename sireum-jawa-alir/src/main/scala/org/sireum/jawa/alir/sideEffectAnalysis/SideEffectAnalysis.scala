@@ -218,7 +218,7 @@ object SideEffectAnalysis {
             pa.lhs match{
               case pfl : PointFieldL =>
                 val varName = pfl.baseP.baseName
-                val fieldName = pfl.fieldName
+                val fieldName = pfl.fqn.fieldName
                 val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pfl.loc), pfl.locIndex)
                 if(position >= 0)
                 writeMap += (position -> (writeMap.getOrElse(position, Set()) + fieldName))
@@ -230,7 +230,7 @@ object SideEffectAnalysis {
             pa.rhs match{
               case pfr : PointFieldR =>
                 val varName = pfr.baseP.baseName
-                val fieldName = pfr.fieldName
+                val fieldName = pfr.fqn.fieldName
                 val position = findPositionFromRda(procedure, cfg, rda, varName, Some(pfr.loc), pfr.locIndex)
                 if(position >= 0)
                 readMap += (position -> (readMap.getOrElse(position, Set()) + fieldName))

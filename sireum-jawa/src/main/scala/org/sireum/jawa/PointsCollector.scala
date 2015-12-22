@@ -137,8 +137,7 @@ class PointsCollector {
           }
           val pBase = PointBaseL(baseName, loc, locIndex, ownerSig)
           val fqn = new FieldFQN(ae.attributeName.name, typ.get)
-          val fName = fqn.fieldName
-          val pfl = PointFieldL(pBase, fName, loc, locIndex, ownerSig)
+          val pfl = PointFieldL(pBase, fqn, loc, locIndex, ownerSig)
           pBase.setFieldPoint(pfl)
           pfl
         case _ => null
@@ -192,8 +191,7 @@ class PointsCollector {
           }
           val pBase = PointBaseR(baseName, loc, locIndex, ownerSig)
           val fqn = new FieldFQN(ae.attributeName.name, typ.get)
-          val fName = fqn.fieldName
-          val pfr = PointFieldR(pBase, fName, loc, locIndex, ownerSig)
+          val pfr = PointFieldR(pBase, fqn, loc, locIndex, ownerSig)
           pBase.setFieldPoint(pfr)
           pfr
         case ce: CastExp =>
@@ -409,12 +407,12 @@ final case class PointExceptionR(typ: JawaType, loc: ResourceUri, locIndex: Int,
 /**
  * Set of program points corresponding to l-value field access expressions. 
  */
-final case class PointFieldL(baseP: PointBaseL, fieldName: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Left with Field
+final case class PointFieldL(baseP: PointBaseL, fqn: FieldFQN, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Left with Field
 
 /**
  * Set of program points corresponding to R-value field access expressions. 
  */
-final case class PointFieldR(baseP: PointBaseR, fieldName: String, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with Field
+final case class PointFieldR(baseP: PointBaseR, fqn: FieldFQN, loc: ResourceUri, locIndex: Int, ownerSig: Signature) extends Point with Loc with Right with Field
 
 /**
  * Set of program points corresponding to l-value array variable. 
