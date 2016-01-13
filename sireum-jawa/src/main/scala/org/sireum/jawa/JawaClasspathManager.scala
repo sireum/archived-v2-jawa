@@ -33,7 +33,7 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
   def load(fileRootUri: FileResourceUri, ext: String, summary: LibraryAPISummary) = {
     val fileUris = FileUtil.listFiles(fileRootUri, ext, true)
     fileUris.foreach{
-      fileUri => 
+      fileUri =>
         val source = new FgSourceFile(new PlainFile(FileUtil.toFile(fileUri)))
         val codes = source.getClassCodes
         val classTypes: MSet[JawaType] = msetEmpty

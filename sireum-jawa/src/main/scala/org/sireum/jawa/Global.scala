@@ -18,14 +18,16 @@ class Global(val projectName: String, val reporter: Reporter) extends JawaClassL
   /**
    * reset the current Global
    */
-  def reset = {
+  def reset(removeCode: Boolean = true) = {
     this.classes.clear()
     this.applicationClasses.clear()
     this.systemLibraryClasses.clear()
     this.userLibraryClasses.clear()
     this.hierarchy.reset
-    this.applicationClassCodes.clear()
-    this.userLibraryClassCodes.clear()
+    if(removeCode) {
+      this.applicationClassCodes.clear()
+      this.userLibraryClassCodes.clear()
+    }
     this.cachedClassRepresentation.clear()
   }
   

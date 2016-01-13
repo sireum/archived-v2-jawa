@@ -469,7 +469,6 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
    */
   def getOuterClass: Option[JawaClass] = {
     if(!hasOuterClass){
-      global.reporter.error(NoPosition, "no outer class for: " + getName)
       None
     }
     else Some(this.outerClass)
