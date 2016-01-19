@@ -48,19 +48,21 @@ object APKFileResolver {
   /**
    * given an APK file uri, the following method returns the uri of the inner dex file
    */
-	def getDexFile(apkUri : FileResourceUri, outputUri : FileResourceUri) : FileResourceUri = {
+	def getDexFile(apkUri : FileResourceUri, outputUri : FileResourceUri, createFolder: Boolean) : FileResourceUri = {
     //create directory
 	  val apkFile = new File(new URI(apkUri))
     if(!isZipFile(apkFile)) throw new RuntimeException("File "+ apkFile.getAbsolutePath() + " is not a zip File!")
 	  val zipis = new ZipInputStream(new FileInputStream(apkFile))
     val dirName = apkFile.getName().substring(0, apkFile.getName().lastIndexOf("."))
-    val outputDir = new File(new URI(outputUri + "/" + dirName))
-    if(outputDir.exists()){
-      MyFileUtil.deleteDir(outputDir)
-    }
-	  if(!outputDir.mkdirs()){
-	    println("cannot create dir: " + outputDir)
-	  }
+    val outputDir = 
+      if(createFolder) FileUtil.toFile(FileUtil.toFilePath(outputUri) + File.separator + dirName)
+      else FileUtil.toFile(outputUri)
+//    if(outputDir.exists()){
+//      MyFileUtil.deleteDir(outputDir)
+//    }
+//	  if(!outputDir.mkdirs()){
+//	    println("cannot create dir: " + outputDir)
+//	  }
 	  val outputFile = new File(outputDir + "/" + dirName + ".dex")
 	  val ops = new FileOutputStream(outputFile)
     //resolve with apk file
