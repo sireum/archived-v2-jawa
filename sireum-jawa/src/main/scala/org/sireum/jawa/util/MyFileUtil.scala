@@ -119,4 +119,10 @@ object MyFileUtil {
     }
     result.toList
   }
+  
+  def appendFileName(baseUri: FileResourceUri, fileName: String): FileResourceUri = {
+    val basePath = FileUtil.toFilePath(baseUri)
+    val newPath = s"${basePath}${if(!basePath.endsWith(File.separator))File.separator else ""}${fileName}"
+    FileUtil.toUri(newPath)
+  }
 }
