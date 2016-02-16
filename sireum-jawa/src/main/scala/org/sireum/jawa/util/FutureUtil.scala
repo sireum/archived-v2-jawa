@@ -1,14 +1,20 @@
 package org.sireum.jawa.util
 
 import scala.concurrent._
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import java.util.concurrent.atomic.AtomicReference
 import scala.util.Try
 import scala.util.Failure
 
-object InterruptibleCancellableFuture {
+object FutureUtil {
+  def composeWaitingFuture[T](fut: Future[T], 
+                                    timeout: Int, default: T): Future[T] =
+  future { Await.result(fut, timeout seconds) } recover {
+    case e: Exception => default
+  }
   
   def cancellableFuture[T](fun: Future[T] => T)(implicit ex: ExecutionContext): (Future[T], () => Boolean) = {
- 
     val p = Promise[T]()
     val f = p.future
     val funFuture = Future(fun(f))

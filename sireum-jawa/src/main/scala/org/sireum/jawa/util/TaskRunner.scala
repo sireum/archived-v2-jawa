@@ -9,7 +9,7 @@ object TaskRunner {
   private final val TITLE = "TaskRunner"
   def execute[T](task : Task[T], timeoutOpt : Option[Int] = None) : Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
-    val (f, cancel) = InterruptibleCancellableFuture.interruptableFuture[T] { () =>
+    val (f, cancel) = FutureUtil.interruptableFuture[T] { () =>
       task.run
     }
     f.onComplete {
