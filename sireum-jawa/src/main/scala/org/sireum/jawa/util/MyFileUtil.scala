@@ -23,7 +23,7 @@ import java.io.IOException
  */ 
 object MyFileUtil {
   
-  def readFileContent(fileResourceUri : FileResourceUri) : String = {
+  def readFileContent(fileResourceUri: FileResourceUri): String = {
     val fr = new FileReader(new File(new URI(fileResourceUri)))
     try{
       val lnr = new LineNumberReader(fr)
@@ -38,17 +38,17 @@ object MyFileUtil {
     } finally fr.close
   }
   
-  def deleteDir(dir : File) : Boolean = {
+  def deleteDir(dir: File): Boolean = {
     if (dir.isDirectory()) {
        val children = dir.list()
        for (i <- 0 to children.length - 1) {
-      	 val success = deleteDir(new File(dir, children(i)));
+      	 val success = deleteDir(new File(dir, children(i)))
           if (!success) {
-             return false;
+             return false
           }
        }
     }
-    dir.delete();
+    dir.delete()
   }
   
 	/**
@@ -63,7 +63,7 @@ object MyFileUtil {
    * @throws URISyntaxException 
    * @throws IOException 
    */
-  def getResourceListing[C](clazz : Class[C], path : String, ext : String) : ISet[String] = {
+  def getResourceListing[C](clazz: Class[C], path: String, ext: String): ISet[String] = {
       var dirURL = clazz.getResource(path)
       if (dirURL != null && dirURL.getProtocol().equals("file")) {
         /* A file path: easy enough */
