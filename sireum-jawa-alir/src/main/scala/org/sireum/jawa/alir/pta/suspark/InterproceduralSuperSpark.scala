@@ -40,21 +40,18 @@ import org.sireum.jawa.alir.pta.FieldSlot
  */
 object InterproceduralSuperSpark {
   
-  def apply
-  (global: Global, 
-   entryPoints: ISet[JawaMethod],
-   timer: Option[MyTimer]): InterProceduralDataFlowGraph = build(global, entryPoints, timer)
+  def apply(
+      global: Global, 
+      entryPoints: ISet[Signature]): InterProceduralDataFlowGraph = build(global, entryPoints)
   
   type N = ICFGNode
   
-  def build //
-  (global: Global, 
-   entryPoints: ISet[JawaMethod],
-   timer: Option[MyTimer]) //
-   : InterProceduralDataFlowGraph = {
+  def build(
+      global: Global, 
+      entryPoints: ISet[Signature]): InterProceduralDataFlowGraph = {
     val pag = new PointerAssignmentGraph[PtaNode]()
     val icfg = new InterproceduralControlFlowGraph[N]
-    pta(global, pag, icfg, entryPoints, timer)
+    pta(global, pag, icfg, entryPoints)
     InterProceduralDataFlowGraph(icfg, pag.pointsToMap)
   }
   
@@ -62,11 +59,16 @@ object InterproceduralSuperSpark {
       global: Global,
       pag: PointerAssignmentGraph[PtaNode],
       icfg: InterproceduralControlFlowGraph[N],
-      entryPoints: Set[JawaMethod],
-      timer: Option[MyTimer]) = {
+      entryPoints: ISet[Signature]) = {
     entryPoints.foreach{
       ep =>
-        doPTA(global, ep, pag, icfg, timer)
+        val epmopt = global.getMethod(ep)
+        epmopt match {
+          case Some(epm) => 
+            doPTA(global, epm, pag, icfg)
+          case None =>
+        }
+        
     }
   }
   
@@ -74,13 +76,12 @@ object InterproceduralSuperSpark {
       global: Global,
       ep: JawaMethod,
       pag: PointerAssignmentGraph[PtaNode],
-      icfg: InterproceduralControlFlowGraph[N],
-      timer: Option[MyTimer]): Unit = {
+      icfg: InterproceduralControlFlowGraph[N]): Unit = {
     val points = new PointsCollector().points(ep.getSignature, ep.getBody)
     val context: Context = new Context
     pag.constructGraph(ep, points, context.copy, true)
     icfg.collectCfgToBaseGraph(ep, context.copy)
-    workListPropagation(global, pag, icfg, timer)
+    workListPropagation(global, pag, icfg)
   }
   
   private def processStaticInfo(global: Global, pag: PointerAssignmentGraph[PtaNode], icfg: InterproceduralControlFlowGraph[N]) = {
@@ -89,9 +90,11 @@ object InterproceduralSuperSpark {
     staticCallees.foreach{
       case (pi, callee, context) =>
         var bypassFlag = false
-        icfg.getCallGraph.addCall(pi.ownerSig, callee.callee.getSignature)
-        if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringClass)) {
-          extendGraphWithConstructGraph(callee, callee.pi, callee.node.getContext.copy, pag, icfg)
+        icfg.getCallGraph.addCall(pi.ownerSig, callee.callee)
+        val clazz = global.getClassOrResolve(callee.callee.getClassType)
+        if(!PTAScopeManager.shouldBypass(clazz)) {
+          val calleeProc = clazz.getMethod(callee.callee.getSubSignature).get
+          extendGraphWithConstructGraph(calleeProc, callee.pi, callee.node.getContext.copy, pag, icfg)
         } else {
           pag.handleModelCall(pi, context, callee)
           bypassFlag = true
@@ -106,15 +109,13 @@ object InterproceduralSuperSpark {
     }
   }
   
-  def workListPropagation(
+  private def workListPropagation(
       global: Global,
       pag: PointerAssignmentGraph[PtaNode],
-      icfg: InterproceduralControlFlowGraph[N],
-      timer: Option[MyTimer]): Unit = {
+      icfg: InterproceduralControlFlowGraph[N]): Unit = {
     processStaticInfo(global, pag, icfg)
     while (!pag.worklist.isEmpty) {
       while (!pag.worklist.isEmpty) {
-        if(timer.isDefined) timer.get.ifTimeoutThrow
         val srcNode = pag.worklist.remove(0)
         srcNode.point match {
           case pbr: PointBaseR => // e.g. q = ofbnr.f; edge is ofbnr.f -> q
@@ -276,9 +277,10 @@ object InterproceduralSuperSpark {
         var bypassflag = false
         calleeSet.foreach(
           callee => {
-            icfg.getCallGraph.addCall(pi.ownerSig, callee.callee.getSignature)
-            if(!PTAScopeManager.shouldBypass(callee.callee.getDeclaringClass) && callee.callee.isConcrete) {
-              extendGraphWithConstructGraph(callee, pi, callerContext.copy, pag, icfg)
+            icfg.getCallGraph.addCall(pi.ownerSig, callee.callee)
+            val calleeProc = global.getMethod(callee.callee)
+            if(calleeProc.isDefined && !PTAScopeManager.shouldBypass(calleeProc.get.getDeclaringClass) && calleeProc.get.isConcrete) {
+              extendGraphWithConstructGraph(calleeProc.get, pi, callerContext.copy, pag, icfg)
             } else {
               pag.handleModelCall(pi, callerContext, callee)
               bypassflag = true
@@ -298,19 +300,18 @@ object InterproceduralSuperSpark {
     }
   }
   
-  def extendGraphWithConstructGraph(callee: Callee, 
+  def extendGraphWithConstructGraph(calleeProc: JawaMethod, 
       pi: Point with Invoke, 
       callerContext: Context,
       pag: PointerAssignmentGraph[PtaNode], 
       icfg: InterproceduralControlFlowGraph[N]) = {
-    val calleeProc = callee.callee
     val calleeSig = calleeProc.getSignature
-    if(!pag.isProcessed(calleeProc, callerContext)){
-      val points = new PointsCollector().points(calleeProc.getSignature, calleeProc.getBody)
+    if(!pag.isProcessed(calleeSig, callerContext)){
+      val points = new PointsCollector().points(calleeSig, calleeProc.getBody)
       pag.constructGraph(calleeProc, points, callerContext.copy, false)
       icfg.collectCfgToBaseGraph(calleeProc, callerContext.copy)
     }
-    val methodPoint = pag.getPointMethod(calleeProc, callerContext)
+    val methodPoint = pag.getPointMethod(calleeSig, callerContext)
     require(methodPoint != null)
     pag.extendGraph(methodPoint, pi, callerContext.copy)
     val callersig = pi.ownerSig

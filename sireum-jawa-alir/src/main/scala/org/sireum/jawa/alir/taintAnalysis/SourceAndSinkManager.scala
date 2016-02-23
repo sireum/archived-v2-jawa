@@ -69,11 +69,11 @@ trait SourceAndSinkManager {
   }
   
   def getSourceAndSinkNode[N <: InterProceduralNode](node: N, ptaresult: PTAResult): (ISet[TaintSource[N]], ISet[TaintSink[N]])
-  def isSource(loc : LocationDecl, ptaresult : PTAResult) : Boolean
-  def isSource(calleeMethod : JawaMethod, callerMethod : JawaMethod, callerLoc : JumpLocation) : Boolean
-  def isSourceMethod(procedure : JawaMethod) : Boolean
-  def isSink(loc : LocationDecl, ptaresult : PTAResult) : Boolean
-  def isSink(procedure : JawaMethod) : Boolean
+  def isSource(loc: LocationDecl, ptaresult: PTAResult): Boolean
+  def isSource(calleeSig: Signature, callerSig: Signature, callerLoc: JumpLocation): Boolean
+  def isSourceMethod(procedureSig: Signature): Boolean
+  def isSink(loc: LocationDecl, ptaresult: PTAResult): Boolean
+  def isSink(procedureSig: Signature): Boolean
 }
 
 /**

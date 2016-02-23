@@ -43,7 +43,7 @@ abstract class MethodGenerator(global: Global) {
   /**
    * Map from class (i.e. container class) to list of callback method
    */
-  protected var callbackFunctions: Map[JawaType, Set[Signature]] = Map()
+  protected var callbackFunctions: IMap[JawaType, ISet[Signature]] = imapEmpty
   protected var conditionCounter: Int = 0
   protected var codeCounter: Int = 0
   protected val template = new STGroupFile("org/sireum/jawa/resources/pilarCodeGenerator/PilarCode.stg")
@@ -62,12 +62,12 @@ abstract class MethodGenerator(global: Global) {
   /**
    * Map of it's local variables
    */
-  protected var localVarsForClasses: Map[JawaType, String] = Map()
+  protected var localVarsForClasses: IMap[JawaType, String] = imapEmpty
 
   /**
    * Set of param's clazz name
    */
-  protected var paramClasses : Set[JawaType] = Set()
+  protected var paramClasses: ISet[JawaType] = isetEmpty
   
   /**
    * set the substituteClassMap
@@ -105,7 +105,7 @@ abstract class MethodGenerator(global: Global) {
    * class (activity, service, etc.) to the list of callback methods for that
    * element.
    */
-  def setCallbackFunctions(callbackFunctions: Map[JawaType, Set[Signature]]) {
+  def setCallbackFunctions(callbackFunctions: IMap[JawaType, ISet[Signature]]) {
     this.callbackFunctions = callbackFunctions
   }
   

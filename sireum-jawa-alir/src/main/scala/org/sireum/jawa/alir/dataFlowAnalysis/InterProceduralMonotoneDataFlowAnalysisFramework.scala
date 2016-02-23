@@ -25,7 +25,6 @@ import scala.util.control.Breaks._
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.SynchronizedMap
 import org.sireum.jawa.alir.Context
-import org.sireum.jawa.util.MyTimer
 import org.sireum.jawa.util.ASTUtil
 import org.sireum.jawa.Signature
 
@@ -95,13 +94,12 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
    ppr: PstProvider,
    iota : ISet[LatticeElement],
    initial : ISet[LatticeElement],
-   timer : Option[MyTimer] = None,
    switchAsOrderedMatch : Boolean = false,
    nl : Option[NodeListener] = None) : //
    InterProceduralMonotoneDataFlowAnalysisResult[LatticeElement] = {
     val flow = if (forward) icfg else icfg.reverse
     val startNode = flow.entryNode
-    build(icfg, forward, lub, rapid, par, gen, kill, callr, ppr, startNode, iota, initial, timer, switchAsOrderedMatch, nl)
+    build(icfg, forward, lub, rapid, par, gen, kill, callr, ppr, startNode, iota, initial, switchAsOrderedMatch, nl)
   }
   
   def build[LatticeElement] //
@@ -114,7 +112,6 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
    startNode: N,
    iota : ISet[LatticeElement],
    initial : ISet[LatticeElement],
-   timer : Option[MyTimer] = None,
    switchAsOrderedMatch : Boolean = false,
    nl : Option[NodeListener] = None) : //
    InterProceduralMonotoneDataFlowAnalysisResult[LatticeElement] = {
@@ -608,7 +605,6 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
     workList += startNode
     while(!workList.isEmpty){
 	    while (!workList.isEmpty) {
-        if(timer.isDefined) timer.get.ifTimeoutThrow
 	      if(false){
 	        val newworkList = workList.par.map{
 	          n =>

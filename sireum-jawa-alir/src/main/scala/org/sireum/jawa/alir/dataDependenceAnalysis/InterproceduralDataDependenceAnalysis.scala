@@ -160,7 +160,7 @@ object InterproceduralDataDependenceAnalysis {
               val idEntNs = iddg.getIDDGCallArgNodes(icfgN)
               targetNodes ++= idEntNs
               val irdaFacts = irdaResult(icfgN)
-              targetNodes ++= processVirtualBody(vn, ptaresult, irdaFacts, iddg)
+              targetNodes ++= processVirtualBody(global, vn, ptaresult, irdaFacts, iddg)
             case ln: IDDGNormalNode =>
               val icfgN = icfg.getICFGNormalNode(ln.getContext)
               val ownerProc = global.getMethod(ln.getOwner).get
@@ -192,6 +192,7 @@ object InterproceduralDataDependenceAnalysis {
   }
   
   def processVirtualBody(
+      global: Global,
       virtualBodyNode: IDDGVirtualBodyNode,
       ptaresult: PTAResult,
       irdaFacts: ISet[InterproceduralReachingDefinitionAnalysis.IRDFact], 
@@ -200,10 +201,10 @@ object InterproceduralDataDependenceAnalysis {
     val calleeSet = virtualBodyNode.getCalleeSet
     calleeSet.foreach{
       callee =>
-        val calleep = callee.callee
-        if(calleep.getDeclaringClass.isSystemLibraryClass || calleep.getDeclaringClass.isUserLibraryClass) {
+        val calleeSig = callee.callee
+        if(global.isSystemLibraryClasses(calleeSig.getClassType) || global.isUserLibraryClasses(calleeSig.getClassType)) {
           val sideEffectResult = 
-            if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleep.getSignature)
+            if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleeSig)
             else None
           for(i <- 0 to virtualBodyNode.argNames.size - 1) {
             val argSlot = VarSlot(virtualBodyNode.argNames(i), false, true)
@@ -222,7 +223,11 @@ object InterproceduralDataDependenceAnalysis {
                       argRelatedValue.foreach{ins => result += iddg.findDefSite(ins.defSite)}
                   }
               }
-            } else if(calleep.isConcrete) {
+            } else if({
+              val calleep = global.getMethod(calleeSig)
+              if(calleep.isDefined) calleep.get.isConcrete
+              else false
+            }) {
               val argRelatedValue = ptaresult.getRelatedHeapInstances(argInss, virtualBodyNode.getContext)
               argRelatedValue.foreach{
                 ins => 
@@ -404,10 +409,10 @@ object InterproceduralDataDependenceAnalysis {
             }
             calleeSet.foreach{
               callee =>
-                val calleep = callee.callee
-                if(calleep.getDeclaringClass.isSystemLibraryClass || calleep.getDeclaringClass.isUserLibraryClass) {
+                val calleeSig = callee.callee
+                if(global.isSystemLibraryClasses(calleeSig.getClassType) || global.isUserLibraryClasses(calleeSig.getClassType)) {
                   val sideEffectResult = 
-                    if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleep.getSignature)
+                    if(LibSideEffectProvider.isDefined) LibSideEffectProvider.ipsear.result(calleeSig)
                     else None
                   for(i <- 0 to argSlots.size - 1) {
                     val argSlot = argSlots(i)
@@ -427,7 +432,11 @@ object InterproceduralDataDependenceAnalysis {
                               argRelatedValue.foreach{ins => result += iddg.findDefSite(ins.defSite)}
                           }
                       }
-                    } else if(calleep.isConcrete) {
+                    } else if({
+                      val calleep = global.getMethod(calleeSig)
+                      if(calleep.isDefined) calleep.get.isConcrete
+                      else false
+                    }) {
                       val argRelatedValue = ptaresult.getRelatedHeapInstances(argValue, node.getContext)
                       argRelatedValue.foreach{ins => result += iddg.findDefSite(ins.defSite)}
                     }

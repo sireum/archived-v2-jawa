@@ -178,13 +178,13 @@ class PointerAssignmentGraph[Node <: PtaNode]
   private final val TITLE = "PointerAssignmentGraph"
   val pointsToMap = new PointsToMap
   
-  private val processed: MMap[(JawaMethod, Context), Point with Method] = new HashMap[(JawaMethod, Context), Point with Method] with SynchronizedMap[(JawaMethod, Context), Point with Method]
+  private val processed: MMap[(Signature, Context), Point with Method] = new HashMap[(Signature, Context), Point with Method] with SynchronizedMap[(Signature, Context), Point with Method]
   
-  def isProcessed(proc: JawaMethod, callerContext: Context): Boolean = processed.contains(proc, callerContext)
+  def isProcessed(proc: Signature, callerContext: Context): Boolean = processed.contains(proc, callerContext)
   
-  def getPointMethod(proc: JawaMethod, callerContext: Context): Point with Method =  processed(proc, callerContext)
+  def getPointMethod(proc: Signature, callerContext: Context): Point with Method =  processed(proc, callerContext)
   
-  def addProcessed(jp: JawaMethod, c: Context, ps: Set[Point]) = {
+  def addProcessed(jp: Signature, c: Context, ps: Set[Point]) = {
     ps.foreach{
       p =>
         if(p.isInstanceOf[Point with Method])
@@ -197,7 +197,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
   private val newNodes: MSet[Node] = msetEmpty
   private val newEdges: MSet[Edge] = msetEmpty
   
-  final case class PTACallee(callee: JawaMethod, pi: Point with Invoke, node: Node) extends Callee
+  final case class PTACallee(callee: Signature, pi: Point with Invoke, node: Node) extends Callee
   
   def processStaticCall(global: Global): ISet[(Point with Invoke, PTACallee, Context)] = {
     val staticCallees = msetEmpty[(Point with Invoke, PTACallee, Context)]
@@ -294,7 +294,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
    * node is added to the worklist.
    */
   def constructGraph(ap: JawaMethod, ps: Set[Point], callerContext: Context, entryPoint: Boolean) = {
-    addProcessed(ap, callerContext.copy, ps)
+    addProcessed(ap.getSignature, callerContext.copy, ps)
     ps.foreach{
       p =>
         newNodes ++= collectNodes(ap, p, callerContext.copy, entryPoint)
@@ -586,14 +586,14 @@ class PointerAssignmentGraph[Node <: PtaNode]
       diff: ISet[Instance],
       pi: Point with Invoke): ISet[InstanceCallee] = {
     CallHandler.getDirectCalleeMethod(global, pi.sig) match {
-      case Some(calleemethod) => diff.map(InstanceCallee(calleemethod, _))
+      case Some(calleemethod) => diff.map(InstanceCallee(calleemethod.getSignature, _))
       case None => isetEmpty
     }
   }
   
   def getStaticCallee(global: Global, pi: Point with Invoke): Option[StaticCallee] = {
     CallHandler.getStaticCalleeMethod(global, pi.sig) match {
-      case Some(callee) => Some(StaticCallee(callee))
+      case Some(callee) => Some(StaticCallee(callee.getSignature))
       case None => None
     }
   }
@@ -606,7 +606,7 @@ class PointerAssignmentGraph[Node <: PtaNode]
     diff.foreach{
       d =>
         val p = CallHandler.getSuperCalleeMethod(global, pi.sig)
-        calleeSet ++= p.map(InstanceCallee(_, d))
+        calleeSet ++= p.map(callee => InstanceCallee(callee.getSignature, d))
     }
     calleeSet.toSet
   }
@@ -622,10 +622,10 @@ class PointerAssignmentGraph[Node <: PtaNode]
         d match {
           case un if un.isUnknown => 
             val p = CallHandler.getUnknownVirtualCalleeMethods(global, un.typ, subSig)
-            calleeSet ++= p.map(InstanceCallee(_, d))
+            calleeSet ++= p.map(callee => InstanceCallee(callee.getSignature, d))
           case _ => 
             val p = CallHandler.getVirtualCalleeMethod(global, d.typ, subSig)
-            calleeSet ++= p.map(InstanceCallee(_, d))
+            calleeSet ++= p.map(callee => InstanceCallee(callee.getSignature, d))
         }
     }
     calleeSet.toSet

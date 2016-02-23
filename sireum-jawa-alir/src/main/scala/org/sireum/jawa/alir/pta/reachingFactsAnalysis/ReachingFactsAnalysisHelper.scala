@@ -124,29 +124,29 @@ object ReachingFactsAnalysisHelper {
           ins =>
             if(!ins.isNull)
               if(typ == "super"){
-                calleeSet ++= CallHandler.getSuperCalleeMethod(global, sig).map(InstanceCallee(_, ins))
+                calleeSet ++= CallHandler.getSuperCalleeMethod(global, sig).map(m => InstanceCallee(m.getSignature, ins))
               } else if(typ == "direct"){
-                calleeSet ++= CallHandler.getDirectCalleeMethod(global, sig).map(InstanceCallee(_, ins))
+                calleeSet ++= CallHandler.getDirectCalleeMethod(global, sig).map(m => InstanceCallee(m.getSignature, ins))
               } else {
                 if(ins.isUnknown){
                   val ps = CallHandler.getUnknownVirtualCalleeMethods(global, ins.typ, subSig)
-                  calleeSet ++= ps.map{p=> UnknownCallee(p)}
+                  calleeSet ++= ps.map{p=> UnknownCallee(p.getSignature)}
                 } else {
-                  CallHandler.getVirtualCalleeMethod(global, ins.typ, subSig).map(InstanceCallee(_, ins)) match {
+                  CallHandler.getVirtualCalleeMethod(global, ins.typ, subSig).map(m => InstanceCallee(m.getSignature, ins)) match {
                     case Some(c) => calleeSet += c
                     case None =>
                       val ps = CallHandler.getUnknownVirtualCalleeMethods(global, ins.typ, subSig)
-                      calleeSet ++= ps.map{p=> UnknownCallee(p)}
+                      calleeSet ++= ps.map{p=> UnknownCallee(p.getSignature)}
                   }
                 }
               }
         }
         if(recvValue.isEmpty) {
           val ps = CallHandler.getUnknownVirtualCalleeMethods(global, sig.getClassType.toUnknown, subSig)
-          calleeSet ++= ps.map{p=> UnknownCallee(p)}
+          calleeSet ++= ps.map{p=> UnknownCallee(p.getSignature)}
         }
       case "static" =>
-        calleeSet ++= CallHandler.getStaticCalleeMethod(global, sig).map(StaticCallee(_))
+        calleeSet ++= CallHandler.getStaticCalleeMethod(global, sig).map(m => StaticCallee(m.getSignature))
       case _ => 
     }
     calleeSet.toSet

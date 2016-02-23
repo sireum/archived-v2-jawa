@@ -139,7 +139,7 @@ class CallGraph {
                 icfg.deleteEdge(pred, rn)
               }
           }
-          val calleeSigs = cn.getCalleeSet.map(_.callee.getSignature)
+          val calleeSigs = cn.getCalleeSet.map(_.callee)
           val hasCallees = icfg.successors(cn).filter { x => x.isInstanceOf[ICFGEntryNode] }.map {
             succ =>
               succ.asInstanceOf[ICFGEntryNode].getOwner
