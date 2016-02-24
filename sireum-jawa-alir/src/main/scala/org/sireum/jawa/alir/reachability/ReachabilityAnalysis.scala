@@ -21,7 +21,6 @@ import org.sireum.jawa.alir.pta.suspark.PointerAssignmentGraph
 import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
 import org.sireum.jawa.alir.pta.suspark.PtaNode
 import org.sireum.jawa.alir.pta.suspark.InterproceduralSuperSpark
-import org.sireum.jawa.util.MyTimer
 import org.sireum.jawa.Global
 import org.sireum.util.ISet
 import org.sireum.jawa.Signature

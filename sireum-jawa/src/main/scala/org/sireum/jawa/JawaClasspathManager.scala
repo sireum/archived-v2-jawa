@@ -28,6 +28,9 @@ import org.sireum.jawa.io.PlainFile
 import org.sireum.jawa.io.SourceFile
 import org.sireum.jawa.sourcefile.SourcefileParser
 import org.sireum.jawa.classfile.ClassfileParser
+import com.google.common.cache.LoadingCache
+import com.google.common.cache.CacheBuilder
+import com.google.common.cache.CacheLoader
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -95,7 +98,10 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
 
   private var javaLibrary: String = ""
   
-  def setJavaLib(path: String) = javaLibrary = path
+  def setJavaLib(path: String) = {
+    cachedClassRepresentation.invalidateAll()
+    javaLibrary = path
+  }
   
   protected class GlobalPlatform extends {
     val global: this.type = this
@@ -119,21 +125,18 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
 
   private def flatClassPath: FlatClasspath = platform.flatClassPath
   
-  protected val cachedClassRepresentation: MMap[JawaType, ClassRepresentation] = mmapEmpty
+  protected val cachedClassRepresentation: LoadingCache[JawaType, Option[ClassRepresentation]] = CacheBuilder.newBuilder()
+    .maximumSize(100).build(
+        new CacheLoader[JawaType, Option[ClassRepresentation]]() {
+          def load(typ: JawaType): Option[ClassRepresentation] = {
+            classPath.findClass(typ.name)
+          }
+        })
   
   def containsClassFile(typ: JawaType): Boolean = {
     this.applicationClassCodes.contains(typ) ||
     this.userLibraryClassCodes.contains(typ) ||
-    cachedClassRepresentation.contains(typ)  ||
-    {
-      classPath.findClass(typ.name) match {
-        case Some(c) =>
-          cachedClassRepresentation(typ) = c
-          true
-        case None =>
-          false
-      }
-    }
+    cachedClassRepresentation.get(typ).isDefined
   }
   
   /**
@@ -173,30 +176,14 @@ trait JawaClasspathManager extends JavaKnowledge { self: Global =>
               case Some(cs) =>
                 ClassfileParser.parse(cs.binary.get).get(typ)
               case None =>
-                classPath.findClass(typ.name) match {
-                  case Some(c) =>
-                    cachedClassRepresentation(typ) = c
-                    ClassfileParser.parse(c.binary.get).get(typ)
-                  case None =>
-                    None
-                }
+                None
             }
         }
     }
   }
   
   def getClassRepresentation(typ: JawaType): Option[ClassRepresentation] = {
-    this.cachedClassRepresentation.get(typ) match {
-      case None =>
-        classPath.findClass(typ.name) match {
-          case Some(c) =>
-            cachedClassRepresentation(typ) = c
-            Some(c)
-          case None =>
-            None
-        }
-      case a => a
-    }
+    this.cachedClassRepresentation.get(typ)
   }
   
   protected[jawa] def processClassRepresentation(cr: ClassRepresentation) = {

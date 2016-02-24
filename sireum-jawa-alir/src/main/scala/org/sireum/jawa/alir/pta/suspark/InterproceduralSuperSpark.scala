@@ -25,7 +25,6 @@ import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
 import org.sireum.jawa.alir.util.CallHandler
 import org.sireum.jawa.alir.pta.PTAScopeManager
 import org.sireum.jawa.alir.pta.PTAInstance
-import org.sireum.jawa.util.MyTimer
 import org.sireum.jawa.alir.pta.Instance
 import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralDataFlowGraph
 import org.sireum.jawa.alir.controlFlowGraph.ICFGInvokeNode

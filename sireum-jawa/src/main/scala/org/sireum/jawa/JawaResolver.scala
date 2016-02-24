@@ -51,7 +51,7 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
     val st = getSymbolResolveResult(Set(code))
     val v = new MySTVisitor
     val ms = v.resolveMethodOnly(st.asInstanceOf[SymbolTableProducer], ResolveLevel.BODY)
-    val clazz = getClass(sig.getClassType) match {
+    val clazz = getClazz(sig.getClassType) match {
       case Some(c) => c
       case None => resolveToBody(sig.getClassType)
     }
@@ -95,7 +95,7 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
       if(!classType.isArray && !containsClassFile(classType)) {
         if(!allowUnknown) throw JawaResolverError("Does not find class " + classType + " and don't allow unknown.")
         if(desiredLevel >= ResolveLevel.BODY) throw JawaResolverError("Does not allow unknown class " + classType + " resolve to body level.")
-        getClass(classType) match {
+        getClazz(classType) match {
           case None =>
             val rec = new JawaClass(this, classType, "")
             rec.setUnknown
@@ -111,7 +111,7 @@ trait JawaResolver extends JavaKnowledge { self: Global =>
             c
         }
       } else {
-        getClass(classType) match {
+        getClazz(classType) match {
           case None =>
             desiredLevel match{
               case ResolveLevel.BODY => forceResolveToBody(classType)

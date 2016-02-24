@@ -20,6 +20,10 @@ import org.sireum.util._
 import org.sireum.jawa.io.NoPosition
 import org.sireum.jawa.io.SourceFile
 import org.sireum.jawa.io.AbstractFile
+import com.google.common.cache.LoadingCache
+import com.google.common.cache.CacheBuilder
+import com.google.common.cache.CacheLoader
+import com.google.common.cache.Cache
 
 trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Global =>
   private final val TITLE = "JawaClassLoadManager"
@@ -55,11 +59,6 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
         }
     }
   }
-  
-  /**
-   * set of entry points of the current Global
-   */
-//  protected val entryPoints: MSet[JawaMethod] = msetEmpty
   
   /**
    * class hierarchy of all classes in the current Global
@@ -121,31 +120,43 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   }
   
   /**
-   * has class
-   */
-  def hasClass(typ: JawaType) = this.classes.contains(typ)
-  
-  /**
    * get classes
    */
   def getClasses: ISet[JawaClass] = this.classes.values.toSet
   
+  protected val classCache: LoadingCache[JawaType, JawaClass] = CacheBuilder.newBuilder()
+    .maximumSize(100).build(
+        new CacheLoader[JawaType, JawaClass]() {
+          def load(typ: JawaType): JawaClass = {
+            classes.get(typ) match {
+              case Some(c) => c
+              case None =>
+                resolveToHierarchy(typ)
+            }
+          }
+        })
+        
+  protected val methodCache: Cache[Signature, JawaMethod] = CacheBuilder.newBuilder()
+    .maximumSize(50).build()
+  
   /**
    * get class by type; if it does not exist, return None
    */
-  def getClass(typ: JawaType): Option[JawaClass] = {
-    this.classes.get(typ)
+  def getClazz(typ: JawaType): Option[JawaClass] = {
+    Option(classCache.getIfPresent(typ)) match {
+      case a @ Some(c) => a
+      case None =>
+        val c = this.classes.get(typ)
+        if(c.isDefined) classCache.put(typ, c.get)
+        c
+    }
   }
   
   /**
    * get class by type, if not present resolve it, if it still not exist, return None
    */
   def getClassOrResolve(typ: JawaType): JawaClass = {
-    getClass(typ) match {
-      case None =>
-        resolveToHierarchy(typ)
-      case Some(a) => a
-    }
+    classCache.get(typ)
   }
   
   def tryLoadClass(typ: JawaType): Option[JawaClass] = {
@@ -215,7 +226,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    * add class into Global
    */
   def addClass(ar: JawaClass) = {
-    if(containsClass(ar) && getClass(ar.typ).get.getResolvingLevel >= ar.getResolvingLevel) 
+    if(containsClass(ar.getType) && getClazz(ar.typ).get.getResolvingLevel >= ar.getResolvingLevel) 
       reporter.error(TITLE, "duplicate class: " + ar.getName)
     else {
       addClassInternal(ar)
@@ -224,38 +235,35 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   }
   
   protected[jawa] def addClassInternal(ar: JawaClass) = {
-    if(containsClass(ar) && getClass(ar.typ).get.getResolvingLevel >= ar.getResolvingLevel) 
-      reporter.warning(TITLE, "duplicate class: " + ar.getName)
-    else {
-      this.classes(ar.getType) = ar
-      if(ar.isArray){
-        ar.setSystemLibraryClass
-      } else if (containsClassFile(ar.getType)){
-        getClassCategoryFromClassPath(ar.getType) match {
-          case ClassCategory.APPLICATION => ar.setApplicationClass
-          case ClassCategory.USER_LIBRARY => ar.setUserLibraryClass
-          case ClassCategory.SYSTEM_LIBRARY => ar.setSystemLibraryClass
+    getClazz(ar.typ) match {
+      case Some(c) =>
+        if(c.getResolvingLevel >= ar.getResolvingLevel) 
+          reporter.warning(TITLE, "duplicate class: " + ar.getName)
+      case None =>
+        this.classes(ar.getType) = ar
+        if(ar.isArray){
+          ar.setSystemLibraryClass
+        } else if (containsClassFile(ar.getType)){
+          getClassCategoryFromClassPath(ar.getType) match {
+            case ClassCategory.APPLICATION => ar.setApplicationClass
+            case ClassCategory.USER_LIBRARY => ar.setUserLibraryClass
+            case ClassCategory.SYSTEM_LIBRARY => ar.setSystemLibraryClass
+          }
+        } else {
+          ar.setSystemLibraryClass
         }
-      } else {
-        ar.setSystemLibraryClass
-      }
     }
-  }
-  
-  def removeClass(typ: JawaType): Unit = {
-    getClass(typ) foreach{removeClass(_)}
   }
   
   /**
    * remove class from Global
    */
-  def removeClass(ar: JawaClass): Unit = {
-    if(!containsClass(ar)) reporter.error(TITLE, "does not exist in Global: " + ar.getName)
-    else {
-      this.classes -= ar.getType
-      if(ar.isSystemLibraryClass) this.systemLibraryClasses -= ar.getType
-      else if(ar.isUserLibraryClass) this.userLibraryClasses -= ar.getType
-      else if(ar.isApplicationClass) this.applicationClasses -= ar.getType
+  def removeClass(typ: JawaType): Unit = {
+    if(containsClass(typ)) {
+      this.classes -= typ
+      if(isSystemLibraryClasses(typ)) this.systemLibraryClasses -= typ
+      else if(isUserLibraryClasses(typ)) this.userLibraryClasses -= typ
+      else if(isApplicationClasses(typ)) this.applicationClasses -= typ
       modifyHierarchy
     }
   }
@@ -267,12 +275,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
   /**
    * current Global contains the given class or not
    */
-  def containsClass(ar: JawaClass) = this.classes.contains(ar.typ)
-  
-  /**
-   * current Global contains the given class or not
-   */
-  def containsJawaClass(typ: JawaType) = this.classes.contains(typ)
+  def containsClass(typ: JawaType) = this.classes.contains(typ)
   
   /**
    * grab field from Global. Input example is java.lang.Throwable.stackState
@@ -281,7 +284,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     try{
       val rType = fieldFQN.owner
       val fName = fieldFQN.fieldName
-      getClass(rType) match {
+      getClazz(rType) match {
         case Some(c) => c.getField(fName, fieldFQN.typ)
         case None => None
       }
@@ -299,11 +302,19 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    * get procedure from Global. Input example is Ljava/lang/Object;.equals:(Ljava/lang/Object;)Z
    */
   def getMethod(signature: Signature): Option[JawaMethod] = {
-    val rType = signature.getClassType
-    val subSig = signature.getSubSignature
-    if(!containsJawaClass(rType)) return None
-    val r = getClass(rType).get
-    r.getMethod(subSig)
+    Option(methodCache.getIfPresent(signature)) match {
+      case a @ Some(m) => a
+      case None =>
+        val rType = signature.getClassType
+        val subSig = signature.getSubSignature
+        getClazz(rType) match {
+          case Some(c) => 
+            val m = c.getMethod(subSig)
+            if(m.isDefined) methodCache.put(signature, m.get)
+            m
+          case None => None
+        }
+    }
   }
   
   /**
@@ -409,7 +420,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
       addClassesNeedUpdateInHierarchy(clazz)
       this.needToResolveOuterClass.get(clazz) match{
         case Some(o) =>
-          getClass(o) match{
+          getClazz(o) match{
             case Some(outer) =>
               this.needToResolveOuterClass -= clazz
               clazz.setOuterClass(outer)
@@ -429,7 +440,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
       }
       this.needToResolveExtends.getOrElse(clazz, msetEmpty).foreach{
         parType =>
-          getClass(parType) match{
+          getClazz(parType) match{
             case Some(parent) =>
               this.needToResolveExtends -= clazz
               if(parent.isInterface) clazz.addInterface(parent)
@@ -453,11 +464,11 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
       worklist ++= needToResolveExtends.keySet ++ needToResolveOuterClass.keySet
     }
       
-    getClasses.foreach{
+    getClasses.foreach {
       rec =>
         if(!rec.hasSuperClass && rec.getName != JAVA_TOPLEVEL_OBJECT){
-          if(!hasClass(JAVA_TOPLEVEL_OBJECT_TYPE)) resolveToHierarchy(JAVA_TOPLEVEL_OBJECT_TYPE)
-          rec.setSuperClass(getClass(JAVA_TOPLEVEL_OBJECT_TYPE).get)
+          val obj = getClassOrResolve(JAVA_TOPLEVEL_OBJECT_TYPE)
+          rec.setSuperClass(obj)
         }
     }
     this.dirty = !checkClassLoadingStatus
