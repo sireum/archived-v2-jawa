@@ -40,6 +40,7 @@ import org.sireum.jawa.alir.callGraph.CallGraph
 import org.jgrapht.ext.EdgeNameProvider
 import org.sireum.jawa.Signature
 import org.sireum.jawa.util.ASTUtil
+import org.sireum.jawa.Global
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -470,12 +471,16 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     targetNode
   }
   
-  def toApiGraph: InterproceduralControlFlowGraph[Node] = {
+  def toApiGraph(global: Global): InterproceduralControlFlowGraph[Node] = {
     val ns = nodes filter{
       n =>
         n match{
           case cn: ICFGCallNode =>
-            cn.getCalleeSet.exists { c => !c.callee.getDeclaringClass.isSystemLibraryClass }
+            cn.getCalleeSet.exists {
+              c => 
+                val clazz = global.getClassOrResolve(c.callee.getClassType)
+                !clazz.isSystemLibraryClass
+            }
           case _ => true
         }
     }

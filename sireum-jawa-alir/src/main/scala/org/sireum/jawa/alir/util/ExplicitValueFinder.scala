@@ -29,13 +29,13 @@ import org.sireum.alir.LocDefDesc
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 object ExplicitValueFinder {
-	def findExplicitIntValueForArgs(procedure : JawaMethod, loc : JumpLocation, argNum : Int) : ISet[Int] = {
+	def findExplicitIntValueForArgs(procedure: JawaMethod, loc: JumpLocation, argNum: Int): ISet[Int] = {
 	  loc.jump match{
-	    case t : CallJump if t.jump.isEmpty =>
+	    case t: CallJump if t.jump.isEmpty =>
 	      val cfg = JawaAlirInfoProvider.getCfg(procedure)
 		    val rda = JawaAlirInfoProvider.getRda(procedure, cfg)
 		    val params = t.callExp.arg match {
-		      case te : TupleExp =>
+		      case te: TupleExp =>
 		        te.exps.map{exp=>exp.asInstanceOf[NameExp].name.name}
 		      case a =>
 		        throw new RuntimeException("wrong call exp type: " + a)
@@ -45,14 +45,14 @@ object ExplicitValueFinder {
 	  }
 	}
 	
-	def traverseRdaToFindIntger(procedure : JawaMethod, varName : String, loc : LocationDecl, cfg : ControlFlowGraph[String], rda : ReachingDefinitionAnalysis.Result, resolvedStack : ISet[(org.sireum.alir.Slot, org.sireum.alir.DefDesc)] = isetEmpty) : ISet[Int] = {
+	def traverseRdaToFindIntger(procedure: JawaMethod, varName: String, loc: LocationDecl, cfg: ControlFlowGraph[String], rda: ReachingDefinitionAnalysis.Result, resolvedStack: ISet[(org.sireum.alir.Slot, org.sireum.alir.DefDesc)] = isetEmpty): ISet[Int] = {
 	  val slots = rda.entrySet(cfg.getNode(Some(loc.name.get.uri), loc.index)) -- resolvedStack
-    var nums : ISet[Int] = isetEmpty
+    var nums: ISet[Int] = isetEmpty
     slots.foreach{
       case(slot, defDesc) =>
         if(varName.equals(slot.toString())){
           defDesc match {
-            case ldd : LocDefDesc => 
+            case ldd: LocDefDesc => 
               val locDecl = procedure.getBody.location(ldd.locIndex)
               findIntegerFromLocationDecl(varName, locDecl) match{
                 case Left(num) => nums += num
@@ -65,16 +65,16 @@ object ExplicitValueFinder {
     nums
 	}
 	
-	private def findIntegerFromLocationDecl(varName : String, locDecl : LocationDecl) : Either[Int, String] = {
-	  var result : Either[Int, String] = Right(varName)
+	private def findIntegerFromLocationDecl(varName: String, locDecl: LocationDecl): Either[Int, String] = {
+	  var result: Either[Int, String] = Right(varName)
 	  locDecl match{
-	    case aLoc : ActionLocation =>
+	    case aLoc: ActionLocation =>
 	      aLoc.action match{
-	        case assignAction : AssignAction =>
+	        case assignAction: AssignAction =>
 	          assignAction.rhs match{
-	            case lExp : LiteralExp =>
+	            case lExp: LiteralExp =>
 	              if(lExp.typ == LiteralType.INT) result = Left(lExp.literal.asInstanceOf[Int])
-	            case ne : NameExp =>
+	            case ne: NameExp =>
 	              result = Right(ne.name.name)
 	            case a =>
 	          }
@@ -86,25 +86,25 @@ object ExplicitValueFinder {
 	}
 	
 	
-	def findExplicitStringValueForArgs(procedure : JawaMethod, loc : JumpLocation, argNum : Int) : ISet[String] = {
+	def findExplicitStringValueForArgs(procedure: JawaMethod, loc: JumpLocation, argNum: Int): ISet[String] = {
 	  loc.jump match{
-	    case t : CallJump if t.jump.isEmpty =>
+	    case t: CallJump if t.jump.isEmpty =>
 	      val cfg = JawaAlirInfoProvider.getCfg(procedure)
 		    val rda = JawaAlirInfoProvider.getRda(procedure, cfg)
 		    val slots = rda.entrySet(cfg.getNode(Some(loc.name.get.uri), loc.index))
 		    val params = t.callExp.arg match {
-		      case te : TupleExp =>
+		      case te: TupleExp =>
 		        te.exps.map{exp=>exp.asInstanceOf[NameExp].name.name}
 		      case a =>
 		        throw new RuntimeException("wrong call exp type: " + a)
 		    }
-	      var strs : ISet[String] = isetEmpty
+	      var strs: ISet[String] = isetEmpty
 		    slots.foreach{
 		      case(slot, defDesc) =>
 		        val varName = params(argNum)
 		        if(varName.equals(slot.toString())){
 		          defDesc match {
-		            case ldd : LocDefDesc => 
+		            case ldd: LocDefDesc => 
 		              val node = cfg.getNode(ldd.locUri, ldd.locIndex)
 		              val locDecl = procedure.getBody.location(ldd.locIndex)
 		              getStringFromLocationDecl(locDecl) match{
@@ -121,13 +121,13 @@ object ExplicitValueFinder {
 	  
 	}
 	
-	def getStringFromLocationDecl(locDecl : LocationDecl) : Option[String] = {
+	def getStringFromLocationDecl(locDecl: LocationDecl): Option[String] = {
 	  locDecl match{
-	    case aLoc : ActionLocation =>
+	    case aLoc: ActionLocation =>
 	      aLoc.action match{
-	        case assignAction : AssignAction =>
+	        case assignAction: AssignAction =>
 	          assignAction.rhs match{
-	            case lExp : LiteralExp =>
+	            case lExp: LiteralExp =>
 	              if(lExp.typ == LiteralType.STRING) return Some(lExp.text)
 	            case _ =>
 	          }

@@ -243,7 +243,7 @@ case class JawaMethod(declaringClass: JawaClass,
    */
   def addExceptionHandler(excName: String, fromTarget: String, toTarget: String, jumpTo: String) = {
     val recType: JawaType = getTypeFromName(excName)
-    val exc: JawaClass = getDeclaringClass.global.getClass(recType) match {
+    val exc: JawaClass = getDeclaringClass.global.getClazz(recType) match {
       case Some(c) => c
       case None =>
         JawaClass(getDeclaringClass.global, recType, 0)

@@ -37,9 +37,14 @@ object Signature extends JavaKnowledge {
  */
 case class Signature(classTyp: JawaType, methodName: String, proto: String) extends JavaKnowledge {
   
-  def this(sig: String) = this(Signature.getClassTyp(sig), Signature.getMethodName(sig), Signature.getProto(sig))
+  override def hashCode: Int = signature.hashCode
   
-  def signature: String = formatTypeToSignature(classTyp) + "." + methodName + ":" + proto
+  def this(sig: String) = this(Signature.getClassTyp(sig), Signature.getMethodName(sig), Signature.getProto(sig))
+  private var _signature: String = null
+  def signature: String = {
+    if(_signature == null) _signature = formatTypeToSignature(classTyp) + "." + methodName + ":" + proto
+    _signature
+  }
   
   def FQMN: String = {
     val sb = new StringBuilder

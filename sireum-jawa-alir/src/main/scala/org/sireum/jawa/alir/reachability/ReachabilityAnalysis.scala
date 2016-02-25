@@ -21,9 +21,9 @@ import org.sireum.jawa.alir.pta.suspark.PointerAssignmentGraph
 import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
 import org.sireum.jawa.alir.pta.suspark.PtaNode
 import org.sireum.jawa.alir.pta.suspark.InterproceduralSuperSpark
-import org.sireum.jawa.util.MyTimer
 import org.sireum.jawa.Global
 import org.sireum.util.ISet
+import org.sireum.jawa.Signature
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -36,9 +36,9 @@ object ReachabilityAnalysis {
    * @param wholeProgram Building call graph in whole program mode or not
    * @return Set of reachable procedure resource uris from initial set
    */
-  def getReachableMethods(global: Global, procedures: ISet[JawaMethod], timer: Option[MyTimer] = None): Set[JawaMethod] = {
-    val idfg = InterproceduralSuperSpark(global, procedures, timer)
-    idfg.icfg.getCallGraph.getReachableMethods(procedures.map(_.getSignature)).map(global.getMethod(_).get)
+  def getReachableMethods(global: Global, procedures: ISet[Signature]): ISet[Signature] = {
+    val idfg = InterproceduralSuperSpark(global, procedures)
+    idfg.icfg.getCallGraph.getReachableMethods(procedures)
   }
 
 //def getReachableMethodsBySBCG(procedures: Set[JawaMethod], wholeProcs: Set[JawaMethod], par: Boolean): Set[JawaMethod] = {

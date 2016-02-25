@@ -44,7 +44,9 @@ class Global(val projectName: String, val reporter: Reporter) extends JawaClassL
       this.applicationClassCodes.clear()
       this.userLibraryClassCodes.clear()
     }
-    this.cachedClassRepresentation.clear()
+    this.cachedClassRepresentation.invalidateAll()
+    this.classCache.invalidateAll()
+    this.methodCache.invalidateAll()
   }
   
 }

@@ -42,6 +42,7 @@ final case class JawaBaseType(pkg: Option[JawaPackage], name: String, unknown: B
   }
   def toUnknown: JawaBaseType = JawaBaseType(pkg, name, true)
   def removeUnknown: JawaBaseType = JawaBaseType(pkg, name, false)
+  override def hashCode: Int = (pkg, name).hashCode
   override def toString: String = typ
 }
 
@@ -111,72 +112,12 @@ case class JawaType(baseType: JawaBaseType, dimensions: Int) extends JavaKnowled
     result.toList
   }
   
+  override def hashCode: Int = {
+    (baseType, dimensions).hashCode
+  }
   override def toString: String = {
     name
   }
 }
-
-//final case class PrimitiveType(typ: String) extends JawaType {
-//  require(isJavaPrimitive(this))
-//  def name: String = typ
-//  def pkg: JawaPackage = null
-//  def simpleName: String = name
-//  def jawaName: String = name
-//  def canonicalName: String = name
-//  def dimensions: Int = 0
-//  def isArray: Boolean = false
-//}
-//
-///**
-// * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
-// * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
-// */ 
-//final case class ObjectType(pkgAndTyp: (JawaPackage, String), dimensions: Int) extends JawaType {
-//  def this(pkg: JawaPackage, typ: String) = this((pkg, typ), 0)
-//  def this(pkgAndTyp: String, dimensions: Int) = this(JavaKnowledge.separatePkgAndTyp(pkgAndTyp), dimensions)
-//  def this(pkgAndTyp: String) = this(pkgAndTyp, 0)
-//  def pkg = if(dimensions > 0) null else pkgAndTyp._1
-//  def package
-//  def typ = pkgAndTyp._2
-//  require(!isJavaPrimitive(typ) || dimensions != 0)
-//  def isArray = dimensions > 0
-//  def name: String = formatObjectTypeToObjectName(this)
-//  def simpleName: String = {
-//    var res = canonicalName.substring(canonicalName.lastIndexOf(".") + 1)
-//    res
-//  }
-//  def jawaName: String = {
-//    val base = typ
-//    assign(base, dimensions, "[]", false)
-//  }
-//  def canonicalName: String = {
-//    val base = typ.replaceAll("\\$", ".")
-//    assign(base, dimensions, "[]", false)
-//  }
-//
-//  def toUnknown: ObjectType = ObjectType((pkg, typ + "*"), dimensions)
-//  /**
-//   * The result looks like:
-//   * input: java.lang.wfg.W$F$G$H
-//   * output: List(java.lang.wfg.W$F$G, java.lang.wfg.W$F, java.lang.wfg.W)
-//   */
-//  def getEnclosingTypes: List[ObjectType] = {
-//    val result: MList[ObjectType] = mlistEmpty
-//    if(isArray) return result.toList
-//    else if(typ.contains("$")){
-//      var outer = typ.substring(0, typ.lastIndexOf("$"))
-//      while(outer.contains("$")) {
-//        result += ObjectType((pkg, outer), 0)
-//        outer = outer.substring(0, outer.lastIndexOf("$"))
-//      } 
-//      result += ObjectType((pkg, outer), 0)
-//    }
-//    result.toList
-//  }
-//  
-//  override def toString: String = {
-//    name
-//  }
-//}
 
 case class InvalidTypeException(msg: String) extends RuntimeException(msg)

@@ -17,30 +17,30 @@
 package org.sireum.jawa.alir.interProcedural
 
 import org.sireum.jawa.alir.pta.Instance
-import org.sireum.jawa.JawaMethod
+import org.sireum.jawa.Signature
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 abstract class Callee {
-  def callee : JawaMethod
+  def callee: Signature
 }
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class InstanceCallee(callee : JawaMethod, ins : Instance) extends Callee
+final case class InstanceCallee(callee: Signature, ins: Instance) extends Callee
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class UnknownCallee(callee : JawaMethod) extends Callee
+final case class UnknownCallee(callee: Signature) extends Callee
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class StaticCallee(callee : JawaMethod) extends Callee
+final case class StaticCallee(callee: Signature) extends Callee

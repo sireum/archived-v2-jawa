@@ -27,7 +27,6 @@ import org.sireum.jawa.PilarAstHelper
 import org.sireum.alir._
 import org.sireum.jawa.alir.reachingDefinitionAnalysis.JawaReachingDefinitionAnalysis
 import org.sireum.jawa.alir.JawaAlirInfoProvider
-import org.sireum.jawa.util.MyTimer
 import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralMonotoneDataFlowAnalysisFramework
 import org.sireum.jawa.alir.dataFlowAnalysis.InterProceduralMonotonicFunction
 import org.sireum.jawa.alir.dataFlowAnalysis.CallResolver
@@ -49,16 +48,14 @@ object InterproceduralReachingDefinitionAnalysis {
       global: Global,
       cg: InterproceduralControlFlowGraph[Node],
       parallel: Boolean = false,
-      timer: Option[MyTimer] = None,
-	    switchAsOrderedMatch: Boolean = false) = build(global, cg, parallel, timer, switchAsOrderedMatch)
+	    switchAsOrderedMatch: Boolean = false) = build(global, cg, parallel, switchAsOrderedMatch)
 	
 	def build(
       global: Global,
 	    cg: InterproceduralControlFlowGraph[Node],
 	    parallel: Boolean = false,
-      timer: Option[MyTimer] = None,
 	    switchAsOrderedMatch: Boolean = false) = {
-    new InterproceduralReachingDefinitionAnalysis().build(global, cg, parallel, timer, switchAsOrderedMatch)
+    new InterproceduralReachingDefinitionAnalysis().build(global, cg, parallel, switchAsOrderedMatch)
   }
 }
 
@@ -78,7 +75,6 @@ class InterproceduralReachingDefinitionAnalysis {
       global: Global,
 	    cg: InterproceduralControlFlowGraph[Node],
 	    parallel: Boolean,
-      timer: Option[MyTimer],
 	    switchAsOrderedMatch: Boolean) = {
 	  val gen = new Gen
     val kill = new Kill
@@ -106,7 +102,7 @@ class InterproceduralReachingDefinitionAnalysis {
     val iota: ISet[IRDFact] = isetEmpty + (((VarSlot("@@IRDA"), InitDefDesc), initialContext))
     val initial: ISet[IRDFact] = isetEmpty
     val result = InterProceduralMonotoneDataFlowAnalysisFramework[IRDFact](cg,
-      true, true, false, parallel, gen, kill, callr, pstr, iota, initial, timer, switchAsOrderedMatch, None)
+      true, true, false, parallel, gen, kill, callr, pstr, iota, initial, switchAsOrderedMatch, None)
 
     factSet
 	}
