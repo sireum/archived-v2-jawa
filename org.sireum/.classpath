@@ -3,7 +3,6 @@
 	<classpathentry exported="true" kind="lib" path="lib/antlr-runtime.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/antlr4-runtime.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/apfloat.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/apktool.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/asm-all.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/automaton.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/axml.jar"/>
