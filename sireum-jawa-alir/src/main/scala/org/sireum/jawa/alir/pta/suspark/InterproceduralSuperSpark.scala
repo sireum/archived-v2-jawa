@@ -64,7 +64,8 @@ object InterproceduralSuperSpark {
         val epmopt = global.getMethod(ep)
         epmopt match {
           case Some(epm) => 
-            doPTA(global, epm, pag, icfg)
+            if(epm.isConcrete)
+              doPTA(global, epm, pag, icfg)
           case None =>
         }
     }
