@@ -66,7 +66,8 @@ object InterproceduralSuperSpark {
       timer: Option[MyTimer]) = {
     entryPoints.foreach{
       ep =>
-        doPTA(global, ep, pag, icfg, timer)
+        if(ep.isConcrete)
+          doPTA(global, ep, pag, icfg, timer)
     }
   }
   
