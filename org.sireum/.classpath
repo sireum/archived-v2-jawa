@@ -5,7 +5,6 @@
 	<classpathentry exported="true" kind="lib" path="lib/apfloat.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/asm-all.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/automaton.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/axml.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/blueprints-core.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/commons-configuration.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/commons-lang3.jar"/>

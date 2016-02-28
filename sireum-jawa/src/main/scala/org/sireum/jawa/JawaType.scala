@@ -36,10 +36,13 @@ final case class JawaBaseType(pkg: Option[JawaPackage], name: String, unknown: B
    * e.g. (None, int) -> int, (java.lang, Object) -> java.lang.Object
    */
   def typ: String = {
-    val namePart = name + {if(unknown) "_unknown" else ""}
+    val namePart = name + {if(unknown) "?" else ""}
     if(!pkg.isDefined) namePart
     else pkg.get.toPkgString(".") + "." + namePart
   }
+  def packageName: String = 
+    if(!pkg.isDefined) ""
+    else pkg.get.toPkgString(".")
   def toUnknown: JawaBaseType = JawaBaseType(pkg, name, true)
   def removeUnknown: JawaBaseType = JawaBaseType(pkg, name, false)
   override def hashCode: Int = (pkg, name).hashCode
@@ -50,13 +53,12 @@ final case class JawaBaseType(pkg: Option[JawaPackage], name: String, unknown: B
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-case class JawaType(baseType: JawaBaseType, dimensions: Int) extends JavaKnowledge with PropertyProvider {
+case class JawaType(baseType: JawaBaseType, dimensions: Int) extends JavaKnowledge {
   def this(baseType: JawaBaseType) = this(baseType, 0)
   def this(pkg: Option[JawaPackage], typ: String) = this(JawaBaseType(pkg, typ), 0)
   def this(pkgAndTyp: String, dimensions: Int) = this(JavaKnowledge.separatePkgAndTyp(pkgAndTyp), dimensions)
   def this(pkgAndTyp: String) = this(pkgAndTyp, 0)
   
-  val propertyMap = mlinkedMapEmpty[Property.Key, Any]
   /**
    * Package will be None if it's array, primitive, no package class. e.g. int -> None, java.lang.Object -> Some("java.lang")
    * java.lang.Object[] -> None

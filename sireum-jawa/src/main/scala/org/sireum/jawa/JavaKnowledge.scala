@@ -94,7 +94,10 @@ trait JavaKnowledge {
     for(i <- 0 to size - 2) {
       currentPkg = Some(JawaPackage(parts(i), currentPkg))
     }
-    JawaBaseType(currentPkg, parts(size - 1))
+    var name = parts(size - 1)
+    val unknown = if(name.endsWith("?")) true else false
+    if(unknown) name = name.substring(0, name.size - 1)
+    JawaBaseType(currentPkg, name, unknown)
   }
   
   def formatPackageStringToPackage(pkg: String): JawaPackage = {
