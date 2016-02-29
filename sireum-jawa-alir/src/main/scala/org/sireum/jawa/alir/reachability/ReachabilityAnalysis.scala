@@ -16,10 +16,6 @@
  ******************************************************************************/
 package org.sireum.jawa.alir.reachability
 
-import org.sireum.jawa.JawaMethod
-import org.sireum.jawa.alir.pta.suspark.PointerAssignmentGraph
-import org.sireum.jawa.alir.controlFlowGraph.InterproceduralControlFlowGraph
-import org.sireum.jawa.alir.pta.suspark.PtaNode
 import org.sireum.jawa.alir.pta.suspark.InterproceduralSuperSpark
 import org.sireum.jawa.Global
 import org.sireum.util.ISet
@@ -41,9 +37,10 @@ object ReachabilityAnalysis {
     idfg.icfg.getCallGraph.getReachableMethods(procedures)
   }
 
-//def getReachableMethodsBySBCG(procedures: Set[JawaMethod], wholeProcs: Set[JawaMethod], par: Boolean): Set[JawaMethod] = {
-//  SignatureBasedCallGraph.getReachableMethods(procedures, wholeProcs, par)
-//}
+def getReachableMethodsBySBCG(global: Global, procedures: ISet[Signature]): ISet[Signature] = {
+  val cg = SignatureBasedCallGraph(global, procedures)
+  cg.getReachableMethods(procedures)
+}
 //
 //def getBackwardReachability(apiSigs: Set[String], par: Boolean): Map[String, Set[JawaMethod]] = {
 //  BackwardCallChain.getReachableMethods(apiSigs, par)

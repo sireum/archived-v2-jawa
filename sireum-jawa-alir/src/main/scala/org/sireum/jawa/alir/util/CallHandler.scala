@@ -54,7 +54,7 @@ object CallHandler {
   /**
    * check and get virtual callee procedure from Center. Input: equals:(Ljava/lang/Object;)Z
    */
-  def getUnknownVirtualCalleeMethods(global: Global, baseType: JawaType, pSubSig: String): Set[JawaMethod] = {
+  def getUnknownVirtualCalleeMethods(global: Global, baseType: JawaType, pSubSig: String): ISet[JawaMethod] = {
     val typ =
       if(baseType.isArray) JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE  // any array in java is an Object, so primitive type array is an object, object's method can be called
       else baseType.removeUnknown

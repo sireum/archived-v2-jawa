@@ -124,8 +124,18 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
    */
   def getClasses: ISet[JawaClass] = this.classes.values.toSet
   
+  /**
+   * Resolve all application classes to Hierarchy level. Be careful, it will take some time.
+   */
+  def resolveAllApplicationClasses = {
+    this.applicationClassCodes foreach {
+      case (typ, sf) =>
+        val c = getClassOrResolve(typ)
+    }
+  }
+  
   protected val classCache: LoadingCache[JawaType, JawaClass] = CacheBuilder.newBuilder()
-    .maximumSize(100).build(
+    .maximumSize(1000).build(
         new CacheLoader[JawaType, JawaClass]() {
           def load(typ: JawaType): JawaClass = {
             classes.get(typ) match {
@@ -137,7 +147,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
         })
         
   protected val methodCache: Cache[Signature, JawaMethod] = CacheBuilder.newBuilder()
-    .maximumSize(50).build()
+    .maximumSize(100).build()
   
   /**
    * get class by type; if it does not exist, return None
@@ -314,6 +324,19 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
             m
           case None => None
         }
+    }
+  }
+  
+  def getMethodOrResolve(signature: Signature): Option[JawaMethod] = {
+    Option(methodCache.getIfPresent(signature)) match {
+      case a @ Some(m) => a
+      case None =>
+        val rType = signature.getClassType
+        val subSig = signature.getSubSignature
+        val c = getClassOrResolve(rType)
+        val m = c.getMethod(subSig)
+        if(m.isDefined) methodCache.put(signature, m.get)
+        m
     }
   }
   

@@ -16,71 +16,73 @@
  ******************************************************************************/
 package org.sireum.jawa.alir.reachability
 
-import org.sireum.jawa.JawaMethod
 import org.sireum.util._
-import org.sireum.pilar.ast.LocationDecl
-import org.sireum.pilar.ast.CallJump
-import org.sireum.pilar.ast.NameExp
-import org.sireum.jawa.JawaClass
+import org.sireum.jawa.alir.callGraph.CallGraph
+import org.sireum.jawa._
 import org.sireum.jawa.alir.util.CallHandler
+import org.sireum.jawa.alir.pta.PTAScopeManager
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 object SignatureBasedCallGraph {
-//  def getReachableMethods(clazz : JawaClass, wholeProcs : Set[JawaMethod], par : Boolean) : Set[JawaMethod] = {
-//    require(!clazz.isInterface && !clazz.isUnknown)
-//    getReachableMethods(clazz.getMethods, wholeProcs, par)
-//  }
-//  
-//	def getReachableMethods(procedures : Set[JawaMethod], appProcs : Set[JawaMethod], par : Boolean) : Set[JawaMethod] = {
-//	  var result : Set[JawaMethod] = Set()
-//	  val processed = mlistEmpty[JawaMethod]
-//	  var workList = isetEmpty[JawaMethod]
-//    workList ++= procedures
-//    while(!workList.isEmpty){
-//      val tmp =
-//			  (if (par) workList else workList).map{
-//			    proc =>
-//			      if(proc.isConcrete){
-//			        if(!proc.hasMethodBody) proc.resolveBody
-//			        val body = proc.getMethodBody
-//			        body.locations.map{
-//			          loc =>
-//			            visitLoc(loc, appProcs)
-//			        }.reduce(iunion[JawaMethod])
-//			      } else Set[JawaMethod]()
-//			  }.reduce(iunion[JawaMethod])
-//			processed ++= workList
-//			workList = tmp.filter(!processed.contains(_))
-//    }
-//	  result
-//  }
-//	
-//	
-//	def visitLoc(loc : LocationDecl, appProcs : Set[JawaMethod]) : Set[JawaMethod] = {
-//	  var result = Set[JawaMethod]()
-//	  val visitor = Visitor.build({
-//      case t : CallJump if t.jump.isEmpty =>
-//        val sig = t.getValueAnnotation("signature") match {
-//          case Some(s) => s match {
-//            case ne : NameExp => ne.name.name
-//            case _ => ""
-//          }
-//          case None => ""
-//        }
-//        val typ = t.getValueAnnotation("type") match {
-//          case Some(s) => s match {
-//            case ne : NameExp => ne.name.name
-//            case _ => ""
-//          }
-//          case None => ""
-//        }
-//        result ++= CallHandler.resolveSignatureBasedCall(sig, typ)
-//        false
-//    })
-//    
-//    visitor(loc)
-//    result
-//	}
+  
+  def apply(
+      global: Global, 
+      entryPoints: ISet[Signature]): CallGraph = build(global, entryPoints)
+      
+  def build(
+      global: Global, 
+      entryPoints: ISet[Signature]): CallGraph = {
+    global.resolveAllApplicationClasses
+    val cg = new CallGraph
+    entryPoints.foreach{
+      ep =>
+        val epmopt = global.getMethod(ep)
+        epmopt match {
+          case Some(epm) => 
+            if(epm.isConcrete) {
+              sbcg(global, epm, cg)
+            }
+          case None =>
+        }
+    }
+    cg
+  }
+  
+  private def sbcg(global: Global, ep: JawaMethod, cg: CallGraph) = {
+    val worklist: MList[JawaMethod] = mlistEmpty // Make sure that all the method in the worklist are concrete.
+    worklist += ep
+    while(!worklist.isEmpty) {
+      val m = worklist.remove(0)
+      val points = new PointsCollector().points(m.getSignature, m.getBody)
+      points foreach {
+        p =>
+          p match {
+            case pi: Point with Right with Invoke =>
+              val typ = pi.invokeTyp
+              val sig = pi.sig
+              val callees: MSet[JawaMethod] = msetEmpty
+              typ match {
+                case "super" =>
+                  callees ++= CallHandler.getSuperCalleeMethod(global, sig)
+                case "direct" =>
+                  callees ++= CallHandler.getDirectCalleeMethod(global, sig)
+                case "static" =>
+                  callees ++= CallHandler.getStaticCalleeMethod(global, sig)
+                case "virtual" | "interface" | _ =>
+                  callees ++= CallHandler.getUnknownVirtualCalleeMethods(global, sig.getClassType, sig.getSubSignature)
+              }
+              callees foreach {
+                callee =>
+                  cg.addCall(m.getSignature, callee.getSignature)
+                  if(!PTAScopeManager.shouldBypass(callee.getDeclaringClass) && callee.isConcrete) {
+                    worklist += callee
+                  }
+              }
+            case _ =>
+          }
+      }
+    }
+  }
 }

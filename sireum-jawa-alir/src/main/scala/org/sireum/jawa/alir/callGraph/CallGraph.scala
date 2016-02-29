@@ -41,18 +41,18 @@ class CallGraph {
    * map from methods to it's callee methods
    * map from caller sig to callee sigs
    */
-  private val callMap: MMap[Signature, ISet[Signature]] = mmapEmpty
+  private val callMap: MMap[Signature, MSet[Signature]] = mmapEmpty
   
-  def addCall(from: Signature, to: Signature) = this.callMap(from) = this.callMap.getOrElse(from, isetEmpty) + to
-  def addCalls(from: Signature, to: ISet[Signature]) = this.callMap(from) = this.callMap.getOrElse(from, isetEmpty) ++ to
+  def addCall(from: Signature, to: Signature) = this.callMap.getOrElseUpdate(from, msetEmpty) += to
+  def addCalls(from: Signature, to: ISet[Signature]) = this.callMap.getOrElseUpdate(from, msetEmpty) ++= to
   
-  def getCallMap: IMap[Signature, ISet[Signature]] = this.callMap.toMap
+  def getCallMap: IMap[Signature, ISet[Signature]] = this.callMap.map{case (k, vs) => k -> vs.toSet}.toMap
 
-  def getReachableMethods(procs: Set[Signature]): Set[Signature] = {
+  def getReachableMethods(procs: ISet[Signature]): ISet[Signature] = {
     calculateReachableMethods(procs, isetEmpty) ++ procs
   }
   
-  private def calculateReachableMethods(procs: Set[Signature], processed: Set[Signature]): Set[Signature] = {
+  private def calculateReachableMethods(procs: ISet[Signature], processed: Set[Signature]): ISet[Signature] = {
     if(procs.isEmpty) Set()
     else
       procs.map{
@@ -60,7 +60,7 @@ class CallGraph {
           if(processed.contains(proc)){
             Set[Signature]()
           } else {
-            val callees = this.callMap.getOrElse(proc, isetEmpty)
+            val callees = this.callMap.getOrElse(proc, msetEmpty).toSet
             callees ++ calculateReachableMethods(callees, processed + proc)
           }
       }.reduce((s1, s2) => s1 ++ s2)
