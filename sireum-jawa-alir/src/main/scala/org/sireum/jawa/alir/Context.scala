@@ -17,6 +17,7 @@
 package org.sireum.jawa.alir
 
 import org.sireum.jawa.Signature
+import org.sireum.util._
 
 object Context {
   private var k: Int = 1
@@ -29,24 +30,33 @@ object Context {
  */ 
 class Context {
   import Context._
-  def copy : Context = {
+  def copy: Context = {
     val clone = new Context
     clone.callStack ++= this.callStack
     clone
   }
-  def copy(c : Context) = this.callStack = c.getContext
-  private var callStack : List[(Signature, String)] = List()
-  def length : Int = this.callStack.size
-  def setContext(pSig : Signature, loc : String) = {
+//  def copy(c: Context) = this.callStack = c.getContext
+  def setContext(callStack2: IList[(Signature, String)]) = {
+    val size2 = callStack2.length
+    callStack.prependAll(callStack2)
+    val size = length
+    if(size > k + 1) {
+      callStack.remove(size - (k + 1))
+    }
+  }
+  private val callStack: MList[(Signature, String)] = mlistEmpty
+  def length: Int = this.callStack.size
+  def setContext(pSig: Signature, loc: String) = {
     if(length <= k){
-      callStack = (pSig, loc) :: callStack
+      callStack.prepend((pSig, loc))
     } else {
-      callStack = (pSig, loc) :: callStack.dropRight(1)
+      callStack.remove(length - 1)
+      callStack.prepend((pSig, loc))
     }
     this
   }
   
-  def getCurrentLocUri : String = {
+  def getCurrentLocUri: String = {
     if(callStack.isEmpty) ""
     else callStack.head._2
   }
@@ -54,14 +64,13 @@ class Context {
   /**
    * update current context using another context.
    */
-  def updateContext(context2 : Context) = {
+  def updateContext(context2: Context) = {
     val size2 = context2.length
     val callStack2 = context2.getContext
+    callStack.prependAll(callStack2)
     val size = length
-    if(size + size2 <= k + 1){
-      callStack = callStack ::: callStack2
-    } else {
-      callStack = callStack ::: callStack2.dropRight(size2 - (k + 1 - size))
+    if(size > k + 1) {
+      callStack.remove(size - (k + 1))
     }
   }
   
@@ -70,15 +79,15 @@ class Context {
    */
   def removeTopContext = {
     if(!callStack.isEmpty)
-    	callStack = callStack.tail
+    	  callStack.remove(0)
     this
   }
   
-  def getContext : List[(Signature, String)] = this.callStack
-  def getLocUri : String = getContext(0)._2
+  def getContext: IList[(Signature, String)] = this.callStack.toList
+  def getLocUri: String = getContext(0)._2
   def getMethodSig = getContext(0)._1
-  def isDiff(c : Context) : Boolean = !this.callStack.equals(c.getContext)
-  override def equals(a : Any) : Boolean = {
+  def isDiff(c: Context): Boolean = !this.callStack.equals(c.getContext)
+  override def equals(a: Any): Boolean = {
     if(a.isInstanceOf[Context]) this.callStack.equals(a.asInstanceOf[Context].getContext)
     else false
   }

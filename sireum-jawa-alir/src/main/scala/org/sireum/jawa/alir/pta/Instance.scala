@@ -55,9 +55,8 @@ final case class ClassInstance(classtyp: JawaType, defSite: Context) extends Ins
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class PTAInstance(typ: JawaType, defSite: Context, isNull_ : Boolean) extends Instance{
+final case class PTAInstance(typ: JawaType, defSite: Context, isNull_ : Boolean) extends Instance {
   override def clone(newDefSite: Context): Instance = PTAInstance(typ, newDefSite, isNull_)
-  override def isNull: Boolean = isNull_
   override def isUnknown: Boolean = typ.baseType.unknown
   override def toString: String = {
     val sb = new StringBuilder
@@ -71,7 +70,7 @@ final case class PTAInstance(typ: JawaType, defSite: Context, isNull_ : Boolean)
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-final case class PTATupleInstance(left: Instance, right: Instance, defSite: Context) extends Instance{
+final case class PTATupleInstance(left: Instance, right: Instance, defSite: Context) extends Instance {
   override def clone(newDefSite: Context): Instance = PTATupleInstance(left, right, newDefSite)
   def typ: JawaType = new JawaType("Tuple")
   override def toString: String = {
