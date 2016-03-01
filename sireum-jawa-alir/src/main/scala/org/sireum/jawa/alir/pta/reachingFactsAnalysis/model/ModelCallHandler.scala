@@ -56,7 +56,7 @@ trait ModelCallHandler {
       args: List[String], 
       retVars: Seq[String], 
       currentContext: Context,
-      addition: Option[T]): (ISet[RFAFact], ISet[RFAFact]) = {
+      addition: Option[T])(implicit factory: RFAFactFactory): (ISet[RFAFact], ISet[RFAFact]) = {
     val hackVars = if(retVars.size != 1) retVars :+ "hack" else retVars
     
     var (newFacts, delFacts, byPassFlag) = caculateResult(s, calleeProc, args, hackVars, currentContext, addition)
@@ -74,7 +74,7 @@ trait ModelCallHandler {
       args: List[String], 
       retVars: Seq[String], 
       currentContext: Context,
-      addition: Option[T]): (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+      addition: Option[T])(implicit factory: RFAFactFactory): (ISet[RFAFact], ISet[RFAFact], Boolean) = {
     val r = calleeProc.getDeclaringClass
     if(StringModel.isString(r)) StringModel.doStringCall(s, calleeProc, args, retVars, currentContext)
     else if(StringBuilderModel.isStringBuilder(r)) StringBuilderModel.doStringBuilderCall(s, calleeProc, args, retVars, currentContext)

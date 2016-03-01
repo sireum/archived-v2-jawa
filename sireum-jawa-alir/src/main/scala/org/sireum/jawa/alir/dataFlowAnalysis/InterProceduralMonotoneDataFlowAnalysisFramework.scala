@@ -43,11 +43,11 @@ trait InterProceduralMonotoneDataFlowAnalysisResult[LatticeElement] extends Inte
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 trait InterProceduralMonotonicFunction[LatticeElement] {
-	import org.sireum.pilar.ast._
+  import org.sireum.pilar.ast._
 
   def apply(s : ISet[LatticeElement], a : Assignment, currentNode : ICFGLocNode) : ISet[LatticeElement]
   def apply(s : ISet[LatticeElement], e : Exp, currentNode : ICFGLocNode) : ISet[LatticeElement]
-	def apply(s : ISet[LatticeElement], a : Action, currentNode : ICFGLocNode) : ISet[LatticeElement]
+  def apply(s : ISet[LatticeElement], a : Action, currentNode : ICFGLocNode) : ISet[LatticeElement]
 }
 
 /**
@@ -69,8 +69,8 @@ trait PstProvider {
  */ 
 trait CallResolver[LatticeElement] {
   /**
-	 * It returns the facts for each callee entry node and caller return node
-	 */
+   * It returns the facts for each callee entry node and caller return node
+   */
   def resolveCall(s : ISet[LatticeElement], cj : CallJump, callerNode : ICFGNode, icfg : InterproceduralControlFlowGraph[ICFGNode]) : (IMap[ICFGNode, ISet[LatticeElement]], ISet[LatticeElement])
   def getAndMapFactsForCaller(calleeS : ISet[LatticeElement], callerNode : ICFGNode, calleeExitNode : ICFGVirtualNode) : ISet[LatticeElement]
 }
@@ -83,7 +83,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
   
   final val TITLE = "InterProceduralMonotoneDataFlowAnalysisFramework"
   type N = ICFGNode
-	def apply[LatticeElement] = build0[LatticeElement] _
+  def apply[LatticeElement] = build0[LatticeElement] _
 
   def build0[LatticeElement] //
   (icfg : InterproceduralControlFlowGraph[N], 
@@ -121,7 +121,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
       if (lub) bigIUnion else bigIIntersect
       
     val entrySetMap = if(par) new HashMap[N, ISet[LatticeElement]] with SynchronizedMap[N, ISet[LatticeElement]]
-    									else new HashMap[N, ISet[LatticeElement]]
+                      else new HashMap[N, ISet[LatticeElement]]
     
     def getEntrySet(n : N) = entrySetMap.getOrElse(n, initial)
     
@@ -134,12 +134,12 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
         val sb = new StringBuilder
         var i = 1
         breakable{
-	        for (n <- icfg.nodes) {
-	          i += 1
-	          if(i < 1000){
-	          	sb.append("%s = %s\n".format(n, entrySet(n).toString))
-	          } else break
-	        }
+          for (n <- icfg.nodes) {
+            i += 1
+            if(i < 1000){
+              sb.append("%s = %s\n".format(n, entrySet(n).toString))
+            } else break
+          }
         }
         sb.append("\n")
 
@@ -147,29 +147,29 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
       }
       
       def exitSet : N => DFF = {
-	      _ match{
-	        case en : ICFGEntryNode =>
-	          getEntrySet(en)
-	        case xn : ICFGExitNode =>
-	          getEntrySet(xn)
-	        case cn : ICFGCallNode =>
-	          val r = caculateResult(cn)
-	          r.map(_._2).reduce(iunion[LatticeElement])
-	        case rn : ICFGReturnNode =>
-	          getEntrySet(rn)
-	        case nn : ICFGNormalNode =>
-	          val r = caculateResult(nn)
-	          r.map(_._2).reduce(iunion[LatticeElement])
-	        case a => throw new RuntimeException("unexpected node type: " + a)
-	      }
-	    }
+        _ match{
+          case en : ICFGEntryNode =>
+            getEntrySet(en)
+          case xn : ICFGExitNode =>
+            getEntrySet(xn)
+          case cn : ICFGCallNode =>
+            val r = caculateResult(cn)
+            r.map(_._2).reduce(iunion[LatticeElement])
+          case rn : ICFGReturnNode =>
+            getEntrySet(rn)
+          case nn : ICFGNormalNode =>
+            val r = caculateResult(nn)
+            r.map(_._2).reduce(iunion[LatticeElement])
+          case a => throw new RuntimeException("unexpected node type: " + a)
+        }
+      }
 
       
       protected def next(l : LocationDecl, pst : ProcedureSymbolTable, pSig : Signature, callerContext : Context) = {
         val newLoc = pst.location(l.index + 1)
         val newContext = callerContext.copy
         if(!newLoc.name.isDefined)
-        	newContext.setContext(pSig, newLoc.index.toString)
+          newContext.setContext(pSig, newLoc.index.toString)
         else 
           newContext.setContext(pSig, newLoc.name.get.uri)
         if(icfg.isCall(newLoc))
@@ -182,7 +182,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
         if(icfg.isCall(l))
           icfg.getICFGCallNode(context)
         else
-        	icfg.getICFGNormalNode(context)
+          icfg.getICFGNormalNode(context)
       }
 
       protected def fA(a : Assignment, in : DFF, currentNode : ICFGLocNode) : DFF =
@@ -261,8 +261,8 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
                   val sn =
                     if (ifElseDefined) {
                       val ifElseContext = callerContext.copy
-		                  ifElseContext.setContext(pSig, ifElse.get.target.uri)
-		                  val ifElseLoc = pst.location(ifElse.get.target.uri)
+                      ifElseContext.setContext(pSig, ifElse.get.target.uri)
+                      val ifElseLoc = pst.location(ifElse.get.target.uri)
                       node(ifElseLoc, ifElseContext)
                     }
                     else next(l, pst, pSig, callerContext)
@@ -302,8 +302,8 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
                   val sn =
                     if (switchDefaultDefined){
                       val switchDefaultContext = callerContext.copy
-		                  switchDefaultContext.setContext(pSig, switchDefault.get.target.uri)
-		                  val switchDefaultLoc = pst.location(switchDefault.get.target.uri)
+                      switchDefaultContext.setContext(pSig, switchDefault.get.target.uri)
+                      val switchDefaultLoc = pst.location(switchDefault.get.target.uri)
                       node(switchDefaultLoc, switchDefaultContext)
                     }
                     else next(l, pst, pSig, callerContext)
@@ -498,7 +498,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
                 val (calleeFactsMap, retFacts) = callr.resolveCall(s, j, currentNode, icfg)
                 calleeFactsMap.foreach{
                   case (calleeNode, calleeFacts) =>
-		                latticeMap += (calleeNode -> calleeFacts)
+                    latticeMap += (calleeNode -> calleeFacts)
                 }
                 val rn = icfg.getICFGReturnNode(currentContext)
                 latticeMap += (rn -> retFacts)
@@ -567,101 +567,99 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
     val imdaf = new IMdaf(getEntrySet _, initial)
     
     def process(n : N) : ISet[N] = {
-	    var result = isetEmpty[N]
-	    n match {
-	      case en : ICFGEntryNode =>
-	        for (succ <- icfg.successors(n)) {
-	          if(imdaf.update(getEntrySet(en), succ)){
-	            result += succ
-	          }
-	        }
-	      case xn : ICFGExitNode =>
-	        for (succ <- icfg.successors(n)){
-	          val factsForCaller = callr.getAndMapFactsForCaller(getEntrySet(xn), succ, xn)
-	          imdaf.update(confluence(getEntrySet(succ), factsForCaller), succ)
-	          result += succ
-	        }
-	      case cn : ICFGCallNode =>
-	        if (imdaf.visit(cn)){
-	          result ++= icfg.successors(n)
-	        }
-	      case rn : ICFGReturnNode =>
-	        for (succ <- icfg.successors(n)) {
-	          if(imdaf.update(getEntrySet(n), succ)){
-	            result += succ
-	          }
-	        }
-	      case nn : ICFGNormalNode =>
-	        if (imdaf.visit(nn)){
-	          result ++= icfg.successors(n)
-	        }
-	      case a => throw new RuntimeException("unexpected node type: " + a)
-	    }
-	    result
-	  }
+      var result = isetEmpty[N]
+      n match {
+        case en : ICFGEntryNode =>
+          for (succ <- icfg.successors(n)) {
+            if(imdaf.update(getEntrySet(en), succ)){
+              result += succ
+            }
+          }
+        case xn : ICFGExitNode =>
+          for (succ <- icfg.successors(n)){
+            val factsForCaller = callr.getAndMapFactsForCaller(getEntrySet(xn), succ, xn)
+            imdaf.update(confluence(getEntrySet(succ), factsForCaller), succ)
+            result += succ
+          }
+        case cn : ICFGCallNode =>
+          if (imdaf.visit(cn)){
+            result ++= icfg.successors(n)
+          }
+        case rn : ICFGReturnNode =>
+          for (succ <- icfg.successors(n)) {
+            if(imdaf.update(getEntrySet(n), succ)){
+              result += succ
+            }
+          }
+        case nn : ICFGNormalNode =>
+          if (imdaf.visit(nn)){
+            result ++= icfg.successors(n)
+          }
+        case a => throw new RuntimeException("unexpected node type: " + a)
+      }
+      result
+    }
     
     entrySetMap.put(startNode, iota)
     val workList = mlistEmpty[N]
     workList += startNode
     val ensurer = new ConvergeEnsurer
     while(!workList.isEmpty){
-	    while (!workList.isEmpty) {
-	      if(false){
-	        val newworkList = workList.map{
-	          n =>
-	            ensurer.updateNodeCount(n)
-  	            if(nl.isDefined) nl.get.onPreVisitNode(n, icfg.predecessors(n))
-  				      val newnodes = process(n)
-  				      if(nl.isDefined) nl.get.onPostVisitNode(n, icfg.successors(n))
-  				      newnodes
-	        }.reduce(iunion[N])
-	        workList.clear
-	        workList ++= newworkList.filter(ensurer.checkNode(_))
-	      } else {
-		      val n = workList.remove(0)
-		      if(ensurer.checkNode(n)) {
-		        ensurer.updateNodeCount(n)
-    		      if(nl.isDefined) nl.get.onPreVisitNode(n, icfg.predecessors(n))
-    		      val newWorks = process(n)
-    		      workList ++= {newWorks -- workList}
-    		      if(nl.isDefined) nl.get.onPostVisitNode(n, icfg.successors(n))
-		      }
-	      }
-	    }
-	    val nodes = if(false) icfg.nodes.par else icfg.nodes
-	    workList ++= nodes.map{
-	      node =>
-	        var newnodes = isetEmpty[N]
-	        node match{
-	          case xn : ICFGExitNode =>
-	            if(nl.isDefined) nl.get.onPreVisitNode(xn, icfg.predecessors(xn))
-	            val succs = icfg.successors(xn)
-		          for (succ <- succs){
-		            val factsForCaller = callr.getAndMapFactsForCaller(getEntrySet(xn), succ, xn)
-		            if (imdaf.update(confluence(getEntrySet(succ), factsForCaller), succ))
-		            	newnodes += succ
-		          }
-	            if(nl.isDefined) nl.get.onPostVisitNode(xn, succs)
-	          case _ =>
-	        }
-	        newnodes
-	    }.reduce(iunion[N])
+      while (!workList.isEmpty) {
+        if(false){
+          val newworkList = workList.map{
+            n =>
+              ensurer.updateNodeCount(n)
+                if(nl.isDefined) nl.get.onPreVisitNode(n, icfg.predecessors(n))
+                val newnodes = process(n)
+                if(nl.isDefined) nl.get.onPostVisitNode(n, icfg.successors(n))
+                newnodes
+          }.reduce(iunion[N])
+          workList.clear
+          workList ++= newworkList.filter(ensurer.checkNode(_))
+        } else {
+          val n = workList.remove(0)
+          if(ensurer.checkNode(n)) {
+            ensurer.updateNodeCount(n)
+            if(nl.isDefined) nl.get.onPreVisitNode(n, icfg.predecessors(n))
+            val newWorks = process(n)
+            workList ++= {newWorks -- workList}
+            if(nl.isDefined) nl.get.onPostVisitNode(n, icfg.successors(n))
+          }
+        }
+      }
+      val nodes = if(false) icfg.nodes.par else icfg.nodes
+      workList ++= nodes.map{
+        node =>
+          var newnodes = isetEmpty[N]
+          node match{
+            case xn : ICFGExitNode =>
+              if(nl.isDefined) nl.get.onPreVisitNode(xn, icfg.predecessors(xn))
+              val succs = icfg.successors(xn)
+              for (succ <- succs){
+                val factsForCaller = callr.getAndMapFactsForCaller(getEntrySet(xn), succ, xn)
+                if(imdaf.update(confluence(getEntrySet(succ), factsForCaller), succ))
+                  newnodes += succ
+              }
+              if(nl.isDefined) nl.get.onPostVisitNode(xn, succs)
+            case _ =>
+          }
+          newnodes
+      }.reduce(iunion[N])
     }
     imdaf
-    
-	}
+  }
   /**
    * Theoretically the algorithm should converge if it's implemented correctly, but just in case.
    */
   class ConvergeEnsurer {
-    private val limit: Int = 300
+    private val limit: Int = 100
     private val usagemap: MMap[N, Int] = mmapEmpty
     private val nonConvergeNodes: MSet[N] = msetEmpty
     def checkNode(n: N): Boolean = {
       val c = this.usagemap.getOrElseUpdate(n, 0)
       if(c >= limit){
         this.nonConvergeNodes += n
-        println(n)
         false
       }
       else true

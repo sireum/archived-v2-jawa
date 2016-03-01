@@ -25,6 +25,7 @@ import org.sireum.jawa.alir.pta.VarSlot
 import org.sireum.jawa.alir.pta.FieldSlot
 import org.sireum.jawa.JawaMethod
 import org.sireum.jawa.JawaType
+import org.sireum.jawa.alir.pta.reachingFactsAnalysis.RFAFactFactory
 
 /**
  * @author fgwei
@@ -38,7 +39,7 @@ object ListModel {
     }
   }
     
-  private def addItemToListField(s: PTAResult, args: List[String], itempar: Int, currentContext: Context): ISet[RFAFact] ={
+  private def addItemToListField(s: PTAResult, args: List[String], itempar: Int, currentContext: Context)(implicit factory: RFAFactFactory): ISet[RFAFact] ={
     require(args.size > 1)
     var newfacts = isetEmpty[RFAFact]
     val thisSlot = VarSlot(args(0), false, true)
@@ -47,12 +48,12 @@ object ListModel {
     val paramValues = s.pointsToSet(paramSlot, currentContext)
     thisValues.foreach{
       ins =>
-        newfacts ++= paramValues.map{p=>RFAFact(FieldSlot(ins, "items"), p)}
+        newfacts ++= paramValues.map{p=> new RFAFact(FieldSlot(ins, "items"), p)}
     }
     newfacts 
   }
   
-  private def getListToRet(s: PTAResult, args: List[String], retVar: String, currentContext: Context): ISet[RFAFact] ={
+  private def getListToRet(s: PTAResult, args: List[String], retVar: String, currentContext: Context)(implicit factory: RFAFactFactory): ISet[RFAFact] ={
     require(args.size >0)
     var newfacts = isetEmpty[RFAFact]
     val thisSlot = VarSlot(args(0), false, true)
@@ -60,19 +61,19 @@ object ListModel {
     val itemSlots = thisValue.map{s => FieldSlot(s, "items")}
     itemSlots.foreach{
       islot =>
-        newfacts ++= s.pointsToSet(islot, currentContext).map(ins => RFAFact(VarSlot(retVar, false, false), ins))
+        newfacts ++= s.pointsToSet(islot, currentContext).map(ins => new RFAFact(VarSlot(retVar, false, false), ins))
     }
     newfacts
   }
   
-  private def cloneListToRet(s: PTAResult, args: List[String], retVar: String, currentContext: Context): ISet[RFAFact] ={
+  private def cloneListToRet(s: PTAResult, args: List[String], retVar: String, currentContext: Context)(implicit factory: RFAFactFactory): ISet[RFAFact] ={
     require(args.size >0)
     val thisSlot = VarSlot(args(0), false, true)
     val thisValue = s.pointsToSet(thisSlot, currentContext)
-    thisValue.map{s => RFAFact(VarSlot(retVar, false, false), s.clone(currentContext))}
+    thisValue.map{s => new RFAFact(VarSlot(retVar, false, false), s.clone(currentContext))}
   }
   
-  def doListCall(s: PTAResult, p: JawaMethod, args: List[String], retVars: Seq[String], currentContext: Context): (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+  def doListCall(s: PTAResult, p: JawaMethod, args: List[String], retVars: Seq[String], currentContext: Context)(implicit factory: RFAFactFactory): (ISet[RFAFact], ISet[RFAFact], Boolean) = {
     var newFacts = isetEmpty[RFAFact]
     var delFacts = isetEmpty[RFAFact]
     var byPassFlag = true

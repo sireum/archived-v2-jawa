@@ -28,25 +28,25 @@ import org.sireum.jawa.alir.pta._
  */ 
 object ObjectModel {
   val TITLE = "ObjectModel"
-	def isObject(r: JawaClass): Boolean = r.getName == "java.lang.Object"
-	  
-	def doObjectCall(s: PTAResult, p: JawaMethod, args: List[String], retVars: Seq[String], currentContext: Context): (ISet[RFAFact], ISet[RFAFact], Boolean) = {
-	  var newFacts = isetEmpty[RFAFact]
-	  var delFacts = isetEmpty[RFAFact]
-	  var byPassFlag = true
-	  p.getSignature.signature match{
+  def isObject(r: JawaClass): Boolean = r.getName == "java.lang.Object"
+    
+  def doObjectCall(s: PTAResult, p: JawaMethod, args: List[String], retVars: Seq[String], currentContext: Context)(implicit factory: RFAFactFactory): (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+    var newFacts = isetEmpty[RFAFact]
+    var delFacts = isetEmpty[RFAFact]
+    var byPassFlag = true
+    p.getSignature.signature match{
       case "Ljava/lang/Object;.<init>:()V" =>
         byPassFlag = false
-	    case "Ljava/lang/Object;.getClass:()Ljava/lang/Class;" =>
+      case "Ljava/lang/Object;.getClass:()Ljava/lang/Class;" =>
         require(retVars.size == 1)
         objectGetClass(s, args, retVars(0), currentContext) match{case (n, d) => newFacts ++= n; delFacts ++= d}
         byPassFlag = false
       case _ =>
-	  }
-	  (newFacts, delFacts, byPassFlag)
-	}
-	
-	private def objectGetClass(s: PTAResult, args: List[String], retVar: String, currentContext: Context): (ISet[RFAFact], ISet[RFAFact]) = {
+    }
+    (newFacts, delFacts, byPassFlag)
+  }
+  
+  private def objectGetClass(s: PTAResult, args: List[String], retVar: String, currentContext: Context)(implicit factory: RFAFactFactory): (ISet[RFAFact], ISet[RFAFact]) = {
     require(args.size > 0)
     val thisSlot = VarSlot(args(0), false, true)
     val thisValue = s.pointsToSet(thisSlot, currentContext)
@@ -56,10 +56,10 @@ object ObjectModel {
       cIns =>
         val typ = cIns.typ
         val strIns = ClassInstance(typ, cIns.defSite)
-        newfacts += (RFAFact(VarSlot(retVar, false, false), strIns))
+        newfacts += new RFAFact(VarSlot(retVar, false, false), strIns)
     }
     (newfacts, delfacts)
   }
-	
-	
+  
+  
 }

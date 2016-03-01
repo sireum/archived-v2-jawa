@@ -27,55 +27,54 @@ import org.sireum.jawa.alir.pta._
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
 object StringModel {
-  def isString(r : JawaClass) : Boolean = r.getName == "java.lang.String"
+  def isString(r: JawaClass): Boolean = r.getName == "java.lang.String"
 
-  private def getReturnFactsWithAlias(rType : JawaType, retVar : String, currentContext : Context, alias : ISet[Instance]) : ISet[RFAFact] = 
-    alias.map{a=>RFAFact(VarSlot(retVar, false, false), a)}
+  private def getReturnFactsWithAlias(rType: JawaType, retVar: String, currentContext: Context, alias: ISet[Instance])(implicit factory: RFAFactFactory): ISet[RFAFact] = 
+    alias.map{a=> new RFAFact(VarSlot(retVar, false, false), a)}
 
-  private def getPointStringForThis(args : List[String], currentContext : Context): ISet[RFAFact] = {
+  private def getPointStringForThis(args: List[String], currentContext: Context)(implicit factory: RFAFactFactory): ISet[RFAFact] = {
     require(args.size > 0)
     val thisSlot = VarSlot(args(0), false, true)
     val newThisValue = PTAPointStringInstance(currentContext.copy)
-    Set(RFAFact(thisSlot, newThisValue)) 
+    Set(new RFAFact(thisSlot, newThisValue)) 
   }
 
-  private def getFactFromArgForThis(s : PTAResult, args : List[String], currentContext : Context): ISet[RFAFact] = {
+  private def getFactFromArgForThis(s: PTAResult, args: List[String], currentContext: Context)(implicit factory: RFAFactFactory): ISet[RFAFact] = {
     require(args.size > 1)
     val thisSlot = VarSlot(args(0), false, true)
     val paramSlot = VarSlot(args(1), false, true)
-    s.pointsToSet(paramSlot, currentContext).map(v => RFAFact(thisSlot, v)) 
+    s.pointsToSet(paramSlot, currentContext).map(v => new RFAFact(thisSlot, v)) 
   }
 
 
-  private def getOldFactForThis(s : PTAResult, args : List[String], currentContext : Context): ISet[RFAFact] = {
+  private def getOldFactForThis(s: PTAResult, args: List[String], currentContext: Context)(implicit factory: RFAFactFactory): ISet[RFAFact] = {
     require(args.size > 0)
     val thisSlot = VarSlot(args(0), false, true)
-    s.pointsToSet(thisSlot, currentContext).map(v => RFAFact(thisSlot, v))  
+    s.pointsToSet(thisSlot, currentContext).map(v => new RFAFact(thisSlot, v))  
   }
 
-  private def getPointStringForRet(retVar : String, currentContext : Context) :ISet[RFAFact] ={
-    
+  private def getPointStringForRet(retVar: String, currentContext: Context)(implicit factory: RFAFactFactory): ISet[RFAFact] ={
     ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.lang.String"), retVar, currentContext) match{
       case Some(fact) =>           
         //deleteFacts += fact
         val value = PTAPointStringInstance(currentContext.copy)
-        Set(RFAFact(fact.s, value))
+        Set(new RFAFact(fact.s, value))
       case None => isetEmpty
     }
    
   }
   
-  private def getFactFromThisForRet(s : PTAResult, args : List[String], retVar : String, currentContext : Context) :ISet[RFAFact] ={
+  private def getFactFromThisForRet(s: PTAResult, args: List[String], retVar: String, currentContext: Context)(implicit factory: RFAFactFactory): ISet[RFAFact] ={
     require(args.size > 0)
     ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.lang.String"), retVar, currentContext) match{
       case Some(fact) => 
         val thisSlot = VarSlot(args(0), false, true)
-        s.pointsToSet(thisSlot, currentContext).map(v => RFAFact(fact.s, v))  
+        s.pointsToSet(thisSlot, currentContext).map(v => new RFAFact(fact.s, v))
       case None =>  isetEmpty
     }
   }
   
-  def doStringCall(s : PTAResult, p : JawaMethod, args : List[String], retVars : Seq[String], currentContext : Context) : (ISet[RFAFact], ISet[RFAFact], Boolean) = {
+  def doStringCall(s: PTAResult, p: JawaMethod, args: List[String], retVars: Seq[String], currentContext: Context)(implicit factory: RFAFactFactory): (ISet[RFAFact], ISet[RFAFact], Boolean) = {
     var newFacts = isetEmpty[RFAFact]
     var deleteFacts = isetEmpty[RFAFact]
     var byPassFlag = true
@@ -228,14 +227,14 @@ object StringModel {
         require(args.size > 0)
         val paramSlot = VarSlot(args(0), false, true)
         if(!s.pointsToSet(paramSlot, currentContext).isEmpty){
-          var values : ISet[Instance] = isetEmpty
+          var values: ISet[Instance] = isetEmpty
           s.pointsToSet(paramSlot, currentContext).foreach{
             ins=>
               if(ins.isInstanceOf[PTAConcreteStringInstance]) values += ins
               else values += PTAPointStringInstance(currentContext)
           }
           require(retVars.size == 1)
-          newFacts ++= values.map{v=>RFAFact(VarSlot(retVars(0), false, false), v)}
+          newFacts ++= values.map{v=> new RFAFact(VarSlot(retVars(0), false, false), v)}
         }
         byPassFlag = false
       case "Ljava/lang/String;.valueOf:(Z)Ljava/lang/String;" =>
