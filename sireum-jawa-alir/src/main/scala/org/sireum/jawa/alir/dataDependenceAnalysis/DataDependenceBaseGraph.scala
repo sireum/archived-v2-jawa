@@ -40,7 +40,7 @@ trait DataDependenceBaseGraph[Node <: IDDGNode] extends InterProceduralGraph[Nod
     else if(icfgN.isInstanceOf[ICFGCallNode] && isRet && iddgReturnVarNodeExists(icfgN.asInstanceOf[ICFGCallNode])) getIDDGReturnVarNode(icfgN.asInstanceOf[ICFGCallNode])
     else if(icfgN.isInstanceOf[ICFGCallNode] && iddgVirtualBodyNodeExists(icfgN.asInstanceOf[ICFGCallNode])) getIDDGVirtualBodyNode(icfgN.asInstanceOf[ICFGCallNode])
     else if(icfgN == this.icfg.entryNode) this.entryNode
-    else throw new RuntimeException("Cannot find node: " + defSite)
+    else throw new RuntimeException("Cannot find node: " + icfgN)
   }
   
   def findVirtualBodyDefSite(defSite: Context): Option[Node] = {

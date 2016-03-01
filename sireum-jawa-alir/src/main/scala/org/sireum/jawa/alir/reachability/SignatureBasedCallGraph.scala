@@ -52,9 +52,11 @@ object SignatureBasedCallGraph {
   
   private def sbcg(global: Global, ep: JawaMethod, cg: CallGraph) = {
     val worklist: MList[JawaMethod] = mlistEmpty // Make sure that all the method in the worklist are concrete.
+    val processed: MSet[String] = msetEmpty
     worklist += ep
     while(!worklist.isEmpty) {
       val m = worklist.remove(0)
+      processed += m.getSignature.signature
       val points = new PointsCollector().points(m.getSignature, m.getBody)
       points foreach {
         p =>
@@ -76,7 +78,7 @@ object SignatureBasedCallGraph {
               callees foreach {
                 callee =>
                   cg.addCall(m.getSignature, callee.getSignature)
-                  if(!PTAScopeManager.shouldBypass(callee.getDeclaringClass) && callee.isConcrete) {
+                  if(!processed.contains(callee.getSignature.signature) && !PTAScopeManager.shouldBypass(callee.getDeclaringClass) && callee.isConcrete) {
                     worklist += callee
                   }
               }

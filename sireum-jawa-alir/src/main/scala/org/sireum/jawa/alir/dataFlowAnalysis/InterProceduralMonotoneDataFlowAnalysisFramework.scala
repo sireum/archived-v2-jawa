@@ -603,23 +603,29 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
     entrySetMap.put(startNode, iota)
     val workList = mlistEmpty[N]
     workList += startNode
+    val ensurer = new ConvergeEnsurer
     while(!workList.isEmpty){
 	    while (!workList.isEmpty) {
 	      if(false){
-	        val newworkList = workList.par.map{
+	        val newworkList = workList.map{
 	          n =>
-	            if(nl.isDefined) nl.get.onPreVisitNode(n, icfg.predecessors(n))
-				      val newnodes = process(n)
-				      if(nl.isDefined) nl.get.onPostVisitNode(n, icfg.successors(n))
-				      newnodes
+	            ensurer.updateNodeCount(n)
+  	            if(nl.isDefined) nl.get.onPreVisitNode(n, icfg.predecessors(n))
+  				      val newnodes = process(n)
+  				      if(nl.isDefined) nl.get.onPostVisitNode(n, icfg.successors(n))
+  				      newnodes
 	        }.reduce(iunion[N])
 	        workList.clear
-	        workList ++= newworkList
+	        workList ++= newworkList.filter(ensurer.checkNode(_))
 	      } else {
 		      val n = workList.remove(0)
-		      if(nl.isDefined) nl.get.onPreVisitNode(n, icfg.predecessors(n))
-		      workList ++= process(n)
-		      if(nl.isDefined) nl.get.onPostVisitNode(n, icfg.successors(n))
+		      if(ensurer.checkNode(n)) {
+		        ensurer.updateNodeCount(n)
+    		      if(nl.isDefined) nl.get.onPreVisitNode(n, icfg.predecessors(n))
+    		      val newWorks = process(n)
+    		      workList ++= {newWorks -- workList}
+    		      if(nl.isDefined) nl.get.onPostVisitNode(n, icfg.successors(n))
+		      }
 	      }
 	    }
 	    val nodes = if(false) icfg.nodes.par else icfg.nodes
@@ -644,4 +650,22 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
     imdaf
     
 	}
+  /**
+   * Theoretically the algorithm should converge if it's implemented correctly, but just in case.
+   */
+  class ConvergeEnsurer {
+    private val limit: Int = 300
+    private val usagemap: MMap[N, Int] = mmapEmpty
+    private val nonConvergeNodes: MSet[N] = msetEmpty
+    def checkNode(n: N): Boolean = {
+      val c = this.usagemap.getOrElseUpdate(n, 0)
+      if(c >= limit){
+        this.nonConvergeNodes += n
+        println(n)
+        false
+      }
+      else true
+    }
+    def updateNodeCount(n: N) = this.usagemap(n) = this.usagemap.getOrElseUpdate(n, 0) + 1
+  }
 }

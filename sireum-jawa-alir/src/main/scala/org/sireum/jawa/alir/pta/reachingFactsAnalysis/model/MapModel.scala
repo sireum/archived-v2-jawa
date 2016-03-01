@@ -52,7 +52,7 @@ object MapModel {
     require(args.size >0)
     val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
+	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.fold(isetEmpty)(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.util.HashSet"), retVar, currentContext).get
 	  result += rf
 	  result ++= strValue.map{s => RFAFact(FieldSlot(rf.v, "items"), s)}
@@ -64,7 +64,7 @@ object MapModel {
     require(args.size >0)
     val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
+	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.fold(isetEmpty)(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.util.HashSet"), retVar, currentContext).get
 	  result += rf
 	  strValue.foreach{
@@ -80,7 +80,7 @@ object MapModel {
     require(args.size >0)
     val thisSlot = VarSlot(args(0), false, true)
 	  val thisValue = s.pointsToSet(thisSlot, currentContext)
-	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
+	  val strValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.fold(isetEmpty)(iunion[Instance])
 	  val rf = ReachingFactsAnalysisHelper.getReturnFact(new JawaType("java.util.HashSet"), retVar, currentContext).get
 	  result += rf
 	  result ++= strValue.map{
@@ -99,7 +99,7 @@ object MapModel {
 	  val keySlot = VarSlot(args(1), false, true)
 	  val keyValue = s.pointsToSet(keySlot, currentContext)
     if(!thisValue.isEmpty){
-  	  val entValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.reduce(iunion[Instance])
+  	  val entValue = thisValue.map{ins => s.pointsToSet(FieldSlot(ins, "entrys"), currentContext)}.fold(isetEmpty)(iunion[Instance])
   	  entValue.foreach{
   	    v =>
   	      require(v.isInstanceOf[PTATupleInstance])

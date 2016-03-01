@@ -59,7 +59,10 @@ object CallHandler {
       if(baseType.isArray) JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE  // any array in java is an Object, so primitive type array is an object, object's method can be called
       else baseType.removeUnknown
     val baseRec = global.getClassOrResolve(typ)
-    global.getClassHierarchy.resolveAbstractDispatch(baseRec, pSubSig)
+    val methods = global.getClassHierarchy.resolveAbstractDispatch(baseRec, pSubSig)
+    val m = methods.filter(m => m.isConcrete && !m.isStatic)
+    if(m.isEmpty) methods.filter(m => !m.isStatic)
+    else m
   }
 
   /**

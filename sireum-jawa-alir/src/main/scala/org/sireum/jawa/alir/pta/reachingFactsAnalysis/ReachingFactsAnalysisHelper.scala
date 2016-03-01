@@ -529,7 +529,7 @@ object ReachingFactsAnalysisHelper {
               val value: ISet[Instance] = Set(ins)
               result(i) = value
             } else if(le.typ.name.equals("NULL")){
-              val ins = PTAInstance(JavaKnowledge.JAVA_TOPLEVEL_OBJECT_TYPE.toUnknown, currentContext, isNull_ = true)
+              val ins = PTAInstance(typ.get.toUnknown, currentContext, isNull_ = true)
               val value: ISet[Instance] = Set(ins)
               result(i) = value
             }
