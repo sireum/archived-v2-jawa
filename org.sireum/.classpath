@@ -8,7 +8,7 @@
 	<classpathentry exported="true" kind="lib" path="lib/blueprints-core.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/commons-configuration.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/commons-lang3.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/guava.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/guava.jar" sourcepath="/sireum-lib/lib/guava-src.zip"/>
 	<classpathentry exported="true" kind="lib" path="lib/javax.servlet-api.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/javax.websocket-api.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/jettison.jar"/>

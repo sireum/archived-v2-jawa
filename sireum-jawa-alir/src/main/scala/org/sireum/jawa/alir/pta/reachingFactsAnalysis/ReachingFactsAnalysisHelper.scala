@@ -120,6 +120,15 @@ object ReachingFactsAnalysisHelper {
     typ match {
       case "virtual" | "interface" | "super" | "direct" =>
         val recvValue: ISet[Instance] = getInstancesOfArg(cj.callExp, 0, callerContext, ptaresult)
+        def handleUnknown(typ: JawaType) = {
+//          val ps = CallHandler.getUnknownVirtualCalleeMethods(global, typ, subSig)
+          try{
+            val c = global.getClassOrResolve(typ)
+            calleeSet ++= c.getMethod(subSig).map(m => UnknownCallee(m.getSignature))
+          } catch {
+            case e: Exception =>
+          }
+        }
         recvValue.foreach{
           ins =>
             if(!ins.isNull)
@@ -129,21 +138,18 @@ object ReachingFactsAnalysisHelper {
                 calleeSet ++= CallHandler.getDirectCalleeMethod(global, sig).map(m => InstanceCallee(m.getSignature, ins))
               } else {
                 if(ins.isUnknown){
-                  val ps = CallHandler.getUnknownVirtualCalleeMethods(global, ins.typ, subSig)
-                  calleeSet ++= ps.map{p=> UnknownCallee(p.getSignature)}
+                  handleUnknown(ins.typ)
                 } else {
                   CallHandler.getVirtualCalleeMethod(global, ins.typ, subSig).map(m => InstanceCallee(m.getSignature, ins)) match {
                     case Some(c) => calleeSet += c
                     case None =>
-                      val ps = CallHandler.getUnknownVirtualCalleeMethods(global, ins.typ, subSig)
-                      calleeSet ++= ps.map{p=> UnknownCallee(p.getSignature)}
+                      handleUnknown(ins.typ)
                   }
                 }
               }
         }
         if(recvValue.isEmpty) {
-          val ps = CallHandler.getUnknownVirtualCalleeMethods(global, sig.getClassType.toUnknown, subSig)
-          calleeSet ++= ps.map{p=> UnknownCallee(p.getSignature)}
+          handleUnknown(sig.getClassType.toUnknown)
         }
       case "static" =>
         calleeSet ++= CallHandler.getStaticCalleeMethod(global, sig).map(m => StaticCallee(m.getSignature))
@@ -529,7 +535,8 @@ object ReachingFactsAnalysisHelper {
               val value: ISet[Instance] = Set(ins)
               result(i) = value
             } else if(le.typ.name.equals("NULL")){
-              val ins = PTAInstance(typ.get.toUnknown, currentContext, isNull_ = true)
+              val inst = if(typ.get.isArray) typ.get else typ.get.toUnknown
+              val ins = PTAInstance(inst, currentContext, isNull_ = true)
               val value: ISet[Instance] = Set(ins)
               result(i) = value
             }

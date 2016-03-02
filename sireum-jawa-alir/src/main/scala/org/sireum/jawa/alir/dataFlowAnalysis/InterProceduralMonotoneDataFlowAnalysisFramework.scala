@@ -550,7 +550,9 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
 
       def visit(currentNode : ICFGLocNode,
                 esl : Option[EntrySetListener[LatticeElement]] = None) : Boolean = {
-        caculateResult(currentNode, esl).map{case (n, facts) => update(confluence(facts, getEntrySet(n)), n)}.exists(_ == true)
+        caculateResult(currentNode, esl).map{case (n, facts) => 
+//          println(confluence(facts, getEntrySet(n)))
+          update(confluence(facts, getEntrySet(n)), n)}.exists(_ == true)
       }
 
       
@@ -653,7 +655,7 @@ object InterProceduralMonotoneDataFlowAnalysisFramework {
    * Theoretically the algorithm should converge if it's implemented correctly, but just in case.
    */
   class ConvergeEnsurer {
-    private val limit: Int = 100
+    private val limit: Int = 200
     private val usagemap: MMap[N, Int] = mmapEmpty
     private val nonConvergeNodes: MSet[N] = msetEmpty
     def checkNode(n: N): Boolean = {
