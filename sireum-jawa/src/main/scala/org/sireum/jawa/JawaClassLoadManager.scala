@@ -169,6 +169,15 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     classCache.get(typ)
   }
   
+  
+  protected[jawa] def getClassOrResolveWithoutCache(typ: JawaType): JawaClass = {
+    classes.get(typ) match {
+      case Some(c) => c
+      case None =>
+        resolveToHierarchy(typ)
+    }
+  }
+  
   def tryLoadClass(typ: JawaType): Option[JawaClass] = {
     containsClassFile(typ) match {
       case true => Some(getClassOrResolve(typ))
@@ -490,7 +499,7 @@ trait JawaClassLoadManager extends JavaKnowledge with JawaResolver { self: Globa
     getClasses.foreach {
       rec =>
         if(!rec.hasSuperClass && rec.getName != JAVA_TOPLEVEL_OBJECT){
-          val obj = getClassOrResolve(JAVA_TOPLEVEL_OBJECT_TYPE)
+          val obj = getClassOrResolveWithoutCache(JAVA_TOPLEVEL_OBJECT_TYPE)
           rec.setSuperClass(obj)
         }
     }
