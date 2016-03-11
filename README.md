@@ -1,4 +1,4 @@
-Jawa [![Gitter](https://badges.gitter.im/sireum/jawa.svg)](https://gitter.im/sireum/jawa?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) [![Code Climate](https://codeclimate.com/github/sireum/jawa/badges/gpa.svg)](https://codeclimate.com/github/sireum/jawa)
+Jawa [![Gitter](https://badges.gitter.im/sireum/jawa.svg)](https://gitter.im/sireum/jawa?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) 
 ========================
 
 This is official reporitory for the Jawa. Jawa is a subset of pilar IR, which are carefully choosen to represent java&dalvik bytecodes.
