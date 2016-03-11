@@ -16,61 +16,65 @@
  ******************************************************************************/
 package org.sireum.jawa.alir.reachability
 
-import org.sireum.jawa.JawaMethod
-import scala.collection.GenSet
 import org.sireum.util._
-import org.sireum.pilar.ast.LocationDecl
-import org.sireum.pilar.ast.CallJump
-import org.sireum.pilar.ast.NameExp
-import org.sireum.jawa.Signature
-import org.sireum.jawa.Global
+import org.sireum.jawa._
+import org.sireum.jawa.alir.util.CallHandler
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  */ 
 object BackwardCallChain {
+  class CallChain(val sig: Signature) {
+    private val callerMap: MMap[Signature, MSet[Signature]] = mmapEmpty
+    def addCallers(callee: Signature, callers: ISet[Signature]) = {
+      callerMap.getOrElseUpdate(callee, msetEmpty) ++= callers
+    }
+    def getCallerMap: IMap[Signature, ISet[Signature]] = this.callerMap.map{case (k, v) => k -> v.toSet}.toMap
+  }
   
-//	def getReachableMethods(apiSigs: Set[String], par: Boolean): Map[String, Set[JawaMethod]] = {
-//	  var result: Map[String, Set[JawaMethod]] = Map()
-//	  result ++= 
-//	    (if (par) apiSigs.par else apiSigs).map{
-//		    sig =>
-//		      (sig, getReachableMethods(sig, par))
-//		  }
-//	  result
-//  }
-//	
-//  /**
-//   * Before calling this method please load all the classes you want to process into HIERACHY level.
-//   */
-//	def getReachableMethods(global: Global, apiSig: Signature, par: Boolean): Set[JawaMethod] = {
-//	  var result: ISet[JawaMethod] = isetEmpty
-//	  val ps: Set[JawaMethod] = global.getApplicationClasses.map(_.getMethods).reduce(iunion[JawaMethod])
-//	  
-//    val workList = mlistEmpty[String]
-//	  val processed = msetEmpty[String]
-//    workList += apiSig
-//    while(!workList.isEmpty){
-//      val sig = workList.remove(0)
-//      processed += sig
-//      val tmp =
-//			  (if (par) ps.par else ps).filter{
-//			    proc =>
-//			      var flag: Boolean = false
-//			      if(proc.isConcrete){
-//			        if(!proc.hasMethodBody) proc.resolveBody
-//			        val body = proc.getMethodBody
-//			        flag = body.locations.map{
-//			          loc =>
-//			            visitLoc(sig, loc)
-//			        }.exists(_ == true)
-//			      }
-//			      flag
-//			  }
-//      workList ++= tmp.map(_.getSignature).filter(!processed.contains(_)).toList
-//      result ++= tmp
-//    }
-//	  result
-//	}
-	
+  def getBackwardCallChain(global: Global, sig: Signature): CallChain = {
+    global.resolveAllApplicationClasses
+    val ps: ISet[JawaMethod] = global.getApplicationClasses.map(_.getDeclaredMethods).fold(isetEmpty)(iunion[JawaMethod]).filter(_.isConcrete)
+    val calleeSigMethodMap: MMap[Signature, MSet[Signature]] = mmapEmpty
+    ps.map {
+      m =>
+        val callees: MSet[JawaMethod] = msetEmpty
+        val points = new PointsCollector().points(m.getSignature, m.getBody)
+        points foreach {
+          p =>
+            p match {
+              case pi: Point with Right with Invoke =>
+                val typ = pi.invokeTyp
+                val sig = pi.sig
+                typ match {
+                  case "super" =>
+                    callees ++= CallHandler.getSuperCalleeMethod(global, sig)
+                  case "direct" =>
+                    callees ++= CallHandler.getDirectCalleeMethod(global, sig)
+                  case "static" =>
+                    callees ++= CallHandler.getStaticCalleeMethod(global, sig)
+                  case "virtual" | "interface" | _ =>
+                    callees ++= CallHandler.getUnknownVirtualCalleeMethods(global, sig.getClassType, sig.getSubSignature)
+                }
+            }
+        }
+        callees.foreach{
+          callee =>
+            calleeSigMethodMap.getOrElseUpdate(callee.getSignature, msetEmpty) += m.getSignature
+        }
+    }
+    val result: CallChain = new CallChain(sig)
+    val worklist: MList[Signature] = mlistEmpty
+    val processed: MSet[Signature] = msetEmpty
+    worklist += sig
+    while(!worklist.isEmpty) {
+      val worksig = worklist.remove(0)
+      processed += worksig
+      val callerSigs = calleeSigMethodMap.getOrElse(worksig, isetEmpty)
+      result.addCallers(worksig, callerSigs.toSet)
+      worklist ++= callerSigs.filterNot { x => processed.contains(x) }
+    }
+    result
+  }
+  
 }

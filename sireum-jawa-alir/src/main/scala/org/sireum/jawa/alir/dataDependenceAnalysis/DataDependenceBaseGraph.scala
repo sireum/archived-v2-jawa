@@ -29,18 +29,18 @@ trait DataDependenceBaseGraph[Node <: IDDGNode] extends InterProceduralGraph[Nod
   def entryNode: Node
   def icfg: InterproceduralControlFlowGraph[ICFGNode]
   
-  def findDefSite(defSite: Context, isRet: Boolean = false): Node = {
+  def findDefSite(defSite: Context, isRet: Boolean = false): Option[Node] = {
     val icfgN = {
       if(this.icfg.icfgNormalNodeExists(defSite)) this.icfg.getICFGNormalNode(defSite)
       else if(this.icfg.icfgCallNodeExists(defSite)) this.icfg.getICFGCallNode(defSite)
       else if(defSite.getLocUri == "L0000") this.icfg.entryNode
       else throw new RuntimeException("Cannot find node: " + defSite)
     }
-    if(icfgN.isInstanceOf[ICFGNormalNode] && iddgNormalNodeExists(icfgN.asInstanceOf[ICFGNormalNode])) getIDDGNormalNode(icfgN.asInstanceOf[ICFGNormalNode])
-    else if(icfgN.isInstanceOf[ICFGCallNode] && isRet && iddgReturnVarNodeExists(icfgN.asInstanceOf[ICFGCallNode])) getIDDGReturnVarNode(icfgN.asInstanceOf[ICFGCallNode])
-    else if(icfgN.isInstanceOf[ICFGCallNode] && iddgVirtualBodyNodeExists(icfgN.asInstanceOf[ICFGCallNode])) getIDDGVirtualBodyNode(icfgN.asInstanceOf[ICFGCallNode])
-    else if(icfgN == this.icfg.entryNode) this.entryNode
-    else throw new RuntimeException("Cannot find node: " + icfgN)
+    if(icfgN.isInstanceOf[ICFGNormalNode] && iddgNormalNodeExists(icfgN.asInstanceOf[ICFGNormalNode])) Some(getIDDGNormalNode(icfgN.asInstanceOf[ICFGNormalNode]))
+    else if(icfgN.isInstanceOf[ICFGCallNode] && isRet && iddgReturnVarNodeExists(icfgN.asInstanceOf[ICFGCallNode])) Some(getIDDGReturnVarNode(icfgN.asInstanceOf[ICFGCallNode]))
+    else if(icfgN.isInstanceOf[ICFGCallNode] && iddgVirtualBodyNodeExists(icfgN.asInstanceOf[ICFGCallNode])) Some(getIDDGVirtualBodyNode(icfgN.asInstanceOf[ICFGCallNode]))
+    else if(icfgN == this.icfg.entryNode) Some(this.entryNode)
+    else None
   }
   
   def findVirtualBodyDefSite(defSite: Context): Option[Node] = {

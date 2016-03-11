@@ -41,7 +41,7 @@ object SignatureBasedCallGraph {
         val epmopt = global.getMethod(ep)
         epmopt match {
           case Some(epm) => 
-            if(epm.isConcrete) {
+            if(!PTAScopeManager.shouldBypass(epm.getDeclaringClass) && epm.isConcrete) {
               sbcg(global, epm, cg)
             }
           case None =>

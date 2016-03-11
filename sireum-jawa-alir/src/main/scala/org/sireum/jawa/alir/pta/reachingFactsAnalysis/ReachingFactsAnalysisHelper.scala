@@ -126,6 +126,7 @@ object ReachingFactsAnalysisHelper {
             val c = global.getClassOrResolve(typ)
             calleeSet ++= c.getMethod(subSig).map(m => UnknownCallee(m.getSignature))
           } catch {
+            case ie: InterruptedException => throw ie
             case e: Exception =>
           }
         }

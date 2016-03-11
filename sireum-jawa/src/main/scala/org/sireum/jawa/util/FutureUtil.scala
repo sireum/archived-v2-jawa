@@ -24,11 +24,6 @@ import scala.util.Try
 import scala.util.Failure
 
 object FutureUtil {
-  def composeWaitingFuture[T](fut: Future[T], 
-                                    timeout: Int, default: T): Future[T] =
-  future { Await.result(fut, timeout seconds) } recover {
-    case e: Exception => default
-  }
   
   def cancellableFuture[T](fun: Future[T] => T)(implicit ex: ExecutionContext): (Future[T], () => Boolean) = {
     val p = Promise[T]()

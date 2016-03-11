@@ -17,7 +17,6 @@
 package org.sireum.jawa
 
 import org.sireum.util._
-import org.sireum.jawa.io.NoPosition
 
 /**
  * This class is an jawa class representation of a pilar class. A JawaClass corresponds to a class or an interface of the source code. They are usually created by jawa Resolver.
@@ -30,6 +29,8 @@ import org.sireum.jawa.io.NoPosition
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */
 case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends JawaElement with JavaKnowledge with ResolveLevel {
+  
+  final val TITLE = "JawaClass"
   
   def this(global: Global, typ: JawaType, accessStr: String) = {
     this(global, typ, AccessFlag.getAccessFlags(accessStr))
@@ -207,7 +208,7 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
    */
   def addField(field: JawaField) = {
     val fieldName = field.getName
-    if(declaresField(fieldName)) global.reporter.warning(NoPosition, "Field " + fieldName + " in class " + getName)
+    if(declaresField(fieldName)) global.reporter.warning(TITLE, "Field " + fieldName + " in class " + getName)
     else this.fields(fieldName) = field
   }
 
@@ -234,7 +235,7 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
    */
   def getField(name: String, typ: JawaType): Option[JawaField] = {
     if(!isValidFieldName(name)){
-      global.reporter.error(NoPosition, "field name is not valid " + name)
+      global.reporter.error(TITLE, "field name is not valid " + name)
       return None
     }
     val fopt = getFields.find(_.getName == name)
@@ -244,7 +245,7 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
         if(isUnknown){
           Some(JawaField(this, name, typ, AccessFlag.getAccessFlags("PUBLIC")))
         } else {
-          global.reporter.error(NoPosition, "No field " + name + " in class " + getName)
+          global.reporter.error(TITLE, "No field " + name + " in class " + getName)
           None
         }
     }
@@ -255,14 +256,14 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
    */
   def getDeclaredField(name: String): Option[JawaField] = {
     if(!isValidFieldName(name)){
-      global.reporter.error(NoPosition, "field name is not valid " + name)
+      global.reporter.error(TITLE, "field name is not valid " + name)
       return None
     }
     this.fields.get(name) match {
       case Some(f) => Some(f)
       case None =>
         println(this.fields)
-        global.reporter.error(NoPosition, "No field " + name + " in class " + getName)
+        global.reporter.error(TITLE, "No field " + name + " in class " + getName)
         None
     }
   }
@@ -286,7 +287,7 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
    */
   def getDeclaredMethodByName(methodName: String): Option[JawaMethod] = {
     if(!declaresMethodByName(methodName)){
-      global.reporter.error(NoPosition, "No method " + methodName + " in class " + getName)
+      global.reporter.error(TITLE, "No method " + methodName + " in class " + getName)
       return None
     }
     var found = false
@@ -303,7 +304,7 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
     }
     if(found) Some(foundMethod)
     else {
-      global.reporter.error(NoPosition, "couldn't find method " + methodName + "(*) in " + this)
+      global.reporter.error(TITLE, "couldn't find method " + methodName + "(*) in " + this)
       None
     }
   }
@@ -389,7 +390,7 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
    */
   def addMethod(ap: JawaMethod) = {
     if(this.methods.contains(ap.getSubSignature)) 
-      global.reporter.error(NoPosition, "The method " + ap.getSubSignature + " is already declared in class " + getName)
+      global.reporter.error(TITLE, "The method " + ap.getSubSignature + " is already declared in class " + getName)
     else this.methods(ap.getSubSignature) = ap
   }
 
@@ -397,8 +398,8 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
    * remove the given method from this class
    */
   def removeMethod(ap: JawaMethod) = {
-    if(ap.getDeclaringClass != this) global.reporter.error(NoPosition, "Not correct declarer for remove: " + ap.getName)
-    else if(!this.methods.contains(ap.getSubSignature)) global.reporter.error(NoPosition, "The method " + ap.getName + " is not declared in class " + getName)
+    if(ap.getDeclaringClass != this) global.reporter.error(TITLE, "Not correct declarer for remove: " + ap.getName)
+    else if(!this.methods.contains(ap.getSubSignature)) global.reporter.error(TITLE, "The method " + ap.getName + " is not declared in class " + getName)
     else this.methods -= ap.getSubSignature
   }
 
@@ -423,9 +424,9 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
    * add an interface which is directly implemented by this class
    */
   def addInterface(i: JawaClass) = {
-    if(!i.isInterface) global.reporter.error(NoPosition, "This is not an interface:" + i)
+    if(!i.isInterface) global.reporter.error(TITLE, "This is not an interface:" + i)
     else if(implementsInterface(i.getName)) 
-      global.reporter.error(NoPosition, this + " already implements interface " + i)
+      global.reporter.error(TITLE, this + " already implements interface " + i)
     else this.interfaces(i.getName) = i
   }
 
@@ -433,8 +434,8 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
    * remove an interface from this class
    */
   def removeInterface(i: JawaClass) = {
-    if(!i.isInterface) global.reporter.error(NoPosition, "This is not an interface:" + i)
-    else if(!implementsInterface(i.getName)) global.reporter.error(NoPosition, this + " not implements interface " + i.getName)
+    if(!i.isInterface) global.reporter.error(TITLE, "This is not an interface:" + i)
+    else if(!implementsInterface(i.getName)) global.reporter.error(TITLE, this + " not implements interface " + i.getName)
     else this.interfaces -= i.getName
   }
 
@@ -462,7 +463,7 @@ case class JawaClass(global: Global, typ: JawaType, accessFlags: Int) extends Ja
   }
   
   def addUnknownParent(up: JawaClass) = {
-    if(up.isLoaded) global.reporter.error(NoPosition, "The parent class is loaded, so there are no reason to be unknown:" + up)
+    if(up.isLoaded) global.reporter.error(TITLE, "The parent class is loaded, so there are no reason to be unknown:" + up)
     else this.unknownParents(up.getName) = up
   }
   

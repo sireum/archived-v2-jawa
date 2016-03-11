@@ -43,6 +43,7 @@ object SourcefileParser {
       val st: SymbolTable = JawaResolver.getSymbolResolveResult(Set(code))
       v.resolveFromST(st, level)
     } catch {
+      case ie: InterruptedException => throw ie
       case e: Exception =>
         reporter.error(TITLE, e.getMessage)
         reporter.error(TITLE, code)
