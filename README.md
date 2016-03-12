@@ -7,10 +7,10 @@ This is official reporitory for the Jawa. Jawa is a subset of pilar IR, which ar
 
 ```
 jawa/
++--org.sireum                     Import all nesasarry projects or libs from Sireum. Used for support eclipse plugin dependency management.
 +--sireum-jawa                    Core static analysis data structures, "*.class"&"*.pilar" file managing, class hierarchy, method body resolving, etc.
 +--sireum-jawa-alir               ALl the flow related analysis for Pilar IR, including call graph building, control flow graph building, data flow analysis, data dependent analysis, points to algorithms, side effect analysis, etc.
 +--sireum-jawa-compiler           Independent jawa compiler, which providing interactive nature for jawa parsing, which required for IDE kind of environment.
-+--sireum-jawa-concurrent         Jawa actor system.
 +--sireum-jawa-test               Test suite.
 ```
 
@@ -18,7 +18,7 @@ jawa/
 
 To contribute to the Jawa Core, Jawa Alir, Jawa Compiler, Jawa Concurrent, please send us a [pull request](https://help.github.com/articles/using-pull-requests/#fork--pull) from your fork of this repository!
 
-For more information on building and developing Amandroid, please also check out our [guidelines for contributing](CONTRIBUTING.md).
+For more information on building and developing Amandroid, please also check out our [guidelines for contributing](CONTRIBUTING.md). People who provided excellent ideas or more than 200 LOC of codes are listed in [contributor](CONTRIBUTOR.md).
  
 ## What to contribute
 
