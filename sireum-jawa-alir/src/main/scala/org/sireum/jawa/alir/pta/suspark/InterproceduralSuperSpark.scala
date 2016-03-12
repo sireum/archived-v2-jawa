@@ -313,8 +313,6 @@ object InterproceduralSuperSpark {
     val methodPoint = pag.getPointMethod(calleeSig, callerContext)
     require(methodPoint != null)
     pag.extendGraph(methodPoint, pi, callerContext.copy)
-    val callersig = pi.ownerSig
-    icfg.getCallGraph.addCall(callersig, calleeSig)
     icfg.extendGraph(calleeSig, callerContext.copy)
   }
 }
