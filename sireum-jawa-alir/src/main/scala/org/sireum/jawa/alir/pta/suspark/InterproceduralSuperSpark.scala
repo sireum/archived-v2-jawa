@@ -74,6 +74,7 @@ object InterproceduralSuperSpark {
     pag.constructGraph(ep, points, context.copy, true)
     icfg.collectCfgToBaseGraph(ep, context.copy)
     workListPropagation(global, pag, icfg)
+    pag.pointsToMap.addEntryPoint(ep.getSignature)
   }
   
   private def processStaticInfo(global: Global, pag: PointerAssignmentGraph[PtaNode], icfg: InterproceduralControlFlowGraph[N]) = {

@@ -36,13 +36,13 @@ object MyFileUtil {
     val fr = new FileReader(new File(new URI(fileResourceUri)))
     try{
       val lnr = new LineNumberReader(fr)
-	    var sb = new StringBuilder
-	    var lineText = lnr.readLine
-	    while (lineText != null) {
-	      sb.append(lineText)
-	      sb.append('\n')
-	      lineText = lnr.readLine
-	    }
+      var sb = new StringBuilder
+      var lineText = lnr.readLine
+      while (lineText != null) {
+        sb.append(lineText)
+        sb.append('\n')
+        lineText = lnr.readLine
+      }
       sb.toString
     } finally fr.close
   }
@@ -60,7 +60,7 @@ object MyFileUtil {
     dir.delete();
   }
   
-	/**
+  /**
    * List directory contents for a resource folder. Not recursive.
    * This is basically a brute-force implementation.
    * Works for regular files and also JARs.

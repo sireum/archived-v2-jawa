@@ -20,6 +20,12 @@ object PTAResult {
 class PTAResult {
   import PTAResult._
   
+  private val entryPoints: MSet[Signature] = msetEmpty
+  
+  def addEntryPoint(ep: Signature) = this.entryPoints += ep
+  def addEntryPoints(eps: ISet[Signature]) = this.entryPoints ++= eps
+  def getEntryPoints: ISet[Signature] = this.entryPoints.toSet
+  
   private val ptMap: MMap[String, MMap[PTASlot, MSet[Instance]]] = mmapEmpty
   def pointsToMap: IMap[String, PTSMap] = {
     ptMap.map{
@@ -42,6 +48,7 @@ class PTAResult {
   }
   
   def merge(result: PTAResult): PTAResult = {
+    addEntryPoints(result.getEntryPoints)
     addPointsToMap(result.pointsToMap)
     this
   }
