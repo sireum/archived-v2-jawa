@@ -57,6 +57,10 @@ case class JawaType(baseType: JawaBaseType, dimensions: Int) extends JavaKnowled
    * java.lang.Object[] -> None
    */
   def getPackage: Option[JawaPackage] = if(isArray) None else baseType.pkg
+  def getPackageName: String = getPackage match {
+    case Some(pkg) => pkg.toPkgString(".")
+    case None => ""
+  }
   /**
    * Type is the name of the primitive or class or arrays base class, such as: int -> int, java.lang.Object -> Object,
    * int[] -> int

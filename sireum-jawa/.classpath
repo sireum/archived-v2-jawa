@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src/main/scala"/>
-	<classpathentry kind="src" path="src/main/resources"/>
 	<classpathentry exported="true" kind="lib" path="lib/ini4j.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/blueprints-core.jar" sourcepath="lib/blueprints-core-src.zip"/>
 	<classpathentry exported="true" kind="lib" path="lib/commons-configuration.jar"/>

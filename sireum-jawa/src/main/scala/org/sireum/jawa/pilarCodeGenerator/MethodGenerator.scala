@@ -9,7 +9,7 @@
  ******************************************************************************/
 package org.sireum.jawa.pilarCodeGenerator
 
-import org.stringtemplate.v4.STGroupFile
+import org.stringtemplate.v4.STGroupString
 import java.util.ArrayList
 import org.sireum.util._
 import org.sireum.jawa.JawaClass
@@ -39,7 +39,7 @@ abstract class MethodGenerator(global: Global) {
   protected var callbackFunctions: IMap[JawaType, ISet[Signature]] = imapEmpty
   protected var conditionCounter: Int = 0
   protected var codeCounter: Int = 0
-  protected val template = new STGroupFile("org/sireum/jawa/resources/pilarCodeGenerator/PilarCode.stg")
+  protected val template = new STGroupString(PilarCodeModelProvider.getPilarCodeModel)
   protected val procDeclTemplate = template.getInstanceOf("ProcedureDecl")
   protected val localVarsTemplate = template.getInstanceOf("LocalVars")
   protected val bodyTemplate = template.getInstanceOf("Body")

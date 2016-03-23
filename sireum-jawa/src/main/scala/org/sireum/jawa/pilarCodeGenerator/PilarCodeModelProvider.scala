@@ -1,3 +1,8 @@
+package org.sireum.jawa.pilarCodeGenerator
+
+object PilarCodeModelProvider {
+  def getPilarCodeModel: String = 
+"""
 group PilarCodeGenerator;
 
 delimiters "$", "$"
@@ -81,3 +86,5 @@ call `$funcName$`($params ; separator=", "$) $annotations ; separator=" "$
 FieldAccessExp(base, field) ::= <<
 $base$.`$field$`
 >>
+"""
+}
