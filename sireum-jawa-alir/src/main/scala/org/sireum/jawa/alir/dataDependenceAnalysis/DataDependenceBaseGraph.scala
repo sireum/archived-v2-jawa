@@ -276,6 +276,7 @@ trait DataDependenceBaseGraph[Node <: IDDGNode] extends InterProceduralGraph[Nod
 sealed abstract class IDDGNode(icfgN: ICFGNode) extends InterProceduralNode(icfgN.getContext) {
   def getICFGNode = icfgN
   def getOwner = icfgN.getOwner
+  def getPosition: Option[Int]
 //  def getCode: String = icfgN.getCode
   override def getContext = icfgN.getContext
   override def toString = icfgN.toString()
@@ -285,7 +286,9 @@ sealed abstract class IDDGNode(icfgN: ICFGNode) extends InterProceduralNode(icfg
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
  * @author <a href="mailto:sroy@k-state.edu">Sankardas Roy</a>
  */ 
-abstract class IDDGVirtualNode(icfgN: ICFGNode) extends IDDGNode(icfgN) 
+abstract class IDDGVirtualNode(icfgN: ICFGNode) extends IDDGNode(icfgN) {
+  def getPosition: Option[Int] = None
+}
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -294,6 +297,7 @@ abstract class IDDGVirtualNode(icfgN: ICFGNode) extends IDDGNode(icfgN)
 abstract class IDDGLocNode(icfgN: ICFGLocNode) extends IDDGNode(icfgN) {
   def getLocUri = icfgN.getLocUri
   def getLocIndex: Int = icfgN.getLocIndex
+  def getPosition: Option[Int] = None
 }
 
 /**
@@ -317,6 +321,7 @@ final case class IDDGNormalNode(icfgN: ICFGNormalNode) extends IDDGLocNode(icfgN
 final case class IDDGEntryParamNode(icfgN: ICFGEntryNode, position: Int) extends IDDGVirtualNode(icfgN){
   var paramName: String = null
   def getVirtualLabel: String = "EntryParam:" + position
+  override def getPosition: Option[Int] = Some(position)
   override def toString: String = icfgN.toString() + "p" + position
 }
 
@@ -341,6 +346,7 @@ final case class IDDGEntryNode(icfgN: ICFGEntryNode) extends IDDGVirtualNode(icf
 final case class IDDGExitParamNode(icfgN: ICFGExitNode, position: Int) extends IDDGVirtualNode(icfgN){
   var paramName: String = null
   def getVirtualLabel: String = "ExitParam:" + position
+  override def getPosition: Option[Int] = Some(position)
   override def toString: String = icfgN.toString() + "p" + position
 }
 
@@ -361,6 +367,7 @@ final case class IDDGVirtualBodyNode(icfgN: ICFGCallNode) extends IDDGInvokeNode
 final case class IDDGCallArgNode(icfgN: ICFGCallNode, position: Int) extends IDDGInvokeNode(icfgN){
   var argName: String = null
   def getInvokeLabel: String = "CallArg:" + position
+  override def getPosition: Option[Int] = Some(position)
   override def toString: String = icfgN.toString() + "p" + position
 }
 
@@ -371,6 +378,7 @@ final case class IDDGCallArgNode(icfgN: ICFGCallNode, position: Int) extends IDD
 final case class IDDGReturnArgNode(icfgN: ICFGReturnNode, position: Int) extends IDDGInvokeNode(icfgN){
   var argName: String = null
   def getInvokeLabel: String = "ReturnArg:" + position
+  override def getPosition: Option[Int] = Some(position)
   override def toString: String = icfgN.toString() + "p" + position
 }
 

@@ -16,6 +16,7 @@ import org.sireum.jawa.alir.dataDependenceAnalysis.InterproceduralDataDependence
 import org.sireum.jawa.Signature
 import org.sireum.alir.AlirEdge
 import org.sireum.jawa.alir.interProcedural.InterProceduralNode
+import org.sireum.jawa.alir.Context
 
 /**
  * @author <a href="mailto:fgwei@k-state.edu">Fengguo Wei</a>
@@ -72,6 +73,7 @@ trait TaintPath[N <: InterProceduralNode, E <: AlirEdge[N]] {
   def getTypes: ISet[String]
   def getPath: IList[E]
   def isSame(tp: TaintPath[N, E]): Boolean
+  def toTaintSimplePath: TaintSimplePath
 }
 
 /**
@@ -82,4 +84,26 @@ trait TaintAnalysisResult[N <: InterProceduralNode, E <: AlirEdge[N]] {
   def getSourceNodes: ISet[TaintSource[N]]
   def getSinkNodes: ISet[TaintSink[N]]
   def getTaintedPaths: ISet[TaintPath[N, E]]
+  def toTaintAnalysisSimpleResult: TaintAnalysisSimpleResult = {
+    val sources: ISet[TaintDescriptor] = getSourceNodes.map(_.descriptor)
+    val sinks: ISet[TaintDescriptor] = getSinkNodes.map(_.descriptor)
+    val paths: ISet[TaintSimplePath] = getTaintedPaths.map {
+      path => path.toTaintSimplePath
+    }
+    TaintAnalysisSimpleResult(sources, sinks, paths)
+  }
 }
+
+/**
+ * @author <a href="mailto:fwei@mail.usf.edu">Fengguo Wei</a>
+ */ 
+case class TaintSimpleNode(context: Context, pos: Option[Int])
+/**
+ * @author <a href="mailto:fwei@mail.usf.edu">Fengguo Wei</a>
+ */ 
+case class TaintSimplePath(source: TaintDescriptor, sink: TaintDescriptor, path: IList[(TaintSimpleNode, TaintSimpleNode)])
+/**
+ * @author <a href="mailto:fwei@mail.usf.edu">Fengguo Wei</a>
+ */ 
+case class TaintAnalysisSimpleResult(sources: ISet[TaintDescriptor], sinks: ISet[TaintDescriptor], paths: ISet[TaintSimplePath])
+
