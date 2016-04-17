@@ -215,42 +215,42 @@ class InterproceduralControlFlowGraph[Node <: ICFGNode] extends InterProceduralG
     val nodeMap:MMap[Node, State] = mmapEmpty
     
     nodes.foreach(
-        gNode => {
-          val state = new State()
-          state.setAccept(true)  // making each state in the automata an accept state
-          nodeMap(gNode) = state
-        }
+      gNode => {
+        val state = new State()
+        state.setAccept(true)  // making each state in the automata an accept state
+        nodeMap(gNode) = state
+      }
     )
     // build a map between Entry-nodes-set (in sCfg) to English characters (assuming Entry-nodes-set is small); note that each call corresponds to an edge to Entry node of callee proc
     val calleeMap:MMap[Node, Char] = mmapEmpty
     var calleeIndex = 0
     nodes.foreach(
-        gNode => {   // ******* below check the hard-coded path for testing ***********
-          if(!gNode.toString().contains("pilar:/method/default/%5B%7Cde::mobinauten") && gNode.toString().endsWith(".Entry"))
-          {
-            calleeMap(gNode) = ('A' + calleeIndex).toChar
-            println("in calleeMap: node " + gNode.toString() + "  has label = " + calleeMap(gNode))
-            calleeIndex = calleeIndex + 1
-          }
+      gNode => {   // ******* below check the hard-coded path for testing ***********
+        if(!gNode.toString().contains("pilar:/method/default/%5B%7Cde::mobinauten") && gNode.toString().endsWith(".Entry"))
+        {
+          calleeMap(gNode) = ('A' + calleeIndex).toChar
+          println("in calleeMap: node " + gNode.toString() + "  has label = " + calleeMap(gNode))
+          calleeIndex = calleeIndex + 1
         }
+      }
     )
     // build the automata from the sCfg
     
     nodes.foreach(
-        gNode => {
-          val automataNode = nodeMap(gNode)   // automataNode = automata state
-          val gSuccs = successors(gNode)
-          var label: Char = 'x'  // default label of automata transition
-          gSuccs.foreach(
-              gSucc => {
-                val automataSucc = nodeMap(gSucc)
-                if(calleeMap.contains(gSucc))
-                  label = calleeMap(gSucc)
-                val tr = new Transition(label, automataSucc)
-                automataNode.addTransition(tr)
-              }
-          )
-        }
+      gNode => {
+        val automataNode = nodeMap(gNode)   // automataNode = automata state
+        val gSuccs = successors(gNode)
+        var label: Char = 'x'  // default label of automata transition
+        gSuccs.foreach(
+          gSucc => {
+            val automataSucc = nodeMap(gSucc)
+            if(calleeMap.contains(gSucc))
+              label = calleeMap(gSucc)
+            val tr = new Transition(label, automataSucc)
+            automataNode.addTransition(tr)
+          }
+        )
+      }
     )
    automata
   }

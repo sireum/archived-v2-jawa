@@ -24,14 +24,14 @@ import org.sireum.jawa.alir.interProcedural.InstanceCallee
 
 object BuildICFGFromExistingPTAResult {
   
-  def apply = build _
+  def apply(global: Global, ptaresults: IMap[Signature, PTAResult]): IMap[JawaType, InterProceduralDataFlowGraph] = build(global, ptaresults)
   
   type N = ICFGNode
   
-  private def build(global: Global, entryPoints: ISet[Signature], ptaresult: PTAResult): InterProceduralDataFlowGraph = {
+  private def build(global: Global, ptaresults: IMap[Signature, PTAResult]): IMap[JawaType, InterProceduralDataFlowGraph] = {
     val icfg = new InterproceduralControlFlowGraph[N]
-    entryPoints foreach {
-      ep =>
+    ptaresults map {
+      case (ep, ptaresult) =>
         val epmopt = global.getMethod(ep)
         epmopt match {
           case Some(epm) => 
@@ -39,8 +39,9 @@ object BuildICFGFromExistingPTAResult {
               doBuild(global, epm, icfg, ptaresult)
           case None =>
         }
+        (ep.getClassType, InterProceduralDataFlowGraph(icfg, ptaresult))
     }
-    InterProceduralDataFlowGraph(icfg, ptaresult)
+    
   }
   
   private def doBuild(

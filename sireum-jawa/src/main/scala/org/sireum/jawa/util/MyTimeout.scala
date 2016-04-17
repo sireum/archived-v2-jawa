@@ -20,6 +20,6 @@ class MyTimeout(time: FiniteDuration) {
     (currentTime - startTime) >= time.toMillis
   }
   def isTimeoutThrow = {
-    if(isTimeout) throw new TimeoutException
+    if(isTimeout) throw new TimeoutException("Timeout after " + time.toMinutes + " minutes.")
   }
 }
