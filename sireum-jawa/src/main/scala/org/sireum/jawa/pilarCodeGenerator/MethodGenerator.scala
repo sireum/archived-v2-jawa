@@ -109,13 +109,13 @@ abstract class MethodGenerator(global: Global) {
   /**
    * generate environment with predefined methods list
    */
-  def generate(methods: List[String], name: String): (JawaMethod, String) = {
+  def generate(methods: List[Signature], name: String): (JawaMethod, String) = {
     val className = this.currentComponent.jawaName
     val methodName = className + "." + name
     val annotations = new ArrayList[ST]
     val signature = JavaKnowledge.genSignature(JavaKnowledge.formatTypeToSignature(this.currentComponent), name, "()V")
     initMethodHead("void", methodName, className, signature, "STATIC")
-    val code = generateInternal(List())
+    val code = generateInternal(methods)
     global.reporter.echo(TITLE, "Environment code:\n" + code)
     (global.resolveMethodCode(signature, code), code)
   }
